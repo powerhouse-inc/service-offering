@@ -1,0 +1,37 @@
+import { type SignalDispatch } from "document-model";
+import type {
+  AddServiceAction,
+  UpdateServiceAction,
+  DeleteServiceAction,
+  AddFacetBindingAction,
+  RemoveFacetBindingAction,
+} from "./actions.js";
+import type { ServiceOfferingState } from "../types.js";
+
+export interface ServiceOfferingServiceManagementOperations {
+  addServiceOperation: (
+    state: ServiceOfferingState,
+    action: AddServiceAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  updateServiceOperation: (
+    state: ServiceOfferingState,
+    action: UpdateServiceAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  deleteServiceOperation: (
+    state: ServiceOfferingState,
+    action: DeleteServiceAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  addFacetBindingOperation: (
+    state: ServiceOfferingState,
+    action: AddFacetBindingAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  removeFacetBindingOperation: (
+    state: ServiceOfferingState,
+    action: RemoveFacetBindingAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+}

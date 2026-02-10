@@ -1,0 +1,111 @@
+/**
+ * Factory methods for creating SubscriptionInstanceDocument instances
+ */
+import type { PHAuthState, PHDocumentState, PHBaseState } from "document-model";
+import { createBaseState, defaultBaseState } from "document-model/core";
+import type {
+  SubscriptionInstanceDocument,
+  SubscriptionInstanceLocalState,
+  SubscriptionInstanceGlobalState,
+  SubscriptionInstancePHState,
+} from "./types.js";
+import { createDocument } from "./utils.js";
+
+export function defaultGlobalState(): SubscriptionInstanceGlobalState {
+  return {
+    customerId: null,
+    customerName: null,
+    customerEmail: null,
+    customerType: null,
+    teamMemberCount: null,
+    operatorId: null,
+    serviceOfferingId: null,
+    tierName: null,
+    tierPricingOptionId: null,
+    resource: null,
+    status: "PENDING",
+    createdAt: null,
+    activatedSince: null,
+    pausedSince: null,
+    expiringSince: null,
+    renewalDate: null,
+    cancelledSince: null,
+    cancellationReason: null,
+    autoRenew: false,
+    operatorNotes: null,
+    budget: null,
+    nextBillingDate: null,
+    projectedBillAmount: null,
+    projectedBillCurrency: null,
+    services: [],
+    serviceGroups: [],
+  };
+}
+
+export function defaultLocalState(): SubscriptionInstanceLocalState {
+  return {};
+}
+
+export function defaultPHState(): SubscriptionInstancePHState {
+  return {
+    ...defaultBaseState(),
+    global: defaultGlobalState(),
+    local: defaultLocalState(),
+  };
+}
+
+export function createGlobalState(
+  state?: Partial<SubscriptionInstanceGlobalState>,
+): SubscriptionInstanceGlobalState {
+  return {
+    ...defaultGlobalState(),
+    ...(state || {}),
+  } as SubscriptionInstanceGlobalState;
+}
+
+export function createLocalState(
+  state?: Partial<SubscriptionInstanceLocalState>,
+): SubscriptionInstanceLocalState {
+  return {
+    ...defaultLocalState(),
+    ...(state || {}),
+  } as SubscriptionInstanceLocalState;
+}
+
+export function createState(
+  baseState?: Partial<PHBaseState>,
+  globalState?: Partial<SubscriptionInstanceGlobalState>,
+  localState?: Partial<SubscriptionInstanceLocalState>,
+): SubscriptionInstancePHState {
+  return {
+    ...createBaseState(baseState?.auth, baseState?.document),
+    global: createGlobalState(globalState),
+    local: createLocalState(localState),
+  };
+}
+
+/**
+ * Creates a SubscriptionInstanceDocument with custom global and local state
+ * This properly handles the PHBaseState requirements while allowing
+ * document-specific state to be set.
+ */
+export function createSubscriptionInstanceDocument(
+  state?: Partial<{
+    auth?: Partial<PHAuthState>;
+    document?: Partial<PHDocumentState>;
+    global?: Partial<SubscriptionInstanceGlobalState>;
+    local?: Partial<SubscriptionInstanceLocalState>;
+  }>,
+): SubscriptionInstanceDocument {
+  const document = createDocument(
+    state
+      ? createState(
+          createBaseState(state.auth, state.document),
+          state.global,
+          state.local,
+        )
+      : undefined,
+  );
+
+  return document;
+}

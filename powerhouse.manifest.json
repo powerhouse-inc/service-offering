@@ -1,0 +1,39 @@
+{
+    "name": "Resources and Services",
+    "description": "",
+    "category": "Productivity",
+    "publisher": {
+        "name": "",
+        "url": ""
+    },
+    "documentModels": [
+        {
+            "id": "powerhouse/service-offering",
+            "name": "ServiceOffering"
+        },
+        {
+            "id": "powerhouse/facet",
+            "name": "Facet"
+        },
+        {
+            "id": "powerhouse/resource-instance",
+            "name": "ResourceInstance"
+        },
+        {
+            "id": "powerhouse/service-subscription",
+            "name": "ServiceSubscription"
+        },
+        {
+            "id": "powerhouse/resource-template",
+            "name": "ResourceTemplate"
+        },
+        {
+            "id": "powerhouse/subscription-instance",
+            "name": "Subscription Instance"
+        }
+    ],
+    "editors": [],
+    "apps": [],
+    "subgraphs": [],
+    "importScripts": []
+}
