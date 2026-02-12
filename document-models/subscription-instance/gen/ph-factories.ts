@@ -20,6 +20,7 @@ export function defaultGlobalState(): SubscriptionInstanceGlobalState {
     teamMemberCount: null,
     operatorId: null,
     serviceOfferingId: null,
+    tierId: null,
     tierName: null,
     tierPricingOptionId: null,
     resource: null,
@@ -37,8 +38,13 @@ export function defaultGlobalState(): SubscriptionInstanceGlobalState {
     nextBillingDate: null,
     projectedBillAmount: null,
     projectedBillCurrency: null,
+    targetAudienceId: null,
+    targetAudienceLabel: null,
     services: [],
     serviceGroups: [],
+    selectedOptionGroups: [],
+    facetSelections: [],
+    clientRequests: [],
   };
 }
 

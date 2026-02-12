@@ -458,7 +458,10 @@ export function TiersList({ document, dispatch }: TiersListProps) {
                                 </span>
                                 {limit.resetCycle && (
                                   <span className="text-xs text-gray-500 ml-2">
-                                    / {limit.resetCycle}
+                                    /{" "}
+                                    {limit.resetCycle === "NONE"
+                                      ? "One-time"
+                                      : limit.resetCycle}
                                   </span>
                                 )}
                               </div>

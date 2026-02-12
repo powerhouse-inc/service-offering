@@ -17,6 +17,8 @@ import {
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
   UpdateBillingProjectionInputSchema,
+  SetTargetAudienceInputSchema,
+  RemoveTargetAudienceInputSchema,
 } from "../schema/zod.js";
 import type {
   InitializeSubscriptionInput,
@@ -36,6 +38,8 @@ import type {
   SetAutoRenewInput,
   SetRenewalDateInput,
   UpdateBillingProjectionInput,
+  SetTargetAudienceInput,
+  RemoveTargetAudienceInput,
 } from "../types.js";
 import type {
   InitializeSubscriptionAction,
@@ -55,6 +59,8 @@ import type {
   SetAutoRenewAction,
   SetRenewalDateAction,
   UpdateBillingProjectionAction,
+  SetTargetAudienceAction,
+  RemoveTargetAudienceAction,
 } from "./actions.js";
 
 export const initializeSubscription = (input: InitializeSubscriptionInput) =>
@@ -211,5 +217,23 @@ export const updateBillingProjection = (input: UpdateBillingProjectionInput) =>
     { ...input },
     undefined,
     UpdateBillingProjectionInputSchema,
+    "global",
+  );
+
+export const setTargetAudience = (input: SetTargetAudienceInput) =>
+  createAction<SetTargetAudienceAction>(
+    "SET_TARGET_AUDIENCE",
+    { ...input },
+    undefined,
+    SetTargetAudienceInputSchema,
+    "global",
+  );
+
+export const removeTargetAudience = (input: RemoveTargetAudienceInput) =>
+  createAction<RemoveTargetAudienceAction>(
+    "REMOVE_TARGET_AUDIENCE",
+    { ...input },
+    undefined,
+    RemoveTargetAudienceInputSchema,
     "global",
   );

@@ -11,6 +11,7 @@ import {
   setAutoRenew,
   setRenewalDate,
   updateBillingProjection,
+  setTargetAudience,
 } from "../../../document-models/subscription-instance/gen/subscription/creators.js";
 import { addService } from "../../../document-models/subscription-instance/gen/service/creators.js";
 import {
@@ -19,6 +20,8 @@ import {
 } from "../../../document-models/subscription-instance/gen/service-group/creators.js";
 import { addServiceMetric } from "../../../document-models/subscription-instance/gen/metrics/creators.js";
 import { setCustomerType } from "../../../document-models/subscription-instance/gen/customer/creators.js";
+import { addSelectedOptionGroup } from "../../../document-models/subscription-instance/gen/option-group/creators.js";
+import { setFacetSelection } from "../../../document-models/subscription-instance/gen/facet/creators.js";
 
 interface MockDataButtonProps {
   document: SubscriptionInstanceDocument;
@@ -52,7 +55,10 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
           resourceId: `phid:resource:${generateId()}`,
           resourceLabel: "Enterprise Cloud Platform",
           tierName: "Professional",
+          tierId: generateId(),
           tierPricingOptionId: generateId(),
+          targetAudienceId: generateId(),
+          targetAudienceLabel: "Mid-Market Engineering Teams",
         }),
       );
     }
@@ -76,7 +82,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       }),
     );
 
-    // === SERVICES (4 core services) ===
+    // === RECURRING SERVICES (4 core services, all included) ===
 
     const service1Id = generateId();
     const service2Id = generateId();
@@ -122,8 +128,6 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         recurringCurrency: "USD",
         recurringBillingCycle: "MONTHLY",
         recurringNextBillingDate: oneMonthFromNow,
-        setupAmount: 250,
-        setupCurrency: "USD",
       }),
     );
 
@@ -150,7 +154,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "vCPU Hours",
         unitName: "hours",
         currentUsage: 1250,
-        limit: 2000,
+        freeLimit: 2000,
         usageResetPeriod: "MONTHLY",
         nextUsageReset: oneMonthFromNow,
         unitCostAmount: 0.05,
@@ -166,7 +170,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "RAM GB-Hours",
         unitName: "GB-hours",
         currentUsage: 3200,
-        limit: 5000,
+        freeLimit: 5000,
         usageResetPeriod: "MONTHLY",
         nextUsageReset: oneMonthFromNow,
       }),
@@ -179,7 +183,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Active Instances",
         unitName: "instances",
         currentUsage: 8,
-        limit: 20,
+        freeLimit: 20,
       }),
     );
 
@@ -191,7 +195,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Storage Used",
         unitName: "GB",
         currentUsage: 450,
-        limit: 1000,
+        freeLimit: 1000,
         unitCostAmount: 0.02,
         unitCostCurrency: "USD",
         unitCostBillingCycle: "MONTHLY",
@@ -205,7 +209,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Bandwidth Out",
         unitName: "GB",
         currentUsage: 280,
-        limit: 500,
+        freeLimit: 500,
         usageResetPeriod: "MONTHLY",
         nextUsageReset: oneMonthFromNow,
       }),
@@ -218,7 +222,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "API Requests",
         unitName: "requests",
         currentUsage: 125000,
-        limit: 500000,
+        freeLimit: 500000,
         usageResetPeriod: "MONTHLY",
         nextUsageReset: oneMonthFromNow,
       }),
@@ -232,7 +236,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Database Size",
         unitName: "GB",
         currentUsage: 85,
-        limit: 100,
+        freeLimit: 100,
       }),
     );
 
@@ -243,7 +247,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Connections",
         unitName: "connections",
         currentUsage: 45,
-        limit: 100,
+        freeLimit: 100,
       }),
     );
 
@@ -255,7 +259,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Cache Hit Rate",
         unitName: "%",
         currentUsage: 94,
-        limit: 100,
+        freeLimit: 100,
       }),
     );
 
@@ -266,23 +270,24 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         name: "Edge Requests",
         unitName: "M requests",
         currentUsage: 12,
-        limit: 50,
+        freeLimit: 50,
         usageResetPeriod: "MONTHLY",
         nextUsageReset: oneMonthFromNow,
       }),
     );
 
-    // === ADDON SERVICE GROUPS (2 optional groups) ===
+    // === ADD-ON GROUPS (optional, mix of recurring and setup services) ===
 
     const addonGroup1Id = generateId();
     const addonGroup2Id = generateId();
 
-    // Addon Group 1: Security Suite
+    // Add-on 1: Security Suite (recurring services + setup service)
     dispatch(
       addServiceGroup({
         groupId: addonGroup1Id,
         name: "Security Suite",
         optional: true,
+        billingCycle: "MONTHLY",
       }),
     );
 
@@ -312,12 +317,24 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       }),
     );
 
-    // Addon Group 2: Premium Support
+    dispatch(
+      addServiceToGroup({
+        groupId: addonGroup1Id,
+        serviceId: generateId(),
+        name: "Security Audit & Onboarding",
+        description: "Initial security assessment and configuration",
+        setupAmount: 750,
+        setupCurrency: "USD",
+      }),
+    );
+
+    // Add-on 2: Premium Support (recurring + setup)
     dispatch(
       addServiceGroup({
         groupId: addonGroup2Id,
         name: "Premium Support",
         optional: true,
+        billingCycle: "MONTHLY",
       }),
     );
 
@@ -332,8 +349,6 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
         recurringCurrency: "USD",
         recurringBillingCycle: "MONTHLY",
         recurringNextBillingDate: oneMonthFromNow,
-        setupAmount: 0,
-        setupCurrency: "USD",
       }),
     );
 
@@ -350,12 +365,78 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       }),
     );
 
+    dispatch(
+      addServiceToGroup({
+        groupId: addonGroup2Id,
+        serviceId: generateId(),
+        name: "Team Onboarding Workshop",
+        description: "Customized training sessions for your engineering team",
+        setupAmount: 1200,
+        setupCurrency: "USD",
+        setupPaymentDate: oneMonthAgo,
+      }),
+    );
+
+    // === SELECTED OPTION GROUPS ===
+    dispatch(
+      addSelectedOptionGroup({
+        id: generateId(),
+        optionGroupId: generateId(),
+        name: "Extended Logging",
+        isAddOn: true,
+        costType: "RECURRING",
+        billingCycle: "MONTHLY",
+        price: 49,
+        currency: "USD",
+      }),
+    );
+
+    dispatch(
+      addSelectedOptionGroup({
+        id: generateId(),
+        optionGroupId: generateId(),
+        name: "Compliance Package",
+        isAddOn: false,
+        costType: "SETUP",
+        price: 999,
+        currency: "USD",
+      }),
+    );
+
+    // === FACET SELECTIONS ===
+    dispatch(
+      setFacetSelection({
+        id: generateId(),
+        categoryKey: "region",
+        categoryLabel: "Region",
+        selectedOptions: ["US East", "EU West", "APAC"],
+      }),
+    );
+
+    dispatch(
+      setFacetSelection({
+        id: generateId(),
+        categoryKey: "compliance",
+        categoryLabel: "Compliance Framework",
+        selectedOptions: ["SOC2", "GDPR"],
+      }),
+    );
+
+    // === TARGET AUDIENCE ===
+    dispatch(
+      setTargetAudience({
+        targetAudienceId: generateId(),
+        targetAudienceLabel: "Mid-Market Engineering Teams",
+      }),
+    );
+
     // === BILLING PROJECTION ===
-    // Total recurring: 299 + 149 + 199 + 79 = 726 (core) + 99 + 79 + 299 + 199 = 1402 (with addons)
+    // Total recurring: 299 + 149 + 199 + 79 = 726 (core) + 99 + 79 + 299 + 199 = 1402 (with addons) + 49 (option) = 1451
+    // Setup costs: 750 (security) + 1200 (onboarding, paid) + 999 (compliance option) = 2949
     dispatch(
       updateBillingProjection({
         nextBillingDate: oneMonthFromNow,
-        projectedBillAmount: 1402,
+        projectedBillAmount: 1451,
         projectedBillCurrency: "USD",
       }),
     );

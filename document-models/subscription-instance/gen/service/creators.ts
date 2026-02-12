@@ -7,6 +7,7 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
+  UpdateServiceLevelInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceInput,
@@ -16,6 +17,7 @@ import type {
   ReportSetupPaymentInput,
   ReportRecurringPaymentInput,
   UpdateServiceInfoInput,
+  UpdateServiceLevelInput,
 } from "../types.js";
 import type {
   AddServiceAction,
@@ -25,6 +27,7 @@ import type {
   ReportSetupPaymentAction,
   ReportRecurringPaymentAction,
   UpdateServiceInfoAction,
+  UpdateServiceLevelAction,
 } from "./actions.js";
 
 export const addService = (input: AddServiceInput) =>
@@ -89,5 +92,14 @@ export const updateServiceInfo = (input: UpdateServiceInfoInput) =>
     { ...input },
     undefined,
     UpdateServiceInfoInputSchema,
+    "global",
+  );
+
+export const updateServiceLevel = (input: UpdateServiceLevelInput) =>
+  createAction<UpdateServiceLevelAction>(
+    "UPDATE_SERVICE_LEVEL",
+    { ...input },
+    undefined,
+    UpdateServiceLevelInputSchema,
     "global",
   );

@@ -7,6 +7,7 @@ import type {
   ReportSetupPaymentInput,
   ReportRecurringPaymentInput,
   UpdateServiceInfoInput,
+  UpdateServiceLevelInput,
 } from "../types.js";
 
 export type AddServiceAction = Action & {
@@ -37,6 +38,10 @@ export type UpdateServiceInfoAction = Action & {
   type: "UPDATE_SERVICE_INFO";
   input: UpdateServiceInfoInput;
 };
+export type UpdateServiceLevelAction = Action & {
+  type: "UPDATE_SERVICE_LEVEL";
+  input: UpdateServiceLevelInput;
+};
 
 export type SubscriptionInstanceServiceAction =
   | AddServiceAction
@@ -45,4 +50,5 @@ export type SubscriptionInstanceServiceAction =
   | UpdateServiceRecurringCostAction
   | ReportSetupPaymentAction
   | ReportRecurringPaymentAction
-  | UpdateServiceInfoAction;
+  | UpdateServiceInfoAction
+  | UpdateServiceLevelAction;

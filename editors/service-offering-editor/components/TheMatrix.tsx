@@ -2441,7 +2441,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricOveragePrices(initialOveragePrices);
     setMetricOverageCycles(initialOverageCycles);
     setMetricUnitName("");
-    setMetricResetCycle("MONTHLY");
+    // Default to NONE for setup/formation services, MONTHLY otherwise
+    const service = services.find((s) => s.id === serviceId);
+    setMetricResetCycle(service?.isSetupFormation ? "NONE" : "MONTHLY");
   };
 
   const handleEditMetric = (serviceId: string, metric: string) => {
@@ -3488,6 +3490,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   className="matrix__modal-input"
                   style={{ cursor: "pointer" }}
                 >
+                  <option value="NONE">None (One-time)</option>
                   <option value="DAILY">Daily</option>
                   <option value="WEEKLY">Weekly</option>
                   <option value="MONTHLY">Monthly</option>
@@ -3496,7 +3499,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   className="matrix__modal-hint"
                   style={{ marginTop: "0.375rem" }}
                 >
-                  How often usage limits reset
+                  How often usage limits reset. Use "None" for one-time setup
+                  costs.
                 </p>
               </div>
 
@@ -3684,7 +3688,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }}
                             >
                               per {metricUnitName || "unit"} above free limit
-                              {metricResetCycle
+                              {metricResetCycle && metricResetCycle !== "NONE"
                                 ? ` / ${metricResetCycle.toLowerCase()}`
                                 : ""}
                             </span>
@@ -4243,7 +4247,9 @@ function ServiceRowWithMetrics({
                   </span>
                   {usageLimit?.resetCycle && (
                     <span className="matrix__metric-reset-cycle">
-                      {usageLimit.resetCycle.toLowerCase()}
+                      {usageLimit.resetCycle === "NONE"
+                        ? "one-time"
+                        : usageLimit.resetCycle.toLowerCase()}
                     </span>
                   )}
                   {usageLimit?.unitPrice != null && (
@@ -4254,7 +4260,7 @@ function ServiceRowWithMetrics({
                         usageLimit.unitPriceCurrency || "USD",
                       )}
                       /{usageLimit.unitName || "unit"} above free
-                      {usageLimit.resetCycle
+                      {usageLimit.resetCycle && usageLimit.resetCycle !== "NONE"
                         ? ` / ${usageLimit.resetCycle.toLowerCase()}`
                         : ""}
                     </span>
@@ -4671,6 +4677,7 @@ function MetricLimitItem({
             className="matrix__panel-input"
             style={{ cursor: "pointer" }}
           >
+            <option value="NONE">None (One-time)</option>
             <option value="DAILY">Daily</option>
             <option value="WEEKLY">Weekly</option>
             <option value="MONTHLY">Monthly</option>

@@ -26,7 +26,8 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
           id: input.metricId,
           name: input.name,
           unitName: input.unitName,
-          limit: input.limit ?? null,
+          freeLimit: input.freeLimit ?? null,
+          paidLimit: input.paidLimit ?? null,
           currentUsage: input.currentUsage,
           usageResetPeriod: input.usageResetPeriod || null,
           nextUsageReset: input.nextUsageReset || null,
@@ -45,8 +46,10 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         if (metric) {
           if (input.name) metric.name = input.name;
           if (input.unitName) metric.unitName = input.unitName;
-          if (input.limit !== undefined && input.limit !== null)
-            metric.limit = input.limit;
+          if (input.freeLimit !== undefined && input.freeLimit !== null)
+            metric.freeLimit = input.freeLimit;
+          if (input.paidLimit !== undefined && input.paidLimit !== null)
+            metric.paidLimit = input.paidLimit;
           if (input.usageResetPeriod)
             metric.usageResetPeriod = input.usageResetPeriod;
           if (input.nextUsageReset)

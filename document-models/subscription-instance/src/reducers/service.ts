@@ -35,6 +35,7 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         id: input.serviceId,
         name: input.name || null,
         description: input.description || null,
+        serviceLevel: input.serviceLevel || null,
         setupCost,
         recurringCost,
         metrics: [],
@@ -122,6 +123,14 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       if (service) {
         if (input.name) service.name = input.name;
         if (input.description) service.description = input.description;
+      }
+    },
+
+    updateServiceLevelOperation(state, action) {
+      const { input } = action;
+      const service = state.services.find((s) => s.id === input.serviceId);
+      if (service) {
+        service.serviceLevel = input.serviceLevel;
       }
     },
   };

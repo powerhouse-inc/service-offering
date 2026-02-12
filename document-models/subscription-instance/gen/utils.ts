@@ -28,6 +28,7 @@ export const initialGlobalState: SubscriptionInstanceGlobalState = {
   teamMemberCount: null,
   operatorId: null,
   serviceOfferingId: null,
+  tierId: null,
   tierName: null,
   tierPricingOptionId: null,
   resource: null,
@@ -45,8 +46,13 @@ export const initialGlobalState: SubscriptionInstanceGlobalState = {
   nextBillingDate: null,
   projectedBillAmount: null,
   projectedBillCurrency: null,
+  targetAudienceId: null,
+  targetAudienceLabel: null,
   services: [],
   serviceGroups: [],
+  selectedOptionGroups: [],
+  facetSelections: [],
+  clientRequests: [],
 };
 export const initialLocalState: SubscriptionInstanceLocalState = {};
 

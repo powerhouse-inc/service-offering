@@ -18,6 +18,8 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
+  updateServiceLevel,
+  UpdateServiceLevelInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 describe("ServiceOperations", () => {
@@ -136,6 +138,23 @@ describe("ServiceOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "UPDATE_SERVICE_INFO",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle updateServiceLevel operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(UpdateServiceLevelInputSchema());
+
+    const updatedDocument = reducer(document, updateServiceLevel(input));
+
+    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "UPDATE_SERVICE_LEVEL",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

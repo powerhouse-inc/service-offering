@@ -10,12 +10,14 @@ import type {
   AddTierInput,
   AddTierPricingOptionInput,
   AddUsageLimitInput,
+  BillingCycle,
   ChangeResourceTemplateInput,
   DeleteOptionGroupInput,
   DeleteServiceGroupInput,
   DeleteServiceInput,
   DeleteTierInput,
   FacetTarget,
+  GroupCostType,
   OptionGroup,
   RemoveFacetBindingInput,
   RemoveFacetOptionInput,
@@ -28,10 +30,13 @@ import type {
   ResourceFacetBinding,
   SelectResourceTemplateInput,
   Service,
+  ServiceCostType,
   ServiceGroup,
+  ServiceLevel,
   ServiceLevelBinding,
   ServiceOfferingState,
   ServicePricing,
+  ServiceStatus,
   ServiceSubscriptionTier,
   ServiceUsageLimit,
   SetFacetTargetInput,
@@ -49,6 +54,7 @@ import type {
   UpdateTierPricingInput,
   UpdateTierPricingOptionInput,
   UpdateUsageLimitInput,
+  UsageResetCycle,
 } from "./types.js";
 
 type Properties<T> = Required<{
@@ -92,7 +98,16 @@ export const ServiceStatusSchema = z.enum([
   "DRAFT",
 ]);
 
-export const UsageResetCycleSchema = z.enum(["DAILY", "MONTHLY", "WEEKLY"]);
+export const UsageResetCycleSchema = z.enum([
+  "ANNUAL",
+  "DAILY",
+  "HOURLY",
+  "MONTHLY",
+  "NONE",
+  "QUARTERLY",
+  "SEMI_ANNUAL",
+  "WEEKLY",
+]);
 
 export function AddFacetBindingInputSchema(): z.ZodObject<
   Properties<AddFacetBindingInput>

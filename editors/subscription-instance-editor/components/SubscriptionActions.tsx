@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
@@ -12,10 +13,7 @@ import {
   cancelSubscription,
   renewExpiringSubscription,
 } from "../../../document-models/subscription-instance/gen/subscription/creators.js";
-
-// Note: The requests module (pendingRequests, ClientRequest, RequestType, etc.)
-// has been removed from the SubscriptionInstance document model.
-// Client request functionality is disabled until the module is re-implemented.
+import { createClientRequest } from "../../../document-models/subscription-instance/gen/requests/creators.js";
 
 interface SubscriptionActionsProps {
   document: SubscriptionInstanceDocument;
@@ -101,6 +99,8 @@ export function SubscriptionActions({
     "pause" | "cancel" | "resume" | "renew" | null
   >(null);
   const [reason, setReason] = useState("");
+  const [showCancelRequest, setShowCancelRequest] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   // Operator direct actions
   const handleActivate = useCallback(() => {
@@ -149,39 +149,48 @@ export function SubscriptionActions({
     setConfirmAction(null);
   }, [dispatch]);
 
-  // Determine which handler to use based on mode
   const handleConfirm = useCallback(() => {
-    // Only operator mode can perform direct actions
-    // Client request functionality is disabled
-    if (mode === "operator") {
-      switch (confirmAction) {
-        case "pause":
-          handleOperatorPause();
-          break;
-        case "resume":
-          handleOperatorResume();
-          break;
-        case "cancel":
-          handleOperatorCancel();
-          break;
-        case "renew":
-          handleOperatorRenew();
-          break;
-      }
-    } else {
-      // Client mode - requests are disabled
-      console.warn("Client request functionality is currently disabled");
-      setConfirmAction(null);
-      setReason("");
+    switch (confirmAction) {
+      case "pause":
+        handleOperatorPause();
+        break;
+      case "resume":
+        handleOperatorResume();
+        break;
+      case "cancel":
+        handleOperatorCancel();
+        break;
+      case "renew":
+        handleOperatorRenew();
+        break;
     }
   }, [
-    mode,
     confirmAction,
     handleOperatorPause,
     handleOperatorResume,
     handleOperatorCancel,
     handleOperatorRenew,
   ]);
+
+  // Client cancellation request
+  const handleCancelRequest = useCallback(() => {
+    dispatch(
+      createClientRequest({
+        id: generateId(),
+        type: "GENERAL",
+        description: "Request to cancel subscription",
+        reason: cancelReason || undefined,
+        createdAt: new Date().toISOString(),
+      }),
+    );
+    setShowCancelRequest(false);
+    setCancelReason("");
+  }, [dispatch, cancelReason]);
+
+  const hasPendingCancellation = state.clientRequests.some(
+    (r) =>
+      r.status === "PENDING" && r.description.toLowerCase().includes("cancel"),
+  );
 
   const isPending = state.status === "PENDING";
   const isActive = state.status === "ACTIVE";
@@ -193,6 +202,35 @@ export function SubscriptionActions({
     <>
       <div className="si-actions">
         {/* Status Actions - contextual based on current status */}
+        {mode === "client" && !isCancelled && (
+          <div className="si-actions__buttons">
+            {hasPendingCancellation ? (
+              <span className="si-actions__pending-badge si-actions__pending-badge--danger">
+                Cancellation Requested
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="si-btn si-btn--sm si-btn--danger-ghost"
+                onClick={() => setShowCancelRequest(true)}
+              >
+                <svg
+                  className="si-btn__icon"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Request Cancellation
+              </button>
+            )}
+          </div>
+        )}
+
         {mode === "operator" && (
           <div className="si-actions__buttons">
             {isPending && (
@@ -301,15 +339,6 @@ export function SubscriptionActions({
             )}
           </div>
         )}
-
-        {/* Client view - request actions (disabled) */}
-        {mode === "client" && !isCancelled && (
-          <div className="si-actions__buttons">
-            <p className="si-actions__disabled-note">
-              Client request functionality is currently unavailable.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Confirmation Modals - operator only */}
@@ -363,6 +392,23 @@ export function SubscriptionActions({
         confirmVariant="primary"
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* Client cancellation request modal */}
+      <ConfirmModal
+        isOpen={showCancelRequest}
+        title="Request Subscription Cancellation"
+        message="Submit a request to cancel your subscription. The operator will review your request."
+        confirmLabel="Submit Request"
+        confirmVariant="danger"
+        onConfirm={handleCancelRequest}
+        onCancel={() => {
+          setShowCancelRequest(false);
+          setCancelReason("");
+        }}
+        showReasonInput
+        reason={cancelReason}
+        onReasonChange={setCancelReason}
       />
     </>
   );

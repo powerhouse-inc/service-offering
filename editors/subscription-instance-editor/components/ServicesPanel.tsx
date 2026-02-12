@@ -1,18 +1,19 @@
 import { useState, useCallback } from "react";
+import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 import type {
+  ClientRequest,
   Service,
+  ServiceGroup,
   ServiceMetric,
 } from "../../../document-models/subscription-instance/gen/schema/types.js";
 import type { ViewMode } from "../types.js";
 import { MetricActions } from "./MetricActions.js";
-
-// Note: createClientRequest from requests module has been removed.
-// Service request functionality is disabled until the module is re-implemented.
+import { createClientRequest } from "../../../document-models/subscription-instance/gen/requests/creators.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -26,15 +27,18 @@ function UsageBar({
   dispatch,
   isOperator,
   customerName,
+  pendingRequest,
 }: {
   serviceId: string;
   metric: ServiceMetric;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   isOperator: boolean;
   customerName?: string | null;
+  pendingRequest?: ClientRequest | null;
 }) {
-  const percentage = metric.limit
-    ? Math.min(100, (metric.currentUsage / metric.limit) * 100)
+  const effectiveLimit = metric.freeLimit ?? metric.paidLimit;
+  const percentage = effectiveLimit
+    ? Math.min(100, (metric.currentUsage / effectiveLimit) * 100)
     : 0;
 
   const getBarColor = () => {
@@ -43,18 +47,45 @@ function UsageBar({
     return "si-usage-bar__fill--normal";
   };
 
+  const formatLimit = () => {
+    const parts: string[] = [];
+    if (metric.freeLimit != null)
+      parts.push(`${metric.freeLimit.toLocaleString()} free`);
+    if (metric.paidLimit != null)
+      parts.push(`${metric.paidLimit.toLocaleString()} max`);
+    return parts.length > 0 ? parts.join(" / ") : null;
+  };
+
+  const limitLabel = formatLimit();
+
+  // Compute overage for this metric
+  const hasOverage =
+    metric.freeLimit != null &&
+    metric.currentUsage > metric.freeLimit &&
+    metric.unitCost != null;
+  const overageExcess = hasOverage
+    ? metric.currentUsage - metric.freeLimit!
+    : 0;
+  const overageCost = hasOverage ? overageExcess * metric.unitCost!.amount : 0;
+
+  const formatCurrency = (amount: number, currency: string) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
+    }).format(amount);
+
   return (
     <div className="si-metric">
       <div className="si-metric__header">
         <span className="si-metric__name">{metric.name}</span>
         <span className="si-metric__value">
           {metric.currentUsage.toLocaleString()}
-          {metric.limit && ` / ${metric.limit.toLocaleString()}`}
+          {limitLabel && ` / ${limitLabel}`}
           <span className="si-metric__unit"> {metric.unitName}</span>
         </span>
       </div>
       <div className="si-metric__body">
-        {metric.limit && (
+        {effectiveLimit != null && (
           <div className="si-usage-bar">
             <div
               className={`si-usage-bar__fill ${getBarColor()}`}
@@ -62,7 +93,7 @@ function UsageBar({
               role="progressbar"
               aria-valuenow={metric.currentUsage}
               aria-valuemin={0}
-              aria-valuemax={metric.limit}
+              aria-valuemax={effectiveLimit}
             />
           </div>
         )}
@@ -72,11 +103,52 @@ function UsageBar({
           dispatch={dispatch}
           isOperator={isOperator}
           customerName={customerName}
+          pendingRequest={pendingRequest}
         />
       </div>
-      {metric.nextUsageReset && (
+      {hasOverage && (
+        <div className="si-metric__overage">
+          Overage: {overageExcess.toLocaleString()} {metric.unitName} &times;{" "}
+          {formatCurrency(metric.unitCost!.amount, metric.unitCost!.currency)} ={" "}
+          <strong>
+            {formatCurrency(overageCost, metric.unitCost!.currency)}
+          </strong>
+        </div>
+      )}
+      {metric.paidLimit != null && !hasOverage && (
+        <div
+          className="si-metric__paid-limit"
+          title="Maximum purchasable limit"
+        >
+          Paid limit: {metric.paidLimit.toLocaleString()} {metric.unitName}
+          {metric.unitCost && (
+            <span>
+              {" "}
+              at{" "}
+              {formatCurrency(metric.unitCost.amount, metric.unitCost.currency)}
+              /{metric.unitName}
+            </span>
+          )}
+        </div>
+      )}
+      {(metric.nextUsageReset ||
+        (metric.usageResetPeriod && metric.usageResetPeriod !== "NONE")) && (
         <p className="si-metric__reset">
-          Resets {new Date(metric.nextUsageReset).toLocaleDateString()}
+          {metric.usageResetPeriod && metric.usageResetPeriod !== "NONE" && (
+            <span className="si-metric__reset-period">
+              {metric.usageResetPeriod.charAt(0) +
+                metric.usageResetPeriod.slice(1).toLowerCase()}{" "}
+              reset
+            </span>
+          )}
+          {metric.nextUsageReset && (
+            <span>
+              {metric.usageResetPeriod && metric.usageResetPeriod !== "NONE"
+                ? " · "
+                : "Resets "}
+              {new Date(metric.nextUsageReset).toLocaleDateString()}
+            </span>
+          )}
         </p>
       )}
     </div>
@@ -88,7 +160,8 @@ interface ServiceCardProps {
   mode: ViewMode;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   customerName?: string | null;
-  onRequestRemove?: (service: Service) => void;
+  showSetupCost?: boolean;
+  clientRequests?: ClientRequest[];
 }
 
 function ServiceCard({
@@ -96,7 +169,8 @@ function ServiceCard({
   mode,
   dispatch,
   customerName,
-  onRequestRemove,
+  showSetupCost,
+  clientRequests,
 }: ServiceCardProps) {
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
@@ -130,6 +204,27 @@ function ServiceCard({
               {formatBillingCycle(service.recurringCost.billingCycle)}
             </span>
           )}
+          {!service.recurringCost && service.setupCost && (
+            <span
+              className="si-service-card__price"
+              style={{ color: "var(--si-violet-600)" }}
+            >
+              {formatCurrency(
+                service.setupCost.amount,
+                service.setupCost.currency,
+              )}
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 400,
+                  color: "var(--si-slate-500)",
+                  marginLeft: 4,
+                }}
+              >
+                setup
+              </span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -137,8 +232,8 @@ function ServiceCard({
         <p className="si-service-card__desc">{service.description}</p>
       )}
 
-      {/* Setup Cost - Operator view shows payment status */}
-      {mode === "operator" && service.setupCost && (
+      {/* Setup Cost */}
+      {showSetupCost && service.setupCost && service.recurringCost && (
         <div className="si-service-card__setup">
           <span className="si-service-card__setup-label">Setup fee:</span>
           <span className="si-service-card__setup-value">
@@ -155,19 +250,39 @@ function ServiceCard({
         </div>
       )}
 
+      {/* Standalone setup cost (no recurring) */}
+      {showSetupCost && service.setupCost && !service.recurringCost && (
+        <div className="si-service-card__setup">
+          <span className="si-service-card__setup-label">Status:</span>
+          <span className="si-service-card__setup-value">
+            {service.setupCost.paymentDate ? (
+              <span className="si-service-card__paid">Paid</span>
+            ) : (
+              <span className="si-service-card__pending">Pending</span>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Metrics / Usage */}
       {service.metrics.length > 0 && (
         <div className="si-service-card__metrics">
-          {service.metrics.map((metric) => (
-            <UsageBar
-              key={metric.id}
-              serviceId={service.id}
-              metric={metric}
-              dispatch={dispatch}
-              isOperator={mode === "operator"}
-              customerName={customerName}
-            />
-          ))}
+          {service.metrics.map((metric) => {
+            const pendingReq = clientRequests?.find(
+              (r) => r.status === "PENDING" && r.metricId === metric.id,
+            );
+            return (
+              <UsageBar
+                key={metric.id}
+                serviceId={service.id}
+                metric={metric}
+                dispatch={dispatch}
+                isOperator={mode === "operator"}
+                customerName={customerName}
+                pendingRequest={pendingReq}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -178,86 +293,73 @@ function ServiceCard({
           {new Date(service.recurringCost.nextBillingDate).toLocaleDateString()}
         </p>
       )}
-
-      {/* Client action - request removal */}
-      {mode === "client" && onRequestRemove && (
-        <div className="si-service-card__actions">
-          <button
-            type="button"
-            className="si-btn si-btn--xs si-btn--danger-ghost"
-            onClick={() => onRequestRemove(service)}
-          >
-            Request Removal
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-interface RequestServiceModalProps {
+interface RequestAddonRemovalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  service: Service | null;
-  requestType: "ADD_SERVICE" | "REMOVE_SERVICE";
+  group: ServiceGroup | null;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
-  customerName?: string | null;
 }
 
-function RequestServiceModal({
+function RequestAddonRemovalModal({
   isOpen,
   onClose,
-  service,
-  requestType,
-}: RequestServiceModalProps) {
+  group,
+  dispatch,
+}: RequestAddonRemovalModalProps) {
   const [reason, setReason] = useState("");
 
   const handleSubmit = useCallback(() => {
-    // Requests module has been removed - functionality disabled
-    console.warn("Service request functionality is currently disabled");
+    if (!group) return;
+
+    dispatch(
+      createClientRequest({
+        id: generateId(),
+        type: "REMOVE_SERVICE",
+        description: `Request to remove add-on: ${group.name}`,
+        reason: reason || undefined,
+        createdAt: new Date().toISOString(),
+        serviceName: group.name,
+      }),
+    );
 
     setReason("");
     onClose();
-  }, [onClose]);
+  }, [onClose, group, reason, dispatch]);
 
   const handleClose = useCallback(() => {
     setReason("");
     onClose();
   }, [onClose]);
 
-  if (!isOpen) return null;
-
-  const isRemove = requestType === "REMOVE_SERVICE";
-  const title = isRemove ? "Request Service Removal" : "Request Add-on";
-  const subtitle = service?.name || "Service";
+  if (!isOpen || !group) return null;
 
   return (
     <div className="si-modal-overlay" onClick={handleClose}>
       <div className="si-modal" onClick={(e) => e.stopPropagation()}>
         <div className="si-modal__header">
-          <h3 className="si-modal__title">{title}</h3>
-          <span className="si-modal__subtitle">{subtitle}</span>
+          <h3 className="si-modal__title">Request Add-on Removal</h3>
+          <span className="si-modal__subtitle">{group.name}</span>
         </div>
         <div className="si-modal__body">
           <p className="si-modal__message">
-            {isRemove
-              ? "Submit a request to remove this service from your subscription. The operator will review your request."
-              : "Submit a request to add this service to your subscription. The operator will review your request."}
+            Submit a request to remove the <strong>{group.name}</strong> add-on
+            and all its services from your subscription. The operator will
+            review your request.
           </p>
           <div className="si-form-group">
-            <label className="si-form-label" htmlFor="service-request-reason">
+            <label className="si-form-label" htmlFor="addon-removal-reason">
               Reason (optional)
             </label>
             <textarea
-              id="service-request-reason"
+              id="addon-removal-reason"
               className="si-input si-input--textarea"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={
-                isRemove
-                  ? "Explain why you want to remove this service..."
-                  : "Explain why you need this service..."
-              }
+              placeholder="Explain why you want to remove this add-on..."
               rows={3}
             />
           </div>
@@ -272,9 +374,7 @@ function RequestServiceModal({
           </button>
           <button
             type="button"
-            className={
-              isRemove ? "si-btn si-btn--danger" : "si-btn si-btn--primary"
-            }
+            className="si-btn si-btn--danger"
             onClick={handleSubmit}
           >
             Submit Request
@@ -291,16 +391,26 @@ export function ServicesPanel({
   mode,
 }: ServicesPanelProps) {
   const state = document.state.global;
-  const hasServices = state.services.length > 0;
-  const hasServiceGroups = state.serviceGroups.length > 0;
 
-  const [serviceToRemove, setServiceToRemove] = useState<Service | null>(null);
+  // Split groups into recurring (non-optional) and add-ons (optional)
+  const recurringGroups = state.serviceGroups.filter((g) => !g.optional);
+  const addonGroups = state.serviceGroups.filter((g) => g.optional);
 
-  const handleRequestRemove = useCallback((service: Service) => {
-    setServiceToRemove(service);
-  }, []);
+  const hasRecurring = state.services.length > 0 || recurringGroups.length > 0;
+  const hasAddons = addonGroups.length > 0;
 
-  if (!hasServices && !hasServiceGroups) {
+  const [groupToRemove, setGroupToRemove] = useState<ServiceGroup | null>(null);
+
+  const recurringServiceCount =
+    state.services.length +
+    recurringGroups.reduce((acc, g) => acc + g.services.length, 0);
+
+  const addonServiceCount = addonGroups.reduce(
+    (acc, g) => acc + g.services.length,
+    0,
+  );
+
+  if (!hasRecurring && !hasAddons) {
     return (
       <div className="si-panel">
         <div className="si-panel__header">
@@ -328,44 +438,41 @@ export function ServicesPanel({
 
   return (
     <>
-      <div className="si-panel">
-        <div className="si-panel__header">
-          <h3 className="si-panel__title">Services</h3>
-          <span className="si-panel__count">
-            {state.services.length +
-              state.serviceGroups.reduce(
-                (acc, g) => acc + g.services.length,
-                0,
-              )}{" "}
-            total
-          </span>
-        </div>
-
-        {/* Standalone Services */}
-        {hasServices && (
-          <div className="si-services-grid">
-            {state.services.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                mode={mode}
-                dispatch={dispatch}
-                customerName={state.customerName}
-                onRequestRemove={handleRequestRemove}
-              />
-            ))}
+      {/* Recurring Services */}
+      {hasRecurring && (
+        <div className="si-panel">
+          <div className="si-panel__header">
+            <h3 className="si-panel__title">Recurring Services</h3>
+            <span className="si-panel__count">
+              {recurringServiceCount} services
+            </span>
           </div>
-        )}
 
-        {/* Service Groups */}
-        {hasServiceGroups &&
-          state.serviceGroups.map((group) => (
+          {/* Standalone Services */}
+          {state.services.length > 0 && (
+            <div className="si-services-grid">
+              {state.services.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  mode={mode}
+                  dispatch={dispatch}
+                  customerName={state.customerName}
+                  showSetupCost={mode === "operator"}
+                  clientRequests={state.clientRequests}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Non-optional Service Groups */}
+          {recurringGroups.map((group) => (
             <div key={group.id} className="si-service-group">
               <div className="si-service-group__header">
                 <h4 className="si-service-group__name">{group.name}</h4>
-                {group.optional && (
-                  <span className="si-badge si-badge--slate si-badge--sm">
-                    Optional
+                {group.billingCycle && (
+                  <span className="si-badge si-badge--sky si-badge--sm">
+                    {group.billingCycle.replace(/_/g, " ")}
                   </span>
                 )}
               </div>
@@ -377,22 +484,73 @@ export function ServicesPanel({
                     mode={mode}
                     dispatch={dispatch}
                     customerName={state.customerName}
-                    onRequestRemove={handleRequestRemove}
+                    showSetupCost={mode === "operator"}
+                    clientRequests={state.clientRequests}
                   />
                 ))}
               </div>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
-      {/* Service Request Modal */}
-      <RequestServiceModal
-        isOpen={serviceToRemove !== null}
-        onClose={() => setServiceToRemove(null)}
-        service={serviceToRemove}
-        requestType="REMOVE_SERVICE"
+      {/* Add-ons */}
+      {hasAddons && (
+        <div className="si-panel">
+          <div className="si-panel__header">
+            <h3 className="si-panel__title">Add-ons</h3>
+            <span className="si-panel__count">
+              {addonGroups.length} groups, {addonServiceCount} services
+            </span>
+          </div>
+
+          {addonGroups.map((group) => (
+            <div key={group.id} className="si-service-group">
+              <div className="si-service-group__header">
+                <h4 className="si-service-group__name">{group.name}</h4>
+                <span className="si-badge si-badge--violet si-badge--sm">
+                  Optional
+                </span>
+                {group.billingCycle && (
+                  <span className="si-badge si-badge--sky si-badge--sm">
+                    {group.billingCycle.replace(/_/g, " ")}
+                  </span>
+                )}
+                {mode === "client" && (
+                  <button
+                    type="button"
+                    className="si-btn si-btn--xs si-btn--danger-ghost"
+                    style={{ marginLeft: "auto" }}
+                    onClick={() => setGroupToRemove(group)}
+                  >
+                    Request Removal
+                  </button>
+                )}
+              </div>
+              <div className="si-services-grid">
+                {group.services.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    mode={mode}
+                    dispatch={dispatch}
+                    customerName={state.customerName}
+                    showSetupCost
+                    clientRequests={state.clientRequests}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add-on Removal Request Modal */}
+      <RequestAddonRemovalModal
+        isOpen={groupToRemove !== null}
+        onClose={() => setGroupToRemove(null)}
+        group={groupToRemove}
         dispatch={dispatch}
-        customerName={state.customerName}
       />
     </>
   );

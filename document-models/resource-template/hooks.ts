@@ -33,11 +33,7 @@ export function useSelectedResourceTemplateDocument(): [
   const [document, dispatch] = useSelectedDocument();
 
   assertIsResourceTemplateDocument(document);
-  const result: [
-    ResourceTemplateDocument,
-    DocumentDispatch<ResourceTemplateAction>,
-  ] = [document, dispatch];
-  return result;
+  return [document, dispatch] as const;
 }
 
 /** Hook to get all ResourceTemplate documents in the selected drive */

@@ -154,9 +154,14 @@ type ServiceUsageLimit {
 }
 
 enum UsageResetCycle {
+    NONE
+    HOURLY
     DAILY
     WEEKLY
     MONTHLY
+    QUARTERLY
+    SEMI_ANNUAL
+    ANNUAL
 }
 
 type OptionGroup {

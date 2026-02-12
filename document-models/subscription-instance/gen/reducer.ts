@@ -10,6 +10,9 @@ import { subscriptionInstanceServiceOperations } from "../src/reducers/service.j
 import { subscriptionInstanceServiceGroupOperations } from "../src/reducers/service-group.js";
 import { subscriptionInstanceMetricsOperations } from "../src/reducers/metrics.js";
 import { subscriptionInstanceCustomerOperations } from "../src/reducers/customer.js";
+import { subscriptionInstanceOptionGroupOperations } from "../src/reducers/option-group.js";
+import { subscriptionInstanceFacetOperations } from "../src/reducers/facet.js";
+import { subscriptionInstanceRequestsOperations } from "../src/reducers/requests.js";
 
 import {
   InitializeSubscriptionInputSchema,
@@ -29,6 +32,8 @@ import {
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
   UpdateBillingProjectionInputSchema,
+  SetTargetAudienceInputSchema,
+  RemoveTargetAudienceInputSchema,
   AddServiceInputSchema,
   RemoveServiceInputSchema,
   UpdateServiceSetupCostInputSchema,
@@ -36,6 +41,7 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
+  UpdateServiceLevelInputSchema,
   AddServiceGroupInputSchema,
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
@@ -48,6 +54,13 @@ import {
   DecrementMetricUsageInputSchema,
   SetCustomerTypeInputSchema,
   UpdateTeamMemberCountInputSchema,
+  AddSelectedOptionGroupInputSchema,
+  RemoveSelectedOptionGroupInputSchema,
+  SetFacetSelectionInputSchema,
+  RemoveFacetSelectionInputSchema,
+  CreateClientRequestInputSchema,
+  ApproveRequestInputSchema,
+  RejectRequestInputSchema,
 } from "./schema/zod.js";
 
 const stateReducer: StateReducer<SubscriptionInstancePHState> = (
@@ -263,6 +276,30 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
+    case "SET_TARGET_AUDIENCE": {
+      SetTargetAudienceInputSchema().parse(action.input);
+
+      subscriptionInstanceSubscriptionOperations.setTargetAudienceOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_TARGET_AUDIENCE": {
+      RemoveTargetAudienceInputSchema().parse(action.input);
+
+      subscriptionInstanceSubscriptionOperations.removeTargetAudienceOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
     case "ADD_SERVICE": {
       AddServiceInputSchema().parse(action.input);
 
@@ -339,6 +376,18 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       UpdateServiceInfoInputSchema().parse(action.input);
 
       subscriptionInstanceServiceOperations.updateServiceInfoOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "UPDATE_SERVICE_LEVEL": {
+      UpdateServiceLevelInputSchema().parse(action.input);
+
+      subscriptionInstanceServiceOperations.updateServiceLevelOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -483,6 +532,90 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       UpdateTeamMemberCountInputSchema().parse(action.input);
 
       subscriptionInstanceCustomerOperations.updateTeamMemberCountOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "ADD_SELECTED_OPTION_GROUP": {
+      AddSelectedOptionGroupInputSchema().parse(action.input);
+
+      subscriptionInstanceOptionGroupOperations.addSelectedOptionGroupOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_SELECTED_OPTION_GROUP": {
+      RemoveSelectedOptionGroupInputSchema().parse(action.input);
+
+      subscriptionInstanceOptionGroupOperations.removeSelectedOptionGroupOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_FACET_SELECTION": {
+      SetFacetSelectionInputSchema().parse(action.input);
+
+      subscriptionInstanceFacetOperations.setFacetSelectionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_FACET_SELECTION": {
+      RemoveFacetSelectionInputSchema().parse(action.input);
+
+      subscriptionInstanceFacetOperations.removeFacetSelectionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "CREATE_CLIENT_REQUEST": {
+      CreateClientRequestInputSchema().parse(action.input);
+
+      subscriptionInstanceRequestsOperations.createClientRequestOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "APPROVE_REQUEST": {
+      ApproveRequestInputSchema().parse(action.input);
+
+      subscriptionInstanceRequestsOperations.approveRequestOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REJECT_REQUEST": {
+      RejectRequestInputSchema().parse(action.input);
+
+      subscriptionInstanceRequestsOperations.rejectRequestOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

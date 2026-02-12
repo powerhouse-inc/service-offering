@@ -490,4 +490,12 @@ export type UpdateUsageLimitInput = {
   unitPriceCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
 };
 
-export type UsageResetCycle = "DAILY" | "MONTHLY" | "WEEKLY";
+export type UsageResetCycle =
+  | "ANNUAL"
+  | "DAILY"
+  | "HOURLY"
+  | "MONTHLY"
+  | "NONE"
+  | "QUARTERLY"
+  | "SEMI_ANNUAL"
+  | "WEEKLY";

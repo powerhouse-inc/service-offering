@@ -9,6 +9,7 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
         id: input.groupId,
         name: input.name,
         optional: input.optional,
+        billingCycle: input.billingCycle || null,
         services: [],
       });
     },
@@ -55,6 +56,7 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           id: input.serviceId,
           name: input.name || null,
           description: input.description || null,
+          serviceLevel: input.serviceLevel || null,
           setupCost,
           recurringCost,
           metrics: [],

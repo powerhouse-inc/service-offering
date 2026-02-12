@@ -1,15 +1,17 @@
 import { useState, useCallback } from "react";
+import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type { SubscriptionInstanceAction } from "@powerhousedao/service-offering/document-models/subscription-instance";
-import type { ServiceMetric } from "../../../document-models/subscription-instance/gen/schema/types.js";
+import type {
+  ServiceMetric,
+  ClientRequest,
+} from "../../../document-models/subscription-instance/gen/schema/types.js";
 import {
   incrementMetricUsage,
   decrementMetricUsage,
   updateMetric,
 } from "../../../document-models/subscription-instance/gen/metrics/creators.js";
-
-// Note: createClientRequest from requests module has been removed.
-// Client request for limit increase is disabled until the module is re-implemented.
+import { createClientRequest } from "../../../document-models/subscription-instance/gen/requests/creators.js";
 
 interface MetricActionsProps {
   serviceId: string;
@@ -17,6 +19,7 @@ interface MetricActionsProps {
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   isOperator: boolean;
   customerName?: string | null;
+  pendingRequest?: ClientRequest | null;
 }
 
 export function MetricActions({
@@ -24,12 +27,13 @@ export function MetricActions({
   metric,
   dispatch,
   isOperator,
+  pendingRequest,
 }: MetricActionsProps) {
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState("1");
   const [requestedLimit, setRequestedLimit] = useState(
-    metric.limit?.toString() || "",
+    metric.freeLimit?.toString() || "",
   );
   const [requestReason, setRequestReason] = useState("");
 
@@ -78,13 +82,24 @@ export function MetricActions({
     const newLimit = parseInt(requestedLimit, 10);
     if (isNaN(newLimit) || newLimit <= 0) return;
 
-    // Requests module has been removed - functionality disabled
-    console.warn("Limit increase request functionality is currently disabled");
+    dispatch(
+      createClientRequest({
+        id: generateId(),
+        type: "INCREASE_LIMIT",
+        description: `Increase ${metric.name} limit from ${metric.freeLimit?.toLocaleString() ?? "unlimited"} to ${newLimit.toLocaleString()}`,
+        reason: requestReason || undefined,
+        createdAt: new Date().toISOString(),
+        serviceId,
+        metricId: metric.id,
+        metricName: metric.name,
+        requestedValue: newLimit,
+      }),
+    );
 
     setShowRequestModal(false);
-    setRequestedLimit(metric.limit?.toString() || "");
+    setRequestedLimit(metric.freeLimit?.toString() || "");
     setRequestReason("");
-  }, [requestedLimit, metric.limit]);
+  }, [requestedLimit, metric, requestReason, dispatch, serviceId]);
 
   // Operator view - direct manipulation
   if (isOperator) {
@@ -152,8 +167,8 @@ export function MetricActions({
               <div className="si-modal__body">
                 <div className="si-metric-adjust-info">
                   <span>Current: {metric.currentUsage.toLocaleString()}</span>
-                  {metric.limit && (
-                    <span>Limit: {metric.limit.toLocaleString()}</span>
+                  {metric.freeLimit && (
+                    <span>Limit: {metric.freeLimit.toLocaleString()}</span>
                   )}
                 </div>
                 <div className="si-form-group">
@@ -205,26 +220,53 @@ export function MetricActions({
   }
 
   // Client view - only show request button if there's a limit
-  if (!metric.limit) return null;
+  if (!metric.freeLimit) return null;
+
+  const formatCost = (amount: number, currency: string) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
+    }).format(amount);
+
+  const parsedLimit = parseInt(requestedLimit, 10);
+  const hasOverageProjection =
+    !isNaN(parsedLimit) &&
+    metric.unitCost != null &&
+    parsedLimit > (metric.freeLimit || 0);
+  const overageUnits = hasOverageProjection
+    ? parsedLimit - (metric.freeLimit || 0)
+    : 0;
+  const projectedOverageCost = hasOverageProjection
+    ? overageUnits * metric.unitCost!.amount
+    : 0;
 
   return (
     <>
       <div className="si-metric-actions si-metric-actions--client">
-        <button
-          type="button"
-          className="si-metric-btn si-metric-btn--request"
-          onClick={() => setShowRequestModal(true)}
-          aria-label={`Request limit increase for ${metric.name}`}
-          title="Request limit increase"
-        >
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
+        {pendingRequest ? (
+          <span
+            className="si-metric-pending-tag"
+            title="Limit increase request pending"
+          >
+            Pending
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="si-metric-btn si-metric-btn--request"
+            onClick={() => setShowRequestModal(true)}
+            aria-label={`Request limit increase for ${metric.name}`}
+            title="Request limit increase"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Client Request Modal */}
@@ -244,10 +286,33 @@ export function MetricActions({
             <div className="si-modal__body">
               <div className="si-metric-adjust-info">
                 <span>
-                  Current Usage: {metric.currentUsage.toLocaleString()}
+                  Current Usage: {metric.currentUsage.toLocaleString()} {metric.unitName}
                 </span>
-                <span>Current Limit: {metric.limit.toLocaleString()}</span>
+                <span>
+                  Included Free: {metric.freeLimit.toLocaleString()} {metric.unitName}
+                </span>
               </div>
+              {metric.paidLimit != null && (
+                <div className="si-metric-limit-highlight">
+                  <span className="si-metric-limit-highlight__label">Absolute Usage Limit</span>
+                  <span className="si-metric-limit-highlight__value">
+                    {metric.paidLimit.toLocaleString()} {metric.unitName}
+                  </span>
+                  <span className="si-metric-limit-highlight__note">Defined in your tier</span>
+                </div>
+              )}
+              {metric.unitCost && (
+                <div className="si-metric-adjust-info si-metric-adjust-info--cost">
+                  <span>
+                    Overage cost (above {metric.freeLimit.toLocaleString()} {metric.unitName}):{" "}
+                    {formatCost(
+                      metric.unitCost.amount,
+                      metric.unitCost.currency,
+                    )}
+                    /{metric.unitName}
+                  </span>
+                </div>
+              )}
               <div className="si-form-group">
                 <label className="si-form-label" htmlFor="requested-limit">
                   Requested New Limit ({metric.unitName})
@@ -259,9 +324,42 @@ export function MetricActions({
                   value={requestedLimit}
                   onChange={(e) => setRequestedLimit(e.target.value)}
                   placeholder="Enter requested limit"
-                  min={metric.limit + 1}
+                  min={metric.freeLimit + 1}
+                  max={metric.paidLimit ?? undefined}
                 />
               </div>
+              {hasOverageProjection && (
+                <div className="si-overage-preview">
+                  <div className="si-overage-preview__title">
+                    Cost Projection
+                  </div>
+                  <div className="si-overage-preview__row">
+                    <span>Overage units</span>
+                    <span>
+                      {overageUnits.toLocaleString()} {metric.unitName}
+                    </span>
+                  </div>
+                  <div className="si-overage-preview__row si-overage-preview__row--total">
+                    <span>Estimated charge</span>
+                    <span>
+                      {formatCost(
+                        projectedOverageCost,
+                        metric.unitCost!.currency,
+                      )}
+                      {metric.unitCost!.billingCycle
+                        ? ` / ${metric.unitCost!.billingCycle.toLowerCase().replace("_", " ")}`
+                        : ""}
+                    </span>
+                  </div>
+                  {metric.paidLimit != null &&
+                    parsedLimit > metric.paidLimit && (
+                      <div className="si-overage-preview__warning">
+                        Exceeds maximum paid limit of{" "}
+                        {metric.paidLimit.toLocaleString()} {metric.unitName}
+                      </div>
+                    )}
+                </div>
+              )}
               <div className="si-form-group">
                 <label className="si-form-label" htmlFor="request-reason">
                   Reason (optional)
@@ -290,7 +388,9 @@ export function MetricActions({
                 onClick={handleRequestLimitIncrease}
                 disabled={
                   !requestedLimit ||
-                  parseInt(requestedLimit, 10) <= (metric.limit || 0)
+                  parseInt(requestedLimit, 10) <= (metric.freeLimit || 0) ||
+                  (metric.paidLimit != null &&
+                    parseInt(requestedLimit, 10) > metric.paidLimit)
                 }
               >
                 Submit Request
@@ -318,7 +418,7 @@ export function UpdateMetricLimitModal({
   metric,
   dispatch,
 }: UpdateMetricLimitModalProps) {
-  const [limit, setLimit] = useState(metric.limit?.toString() || "");
+  const [limit, setLimit] = useState(metric.freeLimit?.toString() || "");
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -330,7 +430,7 @@ export function UpdateMetricLimitModal({
         updateMetric({
           serviceId,
           metricId: metric.id,
-          limit: parsedLimit,
+          freeLimit: parsedLimit,
         }),
       );
 

@@ -17,6 +17,8 @@ import type {
   SetAutoRenewInput,
   SetRenewalDateInput,
   UpdateBillingProjectionInput,
+  SetTargetAudienceInput,
+  RemoveTargetAudienceInput,
 } from "../types.js";
 
 export type InitializeSubscriptionAction = Action & {
@@ -87,6 +89,14 @@ export type UpdateBillingProjectionAction = Action & {
   type: "UPDATE_BILLING_PROJECTION";
   input: UpdateBillingProjectionInput;
 };
+export type SetTargetAudienceAction = Action & {
+  type: "SET_TARGET_AUDIENCE";
+  input: SetTargetAudienceInput;
+};
+export type RemoveTargetAudienceAction = Action & {
+  type: "REMOVE_TARGET_AUDIENCE";
+  input: RemoveTargetAudienceInput;
+};
 
 export type SubscriptionInstanceSubscriptionAction =
   | InitializeSubscriptionAction
@@ -105,4 +115,6 @@ export type SubscriptionInstanceSubscriptionAction =
   | SetOperatorNotesAction
   | SetAutoRenewAction
   | SetRenewalDateAction
-  | UpdateBillingProjectionAction;
+  | UpdateBillingProjectionAction
+  | SetTargetAudienceAction
+  | RemoveTargetAudienceAction;

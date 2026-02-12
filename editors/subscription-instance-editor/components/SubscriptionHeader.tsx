@@ -7,6 +7,51 @@ import type { ViewMode } from "../types.js";
 import { StatusBadge } from "./StatusBadge.js";
 import { SubscriptionActions } from "./SubscriptionActions.js";
 
+function DueCountdown({ date, label }: { date: string; label: string }) {
+  const now = new Date();
+  const target = new Date(date);
+  const diffMs = target.getTime() - now.getTime();
+  const daysAway = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+  const getCountdownColor = () => {
+    if (daysAway <= 0) return "var(--si-rose-600)";
+    if (daysAway <= 7) return "var(--si-rose-600)";
+    if (daysAway <= 14) return "var(--si-amber-600)";
+    return undefined;
+  };
+
+  const getCountdownLabel = () => {
+    if (daysAway <= 0) return "Overdue";
+    if (daysAway === 1) return "Tomorrow";
+    return `${daysAway} days`;
+  };
+
+  return (
+    <div className="si-header__stat">
+      <span className="si-header__stat-value">{formatDate(date)}</span>
+      <span className="si-header__stat-label">
+        {label}
+        <span
+          className="si-header__stat-countdown"
+          style={
+            getCountdownColor() ? { color: getCountdownColor() } : undefined
+          }
+        >
+          {" "}
+          ({getCountdownLabel()})
+        </span>
+      </span>
+    </div>
+  );
+}
+
 interface SubscriptionHeaderProps {
   document: SubscriptionInstanceDocument;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
@@ -78,11 +123,63 @@ export function SubscriptionHeader({
               </span>
             </div>
           )}
-          {state.renewalDate && (
+          <div className="si-header__meta-item">
+            <span className="si-header__meta-label">Auto-Renew</span>
+            <span
+              className="si-header__meta-value"
+              style={{
+                color: state.autoRenew
+                  ? "var(--si-emerald-600)"
+                  : "var(--si-slate-400)",
+              }}
+            >
+              {state.autoRenew ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+          {state.pausedSince && state.status === "PAUSED" && (
             <div className="si-header__meta-item">
-              <span className="si-header__meta-label">Renewal Date</span>
-              <span className="si-header__meta-value">
-                {formatDate(state.renewalDate)}
+              <span className="si-header__meta-label">Paused Since</span>
+              <span
+                className="si-header__meta-value"
+                style={{ color: "var(--si-amber-600)" }}
+              >
+                {formatDate(state.pausedSince)}
+              </span>
+            </div>
+          )}
+          {state.expiringSince && state.status === "EXPIRING" && (
+            <div className="si-header__meta-item">
+              <span className="si-header__meta-label">Expiring Since</span>
+              <span
+                className="si-header__meta-value"
+                style={{ color: "var(--si-orange-600)" }}
+              >
+                {formatDate(state.expiringSince)}
+              </span>
+            </div>
+          )}
+          {state.cancelledSince && state.status === "CANCELLED" && (
+            <div className="si-header__meta-item">
+              <span className="si-header__meta-label">Cancelled</span>
+              <span
+                className="si-header__meta-value"
+                style={{ color: "var(--si-rose-600)" }}
+              >
+                {formatDate(state.cancelledSince)}
+              </span>
+            </div>
+          )}
+          {mode === "operator" && state.tierId && (
+            <div className="si-header__meta-item">
+              <span className="si-header__meta-label">Tier ID</span>
+              <span
+                className="si-header__meta-value"
+                style={{
+                  fontFamily: "var(--si-font-mono)",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {state.tierId}
               </span>
             </div>
           )}
@@ -107,12 +204,10 @@ export function SubscriptionHeader({
           </div>
         )}
         {state.nextBillingDate && (
-          <div className="si-header__stat">
-            <span className="si-header__stat-value">
-              {formatDate(state.nextBillingDate)}
-            </span>
-            <span className="si-header__stat-label">Due Date</span>
-          </div>
+          <DueCountdown date={state.nextBillingDate} label="Due Date" />
+        )}
+        {state.renewalDate && (
+          <DueCountdown date={state.renewalDate} label="Renewal" />
         )}
       </div>
 

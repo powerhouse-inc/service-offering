@@ -63,6 +63,62 @@ export function BillingPanel({ document }: BillingPanelProps) {
     }
   }
 
+  // Include recurring option group costs
+  for (const og of state.selectedOptionGroups) {
+    if (og.costType === "RECURRING" && og.price != null && og.currency) {
+      serviceLines.push({
+        name: `${og.name} (add-on)`,
+        amount: og.price,
+        currency: og.currency,
+        cycle: og.billingCycle || null,
+      });
+    }
+  }
+
+  // Compute setup cost lines
+  const setupLines: Array<{
+    name: string;
+    amount: number;
+    currency: string;
+    paid: boolean;
+  }> = [];
+
+  for (const svc of state.services) {
+    if (svc.setupCost) {
+      setupLines.push({
+        name: svc.name || "Unnamed Service",
+        amount: svc.setupCost.amount,
+        currency: svc.setupCost.currency,
+        paid: !!svc.setupCost.paymentDate,
+      });
+    }
+  }
+
+  for (const group of state.serviceGroups) {
+    for (const svc of group.services) {
+      if (svc.setupCost) {
+        setupLines.push({
+          name: `${svc.name || "Unnamed"} (${group.name || "Group"})`,
+          amount: svc.setupCost.amount,
+          currency: svc.setupCost.currency,
+          paid: !!svc.setupCost.paymentDate,
+        });
+      }
+    }
+  }
+
+  // Include option group setup costs
+  for (const og of state.selectedOptionGroups) {
+    if (og.costType === "SETUP" && og.price != null && og.currency) {
+      setupLines.push({
+        name: og.name,
+        amount: og.price,
+        currency: og.currency,
+        paid: false,
+      });
+    }
+  }
+
   // Compute overage estimates from metrics
   const overageLines: Array<{
     name: string;
@@ -75,11 +131,11 @@ export function BillingPanel({ document }: BillingPanelProps) {
   for (const svc of state.services) {
     for (const metric of svc.metrics) {
       if (
-        metric.limit != null &&
-        metric.currentUsage > metric.limit &&
+        metric.freeLimit != null &&
+        metric.currentUsage > metric.freeLimit &&
         metric.unitCost
       ) {
-        const excess = metric.currentUsage - metric.limit;
+        const excess = metric.currentUsage - metric.freeLimit;
         const total = excess * metric.unitCost.amount;
         overageLines.push({
           name: `${metric.name} overage`,
@@ -101,10 +157,13 @@ export function BillingPanel({ document }: BillingPanelProps) {
   const projectedCurrency =
     state.projectedBillCurrency || serviceLines[0]?.currency || "USD";
 
+  const setupTotal = setupLines.reduce((sum, l) => sum + l.amount, 0);
+
   const hasAnyData =
     state.nextBillingDate ||
     state.projectedBillAmount != null ||
-    serviceLines.length > 0;
+    serviceLines.length > 0 ||
+    setupLines.length > 0;
 
   return (
     <div className="si-panel">
@@ -157,54 +216,59 @@ export function BillingPanel({ document }: BillingPanelProps) {
 
           {/* Line-by-line breakdown */}
           {serviceLines.length > 0 && (
-            <div style={{ marginBottom: overageLines.length > 0 ? 16 : 0 }}>
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "var(--si-slate-500)",
-                  marginBottom: 8,
-                }}
-              >
+            <div className="si-billing-section">
+              <div className="si-billing-section__title">
                 Recurring Services
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="si-billing-section__lines">
                 {serviceLines.map((line, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "8px 12px",
-                      background: "var(--si-slate-50)",
-                      borderRadius: "var(--si-radius-sm)",
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    <span style={{ color: "var(--si-slate-700)" }}>
+                  <div key={idx} className="si-billing-line">
+                    <span className="si-billing-line__name">
                       {line.name}
                       {line.cycle && (
-                        <span
-                          style={{
-                            color: "var(--si-slate-400)",
-                            fontSize: "0.75rem",
-                            marginLeft: 6,
-                          }}
-                        >
+                        <span className="si-billing-line__cycle">
                           / {line.cycle.toLowerCase().replace("_", " ")}
                         </span>
                       )}
                     </span>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: "var(--si-slate-800)",
-                      }}
-                    >
+                    <span className="si-billing-line__amount">
                       {formatCurrency(line.amount, line.currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Setup costs */}
+          {setupLines.length > 0 && (
+            <div className="si-billing-section">
+              <div className="si-billing-section__title si-billing-section__title--setup">
+                <span>Setup Costs</span>
+                <span className="si-billing-section__total">
+                  {formatCurrency(setupTotal, setupLines[0]?.currency || "USD")}
+                </span>
+              </div>
+              <div className="si-billing-section__lines">
+                {setupLines.map((line, idx) => (
+                  <div
+                    key={idx}
+                    className="si-billing-line si-billing-line--setup"
+                  >
+                    <span className="si-billing-line__name">{line.name}</span>
+                    <span className="si-billing-line__right">
+                      {line.paid && (
+                        <span className="si-billing-line__paid-tag">Paid</span>
+                      )}
+                      <span
+                        className={`si-billing-line__amount ${
+                          line.paid
+                            ? "si-billing-line__amount--paid"
+                            : "si-billing-line__amount--setup"
+                        }`}
+                      >
+                        {formatCurrency(line.amount, line.currency)}
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -214,53 +278,24 @@ export function BillingPanel({ document }: BillingPanelProps) {
 
           {/* Overage estimates */}
           {overageLines.length > 0 && (
-            <div>
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "var(--si-amber-600)",
-                  marginBottom: 8,
-                }}
-              >
+            <div className="si-billing-section">
+              <div className="si-billing-section__title si-billing-section__title--overage">
                 Overage Estimates
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="si-billing-section__lines">
                 {overageLines.map((line, idx) => (
                   <div
                     key={idx}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "8px 12px",
-                      background: "var(--si-amber-50)",
-                      borderRadius: "var(--si-radius-sm)",
-                      fontSize: "0.875rem",
-                      border: "1px solid var(--si-amber-100)",
-                    }}
+                    className="si-billing-line si-billing-line--overage"
                   >
-                    <span style={{ color: "var(--si-amber-700)" }}>
+                    <span className="si-billing-line__name si-billing-line__name--overage">
                       {line.name}
-                      <span
-                        style={{
-                          color: "var(--si-amber-500)",
-                          fontSize: "0.75rem",
-                          marginLeft: 6,
-                        }}
-                      >
+                      <span className="si-billing-line__calc">
                         {line.excess} x{" "}
                         {formatCurrency(line.unitCost, line.currency)}
                       </span>
                     </span>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: "var(--si-amber-700)",
-                      }}
-                    >
+                    <span className="si-billing-line__amount si-billing-line__amount--overage">
                       {formatCurrency(line.total, line.currency)}
                     </span>
                   </div>

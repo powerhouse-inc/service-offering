@@ -8,11 +8,14 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.customerName = input.customerName || null;
       state.customerEmail = input.customerEmail || null;
       state.serviceOfferingId = input.serviceOfferingId || null;
+      state.tierId = input.tierId || null;
       state.tierName = input.tierName || null;
       state.tierPricingOptionId = input.tierPricingOptionId || null;
       state.autoRenew = input.autoRenew ?? false;
       state.createdAt = input.createdAt;
       state.status = "PENDING";
+      state.targetAudienceId = input.targetAudienceId || null;
+      state.targetAudienceLabel = input.targetAudienceLabel || null;
 
       if (input.resourceId) {
         state.resource = {
@@ -92,6 +95,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
 
     updateTierInfoOperation(state, action) {
       const { input } = action;
+      if (input.tierId) state.tierId = input.tierId;
       if (input.tierName) state.tierName = input.tierName;
       if (input.tierPricingOptionId)
         state.tierPricingOptionId = input.tierPricingOptionId;
@@ -119,5 +123,15 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       if (action.input.projectedBillCurrency) {
         state.projectedBillCurrency = action.input.projectedBillCurrency;
       }
+    },
+
+    setTargetAudienceOperation(state, action) {
+      state.targetAudienceId = action.input.targetAudienceId;
+      state.targetAudienceLabel = action.input.targetAudienceLabel;
+    },
+
+    removeTargetAudienceOperation(state, _action) {
+      state.targetAudienceId = null;
+      state.targetAudienceLabel = null;
     },
   };

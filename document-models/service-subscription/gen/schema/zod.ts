@@ -2,6 +2,7 @@ import * as z from "zod";
 import type {
   ActivateSubscriptionInput,
   AddAddonInput,
+  BillingCycle,
   CancelSubscriptionInput,
   ChangeTierInput,
   ExpireSubscriptionInput,
@@ -15,6 +16,7 @@ import type {
   SetFacetSelectionInput,
   SetPricingInput,
   SubscriptionPricing,
+  SubscriptionStatus,
   UpdateBillingProjectionInput,
 } from "./types.js";
 
