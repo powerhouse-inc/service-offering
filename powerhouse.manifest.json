@@ -34,6 +34,10 @@
         {
             "id": "powerhouse/business-analysis",
             "name": "BusinessAnalysis"
+        },
+        {
+            "id": "powerhouse/work-breakdown",
+            "name": "WorkBreakdown"
         }
     ],
     "editors": [

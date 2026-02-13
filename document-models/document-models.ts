@@ -6,6 +6,7 @@ import { ResourceTemplate } from "./resource-template/module.js";
 import { ServiceOffering } from "./service-offering/module.js";
 import { ServiceSubscription } from "./service-subscription/module.js";
 import { SubscriptionInstance } from "./subscription-instance/module.js";
+import { WorkBreakdown } from "./work-breakdown/module.js";
 
 export const documentModels: DocumentModelModule<any>[] = [
   BusinessAnalysis,
@@ -15,4 +16,5 @@ export const documentModels: DocumentModelModule<any>[] = [
   ServiceOffering,
   ServiceSubscription,
   SubscriptionInstance,
+  WorkBreakdown,
 ];

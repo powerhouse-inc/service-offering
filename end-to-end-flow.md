@@ -132,37 +132,44 @@ Service Offering to Subscription + Resource Instance
 
 ---
 
-## Overview
-
-Four **event-sourced document models** participate in the flow from product definition through customer onboarding:
+## The Big Picture
 
 ```
-ResourceTemplate          Product blueprint (what can be built)
-       |
-ServiceOffering           Commercial package (pricing, tiers, levels)
-       |
-    [ Achra ]             Browser-side configurator (not a document)
-       |
-    [ Submit ]            Coordinated document creation
-      / \
-ResourceInstance    SubscriptionInstance
-(the deliverable)  (the commercial contract)
+ResourceTemplate (PHID)
+|  Product blueprint: services, facets, option groups
+|
+'-> ServiceOffering (PHID)
+    |  resourceTemplateId --> ResourceTemplate
+    |  Commercial layer: tiers, pricing, service levels
+    |
+    '-> [ Achra: browser-side resolution ]
+        |                                        Operator's Drive
+        |-> ResourceInstance (PHID)           <- placed in both drives
+        |     resourceTemplateId                (operator provisions,
+        |     customerId --> Team                 team configures)
+        |     Lifecycle: DRAFT > ACTIVE
+        |                                        Team's Drive
+        '-> SubscriptionInstance (PHID)       <- placed in both drives
+              serviceOfferingId --> SO           (operator manages billing,
+              resource.id                         team reports usage)
+              Lifecycle: PENDING > ACTIVE
 ```
 
-Both output documents are placed in **two connect drives** simultaneously.
+Four **event-sourced documents**. Two **connect drives**. One **shared history**.
 
 ---
 
-## The Document Models
+## Four Document Models
 
-| Document | Type | Tracks | Lifecycle |
-|----------|------|--------|-----------|
-| **ResourceTemplate** | `powerhouse/resource-template` | What can be built | DRAFT > ACTIVE > DEPRECATED |
-| **ServiceOffering** | `powerhouse/service-offering` | How it's priced | DRAFT > ACTIVE > DEPRECATED |
-| **SubscriptionInstance** | `powerhouse/subscription-instance` | Commercial contract + operational detail | PENDING > ACTIVE > CANCELLED |
-| **ResourceInstance** | `powerhouse/resource-instance` | Delivery status + configuration | DRAFT > PROVISIONING > ACTIVE |
+| Document | What it tracks | Lifecycle |
+|----------|---------------|-----------|
+| **ResourceTemplate** | What can be built --- capabilities, facets, option groups | DRAFT > ACTIVE > DEPRECATED |
+| **ServiceOffering** | How it's priced --- tiers, service levels, usage limits | DRAFT > ACTIVE > DEPRECATED |
+| **SubscriptionInstance** | The full contract --- tier, services, metrics, billing, customer | PENDING > ACTIVE > CANCELLED |
+| **ResourceInstance** | Delivery status --- provisioning, configuration, suspension | DRAFT > PROVISIONING > ACTIVE |
 
-The **SubscriptionInstance** is the single source of truth for the subscription contract --- it holds tier info, services, metrics, billing, and customer details in one document.
+**SubscriptionInstance** is the single source of truth for the subscription contract.
+**ResourceInstance** is the single source of truth for the configured product.
 
 ---
 
@@ -176,11 +183,10 @@ Product Definition
 
 ## Resource Template
 
-The **product blueprint** defines what the operator can deliver, independent of pricing.
+The **product blueprint** --- what the operator can deliver, independent of pricing.
 
 ```
 ResourceTemplateState
-|- id: PHID!                 <- unique template identifier
 |- operatorId: PHID!         <- the provider
 |- title, summary            <- "Operational Hub for Open Source Builders"
 |- status: TemplateStatus    <- DRAFT > COMING_SOON > ACTIVE > DEPRECATED
@@ -194,6 +200,7 @@ ResourceTemplateState
 
 - Services define **capabilities without prices**
 - **FacetBindings** declare configurable dimensions per service
+- **OptionGroups** define toggleable bundles
 
 ---
 
@@ -244,26 +251,26 @@ Achra Configurator
 
 ---
 
-## Achra: The Resolution Step
+## Achra: Resolution
 
-Achra is a **browser-side UI** (not a document) that reads the ServiceOffering and lets a team configure their subscription.
+Achra is a **browser-side UI** (not a document) that reads the ServiceOffering and produces a denormalized snapshot.
 
 ### What it does
 
-1. User selects a **tier** and a **pricing option**
+1. Team selects a **tier** and a **pricing option**
 2. Resolves each service's **ServiceLevelBinding** for that tier
-3. Lets user toggle **optional services/groups**
+3. Lets team toggle **optional services/groups**
 4. Captures **facet selections** from facet bindings
-5. Resolves **usage limits** into metric definitions
-6. Computes **group-level recurring costs** from option groups
+5. Resolves **usage limits** into metric definitions (freeLimit, paidLimit)
+6. Computes **group-level costs** from option groups
 
 ### Output
 
-A fully **denormalized, self-contained** browser-side snapshot --- ready to dispatch.
+A fully **denormalized, self-contained** snapshot --- ready to dispatch as `InitializeSubscriptionInput`.
 
 ---
 
-## Achra Resolution Algorithm
+## Resolution Algorithm
 
 ```
 for each service in offering.services:
@@ -298,20 +305,20 @@ The Submit Bridge
 
 ---
 
-## Submit: Coordinated Creation
+## Submit: What Happens
 
-When the team clicks **Submit**, four things happen:
+When the team clicks **Submit**, four things happen in sequence:
 
 ```
 Submit
 |
 |- 1. Create team connect drive (named after team name)
 |
-|- 2. Create Resource Instance (from resourceTemplateId)
+|- 2. Create ResourceInstance (from resourceTemplateId)
 |     |- placed in operator's connect drive
 |     '- placed in team's connect drive
 |
-|- 3. Create Subscription Instance (via initializeSubscription)
+|- 3. Create SubscriptionInstance (via initializeSubscription)
 |     |- links to resource instance via resource.id
 |     |- placed in operator's connect drive
 |     '- placed in team's connect drive
@@ -321,15 +328,13 @@ Submit
 
 ---
 
-## Step 1: Team Drive Creation
+## Steps 1-2: Drive + Resource Instance
 
-A new **connect drive** is created for the builder team:
+### Team Drive
 
-- **Drive name** = team name (e.g. "BAI team")
-- Gives the team their own workspace
-- Documents are **synced via connect** --- changes by either party are visible to both
+A new **connect drive** is created, named after the team (e.g. "BAI team"). Documents sync via connect --- changes by either party are visible to both.
 
-### Step 2: Resource Instance
+### Resource Instance
 
 ```
 INITIALIZE_INSTANCE dispatch:
@@ -349,44 +354,43 @@ Status starts at **DRAFT**.
 
 ## Step 3: Subscription Instance
 
-The `initializeSubscription` dispatch creates the full operational record:
+The `initializeSubscription` dispatch creates the full operational record in one shot:
 
 ```
 InitializeSubscriptionInput
-|- customerId, customerName, customerEmail
+|- customerId, customerName, customerEmail, customerType
+|- operatorId, operatorName
 |- serviceOfferingId                    <- back-reference to offering
-|- tierName: "Basic"
+|- tierId, tierName: "Basic"
 |- tierPricingOptionId, tierPrice: 200, tierCurrency: "USD"
+|- targetAudienceId, targetAudienceLabel
 |- resourceId                           <- PHID of ResourceInstance (step 2)
 |- resourceLabel, resourceThumbnailUrl
 |- autoRenew, createdAt
-|- services[]                           <- resolved standalone services
-'- serviceGroups[]                      <- resolved option groups
+|- projectedBillAmount, projectedBillCurrency
 ```
 
 Status starts at **PENDING**.
 
 ---
 
-## InitializeSubscriptionInput (Full)
+## InitializeSubscriptionInput: Nested Data
+
+After initialization, services, groups, metrics, option groups, and facets are added via individual dispatches:
 
 ```
-services[]
-|- id, name, description, customValue
-|- facetSelections[]
-|   '- id, facetName, selectedOption       <- "Swiss Association"
-|- setupAmount, setupCurrency              <- one-time costs
-|- recurringAmount, recurringCurrency,     <- recurring costs
-|  recurringBillingCycle
-'- metrics[]                               <- resolved usage limits
-    '- id, name, unitName, limit, currentUsage,
-       usageResetPeriod, unitCostAmount/Currency/BillingCycle
+addService()           <- per resolved standalone service
+  |- serviceId, name, description, customValue
+  |- setupAmount/Currency, recurringAmount/Currency/BillingCycle
 
-serviceGroups[]
-|- id, name: "Finance Pack", optional: true
-|- recurringAmount: 50, recurringCurrency: "USD",
-|  recurringBillingCycle: "MONTHLY"
-'- services[]                              <- same shape as above
+addServiceMetric()     <- per resolved usage limit
+  |- serviceId, metricId, name, unitName
+  |- freeLimit, paidLimit, currentUsage, usageResetPeriod
+  |- unitCostAmount/Currency/BillingCycle
+
+addServiceGroup() + addServiceToGroup()  <- per option group
+addSelectedOptionGroup()                 <- selected add-ons with pricing
+setFacetSelection()                      <- subscription-level facets
 ```
 
 ---
@@ -401,11 +405,13 @@ Operator's Connect Drive
 '- SubscriptionInstance  <- NEW     (operator manages billing)
 
 Team's Connect Drive     <- NEWLY CREATED
-|- ResourceInstance      <- SAME DOC (team uses deliverable)
-'- SubscriptionInstance  <- SAME DOC (team views subscription)
+|- ResourceInstance      <- SAME DOC (team configures)
+'- SubscriptionInstance  <- SAME DOC (team reports usage)
 ```
 
-Both drives reference the **same underlying documents** via Powerhouse connect sync. Every operation is visible to both parties through the event-sourced history.
+Both drives reference the **same underlying documents** via Powerhouse connect sync.
+
+Every operation dispatched by either party becomes part of the shared event-sourced history.
 
 ---
 
@@ -417,9 +423,9 @@ Parallel Lifecycles
 
 ---
 
-## Resource Instance Lifecycle
+## Resource Instance: Operator Actions
 
-Tracks the **delivery side**: is the deliverable ready?
+Tracks the **product side** --- is the product ready?
 
 ```
 DRAFT --> PROVISIONING --> ACTIVE --> SUSPENDED <-> ACTIVE --> TERMINATED
@@ -427,13 +433,11 @@ DRAFT --> PROVISIONING --> ACTIVE --> SUSPENDED <-> ACTIVE --> TERMINATED
                           (NON_PAYMENT | MAINTENANCE | OTHER)
 ```
 
-### Operator actions
-
 | Action | Effect |
 |---|---|
 | `CONFIRM_INSTANCE` | DRAFT > PROVISIONING |
-| `REPORT_PROVISIONING_STARTED` | Sets provisioningStartedAt |
-| `REPORT_PROVISIONING_COMPLETED` | Sets provisioningCompletedAt |
+| `REPORT_PROVISIONING_STARTED` | Records start timestamp |
+| `REPORT_PROVISIONING_COMPLETED` | Records completion timestamp |
 | `REPORT_PROVISIONING_FAILED` | Records failure reason |
 | `ACTIVATE_INSTANCE` | PROVISIONING > ACTIVE |
 | `SUSPEND_FOR_NON_PAYMENT` | ACTIVE > SUSPENDED (amount, daysPastDue) |
@@ -445,7 +449,7 @@ DRAFT --> PROVISIONING --> ACTIVE --> SUSPENDED <-> ACTIVE --> TERMINATED
 
 ## Resource Instance: Team Actions
 
-The team manages their **configuration and profile** on the same document:
+The team manages **configuration and profile** on the same document:
 
 | Action | Effect |
 |---|---|
@@ -456,21 +460,19 @@ The team manages their **configuration and profile** on the same document:
 | `REMOVE_INSTANCE_FACET` | Remove a configuration facet |
 | `APPLY_CONFIGURATION_CHANGES` | Batch add/update/remove facets in one dispatch |
 
-The team **cannot** change lifecycle status (provisioning, suspension, termination) --- only the operator controls those transitions.
+The team **cannot** change lifecycle status --- only the operator controls provisioning, suspension, and termination.
 
 ---
 
-## Subscription Instance Lifecycle
+## Subscription Instance: Operator Actions
 
-Tracks the **commercial side**: is the contract active and paid?
+Tracks the **commercial side** --- is the contract active and paid?
 
 ```
 PENDING --> ACTIVE <-> PAUSED --> ACTIVE
                    --> EXPIRING --> ACTIVE (renewed)
                                --> CANCELLED
 ```
-
-### Operator actions
 
 | Action | Effect |
 |---|---|
@@ -482,12 +484,13 @@ PENDING --> ACTIVE <-> PAUSED --> ACTIVE
 | `CANCEL_SUBSCRIPTION` | Any > CANCELLED |
 | `UPDATE_BILLING_PROJECTION` | Sets nextBillingDate, amount |
 | `REPORT_SETUP_PAYMENT` / `REPORT_RECURRING_PAYMENT` | Records payments |
+| `APPROVE_REQUEST` / `REJECT_REQUEST` | Responds to team requests |
 
 ---
 
 ## Subscription Instance: Team Actions
 
-The team manages their **profile, usage, and preferences** on the same document:
+The team manages **profile, usage, preferences, and change requests**:
 
 | Action | Effect |
 |---|---|
@@ -497,9 +500,11 @@ The team manages their **profile, usage, and preferences** on the same document:
 | `UPDATE_TEAM_MEMBER_COUNT` | Report current team member count |
 | `INCREMENT_METRIC_USAGE` | Report usage increase (e.g. +1 contributor) |
 | `DECREMENT_METRIC_USAGE` | Report usage decrease |
-| `UPDATE_METRIC_USAGE` | Set metric to specific value |
+| `SET_FACET_SELECTION` | Set subscription-level facet (e.g. region, compliance) |
+| `ADD_SELECTED_OPTION_GROUP` | Select an add-on group |
+| `CREATE_CLIENT_REQUEST` | Request a change (e.g. remove add-on, upgrade tier) |
 
-The team **cannot** change lifecycle status (activate, pause, cancel) or modify billing/costs --- only the operator controls those transitions.
+The team **cannot** change lifecycle status or modify billing --- only the operator controls those.
 
 ---
 
@@ -527,104 +532,55 @@ Subscription = "Is the contract active and paid?"
 
 # Phase 5
 
-Steady State
+Steady State Operations
 
 ---
 
-## Operator's View
+## Operator Capabilities
 
 Via their connect drive, the operator manages both documents:
 
-### Subscription Instance (5 modules, 36 operations)
+### SubscriptionInstance (8 modules, 46 operations)
 - **Lifecycle**: activate, pause, resume, expire, renew, cancel
 - **Billing**: report setup/recurring payments, update projections
-- **Services**: add/remove services, update costs, manage groups
+- **Services**: add/remove services and groups, update costs
 - **Metrics**: define metrics, update limits, track overages
-- **Admin**: set budget categories, operator notes, tier info
+- **Requests**: approve or reject team change requests
+- **Admin**: budget categories, operator notes, tier info, target audience
 
-### Resource Instance (2 modules, 16 operations)
+### ResourceInstance (2 modules, 16 operations)
 - **Lifecycle**: confirm, provision, activate, suspend, resume, terminate
-- **Configuration**: manage facets, apply batch config changes
-- **Monitoring**: track provisioning progress, suspension reasons
+- **Configuration**: manage facets, apply batch changes
 
 ---
 
-## Team's View
+## Team Capabilities
 
-Via their connect drive, the team dispatches operations on the **same synced documents**:
+Via their connect drive, the team dispatches on the **same synced documents**:
 
-### Subscription Instance
-- **Self-service**: toggle auto-renew, update contact info
-- **Customer profile**: set customer type, report team member count
-- **Usage reporting**: increment/decrement/set metric usage
-- **Read-only**: view tier, services, billing projections, costs
+### SubscriptionInstance
+- **Self-service**: toggle auto-renew, update contact info, set customer type
+- **Usage**: increment/decrement metrics, report team member count
+- **Configuration**: set facet selections, add/remove option groups
+- **Requests**: submit change requests (operator approves/rejects)
+- **Read-only**: view tier, services, billing, costs
 
-### Resource Instance
+### ResourceInstance
 - **Configuration**: set/update/remove facets, batch apply changes
-- **Profile**: update instance info (name, description, links)
-- **Read-only**: view provisioning status, suspension status
-
-Both parties dispatch operations on the **same document** --- connect sync ensures full visibility.
+- **Profile**: update name, description, links, profile reference
+- **Read-only**: view provisioning and suspension status
 
 ---
 
 <!-- _class: lead -->
 
-# Document Model Map
-
----
-
-## Complete Relationship Map
-
-```
-ResourceTemplate (PHID)
-|  Product blueprint: services, facets, option groups
-|
-'-> ServiceOffering (PHID)
-    |  resourceTemplateId --> ResourceTemplate
-    |  Commercial layer: tiers, pricing, service levels
-    |
-    '-> [ Achra: browser-side resolution ]
-        |
-        |-> ResourceInstance (PHID)
-        |     resourceTemplateId --> ResourceTemplate
-        |     customerId --> Team
-        |     profile --> actual workspace document
-        |     Lifecycle: DRAFT > PROVISIONING > ACTIVE
-        |
-        '-> SubscriptionInstance (PHID)
-              serviceOfferingId --> ServiceOffering
-              resource.id --> ResourceInstance
-              customerId --> Team
-              Lifecycle: PENDING > ACTIVE > CANCELLED
-```
-
----
-
-## Document Responsibilities
-
-| Document | What it tracks | Primary audience |
-|---|---|---|
-| **ResourceTemplate** | What can be built (capabilities, facets, option groups) | Operator (authoring) |
-| **ServiceOffering** | How it's priced (tiers, levels, usage limits, option pricing) | Operator + Teams (browsing) |
-| **SubscriptionInstance** | Full contract: tier, services, metrics, billing, customer | Both (operator manages, team self-serves) |
-| **ResourceInstance** | Delivery: provisioning, configuration, suspension | Both (operator provisions, team configures) |
-
-### Key design principle
-
-Achra **flattens and resolves** all relational data from the offering into **denormalized, self-contained** inputs. The instance documents never reference the offering's internal structure --- they are standalone.
-
----
-
-<!-- _class: lead -->
-
-# Screenshot Mapping
+# Achra Summary Mapping
 
 Achra Summary > Documents
 
 ---
 
-## Header & Tier Mapping
+## Header & Tier
 
 | Screenshot Element | Subscription Instance | Resource Instance |
 |---|---|---|
@@ -635,65 +591,64 @@ Achra Summary > Documents
 | **Tier: "Basic"** | `tierName` | --- |
 | **$200/mo** | `tierPrice` + `tierCurrency` | --- |
 
-### Form fields (from Achra submit form)
+### Achra submit form
 
-| Field | Subscription Instance | Team Drive |
-|---|---|---|
-| Name: "apeiron" | `customerName` | --- |
-| Team Name: "BAI team" | --- | Drive name |
-| Email: "apeiron@powerhouse.inc" | `customerEmail` | --- |
+| Field | Maps to |
+|---|---|
+| Name: "apeiron" | SubscriptionInstance `customerName` |
+| Team Name: "BAI team" | Team connect drive name |
+| Email: "apeiron@powerhouse.inc" | SubscriptionInstance `customerEmail` |
 
 ---
 
-## Services Mapping
+## Services
 
 | Screenshot Element | Field |
 |---|---|
-| Needs Analysis > "~" | `services[0].customValue: "~"` |
-| Incorporation Docs | `services[1].name` |
-| "Swiss Association" badge | `services[1].facetSelections[0].selectedOption` |
-| "$3,000" + "One-time fee" | `services[1].setupCost: { amount: 3000 }` |
-| Contributor Contracting > "UP TO 3" | `services[2].customValue` |
-| Tax Administration > checkmark | `services[3].customValue: "INCLUDED"` |
-| Dedicated Account Manager > "---" | `services[4].customValue: "---"` |
+| Needs Analysis > "~" | `services[].customValue: "~"` |
+| Incorporation Docs | `services[].name` |
+| "Swiss Association" badge | `services[].facetSelections[].selectedOption` |
+| "$3,000" + "One-time fee" | `services[].setupCost: { amount: 3000 }` |
+| Contributor Contracting > "UP TO 3" | `services[].customValue` |
+| Tax Administration > checkmark | `services[].customValue: "INCLUDED"` |
+| Dedicated Account Manager > "---" | `services[].customValue: "---"` |
 
-All `customValue` strings come from the **ServiceLevelBinding** resolution in achra.
+Every `customValue` string originates from the **ServiceLevelBinding** resolution in Achra.
 
 ---
 
-## Service Groups Mapping
+## Service Groups
 
 | Screenshot Element | Field |
 |---|---|
-| "Finance Pack" | `serviceGroups[0].name` |
-| "+ $50/mo" | `serviceGroups[0].recurringCost` |
-| Bank Account Setup | `serviceGroups[0].services[0].name` |
-| "Swiss Association" on Bank Account | `serviceGroups[0].services[0].facetSelections[0]` |
-| "LABEL" | `serviceGroups[0].services[0].customValue` |
-| Crypto Payment > "---" | `serviceGroups[0].services[1].customValue` |
-| "Hosting Suite" | `serviceGroups[1].name` |
-| "+ $200/mo" | `serviceGroups[1].recurringCost` |
-| Secure Email > "3 ACCOUNTS" | `serviceGroups[1].services[0].customValue` |
-| Web Hosting > "BASIC" | `serviceGroups[1].services[1].customValue` |
+| "Finance Pack" | `serviceGroups[].name` |
+| "+ $50/mo" | `serviceGroups[].recurringCost` or `selectedOptionGroups[].price` |
+| Bank Account Setup | `serviceGroups[].services[].name` |
+| "Swiss Association" on Bank Account | `serviceGroups[].services[].facetSelections[]` |
+| Crypto Payment > "---" | `serviceGroups[].services[].customValue` |
+| "Hosting Suite" | `serviceGroups[].name` |
+| "+ $200/mo" | `serviceGroups[].recurringCost` or `selectedOptionGroups[].price` |
+| Secure Email > "3 ACCOUNTS" | `serviceGroups[].services[].customValue` |
+| Web Hosting > "BASIC" | `serviceGroups[].services[].customValue` |
 
 ---
 
 <!-- _class: lead -->
 
-# Summary
+# Key Takeaways
 
 ---
 
-## Key Takeaways
 
-1. **Four document models** work together: Template > Offering > Achra > SubscriptionInstance + ResourceInstance
 
-2. **Achra resolves** relational offering data into denormalized, self-contained snapshots
+1. **Four document models** form the pipeline: Template > Offering > Achra > SubscriptionInstance + ResourceInstance
 
-3. **Single dispatch** (`initializeSubscription`) creates the full subscription with nested services, groups, metrics, and facets
+2. **Achra resolves** relational offering data into denormalized, self-contained snapshots --- the instances never reference the offering's internal structure
 
-4. **Dual-drive topology** gives both operator and team visibility into the same synced documents
+3. **Dual-drive topology** gives both operator and team real-time visibility into the same synced documents via connect
 
-5. **Dual perspectives**: operator controls lifecycle + billing; team controls configuration + usage reporting
+4. **Dual perspectives on shared documents**: operator controls lifecycle + billing; team controls configuration + usage reporting
 
-6. **Event sourcing** ensures complete audit trail --- every operation from both parties is replayable
+5. **Request workflow**: teams submit change requests via `CREATE_CLIENT_REQUEST`; operators respond with `APPROVE_REQUEST` / `REJECT_REQUEST`
+
+6. **Event sourcing** ensures a complete audit trail --- every operation from both parties is replayable and attributable
