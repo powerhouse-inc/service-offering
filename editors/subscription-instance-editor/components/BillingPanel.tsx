@@ -49,8 +49,16 @@ export function BillingPanel({ document }: BillingPanelProps) {
     }
   }
 
-  // Include group services
+  // Include group-level recurring costs
   for (const group of state.serviceGroups) {
+    if (group.recurringCost) {
+      serviceLines.push({
+        name: `${group.name || "Service Group"}`,
+        amount: group.recurringCost.amount,
+        currency: group.recurringCost.currency,
+        cycle: group.recurringCost.billingCycle || null,
+      });
+    }
     for (const svc of group.services) {
       if (svc.recurringCost) {
         serviceLines.push({

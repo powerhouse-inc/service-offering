@@ -119,7 +119,14 @@ function ServiceCard({
   return (
     <div className="si-service-card">
       <div className="si-service-card__header">
-        <h4 className="si-service-card__name">{service.name || "Service"}</h4>
+        <div className="si-service-card__name-row">
+          <h4 className="si-service-card__name">{service.name || "Service"}</h4>
+          {service.customValue && (
+            <span className="si-badge si-badge--blue si-badge--sm">
+              {service.customValue}
+            </span>
+          )}
+        </div>
         <div className="si-service-card__header-right">
           {service.recurringCost && (
             <span className="si-service-card__price">
@@ -132,6 +139,20 @@ function ServiceCard({
           )}
         </div>
       </div>
+
+      {service.facetSelections.length > 0 && (
+        <div className="si-service-card__facets">
+          {service.facetSelections.map((facet) => (
+            <span
+              key={facet.id}
+              className="si-badge si-badge--slate si-badge--xs"
+              title={facet.facetName}
+            >
+              {facet.facetName}: {facet.selectedOption}
+            </span>
+          ))}
+        </div>
+      )}
 
       {service.description && (
         <p className="si-service-card__desc">{service.description}</p>
@@ -362,10 +383,30 @@ export function ServicesPanel({
           state.serviceGroups.map((group) => (
             <div key={group.id} className="si-service-group">
               <div className="si-service-group__header">
-                <h4 className="si-service-group__name">{group.name}</h4>
-                {group.optional && (
-                  <span className="si-badge si-badge--slate si-badge--sm">
-                    Optional
+                <div className="si-service-group__header-left">
+                  <h4 className="si-service-group__name">{group.name}</h4>
+                  {group.optional && (
+                    <span className="si-badge si-badge--slate si-badge--sm">
+                      Optional
+                    </span>
+                  )}
+                </div>
+                {group.recurringCost && (
+                  <span className="si-service-group__price">
+                    +
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: group.recurringCost.currency || "USD",
+                    }).format(group.recurringCost.amount)}
+                    {(
+                      {
+                        MONTHLY: "/mo",
+                        ANNUAL: "/yr",
+                        QUARTERLY: "/qtr",
+                        SEMI_ANNUAL: "/6mo",
+                        ONE_TIME: "",
+                      } as Record<string, string>
+                    )[group.recurringCost.billingCycle] || ""}
                   </span>
                 )}
               </div>

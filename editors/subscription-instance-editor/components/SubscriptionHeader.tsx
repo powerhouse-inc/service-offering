@@ -91,6 +91,17 @@ export function SubscriptionHeader({
 
       {/* Quick Stats */}
       <div className="si-header__stats">
+        {state.tierPrice != null && (
+          <div className="si-header__stat">
+            <span className="si-header__stat-value">
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: state.tierCurrency || "USD",
+              }).format(state.tierPrice)}
+            </span>
+            <span className="si-header__stat-label">Tier Price</span>
+          </div>
+        )}
         <div className="si-header__stat">
           <span className="si-header__stat-value">{state.services.length}</span>
           <span className="si-header__stat-label">Services</span>
