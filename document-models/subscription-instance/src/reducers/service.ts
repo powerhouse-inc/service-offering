@@ -35,6 +35,8 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         id: input.serviceId,
         name: input.name || null,
         description: input.description || null,
+        customValue: input.customValue || null,
+        facetSelections: [],
         setupCost,
         recurringCost,
         metrics: [],
@@ -122,6 +124,32 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       if (service) {
         if (input.name) service.name = input.name;
         if (input.description) service.description = input.description;
+        if (input.customValue !== undefined && input.customValue !== null)
+          service.customValue = input.customValue;
+      }
+    },
+    addServiceFacetSelectionOperation(state, action) {
+      const { input } = action;
+      const service = state.services.find((s) => s.id === input.serviceId);
+      if (service) {
+        service.facetSelections.push({
+          id: input.facetSelectionId,
+          facetName: input.facetName,
+          selectedOption: input.selectedOption,
+        });
+      }
+    },
+
+    removeServiceFacetSelectionOperation(state, action) {
+      const { input } = action;
+      const service = state.services.find((s) => s.id === input.serviceId);
+      if (service) {
+        const index = service.facetSelections.findIndex(
+          (f) => f.id === input.facetSelectionId,
+        );
+        if (index !== -1) {
+          service.facetSelections.splice(index, 1);
+        }
       }
     },
   };

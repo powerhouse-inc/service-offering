@@ -1,4 +1,70 @@
+import type {
+  InitializeServiceInput,
+  RecurringCost,
+  Service,
+  SetupCost,
+} from "../../gen/schema/types.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
+
+function buildServiceFromInput(svc: InitializeServiceInput): Service {
+  let setupCost: SetupCost | null = null;
+  if (svc.setupAmount && svc.setupCurrency) {
+    setupCost = {
+      amount: svc.setupAmount,
+      currency: svc.setupCurrency,
+      billingDate: null,
+      paymentDate: null,
+    };
+  }
+
+  let recurringCost: RecurringCost | null = null;
+  if (
+    svc.recurringAmount &&
+    svc.recurringCurrency &&
+    svc.recurringBillingCycle
+  ) {
+    recurringCost = {
+      amount: svc.recurringAmount,
+      currency: svc.recurringCurrency,
+      billingCycle: svc.recurringBillingCycle,
+      nextBillingDate: null,
+      lastPaymentDate: null,
+    };
+  }
+
+  return {
+    id: svc.id,
+    name: svc.name || null,
+    description: svc.description || null,
+    customValue: svc.customValue || null,
+    facetSelections: (svc.facetSelections || []).map((f) => ({
+      id: f.id,
+      facetName: f.facetName,
+      selectedOption: f.selectedOption,
+    })),
+    setupCost,
+    recurringCost,
+    metrics: (svc.metrics || []).map((m) => ({
+      id: m.id,
+      name: m.name,
+      unitName: m.unitName,
+      limit: m.limit || null,
+      currentUsage: m.currentUsage,
+      usageResetPeriod: m.usageResetPeriod || null,
+      nextUsageReset: null,
+      unitCost:
+        m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle
+          ? {
+              amount: m.unitCostAmount,
+              currency: m.unitCostCurrency,
+              billingCycle: m.unitCostBillingCycle,
+              nextBillingDate: null,
+              lastPaymentDate: null,
+            }
+          : null,
+    })),
+  };
+}
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {
@@ -10,6 +76,8 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.serviceOfferingId = input.serviceOfferingId || null;
       state.tierName = input.tierName || null;
       state.tierPricingOptionId = input.tierPricingOptionId || null;
+      state.tierPrice = input.tierPrice || null;
+      state.tierCurrency = input.tierCurrency || null;
       state.autoRenew = input.autoRenew ?? false;
       state.createdAt = input.createdAt;
       state.status = "PENDING";
@@ -20,6 +88,38 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           label: input.resourceLabel || null,
           thumbnailUrl: input.resourceThumbnailUrl || null,
         };
+      }
+
+      if (input.services) {
+        for (const svc of input.services) {
+          state.services.push(buildServiceFromInput(svc));
+        }
+      }
+
+      if (input.serviceGroups) {
+        for (const grp of input.serviceGroups) {
+          let recurringCost: RecurringCost | null = null;
+          if (
+            grp.recurringAmount &&
+            grp.recurringCurrency &&
+            grp.recurringBillingCycle
+          ) {
+            recurringCost = {
+              amount: grp.recurringAmount,
+              currency: grp.recurringCurrency,
+              billingCycle: grp.recurringBillingCycle,
+              nextBillingDate: null,
+              lastPaymentDate: null,
+            };
+          }
+          state.serviceGroups.push({
+            id: grp.id,
+            name: grp.name,
+            optional: grp.optional,
+            recurringCost,
+            services: (grp.services || []).map(buildServiceFromInput),
+          });
+        }
       }
     },
 
@@ -95,6 +195,9 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       if (input.tierName) state.tierName = input.tierName;
       if (input.tierPricingOptionId)
         state.tierPricingOptionId = input.tierPricingOptionId;
+      if (input.tierPrice !== undefined && input.tierPrice !== null)
+        state.tierPrice = input.tierPrice;
+      if (input.tierCurrency) state.tierCurrency = input.tierCurrency;
     },
 
     setOperatorNotesOperation(state, action) {

@@ -5,10 +5,25 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
   {
     addServiceGroupOperation(state, action) {
       const { input } = action;
+      let recurringCost: RecurringCost | null = null;
+      if (
+        input.recurringAmount &&
+        input.recurringCurrency &&
+        input.recurringBillingCycle
+      ) {
+        recurringCost = {
+          amount: input.recurringAmount,
+          currency: input.recurringCurrency,
+          billingCycle: input.recurringBillingCycle,
+          nextBillingDate: null,
+          lastPaymentDate: null,
+        };
+      }
       state.serviceGroups.push({
         id: input.groupId,
         name: input.name,
         optional: input.optional,
+        recurringCost,
         services: [],
       });
     },
@@ -55,6 +70,8 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           id: input.serviceId,
           name: input.name || null,
           description: input.description || null,
+          customValue: input.customValue || null,
+          facetSelections: [],
           setupCost,
           recurringCost,
           metrics: [],
@@ -71,6 +88,25 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
         );
         if (serviceIndex !== -1) {
           group.services.splice(serviceIndex, 1);
+        }
+      }
+    },
+    updateServiceGroupCostOperation(state, action) {
+      const { input } = action;
+      const group = state.serviceGroups.find((g) => g.id === input.groupId);
+      if (group) {
+        if (
+          input.recurringAmount &&
+          input.recurringCurrency &&
+          input.recurringBillingCycle
+        ) {
+          group.recurringCost = {
+            amount: input.recurringAmount,
+            currency: input.recurringCurrency,
+            billingCycle: input.recurringBillingCycle,
+            nextBillingDate: null,
+            lastPaymentDate: null,
+          };
         }
       }
     },

@@ -29,6 +29,8 @@ type SubscriptionInstanceState {
     serviceOfferingId: PHID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
     resource: ResourceDocument
     status: SubscriptionStatus!
     createdAt: DateTime
@@ -57,6 +59,7 @@ type ServiceGroup {
     id: OID!
     optional: Boolean!
     name: String!
+    recurringCost: RecurringCost
     services: [Service!]!
 }
 
@@ -106,9 +109,17 @@ type Service {
     id: OID!
     name: String
     description: String
+    customValue: String
+    facetSelections: [ServiceFacetSelection!]!
     setupCost: SetupCost
     recurringCost: RecurringCost
     metrics: [ServiceMetric!]!
+}
+
+type ServiceFacetSelection {
+    id: OID!
+    facetName: String!
+    selectedOption: String!
 }
 
 type ServiceMetric {
@@ -134,6 +145,48 @@ enum ResetPeriod {
 
 # Subscription
 
+input InitializeFacetSelectionInput {
+    id: OID!
+    facetName: String!
+    selectedOption: String!
+}
+
+input InitializeMetricInput {
+    id: OID!
+    name: String!
+    unitName: String!
+    limit: Int
+    currentUsage: Int!
+    usageResetPeriod: ResetPeriod
+    unitCostAmount: Amount_Money
+    unitCostCurrency: Currency
+    unitCostBillingCycle: BillingCycle
+}
+
+input InitializeServiceInput {
+    id: OID!
+    name: String
+    description: String
+    customValue: String
+    facetSelections: [InitializeFacetSelectionInput!]
+    setupAmount: Amount_Money
+    setupCurrency: Currency
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
+    metrics: [InitializeMetricInput!]
+}
+
+input InitializeServiceGroupInput {
+    id: OID!
+    name: String!
+    optional: Boolean!
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
+    services: [InitializeServiceInput!]
+}
+
 input InitializeSubscriptionInput {
     customerId: PHID
     customerName: String
@@ -141,11 +194,15 @@ input InitializeSubscriptionInput {
     serviceOfferingId: PHID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
     resourceId: PHID
     resourceLabel: String
     resourceThumbnailUrl: URL
     autoRenew: Boolean
     createdAt: DateTime!
+    services: [InitializeServiceInput!]
+    serviceGroups: [InitializeServiceGroupInput!]
 }
 
 input SetResourceDocumentInput {
@@ -202,6 +259,8 @@ input UpdateCustomerInfoInput {
 input UpdateTierInfoInput {
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
 }
 
 input SetOperatorNotesInput {
@@ -228,6 +287,7 @@ input AddServiceInput {
     serviceId: OID!
     name: String
     description: String
+    customValue: String
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
@@ -274,6 +334,19 @@ input UpdateServiceInfoInput {
     serviceId: OID!
     name: String
     description: String
+    customValue: String
+}
+
+input AddServiceFacetSelectionInput {
+    serviceId: OID!
+    facetSelectionId: OID!
+    facetName: String!
+    selectedOption: String!
+}
+
+input RemoveServiceFacetSelectionInput {
+    serviceId: OID!
+    facetSelectionId: OID!
 }
 
 # Service Group
@@ -282,6 +355,9 @@ input AddServiceGroupInput {
     groupId: OID!
     name: String!
     optional: Boolean!
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
 }
 
 input RemoveServiceGroupInput {
@@ -293,6 +369,7 @@ input AddServiceToGroupInput {
     serviceId: OID!
     name: String
     description: String
+    customValue: String
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
@@ -307,6 +384,13 @@ input AddServiceToGroupInput {
 input RemoveServiceFromGroupInput {
     groupId: OID!
     serviceId: OID!
+}
+
+input UpdateServiceGroupCostInput {
+    groupId: OID!
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
 }
 
 # Metrics

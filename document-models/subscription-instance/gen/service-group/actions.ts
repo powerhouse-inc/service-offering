@@ -4,6 +4,7 @@ import type {
   RemoveServiceGroupInput,
   AddServiceToGroupInput,
   RemoveServiceFromGroupInput,
+  UpdateServiceGroupCostInput,
 } from "../types.js";
 
 export type AddServiceGroupAction = Action & {
@@ -22,9 +23,14 @@ export type RemoveServiceFromGroupAction = Action & {
   type: "REMOVE_SERVICE_FROM_GROUP";
   input: RemoveServiceFromGroupInput;
 };
+export type UpdateServiceGroupCostAction = Action & {
+  type: "UPDATE_SERVICE_GROUP_COST";
+  input: UpdateServiceGroupCostInput;
+};
 
 export type SubscriptionInstanceServiceGroupAction =
   | AddServiceGroupAction
   | RemoveServiceGroupAction
   | AddServiceToGroupAction
-  | RemoveServiceFromGroupAction;
+  | RemoveServiceFromGroupAction
+  | UpdateServiceGroupCostAction;

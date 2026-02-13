@@ -36,10 +36,13 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
+  AddServiceFacetSelectionInputSchema,
+  RemoveServiceFacetSelectionInputSchema,
   AddServiceGroupInputSchema,
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
   RemoveServiceFromGroupInputSchema,
+  UpdateServiceGroupCostInputSchema,
   AddServiceMetricInputSchema,
   UpdateMetricInputSchema,
   UpdateMetricUsageInputSchema,
@@ -347,6 +350,30 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
+    case "ADD_SERVICE_FACET_SELECTION": {
+      AddServiceFacetSelectionInputSchema().parse(action.input);
+
+      subscriptionInstanceServiceOperations.addServiceFacetSelectionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_SERVICE_FACET_SELECTION": {
+      RemoveServiceFacetSelectionInputSchema().parse(action.input);
+
+      subscriptionInstanceServiceOperations.removeServiceFacetSelectionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
     case "ADD_SERVICE_GROUP": {
       AddServiceGroupInputSchema().parse(action.input);
 
@@ -387,6 +414,18 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       RemoveServiceFromGroupInputSchema().parse(action.input);
 
       subscriptionInstanceServiceGroupOperations.removeServiceFromGroupOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "UPDATE_SERVICE_GROUP_COST": {
+      UpdateServiceGroupCostInputSchema().parse(action.input);
+
+      subscriptionInstanceServiceGroupOperations.updateServiceGroupCostOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

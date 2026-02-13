@@ -4,6 +4,7 @@ import type {
   RemoveServiceGroupAction,
   AddServiceToGroupAction,
   RemoveServiceFromGroupAction,
+  UpdateServiceGroupCostAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -26,6 +27,11 @@ export interface SubscriptionInstanceServiceGroupOperations {
   removeServiceFromGroupOperation: (
     state: SubscriptionInstanceState,
     action: RemoveServiceFromGroupAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  updateServiceGroupCostOperation: (
+    state: SubscriptionInstanceState,
+    action: UpdateServiceGroupCostAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

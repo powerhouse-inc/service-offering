@@ -30,6 +30,10 @@
         {
             "id": "powerhouse/subscription-instance",
             "name": "Subscription Instance"
+        },
+        {
+            "id": "powerhouse/business-analysis",
+            "name": "BusinessAnalysis"
         }
     ],
     "editors": [],

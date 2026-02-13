@@ -22,6 +22,8 @@ export function defaultGlobalState(): SubscriptionInstanceGlobalState {
     serviceOfferingId: null,
     tierName: null,
     tierPricingOptionId: null,
+    tierPrice: null,
+    tierCurrency: null,
     resource: null,
     status: "PENDING",
     createdAt: null,
