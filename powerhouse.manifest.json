@@ -30,9 +30,21 @@
         {
             "id": "powerhouse/subscription-instance",
             "name": "Subscription Instance"
+        },
+        {
+            "id": "powerhouse/business-analysis",
+            "name": "BusinessAnalysis"
         }
     ],
-    "editors": [],
+    "editors": [
+        {
+            "id": "business-analysis-editor",
+            "name": "BusinessAnalysisEditor",
+            "documentTypes": [
+                "powerhouse/business-analysis"
+            ]
+        }
+    ],
     "apps": [],
     "subgraphs": [],
     "importScripts": []

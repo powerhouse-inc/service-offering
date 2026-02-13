@@ -7,15 +7,22 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.customerId = input.customerId || null;
       state.customerName = input.customerName || null;
       state.customerEmail = input.customerEmail || null;
+      if (input.customerType) state.customerType = input.customerType;
+      state.operatorId = input.operatorId || null;
+      state.operatorName = input.operatorName || null;
       state.serviceOfferingId = input.serviceOfferingId || null;
       state.tierId = input.tierId || null;
       state.tierName = input.tierName || null;
       state.tierPricingOptionId = input.tierPricingOptionId || null;
+      state.tierPrice = input.tierPrice ?? null;
+      state.tierCurrency = input.tierCurrency || null;
       state.autoRenew = input.autoRenew ?? false;
       state.createdAt = input.createdAt;
       state.status = "PENDING";
       state.targetAudienceId = input.targetAudienceId || null;
       state.targetAudienceLabel = input.targetAudienceLabel || null;
+      state.projectedBillAmount = input.projectedBillAmount ?? null;
+      state.projectedBillCurrency = input.projectedBillCurrency || null;
 
       if (input.resourceId) {
         state.resource = {
@@ -99,6 +106,9 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       if (input.tierName) state.tierName = input.tierName;
       if (input.tierPricingOptionId)
         state.tierPricingOptionId = input.tierPricingOptionId;
+      if (input.tierPrice !== undefined && input.tierPrice !== null)
+        state.tierPrice = input.tierPrice;
+      if (input.tierCurrency) state.tierCurrency = input.tierCurrency;
     },
 
     setOperatorNotesOperation(state, action) {

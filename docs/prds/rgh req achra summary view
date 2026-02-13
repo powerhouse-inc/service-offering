@@ -1,0 +1,19 @@
+Subscription Summary Requirements (achra)
+
+(Content & UI)
+Content Focus: The summary should clearly summarize the operator, product name, price, and selected configuration details (tiers, add-ons) but generally exclude metrics.
+Pricing in Summary: Pricing matters, including metric-based pricing.
+Conciseness: Minimize the display of individual services, perhaps making them expandable, and group all costs at the service group level.
+Summary Structure for Payment:
+Display Setup Costs (one-time costs from all service groups, excluding metrics) as the immediate payment.
+Display Recurring Costs (service group recurring costs, metric recurring costs, and metric setup costs that occur after the subscription starts).
+Metric Detail Display: Use comment-like features or information icons for granular metric details (like absolute limits) to prevent overwhelming the user, while still showing relevant pricing information (free allowances, per-unit costs).
+The summary should clearly detail the operator, product name, price, and selected configuration (tiers, add-ons).
+Metrics should generally be excluded from the high-level summary to keep it concise.
+Minimize the display of individual services and group everything at the service group level.
+Use comment-like features or information icons for granular metric details (like absolute limits), while clearly showing free allowances and per-unit overage costs.
+The summary should clearly split the costs into two parts: 1) Setup Costs (one-time costs, excluding metrics) as the immediate payment, and 2) Recurring Costs (service group recurring, metric recurring, and metric setup costs that occur after subscription starts).
+
+Exclude Metric Details: Metrics themselves (like usage numbers) should generally be excluded from the high-level subscription summary to keep it concise and user-friendly.
+Include Metric Pricing: Pricing related to metrics should still be shown.
+Detail Presentation: To prevent overwhelming the user, full metric details like absolute usage limits should be presented using comment-like features or information icons. The relevant pricing information, such as free allowances and per-unit overage costs, should remain visible.

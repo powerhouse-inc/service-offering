@@ -1,0 +1,604 @@
+scalar Unknown
+scalar DateTime
+scalar Attachment
+scalar Address
+scalar Amount_Tokens
+scalar EthereumAddress
+scalar EmailAddress
+scalar Amount_Percentage
+scalar Date
+scalar URL
+scalar Amount_Money
+scalar OLabel
+scalar Currency
+scalar PHID
+scalar OID
+scalar Amount_Fiat
+scalar Amount_Currency
+scalar Amount_Crypto
+scalar Amount
+scalar Upload
+
+enum ProjectPhase { DISCOVERY ELICITATION ANALYSIS DESIGN IMPLEMENTATION VALIDATION CLOSED }
+enum ProjectStatus { NOT_STARTED IN_PROGRESS ON_HOLD COMPLETED CANCELLED }
+enum StakeholderInfluence { LOW MEDIUM HIGH }
+enum StakeholderInterest { LOW MEDIUM HIGH }
+enum EngagementLevel { UNAWARE RESISTANT NEUTRAL SUPPORTIVE CHAMPION }
+type Stakeholder { id: OID! name: String! role: String organization: String email: String influence: StakeholderInfluence interest: StakeholderInterest engagementLevel: EngagementLevel notes: String createdAt: DateTime }
+enum RequirementType { FUNCTIONAL NON_FUNCTIONAL BUSINESS_RULE CONSTRAINT USER_STORY }
+enum RequirementStatus { DRAFT UNDER_REVIEW APPROVED DEFERRED IMPLEMENTED VERIFIED REJECTED }
+enum Priority { MUST_HAVE SHOULD_HAVE COULD_HAVE WONT_HAVE }
+type AcceptanceCriterion { id: OID! description: String! verified: Boolean }
+type RequirementCategory { id: OID! name: String! description: String color: String }
+type Requirement { id: OID! code: String title: String! description: String type: RequirementType! priority: Priority status: RequirementStatus categoryId: OID parentRequirementId: OID effort: String source: String rationale: String acceptanceCriteria: [AcceptanceCriterion!]! linkedRequirementIds: [OID!]! linkedProcessIds: [OID!]! stakeholderIds: [OID!]! tags: [String!]! createdAt: DateTime updatedAt: DateTime }
+enum ProcessType { AS_IS TO_BE }
+enum StepType { TASK DECISION SUBPROCESS START END GATEWAY }
+type ProcessStep { id: OID! name: String! description: String actor: String order: Int! type: StepType duration: String automatable: Boolean }
+type BusinessProcess { id: OID! name: String! description: String type: ProcessType! owner: String steps: [ProcessStep!]! painPoints: [String!]! improvements: [String!]! linkedRequirementIds: [OID!]! createdAt: DateTime }
+enum AnalysisType { SWOT ROOT_CAUSE COST_BENEFIT GAP_ANALYSIS FIVE_WHYS PESTLE MOSCOW CUSTOM }
+type AnalysisEntry { id: OID! category: String! content: String! impact: String likelihood: String notes: String }
+type AnalysisArtifact { id: OID! name: String! type: AnalysisType! entries: [AnalysisEntry!]! summary: String createdAt: DateTime }
+enum MeasurementFrequency { DAILY WEEKLY BIWEEKLY MONTHLY QUARTERLY ANNUALLY }
+enum KPIStatus { ON_TRACK AT_RISK OFF_TRACK NOT_MEASURED }
+type KPIMeasurement { id: OID! value: Float! recordedAt: DateTime! notes: String }
+type KPI { id: OID! name: String! description: String targetValue: Float currentValue: Float unit: String frequency: MeasurementFrequency owner: String status: KPIStatus measurements: [KPIMeasurement!]! linkedRequirementIds: [OID!]! createdAt: DateTime }
+enum DecisionStatus { PROPOSED UNDER_DISCUSSION DECIDED DEFERRED REVERSED }
+type Decision { id: OID! title: String! description: String status: DecisionStatus outcome: String rationale: String alternatives: [String!]! stakeholderIds: [OID!]! linkedRequirementIds: [OID!]! decidedAt: DateTime createdAt: DateTime }
+enum ChangeRequestStatus { SUBMITTED UNDER_REVIEW APPROVED REJECTED IMPLEMENTED }
+enum ChangeImpact { LOW MEDIUM HIGH CRITICAL }
+type ChangeRequest { id: OID! title: String! description: String requestedBy: String status: ChangeRequestStatus impact: ChangeImpact impactAnalysis: String affectedRequirementIds: [OID!]! resolution: String createdAt: DateTime resolvedAt: DateTime }
+enum DeliverableType { BRD FUNCTIONAL_SPEC PROCESS_MAP USE_CASE_DIAGRAM DATA_FLOW WIREFRAME TEST_PLAN TRAINING_MATERIAL PRESENTATION REPORT OTHER }
+enum DeliverableStatus { NOT_STARTED IN_PROGRESS UNDER_REVIEW APPROVED DELIVERED }
+type Deliverable { id: OID! name: String! type: DeliverableType description: String status: DeliverableStatus assignee: String dueDate: DateTime completedAt: DateTime url: URL estimatedHours: Float linkedRequirementIds: [OID!]! }
+enum RiskLevel { LOW MEDIUM HIGH CRITICAL }
+enum RiskStatus { IDENTIFIED MITIGATING ACCEPTED RESOLVED ESCALATED }
+type Risk { id: OID! title: String! description: String probability: RiskLevel impact: RiskLevel status: RiskStatus mitigation: String owner: String linkedRequirementIds: [OID!]! createdAt: DateTime }
+type ActivityEntry { id: OID! action: String! entityType: String entityId: OID description: String timestamp: DateTime! }
+enum AssumptionStatus { ACTIVE VALIDATED INVALIDATED }
+enum ScopeItemType { IN_SCOPE OUT_OF_SCOPE DEFERRED }
+enum FeedbackType { APPROVAL REJECTION COMMENT QUESTION CHANGE_REQUEST }
+enum FeedbackStatus { PENDING ACKNOWLEDGED RESOLVED INCORPORATED }
+type Assumption { id: OID! description: String! category: String status: AssumptionStatus validatedBy: String validatedAt: DateTime notes: String linkedRequirementIds: [OID!]! createdAt: DateTime }
+type ScopeItem { id: OID! description: String! type: ScopeItemType! rationale: String linkedRequirementIds: [OID!]! createdAt: DateTime }
+type GlossaryTerm { id: OID! term: String! definition: String! context: String aliases: [String!]! linkedRequirementIds: [OID!]! createdAt: DateTime }
+type StakeholderFeedback { id: OID! type: FeedbackType! entityType: String! entityId: OID! stakeholderId: OID! content: String! status: FeedbackStatus analystResponse: String createdAt: DateTime! resolvedAt: DateTime }
+type BusinessAnalysisState { projectName: String projectDescription: String projectPhase: ProjectPhase projectStatus: ProjectStatus startDate: DateTime targetEndDate: DateTime organization: String sponsor: String stakeholders: [Stakeholder!]! requirements: [Requirement!]! requirementCategories: [RequirementCategory!]! processes: [BusinessProcess!]! analyses: [AnalysisArtifact!]! kpis: [KPI!]! decisions: [Decision!]! changeRequests: [ChangeRequest!]! deliverables: [Deliverable!]! risks: [Risk!]! activityLog: [ActivityEntry!]! assumptions: [Assumption!]! scopeItems: [ScopeItem!]! glossary: [GlossaryTerm!]! feedback: [StakeholderFeedback!]! }
+
+# project
+
+input SetProjectInfoInput {
+  projectName: String
+  projectDescription: String
+  organization: String
+  sponsor: String
+  startDate: DateTime
+  targetEndDate: DateTime
+}
+
+input SetProjectPhaseInput {
+  phase: ProjectPhase!
+  timestamp: DateTime!
+}
+
+input SetProjectStatusInput {
+  status: ProjectStatus!
+  timestamp: DateTime!
+}
+
+# stakeholders
+
+input AddStakeholderInput {
+  id: OID!
+  name: String!
+  role: String
+  organization: String
+  email: String
+  influence: StakeholderInfluence
+  interest: StakeholderInterest
+  engagementLevel: EngagementLevel
+  notes: String
+  createdAt: DateTime!
+}
+
+input UpdateStakeholderInput {
+  id: OID!
+  name: String
+  role: String
+  organization: String
+  email: String
+  influence: StakeholderInfluence
+  interest: StakeholderInterest
+  notes: String
+}
+
+input RemoveStakeholderInput {
+  id: OID!
+}
+
+input SetEngagementLevelInput {
+  id: OID!
+  engagementLevel: EngagementLevel!
+}
+
+# requirements
+
+input AddRequirementInput {
+  id: OID!
+  code: String
+  title: String!
+  description: String
+  type: RequirementType!
+  priority: Priority
+  categoryId: OID
+  parentRequirementId: OID
+  effort: String
+  source: String
+  rationale: String
+  stakeholderIds: [OID!]
+  tags: [String!]
+  createdAt: DateTime!
+}
+
+input UpdateRequirementInput {
+  id: OID!
+  code: String
+  title: String
+  description: String
+  type: RequirementType
+  priority: Priority
+  categoryId: OID
+  parentRequirementId: OID
+  effort: String
+  source: String
+  rationale: String
+  stakeholderIds: [OID!]
+  tags: [String!]
+  updatedAt: DateTime!
+}
+
+input RemoveRequirementInput {
+  id: OID!
+}
+
+input SetRequirementStatusInput {
+  id: OID!
+  status: RequirementStatus!
+  updatedAt: DateTime!
+}
+
+input AddAcceptanceCriterionInput {
+  requirementId: OID!
+  id: OID!
+  description: String!
+}
+
+input UpdateAcceptanceCriterionInput {
+  requirementId: OID!
+  id: OID!
+  description: String
+  verified: Boolean
+}
+
+input RemoveAcceptanceCriterionInput {
+  requirementId: OID!
+  id: OID!
+}
+
+input LinkRequirementsInput {
+  id: OID!
+  linkedRequirementIds: [OID!]
+  linkedProcessIds: [OID!]
+}
+
+input AddRequirementCategoryInput {
+  id: OID!
+  name: String!
+  description: String
+  color: String
+}
+
+input UpdateRequirementCategoryInput {
+  id: OID!
+  name: String
+  description: String
+  color: String
+}
+
+input RemoveRequirementCategoryInput {
+  id: OID!
+}
+
+# processes
+
+input AddProcessInput {
+  id: OID!
+  name: String!
+  description: String
+  type: ProcessType!
+  owner: String
+  createdAt: DateTime!
+}
+
+input UpdateProcessInput {
+  id: OID!
+  name: String
+  description: String
+  type: ProcessType
+  owner: String
+  painPoints: [String!]
+  improvements: [String!]
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveProcessInput {
+  id: OID!
+}
+
+input AddProcessStepInput {
+  processId: OID!
+  id: OID!
+  name: String!
+  description: String
+  actor: String
+  order: Int!
+  type: StepType
+  duration: String
+  automatable: Boolean
+}
+
+input UpdateProcessStepInput {
+  processId: OID!
+  id: OID!
+  name: String
+  description: String
+  actor: String
+  order: Int
+  type: StepType
+  duration: String
+  automatable: Boolean
+}
+
+input RemoveProcessStepInput {
+  processId: OID!
+  id: OID!
+}
+
+input ReorderProcessStepsInput {
+  processId: OID!
+  order: [OID!]!
+}
+
+# analysis
+
+input AddAnalysisInput {
+  id: OID!
+  name: String!
+  type: AnalysisType!
+  summary: String
+  createdAt: DateTime!
+}
+
+input UpdateAnalysisInput {
+  id: OID!
+  name: String
+  type: AnalysisType
+  summary: String
+}
+
+input RemoveAnalysisInput {
+  id: OID!
+}
+
+input AddAnalysisEntryInput {
+  analysisId: OID!
+  id: OID!
+  category: String!
+  content: String!
+  impact: String
+  likelihood: String
+  notes: String
+}
+
+input UpdateAnalysisEntryInput {
+  analysisId: OID!
+  id: OID!
+  category: String
+  content: String
+  impact: String
+  likelihood: String
+  notes: String
+}
+
+input RemoveAnalysisEntryInput {
+  analysisId: OID!
+  id: OID!
+}
+
+# kpis
+
+input AddKpiInput {
+  id: OID!
+  name: String!
+  description: String
+  targetValue: Float
+  unit: String
+  frequency: MeasurementFrequency
+  owner: String
+  linkedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateKpiInput {
+  id: OID!
+  name: String
+  description: String
+  targetValue: Float
+  unit: String
+  frequency: MeasurementFrequency
+  owner: String
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveKpiInput {
+  id: OID!
+}
+
+input RecordKpiMeasurementInput {
+  kpiId: OID!
+  id: OID!
+  value: Float!
+  recordedAt: DateTime!
+  notes: String
+}
+
+input SetKpiStatusInput {
+  id: OID!
+  status: KPIStatus!
+}
+
+# decisions
+
+input AddDecisionInput {
+  id: OID!
+  title: String!
+  description: String
+  alternatives: [String!]
+  stakeholderIds: [OID!]
+  linkedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateDecisionInput {
+  id: OID!
+  title: String
+  description: String
+  outcome: String
+  rationale: String
+  alternatives: [String!]
+  stakeholderIds: [OID!]
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveDecisionInput {
+  id: OID!
+}
+
+input SetDecisionStatusInput {
+  id: OID!
+  status: DecisionStatus!
+  decidedAt: DateTime
+}
+
+# changes
+
+input AddChangeRequestInput {
+  id: OID!
+  title: String!
+  description: String
+  requestedBy: String
+  impact: ChangeImpact
+  impactAnalysis: String
+  affectedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateChangeRequestInput {
+  id: OID!
+  title: String
+  description: String
+  impact: ChangeImpact
+  impactAnalysis: String
+  affectedRequirementIds: [OID!]
+}
+
+input SetChangeRequestStatusInput {
+  id: OID!
+  status: ChangeRequestStatus!
+  resolution: String
+  resolvedAt: DateTime
+}
+
+# deliverables
+
+input AddDeliverableInput {
+  id: OID!
+  name: String!
+  type: DeliverableType
+  description: String
+  assignee: String
+  dueDate: DateTime
+  url: URL
+  estimatedHours: Float
+  linkedRequirementIds: [OID!]
+}
+
+input UpdateDeliverableInput {
+  id: OID!
+  name: String
+  type: DeliverableType
+  description: String
+  assignee: String
+  dueDate: DateTime
+  url: URL
+  estimatedHours: Float
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveDeliverableInput {
+  id: OID!
+}
+
+input SetDeliverableStatusInput {
+  id: OID!
+  status: DeliverableStatus!
+  completedAt: DateTime
+}
+
+# risks
+
+input AddRiskInput {
+  id: OID!
+  title: String!
+  description: String
+  probability: RiskLevel
+  impact: RiskLevel
+  mitigation: String
+  owner: String
+  linkedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateRiskInput {
+  id: OID!
+  title: String
+  description: String
+  probability: RiskLevel
+  impact: RiskLevel
+  mitigation: String
+  owner: String
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveRiskInput {
+  id: OID!
+}
+
+input SetRiskStatusInput {
+  id: OID!
+  status: RiskStatus!
+}
+
+# activity
+
+input LogActivityInput {
+  id: OID!
+  action: String!
+  entityType: String
+  entityId: OID
+  description: String
+  timestamp: DateTime!
+}
+
+# scope
+
+input AddAssumptionInput {
+  id: OID!
+  description: String!
+  category: String
+  notes: String
+  linkedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateAssumptionInput {
+  id: OID!
+  description: String
+  category: String
+  notes: String
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveAssumptionInput {
+  id: OID!
+}
+
+input SetAssumptionStatusInput {
+  id: OID!
+  status: AssumptionStatus!
+  validatedBy: String
+  validatedAt: DateTime
+}
+
+input AddScopeItemInput {
+  id: OID!
+  description: String!
+  type: ScopeItemType!
+  rationale: String
+  linkedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateScopeItemInput {
+  id: OID!
+  description: String
+  type: ScopeItemType
+  rationale: String
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveScopeItemInput {
+  id: OID!
+}
+
+# glossary
+
+input AddGlossaryTermInput {
+  id: OID!
+  term: String!
+  definition: String!
+  context: String
+  aliases: [String!]
+  linkedRequirementIds: [OID!]
+  createdAt: DateTime!
+}
+
+input UpdateGlossaryTermInput {
+  id: OID!
+  term: String
+  definition: String
+  context: String
+  aliases: [String!]
+  linkedRequirementIds: [OID!]
+}
+
+input RemoveGlossaryTermInput {
+  id: OID!
+}
+
+# feedback
+
+input SubmitFeedbackInput {
+  id: OID!
+  type: FeedbackType!
+  entityType: String!
+  entityId: OID!
+  stakeholderId: OID!
+  content: String!
+  createdAt: DateTime!
+}
+
+input RespondToFeedbackInput {
+  id: OID!
+  analystResponse: String!
+}
+
+input ResolveFeedbackInput {
+  id: OID!
+  status: FeedbackStatus!
+  analystResponse: String
+  resolvedAt: DateTime!
+}
+
+input RemoveFeedbackInput {
+  id: OID!
+}

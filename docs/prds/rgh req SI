@@ -1,0 +1,24 @@
+subscription instance
+
+Billing Overview and Editor Requirements
+
+Billing Overview Terminology and Content
+Terminology: The term "billing projection" must be used, as the bill is an accumulation of costs since the last bill and is subject to change.
+Disclaimer: Add a preview indicator or disclaimer (like an asterisk) to indicate that the bill could still increase based on dynamic usage metrics.
+Overview Focus: Simplify the core billing overview to focus on current usage, free units, and the total projected bill, removing the limitation increase request feature.
+Setup Costs Location: Move setup costs to a different, less visible tab since they are generally paid once at the beginning of the subscription.
+Merging Sections: Merge the recurring services and metrics sections by using the service group as a header with the recurring price, and using the metrics as line items.
+Currency: Set one global currency at the instance document level for billing to avoid mixing multiple currencies in line items.
+Fixed vs. Dynamic Costs: Clarify that recurring fees and setup costs are fixed, while usage metrics are the dynamic elements influencing the total bill.
+Operator/Client Views (Editors)
+Operator View: The operator view should essentially mirror the client view but with editable fields for non-frequently changing adjustments, such as increasing a usage limit or adjusting the billing start date.
+
+
+Billing Overview Section (Billing Projection)
+Merging Sections: The recurring services and metrics sections should be merged.
+Structure: Use the service group as a main header with its recurring price attached. The individual metrics that belong to that service group should then be listed as line items beneath the service group header.
+Dynamic Costs: It should be clear that metrics are the dynamic element that constantly changes and influences the total bill (the "billing projection").
+Fixed Costs: Fixed recurring fees and setup costs will remain stable.
+
+Setup Costs Location: Setup costs (one-time costs) should be moved to a different, less visible tab since they are paid once and are only relevant at the beginning of the subscription.
+Limit Increase Feature: The feature for requesting a limit increase should be downplayed and separated

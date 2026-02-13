@@ -76,13 +76,19 @@ export type AddSelectedOptionGroupInput = {
 
 export type AddServiceGroupInput = {
   billingCycle?: InputMaybe<BillingCycle>;
+  displayOrder?: InputMaybe<Scalars["Int"]["input"]>;
   groupId: Scalars["OID"]["input"];
   name: Scalars["String"]["input"];
+  optionGroupId?: InputMaybe<Scalars["OID"]["input"]>;
   optional: Scalars["Boolean"]["input"];
 };
 
 export type AddServiceInput = {
+  customValue?: InputMaybe<Scalars["String"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
+  displayOrder?: InputMaybe<Scalars["Int"]["input"]>;
+  facetLabel?: InputMaybe<Scalars["String"]["input"]>;
+  isSetupService?: InputMaybe<Scalars["Boolean"]["input"]>;
   name?: InputMaybe<Scalars["String"]["input"]>;
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
@@ -115,8 +121,12 @@ export type AddServiceMetricInput = {
 };
 
 export type AddServiceToGroupInput = {
+  customValue?: InputMaybe<Scalars["String"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
+  displayOrder?: InputMaybe<Scalars["Int"]["input"]>;
+  facetLabel?: InputMaybe<Scalars["String"]["input"]>;
   groupId: Scalars["OID"]["input"];
+  isSetupService?: InputMaybe<Scalars["Boolean"]["input"]>;
   name?: InputMaybe<Scalars["String"]["input"]>;
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
@@ -211,14 +221,21 @@ export type InitializeSubscriptionInput = {
   customerEmail?: InputMaybe<Scalars["EmailAddress"]["input"]>;
   customerId?: InputMaybe<Scalars["PHID"]["input"]>;
   customerName?: InputMaybe<Scalars["String"]["input"]>;
+  customerType?: InputMaybe<CustomerType>;
+  operatorId?: InputMaybe<Scalars["PHID"]["input"]>;
+  operatorName?: InputMaybe<Scalars["String"]["input"]>;
+  projectedBillAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
+  projectedBillCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   resourceId?: InputMaybe<Scalars["PHID"]["input"]>;
   resourceLabel?: InputMaybe<Scalars["String"]["input"]>;
   resourceThumbnailUrl?: InputMaybe<Scalars["URL"]["input"]>;
   serviceOfferingId?: InputMaybe<Scalars["PHID"]["input"]>;
   targetAudienceId?: InputMaybe<Scalars["OID"]["input"]>;
   targetAudienceLabel?: InputMaybe<Scalars["String"]["input"]>;
+  tierCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   tierId?: InputMaybe<Scalars["OID"]["input"]>;
   tierName?: InputMaybe<Scalars["String"]["input"]>;
+  tierPrice?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   tierPricingOptionId?: InputMaybe<Scalars["OID"]["input"]>;
 };
 
@@ -329,8 +346,12 @@ export type SelectedOptionGroup = {
 };
 
 export type Service = {
+  customValue: Maybe<Scalars["String"]["output"]>;
   description: Maybe<Scalars["String"]["output"]>;
+  displayOrder: Maybe<Scalars["Int"]["output"]>;
+  facetLabel: Maybe<Scalars["String"]["output"]>;
   id: Scalars["OID"]["output"];
+  isSetupService: Maybe<Scalars["Boolean"]["output"]>;
   metrics: Array<ServiceMetric>;
   name: Maybe<Scalars["String"]["output"]>;
   recurringCost: Maybe<RecurringCost>;
@@ -340,8 +361,10 @@ export type Service = {
 
 export type ServiceGroup = {
   billingCycle: Maybe<BillingCycle>;
+  displayOrder: Maybe<Scalars["Int"]["output"]>;
   id: Scalars["OID"]["output"];
   name: Scalars["String"]["output"];
+  optionGroupId: Maybe<Scalars["OID"]["output"]>;
   optional: Scalars["Boolean"]["output"];
   services: Array<Service>;
 };
@@ -440,6 +463,7 @@ export type SubscriptionInstanceState = {
   facetSelections: Array<SubscriptionFacetSelection>;
   nextBillingDate: Maybe<Scalars["DateTime"]["output"]>;
   operatorId: Maybe<Scalars["PHID"]["output"]>;
+  operatorName: Maybe<Scalars["String"]["output"]>;
   operatorNotes: Maybe<Scalars["String"]["output"]>;
   pausedSince: Maybe<Scalars["DateTime"]["output"]>;
   projectedBillAmount: Maybe<Scalars["Amount_Money"]["output"]>;
@@ -454,8 +478,10 @@ export type SubscriptionInstanceState = {
   targetAudienceId: Maybe<Scalars["OID"]["output"]>;
   targetAudienceLabel: Maybe<Scalars["String"]["output"]>;
   teamMemberCount: Maybe<Scalars["Int"]["output"]>;
+  tierCurrency: Maybe<Scalars["Currency"]["output"]>;
   tierId: Maybe<Scalars["OID"]["output"]>;
   tierName: Maybe<Scalars["String"]["output"]>;
+  tierPrice: Maybe<Scalars["Amount_Money"]["output"]>;
   tierPricingOptionId: Maybe<Scalars["OID"]["output"]>;
 };
 
@@ -533,7 +559,9 @@ export type UpdateTeamMemberCountInput = {
 };
 
 export type UpdateTierInfoInput = {
+  tierCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   tierId?: InputMaybe<Scalars["OID"]["input"]>;
   tierName?: InputMaybe<Scalars["String"]["input"]>;
+  tierPrice?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   tierPricingOptionId?: InputMaybe<Scalars["OID"]["input"]>;
 };

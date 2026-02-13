@@ -286,25 +286,32 @@ export function MetricActions({
             <div className="si-modal__body">
               <div className="si-metric-adjust-info">
                 <span>
-                  Current Usage: {metric.currentUsage.toLocaleString()} {metric.unitName}
+                  Current Usage: {metric.currentUsage.toLocaleString()}{" "}
+                  {metric.unitName}
                 </span>
                 <span>
-                  Included Free: {metric.freeLimit.toLocaleString()} {metric.unitName}
+                  Included Free: {metric.freeLimit.toLocaleString()}{" "}
+                  {metric.unitName}
                 </span>
               </div>
               {metric.paidLimit != null && (
                 <div className="si-metric-limit-highlight">
-                  <span className="si-metric-limit-highlight__label">Absolute Usage Limit</span>
+                  <span className="si-metric-limit-highlight__label">
+                    Absolute Usage Limit
+                  </span>
                   <span className="si-metric-limit-highlight__value">
                     {metric.paidLimit.toLocaleString()} {metric.unitName}
                   </span>
-                  <span className="si-metric-limit-highlight__note">Defined in your tier</span>
+                  <span className="si-metric-limit-highlight__note">
+                    Defined in your tier
+                  </span>
                 </div>
               )}
               {metric.unitCost && (
                 <div className="si-metric-adjust-info si-metric-adjust-info--cost">
                   <span>
-                    Overage cost (above {metric.freeLimit.toLocaleString()} {metric.unitName}):{" "}
+                    Overage cost (above {metric.freeLimit.toLocaleString()}{" "}
+                    {metric.unitName}):{" "}
                     {formatCost(
                       metric.unitCost.amount,
                       metric.unitCost.currency,

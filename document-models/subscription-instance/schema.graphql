@@ -26,10 +26,13 @@ type SubscriptionInstanceState {
     customerType: CustomerType
     teamMemberCount: Int
     operatorId: PHID
+    operatorName: String
     serviceOfferingId: PHID
     tierId: OID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
     resource: ResourceDocument
     status: SubscriptionStatus!
     createdAt: DateTime
@@ -64,6 +67,8 @@ type ServiceGroup {
     optional: Boolean!
     name: String!
     billingCycle: BillingCycle
+    optionGroupId: OID
+    displayOrder: Int
     services: [Service!]!
 }
 
@@ -123,6 +128,10 @@ type Service {
     name: String
     description: String
     serviceLevel: ServiceLevel
+    customValue: String
+    facetLabel: String
+    isSetupService: Boolean
+    displayOrder: Int
     setupCost: SetupCost
     recurringCost: RecurringCost
     metrics: [ServiceMetric!]!
@@ -211,16 +220,23 @@ input InitializeSubscriptionInput {
     customerId: PHID
     customerName: String
     customerEmail: EmailAddress
+    customerType: CustomerType
+    operatorId: PHID
+    operatorName: String
     serviceOfferingId: PHID
     tierId: OID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
     resourceId: PHID
     resourceLabel: String
     resourceThumbnailUrl: URL
     autoRenew: Boolean
     targetAudienceId: OID
     targetAudienceLabel: String
+    projectedBillAmount: Amount_Money
+    projectedBillCurrency: Currency
     createdAt: DateTime!
 }
 
@@ -279,6 +295,8 @@ input UpdateTierInfoInput {
     tierId: OID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
 }
 
 input SetOperatorNotesInput {
@@ -315,6 +333,10 @@ input AddServiceInput {
     name: String
     description: String
     serviceLevel: ServiceLevel
+    customValue: String
+    facetLabel: String
+    isSetupService: Boolean
+    displayOrder: Int
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
@@ -375,6 +397,8 @@ input AddServiceGroupInput {
     name: String!
     optional: Boolean!
     billingCycle: BillingCycle
+    optionGroupId: OID
+    displayOrder: Int
 }
 
 input RemoveServiceGroupInput {
@@ -387,6 +411,10 @@ input AddServiceToGroupInput {
     name: String
     description: String
     serviceLevel: ServiceLevel
+    customValue: String
+    facetLabel: String
+    isSetupService: Boolean
+    displayOrder: Int
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
