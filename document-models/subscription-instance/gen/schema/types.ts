@@ -78,7 +78,7 @@ export type AddServiceGroupInput = {
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  recurringDiscount?: InputMaybe<DiscountInfoInput>;
+  recurringDiscount?: InputMaybe<DiscountServiceInfoInput>;
   setupAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   setupBillingDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   setupCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
@@ -91,7 +91,6 @@ export type AddServiceInput = {
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  recurringDiscount?: InputMaybe<DiscountInfoInput>;
   recurringLastPaymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   recurringNextBillingDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   serviceId: Scalars["OID"]["input"];
@@ -169,7 +168,14 @@ export type DiscountInfo = {
   source: DiscountSource;
 };
 
-export type DiscountInfoInput = {
+export type DiscountInfoInitInput = {
+  discountType: DiscountType;
+  discountValue: Scalars["Float"]["input"];
+  originalAmount: Scalars["Amount_Money"]["input"];
+  source: DiscountSource;
+};
+
+export type DiscountServiceInfoInput = {
   discountType: DiscountType;
   discountValue: Scalars["Float"]["input"];
   originalAmount: Scalars["Amount_Money"]["input"];
@@ -217,7 +223,7 @@ export type InitializeServiceGroupInput = {
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  recurringDiscount?: InputMaybe<DiscountInfoInput>;
+  recurringDiscount?: InputMaybe<DiscountInfoInitInput>;
   services?: InputMaybe<Array<InitializeServiceInput>>;
   setupAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   setupBillingDate?: InputMaybe<Scalars["DateTime"]["input"]>;
@@ -231,10 +237,8 @@ export type InitializeServiceInput = {
   id: Scalars["OID"]["input"];
   metrics?: InputMaybe<Array<InitializeMetricInput>>;
   name?: InputMaybe<Scalars["String"]["input"]>;
-  recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  recurringDiscount?: InputMaybe<DiscountInfoInput>;
   setupAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   setupCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
 };

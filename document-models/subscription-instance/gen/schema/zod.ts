@@ -12,7 +12,8 @@ import type {
   CustomerType,
   DecrementMetricUsageInput,
   DiscountInfo,
-  DiscountInfoInput,
+  DiscountInfoInitInput,
+  DiscountServiceInfoInput,
   DiscountSource,
   DiscountType,
   GroupCostType,
@@ -147,7 +148,7 @@ export function AddServiceGroupInputSchema(): z.ZodObject<
     recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
-    recurringDiscount: z.lazy(() => DiscountInfoInputSchema().nullish()),
+    recurringDiscount: z.lazy(() => DiscountServiceInfoInputSchema().nullish()),
     setupAmount: z.number().nullish(),
     setupBillingDate: z.string().datetime().nullish(),
     setupCurrency: z.string().nullish(),
@@ -164,7 +165,6 @@ export function AddServiceInputSchema(): z.ZodObject<
     recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
-    recurringDiscount: z.lazy(() => DiscountInfoInputSchema().nullish()),
     recurringLastPaymentDate: z.string().datetime().nullish(),
     recurringNextBillingDate: z.string().datetime().nullish(),
     serviceId: z.string(),
@@ -258,8 +258,19 @@ export function DiscountInfoSchema(): z.ZodObject<Properties<DiscountInfo>> {
   });
 }
 
-export function DiscountInfoInputSchema(): z.ZodObject<
-  Properties<DiscountInfoInput>
+export function DiscountInfoInitInputSchema(): z.ZodObject<
+  Properties<DiscountInfoInitInput>
+> {
+  return z.object({
+    discountType: DiscountTypeSchema,
+    discountValue: z.number(),
+    originalAmount: z.number(),
+    source: DiscountSourceSchema,
+  });
+}
+
+export function DiscountServiceInfoInputSchema(): z.ZodObject<
+  Properties<DiscountServiceInfoInput>
 > {
   return z.object({
     discountType: DiscountTypeSchema,
@@ -319,7 +330,7 @@ export function InitializeServiceGroupInputSchema(): z.ZodObject<
     recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
-    recurringDiscount: z.lazy(() => DiscountInfoInputSchema().nullish()),
+    recurringDiscount: z.lazy(() => DiscountInfoInitInputSchema().nullish()),
     services: z.array(z.lazy(() => InitializeServiceInputSchema())).nullish(),
     setupAmount: z.number().nullish(),
     setupBillingDate: z.string().datetime().nullish(),
@@ -339,10 +350,8 @@ export function InitializeServiceInputSchema(): z.ZodObject<
     id: z.string(),
     metrics: z.array(z.lazy(() => InitializeMetricInputSchema())).nullish(),
     name: z.string().nullish(),
-    recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
-    recurringDiscount: z.lazy(() => DiscountInfoInputSchema().nullish()),
     setupAmount: z.number().nullish(),
     setupCurrency: z.string().nullish(),
   });

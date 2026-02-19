@@ -19,6 +19,40 @@ scalar Amount_Crypto
 scalar Amount
 scalar Upload
 
+type SubscriptionInstanceState {
+    customerId: PHID
+    customerName: String
+    customerEmail: EmailAddress
+    customerType: CustomerType
+    teamMemberCount: Int
+    operatorId: PHID
+    serviceOfferingId: PHID
+    tierName: String
+    tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
+    tierPricingMode: TierPricingMode
+    selectedBillingCycle: BillingCycle
+    globalCurrency: Currency
+    resource: ResourceDocument
+    status: SubscriptionStatus!
+    createdAt: DateTime
+    activatedSince: DateTime
+    pausedSince: DateTime
+    expiringSince: DateTime
+    renewalDate: DateTime
+    cancelledSince: DateTime
+    cancellationReason: String
+    autoRenew: Boolean!
+    operatorNotes: String
+    budget: BudgetCategory
+    nextBillingDate: DateTime
+    projectedBillAmount: Amount_Money
+    projectedBillCurrency: Currency
+    services: [Service!]!
+    serviceGroups: [ServiceGroup!]!
+}
+
 enum TierPricingMode {
     CALCULATED
     MANUAL_OVERRIDE
@@ -145,39 +179,7 @@ type ServiceGroup {
     services: [Service!]!
 }
 
-type SubscriptionInstanceState {
-    customerId: PHID
-    customerName: String
-    customerEmail: EmailAddress
-    customerType: CustomerType
-    teamMemberCount: Int
-    operatorId: PHID
-    serviceOfferingId: PHID
-    tierName: String
-    tierPricingOptionId: OID
-    tierPrice: Amount_Money
-    tierCurrency: Currency
-    tierPricingMode: TierPricingMode
-    selectedBillingCycle: BillingCycle
-    globalCurrency: Currency
-    resource: ResourceDocument
-    status: SubscriptionStatus!
-    createdAt: DateTime
-    activatedSince: DateTime
-    pausedSince: DateTime
-    expiringSince: DateTime
-    renewalDate: DateTime
-    cancelledSince: DateTime
-    cancellationReason: String
-    autoRenew: Boolean!
-    operatorNotes: String
-    budget: BudgetCategory
-    nextBillingDate: DateTime
-    projectedBillAmount: Amount_Money
-    projectedBillCurrency: Currency
-    services: [Service!]!
-    serviceGroups: [ServiceGroup!]!
-}
+
 
 # subscription
 
@@ -187,7 +189,7 @@ input InitializeFacetSelectionInput {
     selectedOption: String!
 }
 
-input DiscountInfoInput {
+input DiscountInfoInitInput {
     originalAmount: Amount_Money!
     discountType: DiscountType!
     discountValue: Float!
@@ -216,10 +218,8 @@ input InitializeServiceInput {
     facetSelections: [InitializeFacetSelectionInput!]
     setupAmount: Amount_Money
     setupCurrency: Currency
-    recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringDiscount: DiscountInfoInput
     metrics: [InitializeMetricInput!]
 }
 
@@ -234,7 +234,7 @@ input InitializeServiceGroupInput {
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringDiscount: DiscountInfoInput
+    recurringDiscount: DiscountInfoInitInput
     services: [InitializeServiceInput!]
 }
 
@@ -338,12 +338,6 @@ input UpdateBillingProjectionInput {
 
 # service
 
-input DiscountInfoInput {
-    originalAmount: Amount_Money!
-    discountType: DiscountType!
-    discountValue: Float!
-    source: DiscountSource!
-}
 
 input AddServiceInput {
     serviceId: OID!
@@ -359,7 +353,7 @@ input AddServiceInput {
     recurringBillingCycle: BillingCycle
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
-    recurringDiscount: DiscountInfoInput
+
 }
 
 input RemoveServiceInput {
@@ -414,7 +408,7 @@ input RemoveServiceFacetSelectionInput {
 
 # service-group
 
-input DiscountInfoInput {
+input DiscountServiceInfoInput {
     originalAmount: Amount_Money!
     discountType: DiscountType!
     discountValue: Float!
@@ -432,7 +426,7 @@ input AddServiceGroupInput {
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringDiscount: DiscountInfoInput
+    recurringDiscount: DiscountServiceInfoInput
 }
 
 input RemoveServiceGroupInput {
