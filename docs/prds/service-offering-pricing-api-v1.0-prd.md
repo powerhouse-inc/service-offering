@@ -91,6 +91,50 @@ input GroupCycleOverride {
 }
 ```
 
+**Why this input is needed**: The service offering schema (`ServiceOfferingState`) already contains all pricing *data* — tiers, billing cycle discounts, service group prices, add-on pricing, and discount modes. However, `PricingConfigurationInput` represents the **customer's selections**, not the catalog itself. The schema defines what's available (a menu); this input captures what the customer chose (an order):
+
+| Input Field | What it represents | Why it's not in the schema |
+|---|---|---|
+| `offeringId` | Which offering to price | A drive can contain multiple offerings |
+| `tierId` | Which tier the customer picked | Schema defines available tiers; customer selects one |
+| `billingCycle` | Monthly, quarterly, annual | Schema defines available cycles + discounts; customer picks one |
+| `enabledAddOnIds` | Which add-ons to include | Add-ons (`isAddOn: true` option groups) are optional; customer toggles them |
+| `groupCycleOverrides` | Per-group billing overrides | In custom billing mode, each group can use a different cycle |
+
+Each field is a **choice** the customer makes that isn't predetermined:
+
+| Input Field | Why it's needed | Not in schema because... |
+|---|---|---|
+| `offeringId` | Identifies WHICH service offering document to read | A drive can have multiple offerings |
+| `tierId` | The offering has multiple tiers (`tiers: [ServiceSubscriptionTier!]!`). Customer SELECTS which tier they want | Schema defines available tiers, but the customer picks one |
+| `billingCycle` | Schema defines available cycles and tier-level defaults (`defaultBillingCycle`), but customer CHOOSES which cycle | Each tier can support multiple cycles with different discounts |
+| `enabledAddOnIds` | Option groups with `isAddOn: true` are optional add-ons. Customer decides which to enable | Schema defines what's available; the selection is user input |
+| `groupCycleOverrides` | Service groups have a `billingCycle` field, and in "custom billing mode" users can override per group | This is a per-session user selection |
+
+**Mental Model**:
+```
+Service Offering Schema (catalog)       Customer Selections (input)
+─────────────────────────────────       ─────────────────────────────
+"Professional" tier: $300/mo      ──┐
+"Enterprise" tier: custom         ──┤── Customer picks: tierId = "professional"
+"Starter" tier: $100/mo           ──┘
+
+Annual: 10% off                   ──┐
+Quarterly: 5% off                 ──┤── Customer picks: billingCycle = ANNUAL
+Monthly: no discount              ──┘
+
+"Premium Support" (add-on)        ──┐
+"SLA Upgrade" (add-on)            ──┤── Customer enables: ["premium-support"]
+"Training" (add-on)               ──┘
+
+                                          ↓
+                                    Compute Price API
+                                          ↓
+                                    $2,760/yr (save $240)
+```
+
+The compute query combines catalog data (from `ServiceOfferingState`) with these selections to produce the final computed price with all discounts applied. The only alternative would be precomputing every possible combination (tier x cycle x add-on permutations), which explodes combinatorially and wouldn't handle per-group overrides.
+
 **Output**:
 ```graphql
 type ComputedPricingSummary {
