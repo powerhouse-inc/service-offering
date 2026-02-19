@@ -11,6 +11,8 @@ import {
   reportSetupPayment,
   reportRecurringPayment,
   updateServiceInfo,
+  addServiceFacetSelection,
+  removeServiceFacetSelection,
   AddServiceInputSchema,
   RemoveServiceInputSchema,
   UpdateServiceSetupCostInputSchema,
@@ -18,8 +20,6 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
-  addServiceFacetSelection,
-  removeServiceFacetSelection,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";

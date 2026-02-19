@@ -8,11 +8,11 @@ import {
   removeServiceGroup,
   addServiceToGroup,
   removeServiceFromGroup,
+  updateServiceGroupCost,
   AddServiceGroupInputSchema,
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
   RemoveServiceFromGroupInputSchema,
-  updateServiceGroupCost,
   UpdateServiceGroupCostInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 

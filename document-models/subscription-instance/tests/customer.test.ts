@@ -10,8 +10,6 @@ import {
   UpdateTeamMemberCountInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
-// Communication channels, wallet, and KYC operations have been removed.
-
 describe("CustomerOperations", () => {
   it("should handle setCustomerType operation", () => {
     const document = utils.createDocument();

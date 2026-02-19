@@ -1,85 +1,174 @@
-import type {
-  DiscountInfo,
-  RecurringCost,
-  Service,
-  ServiceGroup,
-  ServiceMetric,
-  SetupCost,
-} from "../../gen/schema/types.js";
+import {
+  ActivateNotPendingError,
+  PauseNotActiveError,
+  SetExpiringNotActiveError,
+  CancelAlreadyCancelledError,
+  ResumeNotPausedError,
+  RenewNotExpiringError,
+  RemoveBudgetNotFoundError,
+} from "../../gen/subscription/error.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {
     initializeSubscriptionOperation(state, action) {
-      const { input } = action;
-      state.customerId = input.customerId || null;
-      state.customerName = input.customerName || null;
-      state.customerEmail = input.customerEmail || null;
-      state.serviceOfferingId = input.serviceOfferingId || null;
-      state.tierName = input.tierName || null;
-      state.tierPricingOptionId = input.tierPricingOptionId || null;
-      state.tierPrice = input.tierPrice ?? null;
-      state.tierCurrency = input.tierCurrency || null;
-      state.tierPricingMode = input.tierPricingMode || null;
-      state.selectedBillingCycle = input.selectedBillingCycle || null;
-      state.globalCurrency = input.globalCurrency || null;
-      state.autoRenew = input.autoRenew ?? false;
-      state.createdAt = input.createdAt;
-      state.status = "PENDING";
-
-      if (input.resourceId) {
+      state.customerId = action.input.customerId || null;
+      state.customerName = action.input.customerName || null;
+      state.customerEmail = action.input.customerEmail || null;
+      state.serviceOfferingId = action.input.serviceOfferingId || null;
+      state.tierName = action.input.tierName || null;
+      state.tierPricingOptionId = action.input.tierPricingOptionId || null;
+      state.tierPrice = action.input.tierPrice || null;
+      state.tierCurrency = action.input.tierCurrency || null;
+      state.tierPricingMode = action.input.tierPricingMode || null;
+      state.selectedBillingCycle = action.input.selectedBillingCycle || null;
+      state.globalCurrency = action.input.globalCurrency || null;
+      if (action.input.resourceId) {
         state.resource = {
-          id: input.resourceId,
-          label: input.resourceLabel || null,
-          thumbnailUrl: input.resourceThumbnailUrl || null,
+          id: action.input.resourceId,
+          label: action.input.resourceLabel || null,
+          thumbnailUrl: action.input.resourceThumbnailUrl || null,
         };
       }
-
-      if (input.services) {
-        for (const svc of input.services) {
-          let svcDiscount: DiscountInfo | null = null;
-          if (svc.recurringDiscount) {
-            svcDiscount = {
-              originalAmount: svc.recurringDiscount.originalAmount,
-              discountType: svc.recurringDiscount.discountType,
-              discountValue: svc.recurringDiscount.discountValue,
-              source: svc.recurringDiscount.source,
-            };
-          }
-          let svcSetup: SetupCost | null = null;
-          if (svc.setupAmount && svc.setupCurrency) {
-            svcSetup = {
-              amount: svc.setupAmount,
-              currency: svc.setupCurrency,
-              billingDate: null,
-              paymentDate: null,
-            };
-          }
-          let svcRecurring: RecurringCost | null = null;
-          if (
-            svc.recurringAmount &&
-            svc.recurringCurrency &&
-            svc.recurringBillingCycle
-          ) {
-            svcRecurring = {
-              amount: svc.recurringAmount,
-              currency: svc.recurringCurrency,
-              billingCycle: svc.recurringBillingCycle,
-              nextBillingDate: null,
-              lastPaymentDate: null,
-              discount: svcDiscount,
-            };
-          }
-          const metrics: ServiceMetric[] = (svc.metrics || []).map((m) => ({
+      state.autoRenew = action.input.autoRenew || false;
+      state.createdAt = action.input.createdAt;
+      state.status = "PENDING";
+      state.services = (action.input.services || []).map((s) => ({
+        id: s.id,
+        name: s.name || null,
+        description: s.description || null,
+        customValue: s.customValue || null,
+        facetSelections: (s.facetSelections || []).map((fs) => ({
+          id: fs.id,
+          facetName: fs.facetName,
+          selectedOption: fs.selectedOption,
+        })),
+        setupCost:
+          s.setupAmount && s.setupCurrency
+            ? {
+                amount: s.setupAmount,
+                currency: s.setupCurrency,
+                billingDate: null,
+                paymentDate: null,
+              }
+            : null,
+        recurringCost:
+          s.recurringAmount && s.recurringCurrency && s.recurringBillingCycle
+            ? {
+                amount: s.recurringAmount,
+                currency: s.recurringCurrency,
+                billingCycle: s.recurringBillingCycle,
+                nextBillingDate: null,
+                lastPaymentDate: null,
+                discount: s.recurringDiscount
+                  ? {
+                      originalAmount: s.recurringDiscount.originalAmount,
+                      discountType: s.recurringDiscount.discountType,
+                      discountValue: s.recurringDiscount.discountValue,
+                      source: s.recurringDiscount.source,
+                    }
+                  : null,
+              }
+            : null,
+        metrics: (s.metrics || []).map((m) => ({
+          id: m.id,
+          name: m.name,
+          unitName: m.unitName,
+          limit: m.limit || null,
+          freeLimit: m.freeLimit || null,
+          paidLimit: m.paidLimit || null,
+          unitCost:
+            m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle
+              ? {
+                  amount: m.unitCostAmount,
+                  currency: m.unitCostCurrency,
+                  billingCycle: m.unitCostBillingCycle,
+                  nextBillingDate: null,
+                  lastPaymentDate: null,
+                  discount: null,
+                }
+              : null,
+          currentUsage: m.currentUsage,
+          usageResetPeriod: m.usageResetPeriod || null,
+          nextUsageReset: null,
+        })),
+      }));
+      state.serviceGroups = (action.input.serviceGroups || []).map((sg) => ({
+        id: sg.id,
+        name: sg.name,
+        optional: sg.optional,
+        costType: sg.costType || null,
+        setupCost:
+          sg.setupAmount && sg.setupCurrency
+            ? {
+                amount: sg.setupAmount,
+                currency: sg.setupCurrency,
+                billingDate: sg.setupBillingDate || null,
+                paymentDate: null,
+              }
+            : null,
+        recurringCost:
+          sg.recurringAmount && sg.recurringCurrency && sg.recurringBillingCycle
+            ? {
+                amount: sg.recurringAmount,
+                currency: sg.recurringCurrency,
+                billingCycle: sg.recurringBillingCycle,
+                nextBillingDate: null,
+                lastPaymentDate: null,
+                discount: sg.recurringDiscount
+                  ? {
+                      originalAmount: sg.recurringDiscount.originalAmount,
+                      discountType: sg.recurringDiscount.discountType,
+                      discountValue: sg.recurringDiscount.discountValue,
+                      source: sg.recurringDiscount.source,
+                    }
+                  : null,
+              }
+            : null,
+        services: (sg.services || []).map((s) => ({
+          id: s.id,
+          name: s.name || null,
+          description: s.description || null,
+          customValue: s.customValue || null,
+          facetSelections: (s.facetSelections || []).map((fs) => ({
+            id: fs.id,
+            facetName: fs.facetName,
+            selectedOption: fs.selectedOption,
+          })),
+          setupCost:
+            s.setupAmount && s.setupCurrency
+              ? {
+                  amount: s.setupAmount,
+                  currency: s.setupCurrency,
+                  billingDate: null,
+                  paymentDate: null,
+                }
+              : null,
+          recurringCost:
+            s.recurringAmount && s.recurringCurrency && s.recurringBillingCycle
+              ? {
+                  amount: s.recurringAmount,
+                  currency: s.recurringCurrency,
+                  billingCycle: s.recurringBillingCycle,
+                  nextBillingDate: null,
+                  lastPaymentDate: null,
+                  discount: s.recurringDiscount
+                    ? {
+                        originalAmount: s.recurringDiscount.originalAmount,
+                        discountType: s.recurringDiscount.discountType,
+                        discountValue: s.recurringDiscount.discountValue,
+                        source: s.recurringDiscount.source,
+                      }
+                    : null,
+                }
+              : null,
+          metrics: (s.metrics || []).map((m) => ({
             id: m.id,
             name: m.name,
             unitName: m.unitName,
-            limit: m.limit ?? null,
-            freeLimit: m.freeLimit ?? null,
-            paidLimit: m.paidLimit ?? null,
-            currentUsage: m.currentUsage,
-            usageResetPeriod: m.usageResetPeriod || null,
-            nextUsageReset: null,
+            limit: m.limit || null,
+            freeLimit: m.freeLimit || null,
+            paidLimit: m.paidLimit || null,
             unitCost:
               m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle
                 ? {
@@ -91,240 +180,129 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                     discount: null,
                   }
                 : null,
-          }));
-          state.services.push({
-            id: svc.id,
-            name: svc.name || null,
-            description: svc.description || null,
-            customValue: svc.customValue || null,
-            facetSelections: (svc.facetSelections || []).map((f) => ({
-              id: f.id,
-              facetName: f.facetName,
-              selectedOption: f.selectedOption,
-            })),
-            setupCost: svcSetup,
-            recurringCost: svcRecurring,
-            metrics,
-          });
-        }
-      }
-
-      if (input.serviceGroups) {
-        for (const grp of input.serviceGroups) {
-          let grpDiscount: DiscountInfo | null = null;
-          if (grp.recurringDiscount) {
-            grpDiscount = {
-              originalAmount: grp.recurringDiscount.originalAmount,
-              discountType: grp.recurringDiscount.discountType,
-              discountValue: grp.recurringDiscount.discountValue,
-              source: grp.recurringDiscount.source,
-            };
-          }
-          let grpSetup: SetupCost | null = null;
-          if (grp.setupAmount && grp.setupCurrency) {
-            grpSetup = {
-              amount: grp.setupAmount,
-              currency: grp.setupCurrency,
-              billingDate: grp.setupBillingDate || null,
-              paymentDate: null,
-            };
-          }
-          let grpRecurring: RecurringCost | null = null;
-          if (
-            grp.recurringAmount &&
-            grp.recurringCurrency &&
-            grp.recurringBillingCycle
-          ) {
-            grpRecurring = {
-              amount: grp.recurringAmount,
-              currency: grp.recurringCurrency,
-              billingCycle: grp.recurringBillingCycle,
-              nextBillingDate: null,
-              lastPaymentDate: null,
-              discount: grpDiscount,
-            };
-          }
-          const groupServices: Service[] = (grp.services || []).map((svc) => {
-            let svcD: DiscountInfo | null = null;
-            if (svc.recurringDiscount) {
-              svcD = {
-                originalAmount: svc.recurringDiscount.originalAmount,
-                discountType: svc.recurringDiscount.discountType,
-                discountValue: svc.recurringDiscount.discountValue,
-                source: svc.recurringDiscount.source,
-              };
-            }
-            return {
-              id: svc.id,
-              name: svc.name || null,
-              description: svc.description || null,
-              customValue: svc.customValue || null,
-              facetSelections: (svc.facetSelections || []).map((f) => ({
-                id: f.id,
-                facetName: f.facetName,
-                selectedOption: f.selectedOption,
-              })),
-              setupCost:
-                svc.setupAmount && svc.setupCurrency
-                  ? {
-                      amount: svc.setupAmount,
-                      currency: svc.setupCurrency,
-                      billingDate: null,
-                      paymentDate: null,
-                    }
-                  : null,
-              recurringCost:
-                svc.recurringAmount &&
-                svc.recurringCurrency &&
-                svc.recurringBillingCycle
-                  ? {
-                      amount: svc.recurringAmount,
-                      currency: svc.recurringCurrency,
-                      billingCycle: svc.recurringBillingCycle,
-                      nextBillingDate: null,
-                      lastPaymentDate: null,
-                      discount: svcD,
-                    }
-                  : null,
-              metrics: (svc.metrics || []).map((m) => ({
-                id: m.id,
-                name: m.name,
-                unitName: m.unitName,
-                limit: m.limit ?? null,
-                freeLimit: m.freeLimit ?? null,
-                paidLimit: m.paidLimit ?? null,
-                currentUsage: m.currentUsage,
-                usageResetPeriod: m.usageResetPeriod || null,
-                nextUsageReset: null,
-                unitCost:
-                  m.unitCostAmount &&
-                  m.unitCostCurrency &&
-                  m.unitCostBillingCycle
-                    ? {
-                        amount: m.unitCostAmount,
-                        currency: m.unitCostCurrency,
-                        billingCycle: m.unitCostBillingCycle,
-                        nextBillingDate: null,
-                        lastPaymentDate: null,
-                        discount: null,
-                      }
-                    : null,
-              })),
-            };
-          });
-          const serviceGroup: ServiceGroup = {
-            id: grp.id,
-            name: grp.name,
-            optional: grp.optional,
-            costType: grp.costType || null,
-            setupCost: grpSetup,
-            recurringCost: grpRecurring,
-            services: groupServices,
-          };
-          state.serviceGroups.push(serviceGroup);
-        }
-      }
+            currentUsage: m.currentUsage,
+            usageResetPeriod: m.usageResetPeriod || null,
+            nextUsageReset: null,
+          })),
+        })),
+      }));
     },
-
     setResourceDocumentOperation(state, action) {
-      const { input } = action;
       state.resource = {
-        id: input.resourceId,
-        label: input.resourceLabel || null,
-        thumbnailUrl: input.resourceThumbnailUrl || null,
+        id: action.input.resourceId,
+        label: action.input.resourceLabel || null,
+        thumbnailUrl: action.input.resourceThumbnailUrl || null,
       };
     },
-
     updateSubscriptionStatusOperation(state, action) {
       state.status = action.input.status;
     },
-
     activateSubscriptionOperation(state, action) {
+      if (state.status !== "PENDING") {
+        throw new ActivateNotPendingError(
+          `Cannot activate subscription with status ${state.status}`,
+        );
+      }
       state.status = "ACTIVE";
       state.activatedSince = action.input.activatedSince;
-      state.pausedSince = null;
-      state.expiringSince = null;
     },
-
     pauseSubscriptionOperation(state, action) {
+      if (state.status !== "ACTIVE") {
+        throw new PauseNotActiveError(
+          `Cannot pause subscription with status ${state.status}`,
+        );
+      }
       state.status = "PAUSED";
       state.pausedSince = action.input.pausedSince;
     },
-
     setExpiringOperation(state, action) {
+      if (state.status !== "ACTIVE") {
+        throw new SetExpiringNotActiveError(
+          `Cannot set expiring on subscription with status ${state.status}`,
+        );
+      }
       state.status = "EXPIRING";
       state.expiringSince = action.input.expiringSince;
     },
-
     cancelSubscriptionOperation(state, action) {
+      if (state.status === "CANCELLED") {
+        throw new CancelAlreadyCancelledError(
+          "Subscription is already cancelled",
+        );
+      }
       state.status = "CANCELLED";
       state.cancelledSince = action.input.cancelledSince;
       state.cancellationReason = action.input.cancellationReason || null;
     },
-
     resumeSubscriptionOperation(state, _action) {
+      if (state.status !== "PAUSED") {
+        throw new ResumeNotPausedError(
+          `Cannot resume subscription with status ${state.status}`,
+        );
+      }
       state.status = "ACTIVE";
       state.pausedSince = null;
     },
-
     renewExpiringSubscriptionOperation(state, action) {
+      if (state.status !== "EXPIRING") {
+        throw new RenewNotExpiringError(
+          `Cannot renew subscription with status ${state.status}`,
+        );
+      }
       state.status = "ACTIVE";
       state.expiringSince = null;
-      if (action.input.newRenewalDate) {
-        state.renewalDate = action.input.newRenewalDate;
-      }
+      state.renewalDate = action.input.newRenewalDate || null;
     },
-
     setBudgetCategoryOperation(state, action) {
       state.budget = {
         id: action.input.budgetId,
         label: action.input.budgetLabel,
       };
     },
-
-    removeBudgetCategoryOperation(state, _action) {
+    removeBudgetCategoryOperation(state, action) {
+      if (!state.budget || state.budget.id !== action.input.budgetId) {
+        throw new RemoveBudgetNotFoundError(
+          `Budget category with ID ${action.input.budgetId} not found`,
+        );
+      }
       state.budget = null;
     },
-
     updateCustomerInfoOperation(state, action) {
-      const { input } = action;
-      if (input.customerId) state.customerId = input.customerId;
-      if (input.customerName) state.customerName = input.customerName;
-      if (input.customerEmail) state.customerEmail = input.customerEmail;
+      if (action.input.customerId !== undefined)
+        state.customerId = action.input.customerId || null;
+      if (action.input.customerName !== undefined)
+        state.customerName = action.input.customerName || null;
+      if (action.input.customerEmail !== undefined)
+        state.customerEmail = action.input.customerEmail || null;
     },
-
     updateTierInfoOperation(state, action) {
-      const { input } = action;
-      if (input.tierName) state.tierName = input.tierName;
-      if (input.tierPricingOptionId)
-        state.tierPricingOptionId = input.tierPricingOptionId;
-      if (input.tierPrice !== undefined && input.tierPrice !== null)
-        state.tierPrice = input.tierPrice;
-      if (input.tierCurrency) state.tierCurrency = input.tierCurrency;
-      if (input.tierPricingMode) state.tierPricingMode = input.tierPricingMode;
+      if (action.input.tierName !== undefined)
+        state.tierName = action.input.tierName || null;
+      if (action.input.tierPricingOptionId !== undefined)
+        state.tierPricingOptionId = action.input.tierPricingOptionId || null;
+      if (action.input.tierPrice !== undefined)
+        state.tierPrice = action.input.tierPrice || null;
+      if (action.input.tierCurrency !== undefined)
+        state.tierCurrency = action.input.tierCurrency || null;
+      if (action.input.tierPricingMode !== undefined)
+        state.tierPricingMode = action.input.tierPricingMode || null;
     },
-
     setOperatorNotesOperation(state, action) {
       state.operatorNotes = action.input.operatorNotes || null;
     },
-
     setAutoRenewOperation(state, action) {
       state.autoRenew = action.input.autoRenew;
     },
-
     setRenewalDateOperation(state, action) {
       state.renewalDate = action.input.renewalDate;
     },
-
     updateBillingProjectionOperation(state, action) {
-      if (action.input.nextBillingDate) {
-        state.nextBillingDate = action.input.nextBillingDate;
-      }
-      if (action.input.projectedBillAmount !== undefined) {
-        state.projectedBillAmount = action.input.projectedBillAmount ?? null;
-      }
-      if (action.input.projectedBillCurrency) {
-        state.projectedBillCurrency = action.input.projectedBillCurrency;
-      }
+      if (action.input.nextBillingDate !== undefined)
+        state.nextBillingDate = action.input.nextBillingDate || null;
+      if (action.input.projectedBillAmount !== undefined)
+        state.projectedBillAmount = action.input.projectedBillAmount || null;
+      if (action.input.projectedBillCurrency !== undefined)
+        state.projectedBillCurrency =
+          action.input.projectedBillCurrency || null;
     },
   };

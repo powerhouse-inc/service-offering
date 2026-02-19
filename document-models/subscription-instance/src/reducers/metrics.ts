@@ -1,109 +1,134 @@
-import type { RecurringCost, ServiceMetric } from "../../gen/schema/types.js";
+import {
+  AddServiceMetricServiceNotFoundError,
+  UpdateMetricServiceNotFoundError,
+  UpdateMetricNotFoundError,
+  UpdateMetricUsageServiceNotFoundError,
+  UpdateMetricUsageNotFoundError,
+  RemoveServiceMetricServiceNotFoundError,
+  RemoveServiceMetricNotFoundError,
+  IncrementMetricUsageServiceNotFoundError,
+  IncrementMetricUsageNotFoundError,
+  DecrementMetricUsageServiceNotFoundError,
+  DecrementMetricUsageNotFoundError,
+} from "../../gen/metrics/error.js";
 import type { SubscriptionInstanceMetricsOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
   {
     addServiceMetricOperation(state, action) {
-      const { input } = action;
-      const service = state.services.find((s) => s.id === input.serviceId);
-      if (service) {
-        let unitCost: RecurringCost | null = null;
-        if (
-          input.unitCostAmount &&
-          input.unitCostCurrency &&
-          input.unitCostBillingCycle
-        ) {
-          unitCost = {
-            amount: input.unitCostAmount,
-            currency: input.unitCostCurrency,
-            billingCycle: input.unitCostBillingCycle,
-            nextBillingDate: input.unitCostNextBillingDate || null,
-            lastPaymentDate: input.unitCostLastPaymentDate || null,
-            discount: null,
-          };
-        }
-
-        const metric: ServiceMetric = {
-          id: input.metricId,
-          name: input.name,
-          unitName: input.unitName,
-          limit: input.limit ?? null,
-          freeLimit: input.freeLimit ?? null,
-          paidLimit: input.paidLimit ?? null,
-          currentUsage: input.currentUsage,
-          usageResetPeriod: input.usageResetPeriod || null,
-          nextUsageReset: input.nextUsageReset || null,
-          unitCost,
-        };
-
-        service.metrics.push(metric);
-      }
-    },
-
-    updateMetricOperation(state, action) {
-      const { input } = action;
-      const service = state.services.find((s) => s.id === input.serviceId);
-      if (service) {
-        const metric = service.metrics.find((m) => m.id === input.metricId);
-        if (metric) {
-          if (input.name) metric.name = input.name;
-          if (input.unitName) metric.unitName = input.unitName;
-          if (input.limit !== undefined && input.limit !== null)
-            metric.limit = input.limit;
-          if (input.usageResetPeriod)
-            metric.usageResetPeriod = input.usageResetPeriod;
-          if (input.nextUsageReset)
-            metric.nextUsageReset = input.nextUsageReset;
-        }
-      }
-    },
-
-    updateMetricUsageOperation(state, action) {
-      const { input } = action;
-      const service = state.services.find((s) => s.id === input.serviceId);
-      if (service) {
-        const metric = service.metrics.find((m) => m.id === input.metricId);
-        if (metric) {
-          metric.currentUsage = input.currentUsage;
-        }
-      }
-    },
-
-    removeServiceMetricOperation(state, action) {
-      const { input } = action;
-      const service = state.services.find((s) => s.id === input.serviceId);
-      if (service) {
-        const metricIndex = service.metrics.findIndex(
-          (m) => m.id === input.metricId,
+      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      if (!svc) {
+        throw new AddServiceMetricServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
         );
-        if (metricIndex !== -1) {
-          service.metrics.splice(metricIndex, 1);
-        }
       }
+      svc.metrics.push({
+        id: action.input.metricId,
+        name: action.input.name,
+        unitName: action.input.unitName,
+        limit: action.input.limit || null,
+        freeLimit: action.input.freeLimit || null,
+        paidLimit: action.input.paidLimit || null,
+        unitCost:
+          action.input.unitCostAmount &&
+          action.input.unitCostCurrency &&
+          action.input.unitCostBillingCycle
+            ? {
+                amount: action.input.unitCostAmount,
+                currency: action.input.unitCostCurrency,
+                billingCycle: action.input.unitCostBillingCycle,
+                nextBillingDate: action.input.unitCostNextBillingDate || null,
+                lastPaymentDate: action.input.unitCostLastPaymentDate || null,
+                discount: null,
+              }
+            : null,
+        currentUsage: action.input.currentUsage,
+        usageResetPeriod: action.input.usageResetPeriod || null,
+        nextUsageReset: action.input.nextUsageReset || null,
+      });
     },
-
+    updateMetricOperation(state, action) {
+      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      if (!svc) {
+        throw new UpdateMetricServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
+        );
+      }
+      const metric = svc.metrics.find((m) => m.id === action.input.metricId);
+      if (!metric) {
+        throw new UpdateMetricNotFoundError(
+          `Metric with ID ${action.input.metricId} not found`,
+        );
+      }
+      if (action.input.name) metric.name = action.input.name;
+      if (action.input.unitName) metric.unitName = action.input.unitName;
+      if (action.input.limit !== undefined)
+        metric.limit = action.input.limit || null;
+      if (action.input.usageResetPeriod !== undefined)
+        metric.usageResetPeriod = action.input.usageResetPeriod || null;
+      if (action.input.nextUsageReset !== undefined)
+        metric.nextUsageReset = action.input.nextUsageReset || null;
+    },
+    updateMetricUsageOperation(state, action) {
+      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      if (!svc) {
+        throw new UpdateMetricUsageServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
+        );
+      }
+      const metric = svc.metrics.find((m) => m.id === action.input.metricId);
+      if (!metric) {
+        throw new UpdateMetricUsageNotFoundError(
+          `Metric with ID ${action.input.metricId} not found`,
+        );
+      }
+      metric.currentUsage = action.input.currentUsage;
+    },
+    removeServiceMetricOperation(state, action) {
+      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      if (!svc) {
+        throw new RemoveServiceMetricServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
+        );
+      }
+      const index = svc.metrics.findIndex(
+        (m) => m.id === action.input.metricId,
+      );
+      if (index === -1) {
+        throw new RemoveServiceMetricNotFoundError(
+          `Metric with ID ${action.input.metricId} not found`,
+        );
+      }
+      svc.metrics.splice(index, 1);
+    },
     incrementMetricUsageOperation(state, action) {
-      const { input } = action;
-      const service = state.services.find((s) => s.id === input.serviceId);
-      if (service) {
-        const metric = service.metrics.find((m) => m.id === input.metricId);
-        if (metric) {
-          metric.currentUsage += input.incrementBy;
-        }
+      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      if (!svc) {
+        throw new IncrementMetricUsageServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
+        );
       }
+      const metric = svc.metrics.find((m) => m.id === action.input.metricId);
+      if (!metric) {
+        throw new IncrementMetricUsageNotFoundError(
+          `Metric with ID ${action.input.metricId} not found`,
+        );
+      }
+      metric.currentUsage += action.input.incrementBy;
     },
-
     decrementMetricUsageOperation(state, action) {
-      const { input } = action;
-      const service = state.services.find((s) => s.id === input.serviceId);
-      if (service) {
-        const metric = service.metrics.find((m) => m.id === input.metricId);
-        if (metric) {
-          metric.currentUsage = Math.max(
-            0,
-            metric.currentUsage - input.decrementBy,
-          );
-        }
+      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      if (!svc) {
+        throw new DecrementMetricUsageServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
+        );
       }
+      const metric = svc.metrics.find((m) => m.id === action.input.metricId);
+      if (!metric) {
+        throw new DecrementMetricUsageNotFoundError(
+          `Metric with ID ${action.input.metricId} not found`,
+        );
+      }
+      metric.currentUsage -= action.input.decrementBy;
     },
   };
