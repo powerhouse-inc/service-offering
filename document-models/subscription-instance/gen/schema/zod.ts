@@ -165,6 +165,7 @@ export function AddServiceInputSchema(): z.ZodObject<
     recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
+    recurringDiscount: z.lazy(() => DiscountServiceInfoInputSchema().nullish()),
     recurringLastPaymentDate: z.string().datetime().nullish(),
     recurringNextBillingDate: z.string().datetime().nullish(),
     serviceId: z.string(),
@@ -350,8 +351,10 @@ export function InitializeServiceInputSchema(): z.ZodObject<
     id: z.string(),
     metrics: z.array(z.lazy(() => InitializeMetricInputSchema())).nullish(),
     name: z.string().nullish(),
+    recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
+    recurringDiscount: z.lazy(() => DiscountInfoInitInputSchema().nullish()),
     setupAmount: z.number().nullish(),
     setupCurrency: z.string().nullish(),
   });

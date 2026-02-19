@@ -10,6 +10,7 @@ import { serviceOfferingServicesOperations } from "../src/reducers/services.js";
 import { serviceOfferingTiersOperations } from "../src/reducers/tiers.js";
 import { serviceOfferingOptionGroupsOperations } from "../src/reducers/option-groups.js";
 import { serviceOfferingServiceGroupsOperations } from "../src/reducers/service-groups.js";
+import { serviceOfferingConfigurationOperations } from "../src/reducers/configuration.js";
 
 import {
   UpdateOfferingInfoInputSchema,
@@ -61,6 +62,8 @@ import {
   UpdateRecurringPriceOptionInputSchema,
   RemoveRecurringPriceOptionInputSchema,
   RemoveServiceGroupTierPricingInputSchema,
+  SetFinalConfigurationInputSchema,
+  ClearFinalConfigurationInputSchema,
 } from "./schema/zod.js";
 
 const stateReducer: StateReducer<ServiceOfferingPHState> = (
@@ -652,6 +655,30 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       RemoveServiceGroupTierPricingInputSchema().parse(action.input);
 
       serviceOfferingServiceGroupsOperations.removeServiceGroupTierPricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_FINAL_CONFIGURATION": {
+      SetFinalConfigurationInputSchema().parse(action.input);
+
+      serviceOfferingConfigurationOperations.setFinalConfigurationOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "CLEAR_FINAL_CONFIGURATION": {
+      ClearFinalConfigurationInputSchema().parse(action.input);
+
+      serviceOfferingConfigurationOperations.clearFinalConfigurationOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

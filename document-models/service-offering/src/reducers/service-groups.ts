@@ -14,6 +14,8 @@ import {
   RemoveRecurringPriceOptionServiceGroupNotFoundError,
   RemoveRecurringPriceOptionTierPricingNotFoundError,
   RemoveServiceGroupTierPricingNotFoundError,
+  InvalidSetupDiscountError,
+  IncompleteSetupDiscountError,
 } from "../../gen/service-groups/error.js";
 import type { ServiceOfferingServiceGroupsOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -26,6 +28,7 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
         description: action.input.description || null,
         billingCycle: action.input.billingCycle,
         displayOrder: action.input.displayOrder || null,
+        discountMode: action.input.discountMode || null,
         tierPricing: [],
       });
       state.lastModified = action.input.lastModified;
@@ -44,6 +47,8 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
         sg.billingCycle = action.input.billingCycle;
       if (action.input.displayOrder !== undefined)
         sg.displayOrder = action.input.displayOrder || null;
+      if (action.input.discountMode !== undefined)
+        sg.discountMode = action.input.discountMode || null;
       state.lastModified = action.input.lastModified;
     },
     deleteServiceGroupOperation(state, action) {
@@ -101,6 +106,31 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
           `Tier pricing for tier ${action.input.tierId} not found in service group ${action.input.serviceGroupId}`,
         );
       }
+      const hasDiscountType =
+        action.input.discountType !== undefined &&
+        action.input.discountType !== null;
+      const hasDiscountValue =
+        action.input.discountValue !== undefined &&
+        action.input.discountValue !== null;
+      if (hasDiscountType !== hasDiscountValue) {
+        throw new IncompleteSetupDiscountError(
+          "Both discountType and discountValue must be provided together or both omitted",
+        );
+      }
+      if (hasDiscountValue && action.input.discountValue! < 0) {
+        throw new InvalidSetupDiscountError(
+          "Discount value cannot be negative",
+        );
+      }
+      if (
+        hasDiscountType &&
+        action.input.discountType === "PERCENTAGE" &&
+        action.input.discountValue! > 100
+      ) {
+        throw new InvalidSetupDiscountError(
+          "Percentage discount cannot exceed 100",
+        );
+      }
       const existingIndex = tp.setupCostsPerCycle.findIndex(
         (sc) => sc.billingCycle === sg.billingCycle,
       );
@@ -109,6 +139,13 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
         billingCycle: sg.billingCycle,
         amount: action.input.amount,
         currency: action.input.currency,
+        discount:
+          hasDiscountType && hasDiscountValue
+            ? {
+                discountType: action.input.discountType!,
+                discountValue: action.input.discountValue!,
+              }
+            : null,
       };
       if (existingIndex !== -1) {
         tp.setupCostsPerCycle[existingIndex] = setupCost;

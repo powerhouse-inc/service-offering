@@ -218,8 +218,10 @@ input InitializeServiceInput {
     facetSelections: [InitializeFacetSelectionInput!]
     setupAmount: Amount_Money
     setupCurrency: Currency
+    recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
+    recurringDiscount: DiscountInfoInitInput
     metrics: [InitializeMetricInput!]
 }
 
@@ -338,7 +340,6 @@ input UpdateBillingProjectionInput {
 
 # service
 
-
 input AddServiceInput {
     serviceId: OID!
     name: String
@@ -353,7 +354,7 @@ input AddServiceInput {
     recurringBillingCycle: BillingCycle
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
-
+    recurringDiscount: DiscountServiceInfoInput
 }
 
 input RemoveServiceInput {

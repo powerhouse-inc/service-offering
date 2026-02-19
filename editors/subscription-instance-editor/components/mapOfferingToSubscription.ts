@@ -13,7 +13,7 @@ import type {
   InitializeServiceGroupInput,
   InitializeServiceInput,
   InitializeMetricInput,
-  DiscountInfoInput,
+  DiscountInfoInitInput,
   BillingCycle as SIBillingCycle,
 } from "../../../document-models/subscription-instance/gen/schema/types.js";
 
@@ -135,7 +135,7 @@ function mapServiceGroups(
 
     // Apply billing cycle discount from tier if applicable
     let discountedAmount = recurringOption?.amount;
-    let discountInput: DiscountInfoInput | undefined;
+    let discountInput: DiscountInfoInitInput | undefined;
 
     if (recurringOption && tier.billingCycleDiscounts.length > 0) {
       const cycleDiscount = tier.billingCycleDiscounts.find(

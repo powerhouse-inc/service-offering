@@ -312,6 +312,53 @@ export function calculateTierRecurringPrice(
   };
 }
 
+// Calculate effective setup price after applying discount
+// Returns base amount, effective amount (floored at 0), and savings
+// Works with both SetupCostPerCycle (ServiceGroup) and SetupCost (OptionGroup)
+export function calculateEffectiveSetupPrice(setupCost: {
+  amount: number;
+  discount?: { discountType: string; discountValue: number } | null;
+}): {
+  baseAmount: number;
+  effectiveAmount: number;
+  savings: number;
+  savingsPercent: number;
+  hasDiscount: boolean;
+} {
+  const baseAmount = setupCost.amount;
+  const discount = setupCost.discount;
+
+  if (!discount || discount.discountValue <= 0) {
+    return {
+      baseAmount,
+      effectiveAmount: baseAmount,
+      savings: 0,
+      savingsPercent: 0,
+      hasDiscount: false,
+    };
+  }
+
+  let effectiveAmount: number;
+  if (discount.discountType === "PERCENTAGE") {
+    effectiveAmount = baseAmount * (1 - discount.discountValue / 100);
+  } else {
+    effectiveAmount = baseAmount - discount.discountValue;
+  }
+
+  effectiveAmount = Math.max(0, Math.round(effectiveAmount * 100) / 100);
+  const savings = Math.round((baseAmount - effectiveAmount) * 100) / 100;
+  const savingsPercent =
+    baseAmount > 0 ? Math.round((savings / baseAmount) * 100) : 0;
+
+  return {
+    baseAmount,
+    effectiveAmount,
+    savings,
+    savingsPercent,
+    hasDiscount: true,
+  };
+}
+
 // Detect billing cycle majority among regular groups
 // Returns suggestion when >50% of groups share a cycle different from current global
 // groupOverrides: runtime cycle overrides keyed by group.id (from UI state)

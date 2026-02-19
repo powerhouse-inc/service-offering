@@ -32,7 +32,9 @@ import {
   removeUsageLimit,
   addService,
   updateService,
+  setFinalConfiguration,
 } from "../../../document-models/service-offering/gen/creators.js";
+import { resolveConfiguration } from "./resolve-configuration.js";
 
 interface TheMatrixProps {
   document: ServiceOfferingDocument;
@@ -2449,6 +2451,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const services = state.global.services ?? [];
   const tiers = state.global.tiers ?? [];
   const optionGroups = state.global.optionGroups ?? [];
+  const serviceGroups = state.global.serviceGroups ?? [];
 
   // Get selected facets from the offering document's facetTargets
   const offeringFacetTargets = state.global.facetTargets ?? [];
@@ -2667,6 +2670,50 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const addonGroups = useMemo(() => {
     return optionGroups.filter((g) => g.isAddOn);
   }, [optionGroups]);
+
+  // Auto-dispatch SET_FINAL_CONFIGURATION whenever pricing-relevant state changes
+  const finalConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  useEffect(() => {
+    if (finalConfigTimerRef.current) {
+      clearTimeout(finalConfigTimerRef.current);
+    }
+    finalConfigTimerRef.current = setTimeout(() => {
+      const result = resolveConfiguration({
+        tiers,
+        selectedTierIdx,
+        activeBillingCycle,
+        regularGroups,
+        setupGroups,
+        addonGroups,
+        groupBillingCycles,
+        addonBillingCycles,
+        enabledAddonIds: enabledOptionalGroups,
+        serviceGroups,
+      });
+      if (result) {
+        dispatch(setFinalConfiguration(result));
+      }
+    }, 300);
+    return () => {
+      if (finalConfigTimerRef.current) {
+        clearTimeout(finalConfigTimerRef.current);
+      }
+    };
+  }, [
+    selectedTierIdx,
+    activeBillingCycle,
+    groupBillingCycles,
+    addonBillingCycles,
+    enabledOptionalGroups,
+    tiers,
+    regularGroups,
+    setupGroups,
+    addonGroups,
+    serviceGroups,
+    dispatch,
+  ]);
 
   const ungroupedSetupServices = useMemo(() => {
     return (groupedServices.get(UNGROUPED_ID) || []).filter(
@@ -4170,11 +4217,40 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
                 {/* 4. Setup & Formation Fees from setup groups (one-time) */}
                 {(() => {
-                  const totalSetupGroupFee = setupGroups.reduce(
-                    (sum, g) => sum + (g.price || 0),
-                    0,
-                  );
-                  if (totalSetupGroupFee === 0) return null;
+                  const selectedTier = tiers[selectedTierIdx] ?? null;
+                  let totalSetupBase = 0;
+                  let totalSetupEffective = 0;
+                  for (const g of setupGroups) {
+                    const base = g.price || 0;
+                    totalSetupBase += base;
+                    if (base === 0 || !selectedTier) {
+                      totalSetupEffective += base;
+                      continue;
+                    }
+                    const tp = g.tierDependentPricing?.find(
+                      (p) => p.tierId === selectedTier.id,
+                    );
+                    const cd = tp?.setupCostDiscounts?.find(
+                      (d) => d.billingCycle === activeBillingCycle,
+                    );
+                    const gd = tp?.setupCost?.discount;
+                    const disc = cd?.discountRule ?? gd;
+                    if (disc && disc.discountValue > 0) {
+                      if (disc.discountType === "PERCENTAGE") {
+                        totalSetupEffective +=
+                          Math.round(
+                            base * (1 - disc.discountValue / 100) * 100,
+                          ) / 100;
+                      } else {
+                        totalSetupEffective +=
+                          Math.max(0, base - disc.discountValue);
+                      }
+                    } else {
+                      totalSetupEffective += base;
+                    }
+                  }
+                  if (totalSetupBase === 0) return null;
+                  const hasDiscount = totalSetupEffective !== totalSetupBase;
                   return (
                     <tr className="matrix__grand-total-row matrix__grand-total-row--setup">
                       <td>+ Setup & Formation Fees</td>
@@ -4189,7 +4265,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           style={{ textAlign: "center" }}
                         >
                           {idx === selectedTierIdx
-                            ? `${formatPrice(totalSetupGroupFee, "USD")} one-time`
+                            ? hasDiscount
+                              ? `${formatPrice(totalSetupEffective, "USD")} one-time`
+                              : `${formatPrice(totalSetupBase, "USD")} one-time`
                             : null}
                         </td>
                       ))}
@@ -5074,16 +5152,68 @@ function ServiceGroupSection({
         </tr>
       )}
 
-      {isSetupFormation && (
-        <tr className="matrix__setup-total-row">
-          <td>TOTAL SETUP FEE</td>
-          <td colSpan={tiers.length} style={{ textAlign: "center" }}>
-            {group.price
-              ? `${formatPrice(group.price, group.currency || "USD")} flat fee (applied to all tiers)`
-              : "No setup fee configured"}
-          </td>
-        </tr>
-      )}
+      {isSetupFormation &&
+        (() => {
+          const basePrice = group.price ?? 0;
+          if (basePrice === 0) {
+            return (
+              <tr className="matrix__setup-total-row">
+                <td>TOTAL SETUP FEE</td>
+                <td colSpan={tiers.length} style={{ textAlign: "center" }}>
+                  No setup fee configured
+                </td>
+              </tr>
+            );
+          }
+          const selectedTier = tiers[selectedTierIdx] ?? null;
+          const tierPricing = selectedTier
+            ? group.tierDependentPricing?.find(
+                (tp) => tp.tierId === selectedTier.id,
+              )
+            : null;
+          const cycleDiscount = tierPricing?.setupCostDiscounts?.find(
+            (d) => d.billingCycle === activeBillingCycle,
+          );
+          const genericDiscount = tierPricing?.setupCost?.discount;
+          const discount = cycleDiscount?.discountRule ?? genericDiscount;
+          let effectivePrice = basePrice;
+          if (discount && discount.discountValue > 0) {
+            if (discount.discountType === "PERCENTAGE") {
+              effectivePrice = basePrice * (1 - discount.discountValue / 100);
+            } else {
+              effectivePrice = Math.max(0, basePrice - discount.discountValue);
+            }
+            effectivePrice = Math.round(effectivePrice * 100) / 100;
+          }
+          const curr = group.currency || "USD";
+          const hasDiscount = effectivePrice !== basePrice;
+          return (
+            <tr className="matrix__setup-total-row">
+              <td>TOTAL SETUP FEE</td>
+              <td colSpan={tiers.length} style={{ textAlign: "center" }}>
+                {hasDiscount ? (
+                  <>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        opacity: 0.5,
+                        marginRight: 6,
+                      }}
+                    >
+                      {formatPrice(basePrice, curr)}
+                    </span>
+                    {formatPrice(effectivePrice, curr)} flat fee
+                    {discount?.discountType === "PERCENTAGE"
+                      ? ` (${discount.discountValue}% off)`
+                      : ` (${formatPrice(discount?.discountValue ?? 0, curr)} off)`}
+                  </>
+                ) : (
+                  `${formatPrice(basePrice, curr)} flat fee (applied to all tiers)`
+                )}
+              </td>
+            </tr>
+          );
+        })()}
 
       {isOptional &&
         (() => {

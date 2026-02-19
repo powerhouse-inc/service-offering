@@ -9,6 +9,7 @@ import type {
   BillingCycle,
   GroupCostType,
   DiscountMode,
+  DiscountType,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
@@ -16,6 +17,7 @@ import {
   formatPrice,
   resolveGroupDiscountForTier,
   calculateTierRecurringPrice,
+  calculateEffectiveSetupPrice,
 } from "./pricing-utils.js";
 import {
   addService,
@@ -184,6 +186,17 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
   const [editGroupDiscountMode, setEditGroupDiscountMode] =
     useState<DiscountMode | null>(null);
 
+  // Per-tier setup fee discounts: tierId → billingCycle → { discountType, discountValue }
+  const [editSetupTierDiscounts, setEditSetupTierDiscounts] = useState<
+    Record<
+      string,
+      Record<
+        BillingCycle,
+        { discountType: DiscountType; discountValue: string }
+      >
+    >
+  >({});
+
   // Service templates quick-add state
   const [showServiceTemplates, setShowServiceTemplates] = useState(false);
 
@@ -285,6 +298,48 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           : "recurring";
     setEditGroupType(groupType);
     setEditGroupPrice(group.price?.toString() || "");
+
+    // Initialize per-tier setup fee discounts from tier-dependent pricing
+    const SUBSCRIPTION_CYCLES: BillingCycle[] = [
+      "MONTHLY",
+      "QUARTERLY",
+      "SEMI_ANNUAL",
+      "ANNUAL",
+    ];
+    const setupTierDiscounts: Record<
+      string,
+      Record<
+        BillingCycle,
+        { discountType: DiscountType; discountValue: string }
+      >
+    > = {};
+    for (const tier of tiers) {
+      const emptyDiscounts = Object.fromEntries(
+        SUBSCRIPTION_CYCLES.map((c) => [
+          c,
+          { discountType: "FLAT_AMOUNT" as DiscountType, discountValue: "" },
+        ]),
+      ) as Record<
+        BillingCycle,
+        { discountType: DiscountType; discountValue: string }
+      >;
+      const tierPricingEntry = group.tierDependentPricing?.find(
+        (tp) => tp.tierId === tier.id,
+      );
+      if (tierPricingEntry?.setupCostDiscounts) {
+        tierPricingEntry.setupCostDiscounts.forEach((d) => {
+          if (d.billingCycle && d.discountRule) {
+            emptyDiscounts[d.billingCycle] = {
+              discountType: d.discountRule.discountType,
+              discountValue: d.discountRule.discountValue?.toString() || "",
+            };
+          }
+        });
+      }
+      setupTierDiscounts[tier.id] = emptyDiscounts;
+    }
+    setEditSetupTierDiscounts(setupTierDiscounts);
+
     setEditGroupBillingCycles(
       group.availableBillingCycles?.length > 0
         ? group.availableBillingCycles
@@ -400,6 +455,63 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         lastModified: new Date().toISOString(),
       }),
     );
+
+    // Save setup pricing: base cost via standalone, per-tier discounts via tier pricing
+    if (isSetup && price && price > 0) {
+      const now = new Date().toISOString();
+      // Store base setup cost via standalone pricing
+      dispatch(
+        setOptionGroupStandalonePricing({
+          optionGroupId: editingGroup.id,
+          setupCost: { amount: price, currency: "USD" },
+          recurringPricing: [],
+          lastModified: now,
+        }),
+      );
+
+      // Store per-tier setup fee discounts
+      for (const tier of tiers) {
+        if (tier.isCustomPricing) continue;
+        const tierDiscountEntries = editSetupTierDiscounts[tier.id];
+        const setupCostDiscounts = Object.entries(tierDiscountEntries || {})
+          .filter(([, d]) => parseFloat(d.discountValue) > 0)
+          .map(([cycle, d]) => ({
+            billingCycle: cycle as BillingCycle,
+            discountRule: {
+              discountType: d.discountType,
+              discountValue: parseFloat(d.discountValue),
+            },
+          }));
+
+        const existingTierPricing = editingGroup.tierDependentPricing?.find(
+          (tp) => tp.tierId === tier.id,
+        );
+        if (existingTierPricing) {
+          dispatch(
+            updateOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierId: tier.id,
+              setupCost: { amount: price, currency: "USD" },
+              setupCostDiscounts,
+              recurringPricing: [],
+              lastModified: now,
+            }),
+          );
+        } else {
+          dispatch(
+            addOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierPricingId: generateId(),
+              tierId: tier.id,
+              setupCost: { amount: price, currency: "USD" },
+              setupCostDiscounts,
+              recurringPricing: [],
+              lastModified: now,
+            }),
+          );
+        }
+      }
+    }
 
     // Save pricing based on mode
     if (!isSetup && editGroupPricingMode === "TIER_DEPENDENT") {
@@ -1385,20 +1497,219 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 )}
 
               {editGroupType === "setup" && (
-                <div className="catalog__fee-field">
-                  <span className="catalog__fee-label">One-time Fee</span>
-                  <div className="catalog__fee-input-wrapper">
-                    <span className="catalog__fee-prefix">$</span>
-                    <input
-                      type="number"
-                      value={editGroupPrice}
-                      onChange={(e) => setEditGroupPrice(e.target.value)}
-                      placeholder="0"
-                      className="catalog__fee-input"
-                      step="0.01"
-                    />
+                <>
+                  <div className="catalog__fee-field">
+                    <span className="catalog__fee-label">One-time Fee</span>
+                    <div className="catalog__fee-input-wrapper">
+                      <span className="catalog__fee-prefix">$</span>
+                      <input
+                        type="number"
+                        value={editGroupPrice}
+                        onChange={(e) => setEditGroupPrice(e.target.value)}
+                        placeholder="0"
+                        className="catalog__fee-input"
+                        step="0.01"
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  {/* Per-tier setup fee discounts */}
+                  {tiers.length > 0 && parseFloat(editGroupPrice) > 0 && (
+                    <div className="catalog__setup-tier-discounts">
+                      <span className="catalog__fee-label">
+                        Setup Fee Discounts by Tier & Billing Cycle
+                      </span>
+                      <div className="catalog__tier-tabs">
+                        {tiers.map((tier) => (
+                          <button
+                            key={tier.id}
+                            onClick={() => setEditTierTab(tier.id)}
+                            className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
+                          >
+                            {tier.name}
+                            {tier.isCustomPricing && (
+                              <span className="catalog__tier-tab-badge">
+                                Custom
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {editTierTab &&
+                        (() => {
+                          const activeTier = tiers.find(
+                            (t) => t.id === editTierTab,
+                          );
+                          if (!activeTier) return null;
+
+                          if (activeTier.isCustomPricing) {
+                            return (
+                              <div className="catalog__tier-custom-note">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  width="16"
+                                  height="16"
+                                >
+                                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>
+                                  Custom pricing tier — discounts negotiated per
+                                  customer.
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          const baseAmount = parseFloat(editGroupPrice) || 0;
+                          const SETUP_CYCLES: BillingCycle[] = [
+                            "MONTHLY",
+                            "QUARTERLY",
+                            "SEMI_ANNUAL",
+                            "ANNUAL",
+                          ];
+                          const cycleLabels: Record<string, string> = {
+                            MONTHLY: "Monthly",
+                            QUARTERLY: "Quarterly",
+                            SEMI_ANNUAL: "Semi-Annual",
+                            ANNUAL: "Annual",
+                          };
+
+                          return (
+                            <div className="catalog__setup-cycle-grid">
+                              {SETUP_CYCLES.map((cycle) => {
+                                const entry =
+                                  editSetupTierDiscounts[activeTier.id]?.[
+                                    cycle
+                                  ];
+                                const dType =
+                                  entry?.discountType || "FLAT_AMOUNT";
+                                const dValue = entry?.discountValue || "";
+                                const parsedValue = parseFloat(dValue) || 0;
+
+                                // Compute effective price
+                                let effectiveAmount = baseAmount;
+                                let savings = 0;
+                                let savingsPct = 0;
+                                if (parsedValue > 0 && baseAmount > 0) {
+                                  const result = calculateEffectiveSetupPrice({
+                                    amount: baseAmount,
+                                    discount: {
+                                      discountType: dType,
+                                      discountValue: parsedValue,
+                                    },
+                                  });
+                                  effectiveAmount = result.effectiveAmount;
+                                  savings = result.savings;
+                                  savingsPct = result.savingsPercent;
+                                }
+
+                                return (
+                                  <div
+                                    key={cycle}
+                                    className="catalog__setup-cycle-row"
+                                  >
+                                    <div className="catalog__setup-cycle-header">
+                                      <span className="catalog__setup-cycle-label">
+                                        {cycleLabels[cycle]} subscription
+                                      </span>
+                                      <span className="catalog__setup-cycle-base">
+                                        {formatPrice(baseAmount, "USD")}
+                                      </span>
+                                    </div>
+                                    <div className="catalog__setup-cycle-controls">
+                                      <select
+                                        value={dType}
+                                        onChange={(e) => {
+                                          const updated = {
+                                            ...editSetupTierDiscounts,
+                                          };
+                                          updated[activeTier.id] = {
+                                            ...updated[activeTier.id],
+                                            [cycle]: {
+                                              ...updated[activeTier.id]?.[
+                                                cycle
+                                              ],
+                                              discountType: e.target
+                                                .value as DiscountType,
+                                            },
+                                          };
+                                          setEditSetupTierDiscounts(updated);
+                                        }}
+                                        className="catalog__setup-discount-select"
+                                      >
+                                        <option value="FLAT_AMOUNT">
+                                          Flat ($)
+                                        </option>
+                                        <option value="PERCENTAGE">
+                                          Percent (%)
+                                        </option>
+                                      </select>
+                                      <div className="catalog__fee-input-wrapper catalog__fee-input-wrapper--discount">
+                                        <span className="catalog__fee-prefix">
+                                          {dType === "PERCENTAGE" ? "%" : "- $"}
+                                        </span>
+                                        <input
+                                          type="number"
+                                          value={dValue}
+                                          onChange={(e) => {
+                                            const updated = {
+                                              ...editSetupTierDiscounts,
+                                            };
+                                            updated[activeTier.id] = {
+                                              ...updated[activeTier.id],
+                                              [cycle]: {
+                                                ...updated[activeTier.id]?.[
+                                                  cycle
+                                                ],
+                                                discountValue: e.target.value,
+                                              },
+                                            };
+                                            setEditSetupTierDiscounts(updated);
+                                          }}
+                                          placeholder="0"
+                                          className="catalog__fee-input"
+                                          step="0.01"
+                                          min="0"
+                                          max={
+                                            dType === "PERCENTAGE"
+                                              ? "100"
+                                              : undefined
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                    {parsedValue > 0 && baseAmount > 0 && (
+                                      <div className="catalog__setup-effective">
+                                        <span className="catalog__setup-effective-arrow">
+                                          &rarr;
+                                        </span>
+                                        <span className="catalog__setup-effective-base">
+                                          {formatPrice(baseAmount, "USD")}
+                                        </span>
+                                        <span className="catalog__setup-effective-price">
+                                          {formatPrice(effectiveAmount, "USD")}
+                                        </span>
+                                        {savingsPct > 0 && (
+                                          <span className="catalog__setup-effective-savings">
+                                            save {formatPrice(savings, "USD")} (
+                                            {savingsPct}% off)
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="catalog__modal-footer">
@@ -2500,6 +2811,114 @@ const styles = `
     outline: none;
     border-color: var(--so-violet-500);
     box-shadow: 0 0 0 2px var(--so-violet-100);
+  }
+
+  .catalog__setup-tier-discounts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .catalog__setup-discount-select {
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    color: var(--so-slate-600);
+    background: white;
+    border: 1.5px solid var(--so-slate-200);
+    border-radius: var(--so-radius-sm);
+    padding: 6px 8px;
+    cursor: pointer;
+    outline: none;
+    min-width: 90px;
+  }
+
+  .catalog__setup-discount-select:focus {
+    border-color: var(--so-violet-500);
+  }
+
+  .catalog__fee-input-wrapper--discount {
+    flex: 1;
+  }
+
+  .catalog__setup-cycle-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .catalog__setup-cycle-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--so-slate-50);
+    border: 1px solid var(--so-slate-150, var(--so-slate-200));
+    border-radius: var(--so-radius-sm);
+  }
+
+  .catalog__setup-cycle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .catalog__setup-cycle-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__setup-cycle-base {
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    color: var(--so-slate-400);
+  }
+
+  .catalog__setup-cycle-controls {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .catalog__setup-effective {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--so-emerald-50);
+    border: 1px solid var(--so-emerald-100);
+    border-radius: var(--so-radius-sm);
+    flex-wrap: wrap;
+  }
+
+  .catalog__setup-effective-arrow {
+    font-size: 0.75rem;
+    color: var(--so-emerald-500);
+  }
+
+  .catalog__setup-effective-base {
+    font-family: var(--so-font-mono);
+    font-size: 0.8125rem;
+    color: var(--so-slate-400);
+    text-decoration: line-through;
+  }
+
+  .catalog__setup-effective-price {
+    font-family: var(--so-font-mono);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--so-emerald-700);
+  }
+
+  .catalog__setup-effective-savings {
+    font-family: var(--so-font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--so-emerald-600);
+    background: var(--so-emerald-100);
+    padding: 2px 6px;
+    border-radius: var(--so-radius-sm);
+    margin-left: auto;
   }
 
   .catalog__pricing-mode {

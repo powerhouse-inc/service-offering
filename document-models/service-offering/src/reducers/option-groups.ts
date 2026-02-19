@@ -84,6 +84,13 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
           ? {
               amount: action.input.setupCost.amount,
               currency: action.input.setupCost.currency,
+              discount: action.input.setupCost.discount
+                ? {
+                    discountType: action.input.setupCost.discount.discountType,
+                    discountValue:
+                      action.input.setupCost.discount.discountValue,
+                  }
+                : null,
             }
           : null,
         recurringPricing: action.input.recurringPricing.map((rp) => ({
@@ -121,8 +128,24 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
           ? {
               amount: action.input.setupCost.amount,
               currency: action.input.setupCost.currency,
+              discount: action.input.setupCost.discount
+                ? {
+                    discountType: action.input.setupCost.discount.discountType,
+                    discountValue:
+                      action.input.setupCost.discount.discountValue,
+                  }
+                : null,
             }
           : null,
+        setupCostDiscounts: (action.input.setupCostDiscounts || []).map(
+          (d) => ({
+            billingCycle: d.billingCycle,
+            discountRule: {
+              discountType: d.discountRule.discountType,
+              discountValue: d.discountRule.discountValue,
+            },
+          }),
+        ),
         recurringPricing: action.input.recurringPricing.map((rp) => ({
           id: rp.id,
           billingCycle: rp.billingCycle,
@@ -156,8 +179,28 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
             ? {
                 amount: action.input.setupCost.amount,
                 currency: action.input.setupCost.currency,
+                discount: action.input.setupCost.discount
+                  ? {
+                      discountType:
+                        action.input.setupCost.discount.discountType,
+                      discountValue:
+                        action.input.setupCost.discount.discountValue,
+                    }
+                  : null,
               }
             : null;
+        }
+        if (
+          action.input.setupCostDiscounts !== undefined &&
+          action.input.setupCostDiscounts !== null
+        ) {
+          tp.setupCostDiscounts = action.input.setupCostDiscounts.map((d) => ({
+            billingCycle: d.billingCycle,
+            discountRule: {
+              discountType: d.discountRule.discountType,
+              discountValue: d.discountRule.discountValue,
+            },
+          }));
         }
         if (action.input.recurringPricing) {
           tp.recurringPricing = action.input.recurringPricing.map((rp) => ({

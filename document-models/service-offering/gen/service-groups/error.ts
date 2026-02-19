@@ -4,6 +4,8 @@ export type ErrorCode =
   | "AddServiceGroupTierPricingNotFoundError"
   | "SetServiceGroupSetupCostNotFoundError"
   | "SetServiceGroupSetupCostTierPricingNotFoundError"
+  | "InvalidSetupDiscountError"
+  | "IncompleteSetupDiscountError"
   | "RemoveServiceGroupSetupCostNotFoundError"
   | "RemoveServiceGroupSetupCostTierPricingNotFoundError"
   | "AddRecurringPriceOptionServiceGroupNotFoundError"
@@ -65,6 +67,23 @@ export class SetServiceGroupSetupCostTierPricingNotFoundError
 {
   errorCode = "SetServiceGroupSetupCostTierPricingNotFoundError" as ErrorCode;
   constructor(message = "SetServiceGroupSetupCostTierPricingNotFoundError") {
+    super(message);
+  }
+}
+
+export class InvalidSetupDiscountError extends Error implements ReducerError {
+  errorCode = "InvalidSetupDiscountError" as ErrorCode;
+  constructor(message = "InvalidSetupDiscountError") {
+    super(message);
+  }
+}
+
+export class IncompleteSetupDiscountError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "IncompleteSetupDiscountError" as ErrorCode;
+  constructor(message = "IncompleteSetupDiscountError") {
     super(message);
   }
 }
@@ -179,6 +198,8 @@ export const errors = {
   SetServiceGroupSetupCost: {
     SetServiceGroupSetupCostNotFoundError,
     SetServiceGroupSetupCostTierPricingNotFoundError,
+    InvalidSetupDiscountError,
+    IncompleteSetupDiscountError,
   },
   RemoveServiceGroupSetupCost: {
     RemoveServiceGroupSetupCostNotFoundError,
