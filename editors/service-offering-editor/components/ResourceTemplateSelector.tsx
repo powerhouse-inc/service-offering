@@ -10,7 +10,7 @@ import {
   addFacetOption,
   removeFacetOption,
   setFacetTarget,
-} from "../../../document-models/service-offering/gen/offering-management/creators.js";
+} from "../../../document-models/service-offering/gen/offering/creators.js";
 import { generateId } from "document-model/core";
 import { useResourceTemplateDocumentsInSelectedDrive } from "../../../document-models/resource-template/hooks.js";
 import type {

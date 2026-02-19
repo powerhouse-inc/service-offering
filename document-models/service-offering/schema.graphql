@@ -243,7 +243,81 @@ enum GroupCostType {
     SETUP
 }
 
-# Service Management
+# offering
+
+input UpdateOfferingInfoInput {
+    title: String
+    summary: String
+    description: String
+    thumbnailUrl: URL
+    infoLink: URL
+    lastModified: DateTime!
+}
+
+input UpdateOfferingStatusInput {
+    status: ServiceStatus!
+    lastModified: DateTime!
+}
+
+input SetOperatorInput {
+    operatorId: PHID!
+    lastModified: DateTime!
+}
+
+input SetOfferingIdInput {
+    id: PHID!
+    lastModified: DateTime!
+}
+
+input AddTargetAudienceInput {
+    id: OID!
+    label: String!
+    color: String
+    lastModified: DateTime!
+}
+
+input RemoveTargetAudienceInput {
+    id: OID!
+    lastModified: DateTime!
+}
+
+input SetFacetTargetInput {
+    id: OID!
+    categoryKey: String!
+    categoryLabel: String!
+    selectedOptions: [String!]!
+    lastModified: DateTime!
+}
+
+input RemoveFacetTargetInput {
+    categoryKey: String!
+    lastModified: DateTime!
+}
+
+input AddFacetOptionInput {
+    categoryKey: String!
+    optionId: String!
+    lastModified: DateTime!
+}
+
+input RemoveFacetOptionInput {
+    categoryKey: String!
+    optionId: String!
+    lastModified: DateTime!
+}
+
+input SelectResourceTemplateInput {
+    resourceTemplateId: PHID!
+    lastModified: DateTime!
+}
+
+input ChangeResourceTemplateInput {
+    previousTemplateId: PHID!
+    newTemplateId: PHID!
+    lastModified: DateTime!
+}
+
+# services
 
 input AddServiceInput {
     id: OID!
@@ -287,7 +361,7 @@ input RemoveFacetBindingInput {
     lastModified: DateTime!
 }
 
-# Tier Management
+# tiers
 
 input AddTierInput {
     id: OID!
@@ -407,81 +481,7 @@ input SetTierPricingModeInput {
     lastModified: DateTime!
 }
 
-# Offering Management
-
-input UpdateOfferingInfoInput {
-    title: String
-    summary: String
-    description: String
-    thumbnailUrl: URL
-    infoLink: URL
-    lastModified: DateTime!
-}
-
-input UpdateOfferingStatusInput {
-    status: ServiceStatus!
-    lastModified: DateTime!
-}
-
-input SetOperatorInput {
-    operatorId: PHID!
-    lastModified: DateTime!
-}
-
-input SetOfferingIdInput {
-    id: PHID!
-    lastModified: DateTime!
-}
-
-input AddTargetAudienceInput {
-    id: OID!
-    label: String!
-    color: String
-    lastModified: DateTime!
-}
-
-input RemoveTargetAudienceInput {
-    id: OID!
-    lastModified: DateTime!
-}
-
-input SetFacetTargetInput {
-    id: OID!
-    categoryKey: String!
-    categoryLabel: String!
-    selectedOptions: [String!]!
-    lastModified: DateTime!
-}
-
-input RemoveFacetTargetInput {
-    categoryKey: String!
-    lastModified: DateTime!
-}
-
-input AddFacetOptionInput {
-    categoryKey: String!
-    optionId: String!
-    lastModified: DateTime!
-}
-
-input RemoveFacetOptionInput {
-    categoryKey: String!
-    optionId: String!
-    lastModified: DateTime!
-}
-
-input SelectResourceTemplateInput {
-    resourceTemplateId: PHID!
-    lastModified: DateTime!
-}
-
-input ChangeResourceTemplateInput {
-    previousTemplateId: PHID!
-    newTemplateId: PHID!
-    lastModified: DateTime!
-}
-
-# Option Group Management
+# option-groups
 
 input AddOptionGroupInput {
     id: OID!
@@ -563,7 +563,7 @@ input SetOptionGroupDiscountModeInput {
     lastModified: DateTime!
 }
 
-# Service Group Management
+# service-groups
 
 input AddServiceGroupInput {
     id: OID!

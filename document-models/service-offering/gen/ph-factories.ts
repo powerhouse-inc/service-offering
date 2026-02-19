@@ -22,7 +22,7 @@ export function defaultGlobalState(): ServiceOfferingGlobalState {
     thumbnailUrl: null,
     infoLink: null,
     status: "DRAFT",
-    lastModified: "1970-01-01T00:00:00.000Z",
+    lastModified: "2024-01-01T00:00:00Z",
     targetAudiences: [],
     facetTargets: [],
     serviceGroups: [],

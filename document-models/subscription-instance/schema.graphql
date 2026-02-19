@@ -31,9 +31,7 @@ type SubscriptionInstanceState {
     tierPricingOptionId: OID
     tierPrice: Amount_Money
     tierCurrency: Currency
-    tierPricingMode: TierPricingMode
     selectedBillingCycle: BillingCycle
-    globalCurrency: Currency
     resource: ResourceDocument
     status: SubscriptionStatus!
     createdAt: DateTime
@@ -53,26 +51,15 @@ type SubscriptionInstanceState {
     serviceGroups: [ServiceGroup!]!
 }
 
-enum TierPricingMode {
-    CALCULATED
-    MANUAL_OVERRIDE
-}
-
 enum CustomerType {
     INDIVIDUAL
     TEAM
-}
-
-enum GroupCostType {
-    RECURRING
-    SETUP
 }
 
 type ServiceGroup {
     id: OID!
     optional: Boolean!
     name: String!
-    costType: GroupCostType
     setupCost: SetupCost
     recurringCost: RecurringCost
     services: [Service!]!
@@ -98,25 +85,6 @@ type RecurringCost {
     billingCycle: BillingCycle!
     nextBillingDate: DateTime
     lastPaymentDate: DateTime
-    discount: DiscountInfo
-}
-
-enum DiscountType {
-    PERCENTAGE
-    FLAT_AMOUNT
-}
-
-enum DiscountSource {
-    TIER_INHERITED
-    GROUP_INDEPENDENT
-    BUNDLE
-}
-
-type DiscountInfo {
-    originalAmount: Amount_Money!
-    discountType: DiscountType!
-    discountValue: Float!
-    source: DiscountSource!
 }
 
 type SetupCost {
@@ -161,8 +129,6 @@ type ServiceMetric {
     name: String!
     unitName: String!
     limit: Int
-    freeLimit: Int
-    paidLimit: Int
     unitCost: RecurringCost
     currentUsage: Int!
     usageResetPeriod: ResetPeriod
@@ -187,20 +153,11 @@ input InitializeFacetSelectionInput {
     selectedOption: String!
 }
 
-input DiscountInfoInput {
-    originalAmount: Amount_Money!
-    discountType: DiscountType!
-    discountValue: Float!
-    source: DiscountSource!
-}
-
 input InitializeMetricInput {
     id: OID!
     name: String!
     unitName: String!
     limit: Int
-    freeLimit: Int
-    paidLimit: Int
     currentUsage: Int!
     usageResetPeriod: ResetPeriod
     unitCostAmount: Amount_Money
@@ -219,7 +176,6 @@ input InitializeServiceInput {
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringDiscount: DiscountInfoInput
     metrics: [InitializeMetricInput!]
 }
 
@@ -227,14 +183,12 @@ input InitializeServiceGroupInput {
     id: OID!
     name: String!
     optional: Boolean!
-    costType: GroupCostType
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringDiscount: DiscountInfoInput
     services: [InitializeServiceInput!]
 }
 
@@ -247,9 +201,7 @@ input InitializeSubscriptionInput {
     tierPricingOptionId: OID
     tierPrice: Amount_Money
     tierCurrency: Currency
-    tierPricingMode: TierPricingMode
     selectedBillingCycle: BillingCycle
-    globalCurrency: Currency
     resourceId: PHID
     resourceLabel: String
     resourceThumbnailUrl: URL
@@ -315,7 +267,6 @@ input UpdateTierInfoInput {
     tierPricingOptionId: OID
     tierPrice: Amount_Money
     tierCurrency: Currency
-    tierPricingMode: TierPricingMode
 }
 
 input SetOperatorNotesInput {
@@ -352,7 +303,6 @@ input AddServiceInput {
     recurringBillingCycle: BillingCycle
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
-    recurringDiscount: DiscountInfoInput
 }
 
 input RemoveServiceInput {
@@ -411,14 +361,12 @@ input AddServiceGroupInput {
     groupId: OID!
     name: String!
     optional: Boolean!
-    costType: GroupCostType
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringDiscount: DiscountInfoInput
 }
 
 input RemoveServiceGroupInput {
@@ -465,8 +413,6 @@ input AddServiceMetricInput {
     name: String!
     unitName: String!
     limit: Int
-    freeLimit: Int
-    paidLimit: Int
     currentUsage: Int!
     usageResetPeriod: ResetPeriod
     nextUsageReset: DateTime

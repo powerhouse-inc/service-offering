@@ -13,7 +13,7 @@ import {
   setOptionGroupStandalonePricing,
   addOptionGroupTierPricing,
   updateOptionGroupTierPricing,
-} from "../../../document-models/service-offering/gen/option-group-management/creators.js";
+} from "../../../document-models/service-offering/gen/option-groups/creators.js";
 
 interface ServiceGroupPricingPanelProps {
   addOnGroups: OptionGroup[];
