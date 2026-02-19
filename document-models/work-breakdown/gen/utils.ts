@@ -21,6 +21,7 @@ import {
 } from "./document-schema.js";
 
 export const initialGlobalState: WorkBreakdownGlobalState = {
+  aiContext: null,
   title: null,
   description: null,
   phase: "CAPTURE",
@@ -34,6 +35,7 @@ export const initialGlobalState: WorkBreakdownGlobalState = {
   tasks: [],
   dependencies: [],
   notes: [],
+  extractionHistory: [],
 };
 export const initialLocalState: WorkBreakdownLocalState = {};
 

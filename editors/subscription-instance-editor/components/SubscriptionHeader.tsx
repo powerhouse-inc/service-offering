@@ -169,20 +169,6 @@ export function SubscriptionHeader({
               </span>
             </div>
           )}
-          {mode === "operator" && state.tierId && (
-            <div className="si-header__meta-item">
-              <span className="si-header__meta-label">Tier ID</span>
-              <span
-                className="si-header__meta-value"
-                style={{
-                  fontFamily: "var(--si-font-mono)",
-                  fontSize: "0.75rem",
-                }}
-              >
-                {state.tierId}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -197,10 +183,11 @@ export function SubscriptionHeader({
             <span className="si-header__stat-value">
               {new Intl.NumberFormat("en-US", {
                 style: "currency",
-                currency: state.projectedBillCurrency || "USD",
+                currency:
+                  state.globalCurrency || state.projectedBillCurrency || "USD",
               }).format(state.projectedBillAmount)}
             </span>
-            <span className="si-header__stat-label">Next Bill</span>
+            <span className="si-header__stat-label">Projected Bill</span>
           </div>
         )}
         {state.nextBillingDate && (

@@ -76,6 +76,14 @@ export type AddInputInput = {
   submittedBy?: InputMaybe<Scalars["String"]["input"]>;
 };
 
+export type AddExtractionRecordInput = {
+  id: Scalars["OID"]["input"];
+  model?: InputMaybe<Scalars["String"]["input"]>;
+  requestedAt: Scalars["DateTime"]["input"];
+  type: ExtractionType;
+  userContext?: InputMaybe<Scalars["String"]["input"]>;
+};
+
 export type AddNoteInput = {
   content: Scalars["String"]["input"];
   createdAt: Scalars["DateTime"]["input"];
@@ -85,8 +93,9 @@ export type AddNoteInput = {
 
 export type AddPrerequisiteInput = {
   createdAt: Scalars["DateTime"]["input"];
-  description: Scalars["String"]["input"];
+  description?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
+  name: Scalars["String"]["input"];
   notes?: InputMaybe<Scalars["String"]["input"]>;
   owner: Scalars["String"]["input"];
   scope: PrerequisiteScope;
@@ -185,14 +194,36 @@ export type Dependency = {
   targetType: DependencyTargetType;
 };
 
+export type ClearExtractionHistoryInput = {
+  beforeDate?: InputMaybe<Scalars["DateTime"]["input"]>;
+};
+
 export type DependencySourceType = "PREREQUISITE" | "TASK";
 
 export type DependencyTargetType = "PREREQUISITE" | "TASK";
 
+export type ExtractionRecord = {
+  completedAt: Maybe<Scalars["DateTime"]["output"]>;
+  error: Maybe<Scalars["String"]["output"]>;
+  id: Scalars["OID"]["output"];
+  model: Maybe<Scalars["String"]["output"]>;
+  requestedAt: Scalars["DateTime"]["output"];
+  status: ExtractionStatus;
+  stepsGenerated: Maybe<Scalars["Int"]["output"]>;
+  tasksGenerated: Maybe<Scalars["Int"]["output"]>;
+  type: ExtractionType;
+  userContext: Maybe<Scalars["String"]["output"]>;
+};
+
+export type ExtractionStatus = "COMPLETED" | "FAILED" | "PENDING";
+
+export type ExtractionType = "SCENARIO" | "TASK";
+
 export type Prerequisite = {
   createdAt: Maybe<Scalars["DateTime"]["output"]>;
-  description: Scalars["String"]["output"];
+  description: Maybe<Scalars["String"]["output"]>;
   id: Scalars["OID"]["output"];
+  name: Scalars["String"]["output"];
   notes: Maybe<Scalars["String"]["output"]>;
   owner: Scalars["String"]["output"];
   scope: PrerequisiteScope;
@@ -237,6 +268,10 @@ export type RemoveTemplateInput = {
   id: Scalars["OID"]["input"];
 };
 
+export type SetAiContextInput = {
+  context?: InputMaybe<Scalars["String"]["input"]>;
+};
+
 export type SetPhaseInput = {
   phase: WorkBreakdownPhase;
   timestamp: Scalars["DateTime"]["input"];
@@ -257,6 +292,8 @@ export type SetStatusInput = {
 };
 
 export type SetTaskStatusInput = {
+  blockedByItemId?: InputMaybe<Scalars["OID"]["input"]>;
+  blockedReason?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
   status: TaskStatus;
 };
@@ -274,6 +311,8 @@ export type StakeholderInput = {
 };
 
 export type Task = {
+  blockedByItemId: Maybe<Scalars["OID"]["output"]>;
+  blockedReason: Maybe<Scalars["String"]["output"]>;
   createdAt: Maybe<Scalars["DateTime"]["output"]>;
   description: Maybe<Scalars["String"]["output"]>;
   extractionContext: Maybe<Scalars["String"]["output"]>;
@@ -338,6 +377,15 @@ export type TemplateSubstepInput = {
   order: Scalars["Int"]["input"];
 };
 
+export type UpdateExtractionRecordInput = {
+  completedAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  error?: InputMaybe<Scalars["String"]["input"]>;
+  id: Scalars["OID"]["input"];
+  status: ExtractionStatus;
+  stepsGenerated?: InputMaybe<Scalars["Int"]["input"]>;
+  tasksGenerated?: InputMaybe<Scalars["Int"]["input"]>;
+};
+
 export type UpdateDependencyInput = {
   description?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
@@ -353,6 +401,7 @@ export type UpdateInputInput = {
 export type UpdatePrerequisiteInput = {
   description?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
+  name?: InputMaybe<Scalars["String"]["input"]>;
   notes?: InputMaybe<Scalars["String"]["input"]>;
   owner?: InputMaybe<Scalars["String"]["input"]>;
 };
@@ -393,16 +442,16 @@ export type UpdateTemplateInput = {
 
 export type WorkBreakdownPhase =
   | "CAPTURE"
-  | "COMPLETE"
-  | "PREREQUISITES"
+  | "EXECUTION"
   | "REVIEW"
-  | "SCENARIO"
-  | "TASKS";
+  | "STRUCTURE";
 
 export type WorkBreakdownState = {
+  aiContext: Maybe<Scalars["String"]["output"]>;
   appliedTemplateId: Maybe<Scalars["OID"]["output"]>;
   dependencies: Array<Dependency>;
   description: Maybe<Scalars["String"]["output"]>;
+  extractionHistory: Array<ExtractionRecord>;
   inputs: Array<StakeholderInput>;
   notes: Array<AnalystNote>;
   phase: Maybe<WorkBreakdownPhase>;

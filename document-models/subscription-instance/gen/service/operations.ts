@@ -7,7 +7,8 @@ import type {
   ReportSetupPaymentAction,
   ReportRecurringPaymentAction,
   UpdateServiceInfoAction,
-  UpdateServiceLevelAction,
+  AddServiceFacetSelectionAction,
+  RemoveServiceFacetSelectionAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -47,9 +48,14 @@ export interface SubscriptionInstanceServiceOperations {
     action: UpdateServiceInfoAction,
     dispatch?: SignalDispatch,
   ) => void;
-  updateServiceLevelOperation: (
+  addServiceFacetSelectionOperation: (
     state: SubscriptionInstanceState,
-    action: UpdateServiceLevelAction,
+    action: AddServiceFacetSelectionAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  removeServiceFacetSelectionOperation: (
+    state: SubscriptionInstanceState,
+    action: RemoveServiceFacetSelectionAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

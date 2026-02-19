@@ -30,8 +30,8 @@
               "examples": [],
               "id": "add-service",
               "name": "ADD_SERVICE",
-              "reducer": "state.services.push({\n    id: action.input.id,\n    title: action.input.title,\n    description: action.input.description || null,\n    serviceGroupId: action.input.serviceGroupId || null,\n    displayOrder: action.input.displayOrder || null,\n    isSetupFormation: action.input.isSetupFormation || false,\n    optionGroupId: action.input.optionGroupId || null,\n    costType: action.input.costType || null,\n    price: action.input.price || null,\n    currency: action.input.currency || null,\n    facetBindings: []\n});\nstate.lastModified = action.input.lastModified;",
-              "schema": "input AddServiceInput {\n    id: OID!\n    title: String!\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    costType: ServiceCostType\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+              "reducer": "state.services.push({\n    id: action.input.id,\n    title: action.input.title,\n    description: action.input.description || null,\n    serviceGroupId: action.input.serviceGroupId || null,\n    displayOrder: action.input.displayOrder || null,\n    isSetupFormation: action.input.isSetupFormation || false,\n    optionGroupId: action.input.optionGroupId || null,\n    facetBindings: []\n});\nstate.lastModified = action.input.lastModified;",
+              "schema": "input AddServiceInput {\n    id: OID!\n    title: String!\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Adds a new service to the offering"
             },
@@ -49,8 +49,8 @@
               "examples": [],
               "id": "update-service",
               "name": "UPDATE_SERVICE",
-              "reducer": "const service = state.services.find(s => s.id === action.input.id);\nif (service) {\n    if (action.input.title) {\n        service.title = action.input.title;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        service.description = action.input.description;\n    }\n    if (action.input.serviceGroupId !== undefined) {\n        service.serviceGroupId = action.input.serviceGroupId || null;\n    }\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n        service.displayOrder = action.input.displayOrder;\n    }\n    if (action.input.isSetupFormation !== undefined && action.input.isSetupFormation !== null) {\n        service.isSetupFormation = action.input.isSetupFormation;\n    }\n    if (action.input.optionGroupId !== undefined) {\n        service.optionGroupId = action.input.optionGroupId || null;\n    }\n    if (action.input.costType !== undefined) {\n        service.costType = action.input.costType || null;\n    }\n    if (action.input.price !== undefined) {\n        service.price = action.input.price || null;\n    }\n    if (action.input.currency !== undefined) {\n        service.currency = action.input.currency || null;\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              "schema": "input UpdateServiceInput {\n    id: OID!\n    title: String\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    costType: ServiceCostType\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+              "reducer": "const service = state.services.find(s => s.id === action.input.id);\nif (service) {\n    if (action.input.title) {\n        service.title = action.input.title;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        service.description = action.input.description;\n    }\n    if (action.input.serviceGroupId !== undefined) {\n        service.serviceGroupId = action.input.serviceGroupId || null;\n    }\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n        service.displayOrder = action.input.displayOrder;\n    }\n    if (action.input.isSetupFormation !== undefined && action.input.isSetupFormation !== null) {\n        service.isSetupFormation = action.input.isSetupFormation;\n    }\n    if (action.input.optionGroupId !== undefined) {\n        service.optionGroupId = action.input.optionGroupId || null;\n    }\n}\nstate.lastModified = action.input.lastModified;",
+              "schema": "input UpdateServiceInput {\n    id: OID!\n    title: String\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Updates an existing service"
             },
@@ -146,7 +146,7 @@
               "examples": [],
               "id": "add-tier",
               "name": "ADD_TIER",
-              "reducer": "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    serviceLevels: [],\n    usageLimits: [],\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency\n    },\n    pricingOptions: [],\n    isCustomPricing: action.input.isCustomPricing || false\n});\nstate.lastModified = action.input.lastModified;",
+              "reducer": "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    serviceLevels: [],\n    usageLimits: [],\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency\n    },\n    isCustomPricing: action.input.isCustomPricing || false,\n    pricingMode: null,\n    defaultBillingCycle: null,\n    billingCycleDiscounts: []\n});\nstate.lastModified = action.input.lastModified;",
               "schema": "input AddTierInput {\n    id: OID!\n    name: String!\n    description: String\n    amount: Amount_Money\n    currency: Currency!\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Adds a new subscription tier"
@@ -207,77 +207,6 @@
               "schema": "input DeleteTierInput {\n    id: OID!\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Removes a tier from the offering"
-            },
-            {
-              "description": "Adds a pricing option with a specific billing cycle to a tier",
-              "errors": [
-                {
-                  "code": "ADD_PRICING_OPTION_TIER_NOT_FOUND",
-                  "description": "Tier with the specified ID does not exist",
-                  "id": "add-pricing-option-tier-not-found",
-                  "name": "AddPricingOptionTierNotFoundError",
-                  "template": ""
-                }
-              ],
-              "examples": [],
-              "id": "add-tier-pricing-option",
-              "name": "ADD_TIER_PRICING_OPTION",
-              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new AddPricingOptionTierNotFoundError('Tier with the specified ID does not exist');\n}\nconst isDefault = action.input.isDefault || tier.pricingOptions.length === 0;\nif (isDefault) {\n    tier.pricingOptions.forEach(po => { po.isDefault = false; });\n}\ntier.pricingOptions.push({\n    id: action.input.pricingOptionId,\n    amount: action.input.amount,\n    currency: action.input.currency,\n    isDefault: isDefault\n});\nstate.lastModified = action.input.lastModified;",
-              "schema": "input AddTierPricingOptionInput {\n    tierId: OID!\n    pricingOptionId: OID!\n    amount: Amount_Money!\n    currency: Currency!\n    isDefault: Boolean\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Adds a pricing option with a specific billing cycle to a tier"
-            },
-            {
-              "description": "Updates a pricing option for a tier",
-              "errors": [
-                {
-                  "code": "UPDATE_PRICING_OPTION_TIER_NOT_FOUND",
-                  "description": "Tier with the specified ID does not exist",
-                  "id": "update-pricing-option-tier-not-found",
-                  "name": "UpdatePricingOptionTierNotFoundError",
-                  "template": ""
-                },
-                {
-                  "code": "PRICING_OPTION_NOT_FOUND",
-                  "description": "Pricing option with the specified ID does not exist",
-                  "id": "pricing-option-not-found",
-                  "name": "PricingOptionNotFoundError",
-                  "template": ""
-                }
-              ],
-              "examples": [],
-              "id": "update-tier-pricing-option",
-              "name": "UPDATE_TIER_PRICING_OPTION",
-              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new UpdatePricingOptionTierNotFoundError('Tier with the specified ID does not exist');\n}\nconst pricingOption = tier.pricingOptions.find(po => po.id === action.input.pricingOptionId);\nif (!pricingOption) {\n    throw new PricingOptionNotFoundError('Pricing option with the specified ID does not exist');\n}\nif (action.input.amount !== undefined && action.input.amount !== null) {\n    pricingOption.amount = action.input.amount;\n}\nif (action.input.currency) {\n    pricingOption.currency = action.input.currency;\n}\nif (action.input.isDefault === true) {\n    tier.pricingOptions.forEach(po => { po.isDefault = false; });\n    pricingOption.isDefault = true;\n}\nstate.lastModified = action.input.lastModified;",
-              "schema": "input UpdateTierPricingOptionInput {\n    tierId: OID!\n    pricingOptionId: OID!\n    amount: Amount_Money\n    currency: Currency\n    isDefault: Boolean\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Updates a pricing option for a tier"
-            },
-            {
-              "description": "Removes a pricing option from a tier",
-              "errors": [
-                {
-                  "code": "REMOVE_PRICING_OPTION_TIER_NOT_FOUND",
-                  "description": "Tier with the specified ID does not exist",
-                  "id": "remove-pricing-option-tier-not-found",
-                  "name": "RemovePricingOptionTierNotFoundError",
-                  "template": ""
-                },
-                {
-                  "code": "REMOVE_PRICING_OPTION_NOT_FOUND",
-                  "description": "Pricing option with the specified ID does not exist",
-                  "id": "remove-pricing-option-not-found",
-                  "name": "RemovePricingOptionNotFoundError",
-                  "template": ""
-                }
-              ],
-              "examples": [],
-              "id": "remove-tier-pricing-option",
-              "name": "REMOVE_TIER_PRICING_OPTION",
-              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new RemovePricingOptionTierNotFoundError('Tier with the specified ID does not exist');\n}\nconst optionIndex = tier.pricingOptions.findIndex(po => po.id === action.input.pricingOptionId);\nif (optionIndex === -1) {\n    throw new RemovePricingOptionNotFoundError('Pricing option with the specified ID does not exist');\n}\nconst wasDefault = tier.pricingOptions[optionIndex].isDefault;\ntier.pricingOptions.splice(optionIndex, 1);\nif (wasDefault && tier.pricingOptions.length > 0) {\n    tier.pricingOptions[0].isDefault = true;\n}\nstate.lastModified = action.input.lastModified;",
-              "schema": "input RemoveTierPricingOptionInput {\n    tierId: OID!\n    pricingOptionId: OID!\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Removes a pricing option from a tier"
             },
             {
               "description": "Adds a service level binding to a tier",
@@ -434,6 +363,63 @@
               "schema": "input RemoveUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Removes a usage limit from a tier"
+            },
+            {
+              "description": "Sets the default billing cycle for a tier",
+              "errors": [
+                {
+                  "code": "SET_DEFAULT_CYCLE_TIER_NOT_FOUND",
+                  "description": "Tier with the specified ID does not exist",
+                  "id": "set-default-cycle-tier-not-found",
+                  "name": "SetDefaultCycleTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "set-tier-default-billing-cycle",
+              "name": "SET_TIER_DEFAULT_BILLING_CYCLE",
+              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetDefaultCycleTierNotFoundError('Tier with the specified ID does not exist');\n}\ntier.defaultBillingCycle = action.input.defaultBillingCycle;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetTierDefaultBillingCycleInput {\n    tierId: OID!\n    defaultBillingCycle: BillingCycle!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Sets the default billing cycle for a tier"
+            },
+            {
+              "description": "Sets billing cycle discount rules for a tier",
+              "errors": [
+                {
+                  "code": "SET_CYCLE_DISCOUNTS_TIER_NOT_FOUND",
+                  "description": "Tier with the specified ID does not exist",
+                  "id": "set-cycle-discounts-tier-not-found",
+                  "name": "SetCycleDiscountsTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "set-tier-billing-cycle-discounts",
+              "name": "SET_TIER_BILLING_CYCLE_DISCOUNTS",
+              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetCycleDiscountsTierNotFoundError('Tier with the specified ID does not exist');\n}\ntier.billingCycleDiscounts = action.input.discounts;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input DiscountRuleInput {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\ninput BillingCycleDiscountInput {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRuleInput!\n}\n\ninput SetTierBillingCycleDiscountsInput {\n    tierId: OID!\n    discounts: [BillingCycleDiscountInput!]!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Sets billing cycle discount rules for a tier"
+            },
+            {
+              "description": "Sets the pricing mode for a tier (CALCULATED or MANUAL_OVERRIDE)",
+              "errors": [
+                {
+                  "code": "SET_PRICING_MODE_TIER_NOT_FOUND",
+                  "description": "Tier with the specified ID does not exist",
+                  "id": "set-pricing-mode-tier-not-found",
+                  "name": "SetPricingModeTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "set-tier-pricing-mode",
+              "name": "SET_TIER_PRICING_MODE",
+              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetPricingModeTierNotFoundError('Tier with the specified ID does not exist');\n}\ntier.pricingMode = action.input.pricingMode;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetTierPricingModeInput {\n    tierId: OID!\n    pricingMode: TierPricingMode!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Sets the pricing mode for a tier"
             }
           ]
         },
@@ -650,8 +636,8 @@
               "examples": [],
               "id": "add-option-group",
               "name": "ADD_OPTION_GROUP",
-              "reducer": "state.optionGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isAddOn: action.input.isAddOn,\n    defaultSelected: action.input.defaultSelected,\n    costType: action.input.costType || null,\n    billingCycle: action.input.billingCycle || null,\n    price: action.input.price || null,\n    currency: action.input.currency || null\n});\nstate.lastModified = action.input.lastModified;",
-              "schema": "input AddOptionGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+              "reducer": "state.optionGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isAddOn: action.input.isAddOn,\n    defaultSelected: action.input.defaultSelected,\n    pricingMode: null,\n    standalonePricing: null,\n    tierDependentPricing: [],\n    costType: action.input.costType || null,\n    availableBillingCycles: action.input.availableBillingCycles || [],\n    billingCycleDiscounts: [],\n    discountMode: null,\n    price: action.input.price || null,\n    currency: action.input.currency || null\n});\nstate.lastModified = action.input.lastModified;",
+              "schema": "input AddOptionGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Adds a new option group to the offering"
             },
@@ -669,8 +655,8 @@
               "examples": [],
               "id": "update-option-group",
               "name": "UPDATE_OPTION_GROUP",
-              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.id);\nif (optionGroup) {\n    if (action.input.name) {\n        optionGroup.name = action.input.name;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        optionGroup.description = action.input.description;\n    }\n    if (action.input.isAddOn !== undefined && action.input.isAddOn !== null) {\n        optionGroup.isAddOn = action.input.isAddOn;\n    }\n    if (action.input.defaultSelected !== undefined && action.input.defaultSelected !== null) {\n        optionGroup.defaultSelected = action.input.defaultSelected;\n    }\n    if (action.input.costType !== undefined) {\n        optionGroup.costType = action.input.costType || null;\n    }\n    if (action.input.billingCycle !== undefined) {\n        optionGroup.billingCycle = action.input.billingCycle || null;\n    }\n    if (action.input.price !== undefined) {\n        optionGroup.price = action.input.price || null;\n    }\n    if (action.input.currency !== undefined) {\n        optionGroup.currency = action.input.currency || null;\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              "schema": "input UpdateOptionGroupInput {\n    id: OID!\n    name: String\n    description: String\n    isAddOn: Boolean\n    defaultSelected: Boolean\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.id);\nif (optionGroup) {\n    if (action.input.name) {\n        optionGroup.name = action.input.name;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        optionGroup.description = action.input.description;\n    }\n    if (action.input.isAddOn !== undefined && action.input.isAddOn !== null) {\n        optionGroup.isAddOn = action.input.isAddOn;\n    }\n    if (action.input.defaultSelected !== undefined && action.input.defaultSelected !== null) {\n        optionGroup.defaultSelected = action.input.defaultSelected;\n    }\n    if (action.input.costType !== undefined) {\n        optionGroup.costType = action.input.costType || null;\n    }\n    if (action.input.availableBillingCycles !== undefined) {\n        optionGroup.availableBillingCycles = action.input.availableBillingCycles || [];\n    }\n    if (action.input.price !== undefined) {\n        optionGroup.price = action.input.price || null;\n    }\n    if (action.input.currency !== undefined) {\n        optionGroup.currency = action.input.currency || null;\n    }\n}\nstate.lastModified = action.input.lastModified;",
+              "schema": "input UpdateOptionGroupInput {\n    id: OID!\n    name: String\n    description: String\n    isAddOn: Boolean\n    defaultSelected: Boolean\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Updates an existing option group"
             },
@@ -692,6 +678,122 @@
               "schema": "input DeleteOptionGroupInput {\n    id: OID!\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Removes an option group from the offering"
+            },
+            {
+              "description": "Sets standalone pricing for an option group (not tier-dependent)",
+              "errors": [
+                {
+                  "code": "OPTION_GROUP_NOT_FOUND_SET_STANDALONE",
+                  "description": "Option group with the specified ID does not exist",
+                  "id": "set-standalone-option-group-not-found",
+                  "name": "SetStandaloneOptionGroupNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "set-option-group-standalone-pricing",
+              "name": "SET_OPTION_GROUP_STANDALONE_PRICING",
+              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.optionGroupId);\nif (!optionGroup) {\n    throw new SetStandaloneOptionGroupNotFoundError('Option group with the specified ID does not exist');\n}\noptionGroup.pricingMode = 'STANDALONE';\noptionGroup.standalonePricing = {\n    setupCost: action.input.setupCost || null,\n    recurringPricing: action.input.recurringPricing\n};\noptionGroup.tierDependentPricing = [];\nstate.lastModified = action.input.lastModified;",
+              "schema": "input RecurringPriceOptionInput {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRuleInput\n}\n\ninput SetupCostInput {\n    amount: Amount_Money!\n    currency: Currency!\n}\n\ninput SetOptionGroupStandalonePricingInput {\n    optionGroupId: OID!\n    setupCost: SetupCostInput\n    recurringPricing: [RecurringPriceOptionInput!]!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Sets standalone pricing for an option group (not tier-dependent)"
+            },
+            {
+              "description": "Adds tier-dependent pricing for an option group",
+              "errors": [
+                {
+                  "code": "OPTION_GROUP_NOT_FOUND_ADD_TIER_PRICING",
+                  "description": "Option group with the specified ID does not exist",
+                  "id": "add-tier-pricing-option-group-not-found",
+                  "name": "AddTierPricingOptionGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "DUPLICATE_OPTION_GROUP_TIER_PRICING_ID",
+                  "description": "Tier pricing with this ID already exists for this option group",
+                  "id": "duplicate-option-group-tier-pricing-id",
+                  "name": "DuplicateOptionGroupTierPricingIdError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "add-option-group-tier-pricing",
+              "name": "ADD_OPTION_GROUP_TIER_PRICING",
+              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.optionGroupId);\nif (!optionGroup) {\n    throw new AddTierPricingOptionGroupNotFoundError('Option group with the specified ID does not exist');\n}\noptionGroup.pricingMode = 'TIER_DEPENDENT';\noptionGroup.standalonePricing = null;\nif (!optionGroup.tierDependentPricing) {\n    optionGroup.tierDependentPricing = [];\n}\nconst existing = optionGroup.tierDependentPricing.find(tp => tp.id === action.input.tierPricingId);\nif (existing) {\n    throw new DuplicateOptionGroupTierPricingIdError('Tier pricing with this ID already exists for this option group');\n}\noptionGroup.tierDependentPricing.push({\n    id: action.input.tierPricingId,\n    tierId: action.input.tierId,\n    setupCost: action.input.setupCost || null,\n    recurringPricing: action.input.recurringPricing.map(rp => ({ ...rp, discount: rp.discount || null }))\n});\nstate.lastModified = action.input.lastModified;",
+              "schema": "input AddOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierPricingId: OID!\n    tierId: OID!\n    setupCost: SetupCostInput\n    recurringPricing: [RecurringPriceOptionInput!]!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Adds tier-dependent pricing for an option group"
+            },
+            {
+              "description": "Updates tier-dependent pricing for an option group",
+              "errors": [
+                {
+                  "code": "OPTION_GROUP_NOT_FOUND_UPDATE_TIER_PRICING",
+                  "description": "Option group with the specified ID does not exist",
+                  "id": "update-tier-pricing-option-group-not-found",
+                  "name": "UpdateTierPricingOptionGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_UPDATE_OPTION_GROUP",
+                  "description": "Tier pricing not found for the specified tier in this option group",
+                  "id": "update-tier-pricing-option-group-tier-not-found",
+                  "name": "UpdateTierPricingOptionGroupTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "update-option-group-tier-pricing",
+              "name": "UPDATE_OPTION_GROUP_TIER_PRICING",
+              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.optionGroupId);\nif (!optionGroup) {\n    throw new UpdateTierPricingOptionGroupNotFoundError('Option group with the specified ID does not exist');\n}\nif (!optionGroup.tierDependentPricing) {\n    optionGroup.tierDependentPricing = [];\n}\nconst tierPricing = optionGroup.tierDependentPricing.find(tp => tp.tierId === action.input.tierId);\nif (!tierPricing) {\n    throw new UpdateTierPricingOptionGroupTierNotFoundError('Tier pricing not found for the specified tier in this option group');\n}\nif (action.input.setupCost !== undefined) {\n    tierPricing.setupCost = action.input.setupCost || null;\n}\nif (action.input.recurringPricing) {\n    tierPricing.recurringPricing = action.input.recurringPricing.map(rp => ({ ...rp, discount: rp.discount || null }));\n}\nstate.lastModified = action.input.lastModified;",
+              "schema": "input UpdateOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierId: OID!\n    setupCost: SetupCostInput\n    recurringPricing: [RecurringPriceOptionInput!]\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Updates tier-dependent pricing for an option group"
+            },
+            {
+              "description": "Removes tier-dependent pricing for an option group",
+              "errors": [
+                {
+                  "code": "OPTION_GROUP_NOT_FOUND_REMOVE_TIER_PRICING",
+                  "description": "Option group with the specified ID does not exist",
+                  "id": "remove-tier-pricing-option-group-not-found",
+                  "name": "RemoveTierPricingOptionGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_REMOVE_OPTION_GROUP",
+                  "description": "Tier pricing not found for the specified tier in this option group",
+                  "id": "remove-tier-pricing-option-group-tier-not-found",
+                  "name": "RemoveTierPricingOptionGroupTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "remove-option-group-tier-pricing",
+              "name": "REMOVE_OPTION_GROUP_TIER_PRICING",
+              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.optionGroupId);\nif (!optionGroup) {\n    throw new RemoveTierPricingOptionGroupNotFoundError('Option group with the specified ID does not exist');\n}\nif (!optionGroup.tierDependentPricing) {\n    optionGroup.tierDependentPricing = [];\n}\nconst pricingIndex = optionGroup.tierDependentPricing.findIndex(tp => tp.tierId === action.input.tierId);\nif (pricingIndex === -1) {\n    throw new RemoveTierPricingOptionGroupTierNotFoundError('Tier pricing not found for the specified tier in this option group');\n}\noptionGroup.tierDependentPricing.splice(pricingIndex, 1);\nstate.lastModified = action.input.lastModified;",
+              "schema": "input RemoveOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Removes tier-dependent pricing for an option group"
+            },
+            {
+              "description": "Sets the discount mode for an option group (INHERIT_TIER or INDEPENDENT)",
+              "errors": [
+                {
+                  "code": "SET_DISCOUNT_MODE_GROUP_NOT_FOUND",
+                  "description": "Option group with the specified ID does not exist",
+                  "id": "set-discount-mode-group-not-found",
+                  "name": "SetDiscountModeGroupNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "set-option-group-discount-mode",
+              "name": "SET_OPTION_GROUP_DISCOUNT_MODE",
+              "reducer": "const optionGroup = state.optionGroups.find(og => og.id === action.input.optionGroupId);\nif (!optionGroup) {\n    throw new SetDiscountModeGroupNotFoundError('Option group with the specified ID does not exist');\n}\noptionGroup.discountMode = action.input.discountMode;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetOptionGroupDiscountModeInput {\n    optionGroupId: OID!\n    discountMode: DiscountMode!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Sets the discount mode for an option group"
             }
           ]
         },
@@ -714,7 +816,7 @@
               "examples": [],
               "id": "add-service-group",
               "name": "ADD_SERVICE_GROUP",
-              "reducer": "const existing = state.serviceGroups.find(sg => sg.id === action.input.id);\nif (existing) {\n    throw new DuplicateServiceGroupIdError('A service group with this ID already exists');\n}\nstate.serviceGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    billingCycle: action.input.billingCycle,\n    displayOrder: action.input.displayOrder || null\n});\nstate.lastModified = action.input.lastModified;",
+              "reducer": "const existing = state.serviceGroups.find(sg => sg.id === action.input.id);\nif (existing) {\n    throw new DuplicateServiceGroupIdError('A service group with this ID already exists');\n}\nstate.serviceGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    billingCycle: action.input.billingCycle,\n    displayOrder: action.input.displayOrder || null,\n    tierPricing: []\n});\nstate.lastModified = action.input.lastModified;",
               "schema": "input AddServiceGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Adds a new service group to organize core services with a billing cycle"
@@ -775,6 +877,216 @@
               "schema": "input ReorderServiceGroupsInput {\n    order: [OID!]!\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Changes the display order of service groups"
+            },
+            {
+              "description": "Adds tier-specific pricing to a service group",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_ADD_TIER_PRICING",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "add-tier-pricing-service-group-not-found",
+                  "name": "AddTierPricingServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_NOT_FOUND_ADD_PRICING",
+                  "description": "Tier with the specified ID does not exist",
+                  "id": "add-pricing-tier-not-found",
+                  "name": "AddPricingTierNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "DUPLICATE_TIER_PRICING_ID",
+                  "description": "Tier pricing with this ID already exists for this service group",
+                  "id": "duplicate-tier-pricing-id",
+                  "name": "DuplicateTierPricingIdError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "add-service-group-tier-pricing",
+              "name": "ADD_SERVICE_GROUP_TIER_PRICING",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new AddTierPricingServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nconst tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new AddPricingTierNotFoundError('Tier with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst existing = serviceGroup.tierPricing.find(tp => tp.id === action.input.tierPricingId);\nif (existing) {\n    throw new DuplicateTierPricingIdError('Tier pricing with this ID already exists for this service group');\n}\nserviceGroup.tierPricing.push({\n    id: action.input.tierPricingId,\n    tierId: action.input.tierId,\n    setupCostsPerCycle: [],\n    recurringPricing: []\n});\nstate.lastModified = action.input.lastModified;",
+              "schema": "input AddServiceGroupTierPricingInput {\n    serviceGroupId: OID!\n    tierPricingId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Adds tier-specific pricing to a service group"
+            },
+            {
+              "description": "Sets the setup cost for a service group at a specific tier",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_SET_SETUP",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "set-setup-service-group-not-found",
+                  "name": "SetSetupServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_SET_SETUP",
+                  "description": "Tier pricing not found for the specified tier in this service group",
+                  "id": "set-setup-tier-pricing-not-found",
+                  "name": "SetSetupTierPricingNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "set-service-group-setup-cost",
+              "name": "SET_SERVICE_GROUP_SETUP_COST",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new SetSetupServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst tierPricing = serviceGroup.tierPricing.find(tp => tp.tierId === action.input.tierId);\nif (!tierPricing) {\n    throw new SetSetupTierPricingNotFoundError('Tier pricing not found for the specified tier in this service group');\n}\ntierPricing.setupCost = {\n    amount: action.input.amount,\n    currency: action.input.currency\n};\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetServiceGroupSetupCostInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    amount: Amount_Money!\n    currency: Currency!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Sets the setup cost for a service group at a specific tier"
+            },
+            {
+              "description": "Removes the setup cost from a service group at a specific tier",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_REMOVE_SETUP",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "remove-setup-service-group-not-found",
+                  "name": "RemoveSetupServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_REMOVE_SETUP",
+                  "description": "Tier pricing not found for the specified tier in this service group",
+                  "id": "remove-setup-tier-pricing-not-found",
+                  "name": "RemoveSetupTierPricingNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "remove-service-group-setup-cost",
+              "name": "REMOVE_SERVICE_GROUP_SETUP_COST",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new RemoveSetupServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst tierPricing = serviceGroup.tierPricing.find(tp => tp.tierId === action.input.tierId);\nif (!tierPricing) {\n    throw new RemoveSetupTierPricingNotFoundError('Tier pricing not found for the specified tier in this service group');\n}\ntierPricing.setupCost = null;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input RemoveServiceGroupSetupCostInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Removes the setup cost from a service group at a specific tier"
+            },
+            {
+              "description": "Adds a recurring price option for a service group at a specific tier and billing cycle",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_ADD_RECURRING",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "add-recurring-service-group-not-found",
+                  "name": "AddRecurringServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_ADD_RECURRING",
+                  "description": "Tier pricing not found for the specified tier in this service group",
+                  "id": "add-recurring-tier-pricing-not-found",
+                  "name": "AddRecurringTierPricingNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "DUPLICATE_PRICE_OPTION_ID",
+                  "description": "A price option with this ID already exists",
+                  "id": "duplicate-price-option-id",
+                  "name": "DuplicatePriceOptionIdError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "add-recurring-price-option",
+              "name": "ADD_RECURRING_PRICE_OPTION",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new AddRecurringServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst tierPricing = serviceGroup.tierPricing.find(tp => tp.tierId === action.input.tierId);\nif (!tierPricing) {\n    throw new AddRecurringTierPricingNotFoundError('Tier pricing not found for the specified tier in this service group');\n}\nconst existing = tierPricing.recurringPricing.find(rp => rp.id === action.input.priceOptionId);\nif (existing) {\n    throw new DuplicatePriceOptionIdError('A price option with this ID already exists');\n}\ntierPricing.recurringPricing.push({\n    id: action.input.priceOptionId,\n    billingCycle: action.input.billingCycle,\n    amount: action.input.amount,\n    currency: action.input.currency\n});\nstate.lastModified = action.input.lastModified;",
+              "schema": "input AddRecurringPriceOptionInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    priceOptionId: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Adds a recurring price option for a service group at a specific tier and billing cycle"
+            },
+            {
+              "description": "Updates a recurring price option for a service group",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_UPDATE_RECURRING",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "update-recurring-service-group-not-found",
+                  "name": "UpdateRecurringServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_UPDATE_RECURRING",
+                  "description": "Tier pricing not found for the specified tier in this service group",
+                  "id": "update-recurring-tier-pricing-not-found",
+                  "name": "UpdateRecurringTierPricingNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "PRICE_OPTION_NOT_FOUND_UPDATE",
+                  "description": "Price option with the specified ID does not exist",
+                  "id": "update-price-option-not-found",
+                  "name": "UpdatePriceOptionNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "update-recurring-price-option",
+              "name": "UPDATE_RECURRING_PRICE_OPTION",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new UpdateRecurringServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst tierPricing = serviceGroup.tierPricing.find(tp => tp.tierId === action.input.tierId);\nif (!tierPricing) {\n    throw new UpdateRecurringTierPricingNotFoundError('Tier pricing not found for the specified tier in this service group');\n}\nconst priceOption = tierPricing.recurringPricing.find(rp => rp.id === action.input.priceOptionId);\nif (!priceOption) {\n    throw new UpdatePriceOptionNotFoundError('Price option with the specified ID does not exist');\n}\nif (action.input.billingCycle) {\n    priceOption.billingCycle = action.input.billingCycle;\n}\nif (action.input.amount !== undefined && action.input.amount !== null) {\n    priceOption.amount = action.input.amount;\n}\nif (action.input.currency) {\n    priceOption.currency = action.input.currency;\n}\nif (action.input.discount !== undefined) {\n    priceOption.discount = action.input.discount || null;\n}\nstate.lastModified = action.input.lastModified;",
+              "schema": "input UpdateRecurringPriceOptionInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    priceOptionId: OID!\n    billingCycle: BillingCycle\n    amount: Amount_Money\n    currency: Currency\n    discount: DiscountRuleInput\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Updates a recurring price option for a service group"
+            },
+            {
+              "description": "Removes a recurring price option from a service group",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_REMOVE_RECURRING",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "remove-recurring-service-group-not-found",
+                  "name": "RemoveRecurringServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_REMOVE_RECURRING",
+                  "description": "Tier pricing not found for the specified tier in this service group",
+                  "id": "remove-recurring-tier-pricing-not-found",
+                  "name": "RemoveRecurringTierPricingNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "PRICE_OPTION_NOT_FOUND_REMOVE",
+                  "description": "Price option with the specified ID does not exist",
+                  "id": "remove-price-option-not-found",
+                  "name": "RemovePriceOptionNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "remove-recurring-price-option",
+              "name": "REMOVE_RECURRING_PRICE_OPTION",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new RemoveRecurringServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst tierPricing = serviceGroup.tierPricing.find(tp => tp.tierId === action.input.tierId);\nif (!tierPricing) {\n    throw new RemoveRecurringTierPricingNotFoundError('Tier pricing not found for the specified tier in this service group');\n}\nconst optionIndex = tierPricing.recurringPricing.findIndex(rp => rp.id === action.input.priceOptionId);\nif (optionIndex === -1) {\n    throw new RemovePriceOptionNotFoundError('Price option with the specified ID does not exist');\n}\ntierPricing.recurringPricing.splice(optionIndex, 1);\nstate.lastModified = action.input.lastModified;",
+              "schema": "input RemoveRecurringPriceOptionInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    priceOptionId: OID!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Removes a recurring price option from a service group"
+            },
+            {
+              "description": "Removes all tier-specific pricing for a service group at a specific tier",
+              "errors": [
+                {
+                  "code": "SERVICE_GROUP_NOT_FOUND_REMOVE_TIER_PRICING",
+                  "description": "Service group with the specified ID does not exist",
+                  "id": "remove-tier-pricing-service-group-not-found",
+                  "name": "RemoveTierPricingServiceGroupNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "TIER_PRICING_NOT_FOUND_REMOVE",
+                  "description": "Tier pricing not found for the specified tier in this service group",
+                  "id": "remove-tier-pricing-not-found",
+                  "name": "RemoveTierPricingNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "remove-service-group-tier-pricing",
+              "name": "REMOVE_SERVICE_GROUP_TIER_PRICING",
+              "reducer": "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.serviceGroupId);\nif (!serviceGroup) {\n    throw new RemoveTierPricingServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (!serviceGroup.tierPricing) {\n    serviceGroup.tierPricing = [];\n}\nconst pricingIndex = serviceGroup.tierPricing.findIndex(tp => tp.tierId === action.input.tierId);\nif (pricingIndex === -1) {\n    throw new RemoveTierPricingNotFoundError('Tier pricing not found for the specified tier in this service group');\n}\nserviceGroup.tierPricing.splice(pricingIndex, 1);\nstate.lastModified = action.input.lastModified;",
+              "schema": "input RemoveServiceGroupTierPricingInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Removes all tier-specific pricing for a service group at a specific tier"
             }
           ]
         }
@@ -783,7 +1095,7 @@
         "global": {
           "examples": [],
           "initialValue": "{\n    \"id\": \"\",\n    \"operatorId\": \"\",\n    \"resourceTemplateId\": null,\n    \"title\": \"\",\n    \"summary\": \"\",\n    \"description\": null,\n    \"thumbnailUrl\": null,\n    \"infoLink\": null,\n    \"status\": \"DRAFT\",\n    \"lastModified\": \"1970-01-01T00:00:00.000Z\",\n    \"targetAudiences\": [],\n    \"facetTargets\": [],\n    \"serviceGroups\": [],\n    \"services\": [],\n    \"tiers\": [],\n    \"optionGroups\": []\n}",
-          "schema": "type ServiceOfferingState {\n    id: PHID!\n    operatorId: PHID!\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime!\n    targetAudiences: [TargetAudience!]!\n    facetTargets: [FacetTarget!]!\n    serviceGroups: [ServiceGroup!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype TargetAudience {\n    id: OID!\n    label: String!\n    color: String\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype ServiceGroup {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    serviceGroupId: OID\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n    costType: ServiceCostType\n    price: Amount_Money\n    currency: Currency\n    facetBindings: [ResourceFacetBinding!]!\n}\n\nenum ServiceCostType {\n    RECURRING\n    SETUP\n}\n\ntype ResourceFacetBinding {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricing: ServicePricing!\n    pricingOptions: [TierPricingOption!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\ntype TierPricingOption {\n    id: OID!\n    amount: Amount_Money!\n    currency: Currency!\n    isDefault: Boolean!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}"
+          "schema": "type ServiceOfferingState {\n    id: PHID!\n    operatorId: PHID!\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime!\n    targetAudiences: [TargetAudience!]!\n    facetTargets: [FacetTarget!]!\n    serviceGroups: [ServiceGroup!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype TargetAudience {\n    id: OID!\n    label: String!\n    color: String\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype DiscountRule {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\ntype BillingCycleDiscount {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRule!\n}\n\ntype ServiceGroup {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    tierPricing: [ServiceGroupTierPricing!]!\n}\n\ntype ServiceGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCostsPerCycle: [SetupCostPerCycle!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n}\n\ntype SetupCostPerCycle {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n}\n\ntype RecurringPriceOption {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    serviceGroupId: OID\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n    facetBindings: [ResourceFacetBinding!]!\n}\n\ntype ResourceFacetBinding {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricingMode: TierPricingMode\n    pricing: ServicePricing!\n    defaultBillingCycle: BillingCycle\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    pricingMode: AddOnPricingMode\n    standalonePricing: StandalonePricing\n    tierDependentPricing: [OptionGroupTierPricing!]\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    discountMode: DiscountMode\n    price: Amount_Money\n    currency: Currency\n}\n\nenum AddOnPricingMode {\n    TIER_DEPENDENT\n    STANDALONE\n}\n\nenum DiscountMode {\n    INHERIT_TIER\n    INDEPENDENT\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\ntype StandalonePricing {\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype OptionGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}"
         },
         "local": {
           "examples": [],

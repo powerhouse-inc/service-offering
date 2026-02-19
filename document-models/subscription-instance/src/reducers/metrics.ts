@@ -19,6 +19,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
             billingCycle: input.unitCostBillingCycle,
             nextBillingDate: input.unitCostNextBillingDate || null,
             lastPaymentDate: input.unitCostLastPaymentDate || null,
+            discount: null,
           };
         }
 
@@ -26,6 +27,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
           id: input.metricId,
           name: input.name,
           unitName: input.unitName,
+          limit: input.limit ?? null,
           freeLimit: input.freeLimit ?? null,
           paidLimit: input.paidLimit ?? null,
           currentUsage: input.currentUsage,
@@ -46,10 +48,8 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         if (metric) {
           if (input.name) metric.name = input.name;
           if (input.unitName) metric.unitName = input.unitName;
-          if (input.freeLimit !== undefined && input.freeLimit !== null)
-            metric.freeLimit = input.freeLimit;
-          if (input.paidLimit !== undefined && input.paidLimit !== null)
-            metric.paidLimit = input.paidLimit;
+          if (input.limit !== undefined && input.limit !== null)
+            metric.limit = input.limit;
           if (input.usageResetPeriod)
             metric.usageResetPeriod = input.usageResetPeriod;
           if (input.nextUsageReset)

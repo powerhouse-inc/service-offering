@@ -21,3 +21,4 @@ export * from "./prerequisites/operations.js";
 export * from "./tasks/operations.js";
 export * from "./dependencies/operations.js";
 export * from "./notes/operations.js";
+export * from "./extraction/operations.js";

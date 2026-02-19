@@ -17,8 +17,6 @@ import type {
   SetAutoRenewAction,
   SetRenewalDateAction,
   UpdateBillingProjectionAction,
-  SetTargetAudienceAction,
-  RemoveTargetAudienceAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -106,16 +104,6 @@ export interface SubscriptionInstanceSubscriptionOperations {
   updateBillingProjectionOperation: (
     state: SubscriptionInstanceState,
     action: UpdateBillingProjectionAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  setTargetAudienceOperation: (
-    state: SubscriptionInstanceState,
-    action: SetTargetAudienceAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  removeTargetAudienceOperation: (
-    state: SubscriptionInstanceState,
-    action: RemoveTargetAudienceAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

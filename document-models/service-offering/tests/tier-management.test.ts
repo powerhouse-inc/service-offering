@@ -8,9 +8,6 @@ import {
   updateTier,
   updateTierPricing,
   deleteTier,
-  addTierPricingOption,
-  updateTierPricingOption,
-  removeTierPricingOption,
   addServiceLevel,
   updateServiceLevel,
   removeServiceLevel,
@@ -21,15 +18,18 @@ import {
   UpdateTierInputSchema,
   UpdateTierPricingInputSchema,
   DeleteTierInputSchema,
-  AddTierPricingOptionInputSchema,
-  UpdateTierPricingOptionInputSchema,
-  RemoveTierPricingOptionInputSchema,
   AddServiceLevelInputSchema,
   UpdateServiceLevelInputSchema,
   RemoveServiceLevelInputSchema,
   AddUsageLimitInputSchema,
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
+  setTierDefaultBillingCycle,
+  setTierBillingCycleDiscounts,
+  SetTierDefaultBillingCycleInputSchema,
+  SetTierBillingCycleDiscountsInputSchema,
+  setTierPricingMode,
+  SetTierPricingModeInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("TierManagementOperations", () => {
@@ -92,57 +92,6 @@ describe("TierManagementOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "DELETE_TIER",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle addTierPricingOption operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(AddTierPricingOptionInputSchema());
-
-    const updatedDocument = reducer(document, addTierPricingOption(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "ADD_TIER_PRICING_OPTION",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle updateTierPricingOption operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(UpdateTierPricingOptionInputSchema());
-
-    const updatedDocument = reducer(document, updateTierPricingOption(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "UPDATE_TIER_PRICING_OPTION",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle removeTierPricingOption operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(RemoveTierPricingOptionInputSchema());
-
-    const updatedDocument = reducer(document, removeTierPricingOption(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "REMOVE_TIER_PRICING_OPTION",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,
@@ -245,6 +194,63 @@ describe("TierManagementOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "REMOVE_USAGE_LIMIT",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setTierDefaultBillingCycle operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetTierDefaultBillingCycleInputSchema());
+
+    const updatedDocument = reducer(
+      document,
+      setTierDefaultBillingCycle(input),
+    );
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_TIER_DEFAULT_BILLING_CYCLE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setTierBillingCycleDiscounts operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetTierBillingCycleDiscountsInputSchema());
+
+    const updatedDocument = reducer(
+      document,
+      setTierBillingCycleDiscounts(input),
+    );
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_TIER_BILLING_CYCLE_DISCOUNTS",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setTierPricingMode operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetTierPricingModeInputSchema());
+
+    const updatedDocument = reducer(document, setTierPricingMode(input));
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_TIER_PRICING_MODE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

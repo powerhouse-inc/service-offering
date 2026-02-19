@@ -1,4 +1,8 @@
-import type { RecurringCost, SetupCost } from "../../gen/schema/types.js";
+import type {
+  DiscountInfo,
+  RecurringCost,
+  SetupCost,
+} from "../../gen/schema/types.js";
 import type { SubscriptionInstanceServiceOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceOperations =
@@ -22,12 +26,22 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         input.recurringCurrency &&
         input.recurringBillingCycle
       ) {
+        let discount: DiscountInfo | null = null;
+        if (input.recurringDiscount) {
+          discount = {
+            originalAmount: input.recurringDiscount.originalAmount,
+            discountType: input.recurringDiscount.discountType,
+            discountValue: input.recurringDiscount.discountValue,
+            source: input.recurringDiscount.source,
+          };
+        }
         recurringCost = {
           amount: input.recurringAmount,
           currency: input.recurringCurrency,
           billingCycle: input.recurringBillingCycle,
           nextBillingDate: input.recurringNextBillingDate || null,
           lastPaymentDate: input.recurringLastPaymentDate || null,
+          discount,
         };
       }
 
@@ -35,11 +49,8 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         id: input.serviceId,
         name: input.name || null,
         description: input.description || null,
-        serviceLevel: input.serviceLevel || null,
         customValue: input.customValue || null,
-        facetLabel: input.facetLabel || null,
-        isSetupService: input.isSetupService ?? null,
-        displayOrder: input.displayOrder ?? null,
+        facetSelections: [],
         setupCost,
         recurringCost,
         metrics: [],
@@ -95,6 +106,7 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
             billingCycle: input.billingCycle,
             nextBillingDate: input.nextBillingDate || null,
             lastPaymentDate: input.lastPaymentDate || null,
+            discount: null,
           };
         } else if (service.recurringCost) {
           if (input.nextBillingDate)
@@ -127,14 +139,29 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       if (service) {
         if (input.name) service.name = input.name;
         if (input.description) service.description = input.description;
+        if (input.customValue !== undefined && input.customValue !== null)
+          service.customValue = input.customValue;
       }
     },
-
-    updateServiceLevelOperation(state, action) {
+    addServiceFacetSelectionOperation(state, action) {
       const { input } = action;
       const service = state.services.find((s) => s.id === input.serviceId);
       if (service) {
-        service.serviceLevel = input.serviceLevel;
+        service.facetSelections.push({
+          id: input.facetSelectionId,
+          facetName: input.facetName,
+          selectedOption: input.selectedOption,
+        });
+      }
+    },
+    removeServiceFacetSelectionOperation(state, action) {
+      const { input } = action;
+      const service = state.services.find((s) => s.id === input.serviceId);
+      if (service) {
+        const index = service.facetSelections.findIndex(
+          (f) => f.id === input.facetSelectionId,
+        );
+        if (index !== -1) service.facetSelections.splice(index, 1);
       }
     },
   };

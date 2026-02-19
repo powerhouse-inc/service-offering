@@ -1,9 +1,20 @@
+import { useState } from "react";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 import type { ViewMode } from "../types.js";
+import {
+  formatCurrency,
+  formatDate,
+  formatBillingCycleSuffix,
+  formatDiscountBadge,
+  computeBillingBreakdown,
+  type GroupBillingBreakdown,
+  type MetricOverage,
+  type SetupCostLine,
+} from "./billing-utils.js";
 
 interface BillingPanelProps {
   document: SubscriptionInstanceDocument;
@@ -13,165 +24,22 @@ interface BillingPanelProps {
 
 export function BillingPanel({ document }: BillingPanelProps) {
   const state = document.state.global;
-
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(amount);
-  };
-
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return "—";
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  // Compute service-level billing breakdown from services
-  const serviceLines: Array<{
-    name: string;
-    amount: number;
-    currency: string;
-    cycle: string | null;
-  }> = [];
-
-  for (const svc of state.services) {
-    if (svc.recurringCost) {
-      serviceLines.push({
-        name: svc.name || "Unnamed Service",
-        amount: svc.recurringCost.amount,
-        currency: svc.recurringCost.currency,
-        cycle: svc.recurringCost.billingCycle || null,
-      });
-    }
-  }
-
-  // Include group services
-  for (const group of state.serviceGroups) {
-    for (const svc of group.services) {
-      if (svc.recurringCost) {
-        serviceLines.push({
-          name: `${svc.name || "Unnamed"} (${group.name || "Group"})`,
-          amount: svc.recurringCost.amount,
-          currency: svc.recurringCost.currency,
-          cycle: svc.recurringCost.billingCycle || null,
-        });
-      }
-    }
-  }
-
-  // Include recurring option group costs
-  for (const og of state.selectedOptionGroups) {
-    if (og.costType === "RECURRING" && og.price != null && og.currency) {
-      serviceLines.push({
-        name: `${og.name} (add-on)`,
-        amount: og.price,
-        currency: og.currency,
-        cycle: og.billingCycle || null,
-      });
-    }
-  }
-
-  // Compute setup cost lines
-  const setupLines: Array<{
-    name: string;
-    amount: number;
-    currency: string;
-    paid: boolean;
-  }> = [];
-
-  for (const svc of state.services) {
-    if (svc.setupCost) {
-      setupLines.push({
-        name: svc.name || "Unnamed Service",
-        amount: svc.setupCost.amount,
-        currency: svc.setupCost.currency,
-        paid: !!svc.setupCost.paymentDate,
-      });
-    }
-  }
-
-  for (const group of state.serviceGroups) {
-    for (const svc of group.services) {
-      if (svc.setupCost) {
-        setupLines.push({
-          name: `${svc.name || "Unnamed"} (${group.name || "Group"})`,
-          amount: svc.setupCost.amount,
-          currency: svc.setupCost.currency,
-          paid: !!svc.setupCost.paymentDate,
-        });
-      }
-    }
-  }
-
-  // Include option group setup costs
-  for (const og of state.selectedOptionGroups) {
-    if (og.costType === "SETUP" && og.price != null && og.currency) {
-      setupLines.push({
-        name: og.name,
-        amount: og.price,
-        currency: og.currency,
-        paid: false,
-      });
-    }
-  }
-
-  // Compute overage estimates from metrics
-  const overageLines: Array<{
-    name: string;
-    excess: number;
-    unitCost: number;
-    currency: string;
-    total: number;
-  }> = [];
-
-  for (const svc of state.services) {
-    for (const metric of svc.metrics) {
-      if (
-        metric.freeLimit != null &&
-        metric.currentUsage > metric.freeLimit &&
-        metric.unitCost
-      ) {
-        const excess = metric.currentUsage - metric.freeLimit;
-        const total = excess * metric.unitCost.amount;
-        overageLines.push({
-          name: `${metric.name} overage`,
-          excess,
-          unitCost: metric.unitCost.amount,
-          currency: metric.unitCost.currency,
-          total,
-        });
-      }
-    }
-  }
-
-  const computedTotal = serviceLines.reduce((sum, l) => sum + l.amount, 0);
-  const overageTotal = overageLines.reduce((sum, l) => sum + l.total, 0);
-  const projectedTotal =
-    state.projectedBillAmount != null
-      ? state.projectedBillAmount
-      : computedTotal + overageTotal;
-  const projectedCurrency =
-    state.projectedBillCurrency || serviceLines[0]?.currency || "USD";
-
-  const setupTotal = setupLines.reduce((sum, l) => sum + l.amount, 0);
+  const breakdown = computeBillingBreakdown(state);
+  const [setupExpanded, setSetupExpanded] = useState(false);
 
   const hasAnyData =
     state.nextBillingDate ||
     state.projectedBillAmount != null ||
-    serviceLines.length > 0 ||
-    setupLines.length > 0;
+    breakdown.groupBreakdowns.length > 0 ||
+    state.services.length > 0 ||
+    breakdown.setupLines.length > 0;
 
-  return (
-    <div className="si-panel">
-      <div className="si-panel__header">
-        <h3 className="si-panel__title">Billing Projection</h3>
-      </div>
-
-      {!hasAnyData ? (
+  if (!hasAnyData) {
+    return (
+      <div className="si-panel">
+        <div className="si-panel__header">
+          <h3 className="si-panel__title">Billing Projection</h3>
+        </div>
         <div className="si-empty">
           <svg
             className="si-empty__icon"
@@ -188,122 +56,387 @@ export function BillingPanel({ document }: BillingPanelProps) {
           </svg>
           <p className="si-empty__text">No billing data yet</p>
         </div>
-      ) : (
-        <>
-          {/* Summary Cards */}
-          <div className="si-billing-summary">
-            <div className="si-billing-summary__item">
-              <span className="si-billing-summary__label">Next Payment</span>
-              <span className="si-billing-summary__value">
-                {formatDate(state.nextBillingDate)}
+      </div>
+    );
+  }
+
+  const projectedTotal =
+    state.projectedBillAmount != null
+      ? state.projectedBillAmount
+      : breakdown.projectedTotal;
+  const currency = breakdown.currency;
+  const hasDynamicCosts = breakdown.dynamicTotal > 0;
+  const hasFixedCosts = breakdown.fixedTotal > 0;
+
+  return (
+    <div className="si-panel">
+      {/* Panel Header — SI-R1 */}
+      <div className="si-panel__header">
+        <h3 className="si-panel__title">Billing Projection</h3>
+      </div>
+
+      {/* Summary Cards — SI-R7: Fixed + Dynamic breakdown */}
+      <div className="si-billing-summary">
+        <div className="si-billing-summary__item">
+          <span className="si-billing-summary__label">Next Payment</span>
+          <span className="si-billing-summary__value">
+            {formatDate(state.nextBillingDate)}
+          </span>
+        </div>
+        <div className="si-billing-summary__item">
+          <span className="si-billing-summary__label">Fixed</span>
+          <span className="si-billing-summary__value">
+            {formatCurrency(breakdown.fixedTotal, currency)}
+          </span>
+        </div>
+        {hasDynamicCosts && (
+          <div className="si-billing-summary__item">
+            <span className="si-billing-summary__label">Dynamic *</span>
+            <span className="si-billing-summary__value si-billing-summary__value--warning">
+              {formatCurrency(breakdown.dynamicTotal, currency)}
+            </span>
+          </div>
+        )}
+        <div className="si-billing-summary__item">
+          <span className="si-billing-summary__label">
+            Projected Total{hasDynamicCosts ? " *" : ""}
+          </span>
+          <span className="si-billing-summary__value si-billing-summary__value--success">
+            {formatCurrency(projectedTotal, currency)}
+            {breakdown.billingCycle && (
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: "0.75rem",
+                  color: "var(--si-slate-500)",
+                }}
+              >
+                {formatBillingCycleSuffix(breakdown.billingCycle)}
               </span>
-            </div>
-            <div className="si-billing-summary__item">
-              <span className="si-billing-summary__label">
-                Projected Amount
-              </span>
-              <span className="si-billing-summary__value si-billing-summary__value--warning">
-                {formatCurrency(projectedTotal, projectedCurrency)}
-              </span>
-            </div>
-            <div className="si-billing-summary__item">
-              <span className="si-billing-summary__label">Currency</span>
-              <span className="si-billing-summary__value">
-                {projectedCurrency}
-              </span>
-            </div>
+            )}
+          </span>
+        </div>
+        <div className="si-billing-summary__item">
+          <span className="si-billing-summary__label">Currency</span>
+          <span className="si-billing-summary__value">{currency}</span>
+        </div>
+      </div>
+
+      {/* SI-R2: Disclaimer */}
+      {hasDynamicCosts && (
+        <p className="si-billing-disclaimer">
+          * Projection based on current usage. Amounts may change with metric
+          activity.
+        </p>
+      )}
+
+      {/* ─── Fixed Costs Section — SI-R3/R5/R7 ─── */}
+      {hasFixedCosts && (
+        <div className="si-billing-section">
+          <div className="si-billing-section-label">
+            <span className="si-billing-section-label__text">Fixed Costs</span>
           </div>
 
-          {/* Line-by-line breakdown */}
-          {serviceLines.length > 0 && (
-            <div className="si-billing-section">
-              <div className="si-billing-section__title">
-                Recurring Services
-              </div>
-              <div className="si-billing-section__lines">
-                {serviceLines.map((line, idx) => (
-                  <div key={idx} className="si-billing-line">
-                    <span className="si-billing-line__name">
-                      {line.name}
-                      {line.cycle && (
-                        <span className="si-billing-line__cycle">
-                          / {line.cycle.toLowerCase().replace("_", " ")}
-                        </span>
-                      )}
-                    </span>
-                    <span className="si-billing-line__amount">
-                      {formatCurrency(line.amount, line.currency)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="si-billing-section__lines">
+            {breakdown.groupBreakdowns
+              .filter((g) => g.recurringAmount != null && g.recurringAmount > 0)
+              .map((group) => (
+                <GroupFixedCostRow
+                  key={group.groupId}
+                  group={group}
+                  currency={currency}
+                />
+              ))}
 
-          {/* Setup costs */}
-          {setupLines.length > 0 && (
-            <div className="si-billing-section">
-              <div className="si-billing-section__title si-billing-section__title--setup">
-                <span>Setup Costs</span>
-                <span className="si-billing-section__total">
-                  {formatCurrency(setupTotal, setupLines[0]?.currency || "USD")}
+            {/* Standalone services */}
+            {state.services
+              .filter((svc) => svc.recurringCost)
+              .map((svc) => (
+                <div key={svc.id} className="si-billing-line">
+                  <span className="si-billing-line__name">
+                    {svc.name || "Service"}
+                    {svc.recurringCost?.billingCycle && (
+                      <span className="si-billing-line__cycle">
+                        {formatBillingCycleSuffix(
+                          svc.recurringCost.billingCycle,
+                        )}
+                      </span>
+                    )}
+                  </span>
+                  <span className="si-billing-line__amount">
+                    {formatCurrency(svc.recurringCost!.amount, currency)}
+                  </span>
+                </div>
+              ))}
+          </div>
+
+          <div className="si-billing-section-subtotal">
+            <span className="si-billing-section-subtotal__label">
+              Fixed Subtotal
+            </span>
+            <span className="si-billing-section-subtotal__amount">
+              {formatCurrency(breakdown.fixedTotal, currency)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Dynamic Costs Section — SI-R3/R5/R7 ─── */}
+      {(breakdown.groupBreakdowns.some((g) => g.metricOverages.length > 0) ||
+        breakdown.standaloneOverages.length > 0) && (
+        <div className="si-billing-section">
+          <div className="si-billing-section-label">
+            <span className="si-billing-section-label__text">
+              Dynamic Costs *
+            </span>
+          </div>
+
+          <div className="si-billing-section__lines">
+            {breakdown.groupBreakdowns
+              .filter((g) => g.metricOverages.length > 0)
+              .map((group) => (
+                <GroupMetricOverageRows
+                  key={group.groupId}
+                  group={group}
+                  currency={currency}
+                />
+              ))}
+
+            {/* Standalone service overages */}
+            {breakdown.standaloneOverages.map((overage) => (
+              <MetricOverageRow
+                key={overage.metricId}
+                overage={overage}
+                currency={currency}
+              />
+            ))}
+          </div>
+
+          <div className="si-billing-section-subtotal">
+            <span className="si-billing-section-subtotal__label">
+              Dynamic Subtotal *
+            </span>
+            <span className="si-billing-section-subtotal__amount">
+              {formatCurrency(breakdown.dynamicTotal, currency)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Total Row ─── */}
+      <div className="si-billing-total">
+        {hasFixedCosts && hasDynamicCosts && (
+          <div className="si-billing-total__breakdown">
+            <span className="si-billing-total__detail">
+              Fixed {formatCurrency(breakdown.fixedTotal, currency)} + Dynamic{" "}
+              {formatCurrency(breakdown.dynamicTotal, currency)}
+            </span>
+          </div>
+        )}
+        <div className="si-billing-total__row">
+          <span className="si-billing-total__label">
+            Total Projected{hasDynamicCosts ? " *" : ""}
+          </span>
+          <span className="si-billing-total__amount">
+            {formatCurrency(projectedTotal, currency)}
+            {breakdown.billingCycle && (
+              <span className="si-billing-total__cycle">
+                {formatBillingCycleSuffix(breakdown.billingCycle)}
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── Setup Costs Collapsible — SI-R4 ─── */}
+      {breakdown.setupLines.length > 0 && (
+        <SetupCostsSection
+          setupLines={breakdown.setupLines}
+          setupTotal={breakdown.setupTotal}
+          currency={currency}
+          expanded={setupExpanded}
+          onToggle={() => setSetupExpanded(!setupExpanded)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Sub-components ─────────────────────────────────────────
+
+function GroupFixedCostRow({
+  group,
+  currency,
+}: {
+  group: GroupBillingBreakdown;
+  currency: string;
+}) {
+  return (
+    <div className="si-billing-group">
+      <div className="si-billing-group__row">
+        <span className="si-billing-group__name">
+          {group.groupName}
+          {group.optional && (
+            <span
+              className="si-badge si-badge--violet si-badge--sm"
+              style={{ marginLeft: 8 }}
+            >
+              Add-on
+            </span>
+          )}
+          {group.recurringCycle && (
+            <span className="si-billing-line__cycle">
+              {formatBillingCycleSuffix(group.recurringCycle)}
+            </span>
+          )}
+        </span>
+        <span className="si-billing-group__amount-block">
+          {group.discount && (
+            <>
+              <span className="si-billing-group__original">
+                {formatCurrency(group.discount.originalAmount, currency)}
+              </span>
+              <span className="si-billing-group__discount-badge">
+                {formatDiscountBadge(group.discount)}
+              </span>
+            </>
+          )}
+          <span className="si-billing-group__amount">
+            {formatCurrency(
+              group.recurringAmount ?? 0,
+              group.recurringCurrency,
+            )}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function GroupMetricOverageRows({
+  group,
+  currency,
+}: {
+  group: GroupBillingBreakdown;
+  currency: string;
+}) {
+  return (
+    <div className="si-billing-group-metrics">
+      <div className="si-billing-group-metrics__header">{group.groupName}</div>
+      {group.metricOverages.map((overage) => (
+        <MetricOverageRow
+          key={overage.metricId}
+          overage={overage}
+          currency={currency}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MetricOverageRow({
+  overage,
+  currency,
+}: {
+  overage: MetricOverage;
+  currency: string;
+}) {
+  return (
+    <div className="si-billing-metric">
+      <div className="si-billing-metric__info">
+        <span className="si-billing-metric__name">{overage.metricName}</span>
+        <span className="si-billing-metric__usage">
+          {overage.currentUsage.toLocaleString()}/
+          {overage.freeLimit.toLocaleString()} free
+        </span>
+      </div>
+      <div className="si-billing-metric__right">
+        <span className="si-billing-metric__calc">
+          {overage.excess.toLocaleString()} x{" "}
+          {formatCurrency(overage.unitCostAmount, currency)}
+        </span>
+        <span className="si-billing-metric__projection">
+          {formatCurrency(overage.projectedCost, currency)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SetupCostsSection({
+  setupLines,
+  setupTotal,
+  currency,
+  expanded,
+  onToggle,
+}: {
+  setupLines: SetupCostLine[];
+  setupTotal: number;
+  currency: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const unpaidCount = setupLines.filter((l) => !l.paid).length;
+
+  return (
+    <div className="si-billing-setup">
+      <button
+        type="button"
+        className="si-billing-setup__toggle"
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
+        <span className="si-billing-setup__toggle-left">
+          <svg
+            className="si-billing-setup__chevron"
+            data-expanded={expanded}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>Setup Costs</span>
+          <span className="si-billing-setup__count">
+            {setupLines.length} item{setupLines.length !== 1 ? "s" : ""}
+            {unpaidCount > 0 && (
+              <span className="si-billing-setup__unpaid">
+                {" "}
+                ({unpaidCount} unpaid)
+              </span>
+            )}
+          </span>
+        </span>
+        <span className="si-billing-setup__total">
+          {formatCurrency(setupTotal, currency)}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="si-billing-setup__content">
+          {setupLines.map((line, idx) => (
+            <div key={idx} className="si-billing-line si-billing-line--setup">
+              <span className="si-billing-line__name">{line.name}</span>
+              <span className="si-billing-line__right">
+                {line.paid && (
+                  <span className="si-billing-line__paid-tag">Paid</span>
+                )}
+                <span
+                  className={`si-billing-line__amount ${
+                    line.paid
+                      ? "si-billing-line__amount--paid"
+                      : "si-billing-line__amount--setup"
+                  }`}
+                >
+                  {formatCurrency(line.amount, line.currency)}
                 </span>
-              </div>
-              <div className="si-billing-section__lines">
-                {setupLines.map((line, idx) => (
-                  <div
-                    key={idx}
-                    className="si-billing-line si-billing-line--setup"
-                  >
-                    <span className="si-billing-line__name">{line.name}</span>
-                    <span className="si-billing-line__right">
-                      {line.paid && (
-                        <span className="si-billing-line__paid-tag">Paid</span>
-                      )}
-                      <span
-                        className={`si-billing-line__amount ${
-                          line.paid
-                            ? "si-billing-line__amount--paid"
-                            : "si-billing-line__amount--setup"
-                        }`}
-                      >
-                        {formatCurrency(line.amount, line.currency)}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
+              </span>
             </div>
-          )}
-
-          {/* Overage estimates */}
-          {overageLines.length > 0 && (
-            <div className="si-billing-section">
-              <div className="si-billing-section__title si-billing-section__title--overage">
-                Overage Estimates
-              </div>
-              <div className="si-billing-section__lines">
-                {overageLines.map((line, idx) => (
-                  <div
-                    key={idx}
-                    className="si-billing-line si-billing-line--overage"
-                  >
-                    <span className="si-billing-line__name si-billing-line__name--overage">
-                      {line.name}
-                      <span className="si-billing-line__calc">
-                        {line.excess} x{" "}
-                        {formatCurrency(line.unitCost, line.currency)}
-                      </span>
-                    </span>
-                    <span className="si-billing-line__amount si-billing-line__amount--overage">
-                      {formatCurrency(line.total, line.currency)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </div>
   );

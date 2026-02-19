@@ -4,6 +4,13 @@ import type {
   UpdateServiceGroupAction,
   DeleteServiceGroupAction,
   ReorderServiceGroupsAction,
+  AddServiceGroupTierPricingAction,
+  SetServiceGroupSetupCostAction,
+  RemoveServiceGroupSetupCostAction,
+  AddRecurringPriceOptionAction,
+  UpdateRecurringPriceOptionAction,
+  RemoveRecurringPriceOptionAction,
+  RemoveServiceGroupTierPricingAction,
 } from "./actions.js";
 import type { ServiceOfferingState } from "../types.js";
 
@@ -26,6 +33,41 @@ export interface ServiceOfferingServiceGroupManagementOperations {
   reorderServiceGroupsOperation: (
     state: ServiceOfferingState,
     action: ReorderServiceGroupsAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  addServiceGroupTierPricingOperation: (
+    state: ServiceOfferingState,
+    action: AddServiceGroupTierPricingAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  setServiceGroupSetupCostOperation: (
+    state: ServiceOfferingState,
+    action: SetServiceGroupSetupCostAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  removeServiceGroupSetupCostOperation: (
+    state: ServiceOfferingState,
+    action: RemoveServiceGroupSetupCostAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  addRecurringPriceOptionOperation: (
+    state: ServiceOfferingState,
+    action: AddRecurringPriceOptionAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  updateRecurringPriceOptionOperation: (
+    state: ServiceOfferingState,
+    action: UpdateRecurringPriceOptionAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  removeRecurringPriceOptionOperation: (
+    state: ServiceOfferingState,
+    action: RemoveRecurringPriceOptionAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  removeServiceGroupTierPricingOperation: (
+    state: ServiceOfferingState,
+    action: RemoveServiceGroupTierPricingAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

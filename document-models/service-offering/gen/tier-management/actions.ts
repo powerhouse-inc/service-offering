@@ -4,15 +4,15 @@ import type {
   UpdateTierInput,
   UpdateTierPricingInput,
   DeleteTierInput,
-  AddTierPricingOptionInput,
-  UpdateTierPricingOptionInput,
-  RemoveTierPricingOptionInput,
   AddServiceLevelInput,
   UpdateServiceLevelInput,
   RemoveServiceLevelInput,
   AddUsageLimitInput,
   UpdateUsageLimitInput,
   RemoveUsageLimitInput,
+  SetTierDefaultBillingCycleInput,
+  SetTierBillingCycleDiscountsInput,
+  SetTierPricingModeInput,
 } from "../types.js";
 
 export type AddTierAction = Action & { type: "ADD_TIER"; input: AddTierInput };
@@ -27,18 +27,6 @@ export type UpdateTierPricingAction = Action & {
 export type DeleteTierAction = Action & {
   type: "DELETE_TIER";
   input: DeleteTierInput;
-};
-export type AddTierPricingOptionAction = Action & {
-  type: "ADD_TIER_PRICING_OPTION";
-  input: AddTierPricingOptionInput;
-};
-export type UpdateTierPricingOptionAction = Action & {
-  type: "UPDATE_TIER_PRICING_OPTION";
-  input: UpdateTierPricingOptionInput;
-};
-export type RemoveTierPricingOptionAction = Action & {
-  type: "REMOVE_TIER_PRICING_OPTION";
-  input: RemoveTierPricingOptionInput;
 };
 export type AddServiceLevelAction = Action & {
   type: "ADD_SERVICE_LEVEL";
@@ -64,18 +52,30 @@ export type RemoveUsageLimitAction = Action & {
   type: "REMOVE_USAGE_LIMIT";
   input: RemoveUsageLimitInput;
 };
+export type SetTierDefaultBillingCycleAction = Action & {
+  type: "SET_TIER_DEFAULT_BILLING_CYCLE";
+  input: SetTierDefaultBillingCycleInput;
+};
+export type SetTierBillingCycleDiscountsAction = Action & {
+  type: "SET_TIER_BILLING_CYCLE_DISCOUNTS";
+  input: SetTierBillingCycleDiscountsInput;
+};
+export type SetTierPricingModeAction = Action & {
+  type: "SET_TIER_PRICING_MODE";
+  input: SetTierPricingModeInput;
+};
 
 export type ServiceOfferingTierManagementAction =
   | AddTierAction
   | UpdateTierAction
   | UpdateTierPricingAction
   | DeleteTierAction
-  | AddTierPricingOptionAction
-  | UpdateTierPricingOptionAction
-  | RemoveTierPricingOptionAction
   | AddServiceLevelAction
   | UpdateServiceLevelAction
   | RemoveServiceLevelAction
   | AddUsageLimitAction
   | UpdateUsageLimitAction
-  | RemoveUsageLimitAction;
+  | RemoveUsageLimitAction
+  | SetTierDefaultBillingCycleAction
+  | SetTierBillingCycleDiscountsAction
+  | SetTierPricingModeAction;

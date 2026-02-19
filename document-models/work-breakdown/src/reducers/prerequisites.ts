@@ -10,7 +10,8 @@ export const workBreakdownPrerequisitesOperations: WorkBreakdownPrerequisitesOpe
     addPrerequisiteOperation(state, action) {
       state.prerequisites.push({
         id: action.input.id,
-        description: action.input.description,
+        name: action.input.name,
+        description: action.input.description || null,
         owner: action.input.owner,
         scope: action.input.scope,
         stepId: action.input.stepId || null,
@@ -25,7 +26,11 @@ export const workBreakdownPrerequisitesOperations: WorkBreakdownPrerequisitesOpe
         throw new UpdatePrerequisiteNotFoundError(
           `Prerequisite ${action.input.id} not found`,
         );
-      if (action.input.description)
+      if (action.input.name) prereq.name = action.input.name;
+      if (
+        action.input.description !== undefined &&
+        action.input.description !== null
+      )
         prereq.description = action.input.description;
       if (action.input.owner) prereq.owner = action.input.owner;
       if (action.input.notes !== undefined && action.input.notes !== null)

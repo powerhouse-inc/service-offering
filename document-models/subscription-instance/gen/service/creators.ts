@@ -7,7 +7,8 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
-  UpdateServiceLevelInputSchema,
+  AddServiceFacetSelectionInputSchema,
+  RemoveServiceFacetSelectionInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceInput,
@@ -17,7 +18,8 @@ import type {
   ReportSetupPaymentInput,
   ReportRecurringPaymentInput,
   UpdateServiceInfoInput,
-  UpdateServiceLevelInput,
+  AddServiceFacetSelectionInput,
+  RemoveServiceFacetSelectionInput,
 } from "../types.js";
 import type {
   AddServiceAction,
@@ -27,7 +29,8 @@ import type {
   ReportSetupPaymentAction,
   ReportRecurringPaymentAction,
   UpdateServiceInfoAction,
-  UpdateServiceLevelAction,
+  AddServiceFacetSelectionAction,
+  RemoveServiceFacetSelectionAction,
 } from "./actions.js";
 
 export const addService = (input: AddServiceInput) =>
@@ -95,11 +98,24 @@ export const updateServiceInfo = (input: UpdateServiceInfoInput) =>
     "global",
   );
 
-export const updateServiceLevel = (input: UpdateServiceLevelInput) =>
-  createAction<UpdateServiceLevelAction>(
-    "UPDATE_SERVICE_LEVEL",
+export const addServiceFacetSelection = (
+  input: AddServiceFacetSelectionInput,
+) =>
+  createAction<AddServiceFacetSelectionAction>(
+    "ADD_SERVICE_FACET_SELECTION",
     { ...input },
     undefined,
-    UpdateServiceLevelInputSchema,
+    AddServiceFacetSelectionInputSchema,
+    "global",
+  );
+
+export const removeServiceFacetSelection = (
+  input: RemoveServiceFacetSelectionInput,
+) =>
+  createAction<RemoveServiceFacetSelectionAction>(
+    "REMOVE_SERVICE_FACET_SELECTION",
+    { ...input },
+    undefined,
+    RemoveServiceFacetSelectionInputSchema,
     "global",
   );

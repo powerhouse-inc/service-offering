@@ -19,7 +19,7 @@ scalar Amount_Crypto
 scalar Amount
 scalar Upload
 
-enum WorkBreakdownPhase { CAPTURE SCENARIO PREREQUISITES TASKS REVIEW COMPLETE }
+enum WorkBreakdownPhase { CAPTURE STRUCTURE EXECUTION REVIEW }
 enum WorkBreakdownStatus { NOT_STARTED IN_PROGRESS ON_HOLD COMPLETED }
 enum TemplateMode { NONE PRE_SELECTED AUTO_DETECTED }
 enum TaskStatus { PENDING IN_PROGRESS BLOCKED DONE }
@@ -28,6 +28,8 @@ enum PrerequisiteScope { GLOBAL STEP }
 enum PrerequisiteStatus { NOT_MET IN_PROGRESS MET }
 enum DependencySourceType { TASK PREREQUISITE }
 enum DependencyTargetType { TASK PREREQUISITE }
+enum ExtractionType { SCENARIO TASK }
+enum ExtractionStatus { PENDING COMPLETED FAILED }
 
 type TemplateSubstep {
   id: OID!
@@ -81,7 +83,8 @@ type DemoStep {
 
 type Prerequisite {
   id: OID!
-  description: String!
+  name: String!
+  description: String
   owner: String!
   scope: PrerequisiteScope!
   stepId: OID
@@ -102,6 +105,8 @@ type Task {
   substepId: OID
   sequenceOrder: Int!
   notes: String
+  blockedReason: String
+  blockedByItemId: OID
   createdAt: DateTime
 }
 
@@ -121,6 +126,19 @@ type AnalystNote {
   createdAt: DateTime!
 }
 
+type ExtractionRecord {
+  id: OID!
+  type: ExtractionType!
+  status: ExtractionStatus!
+  requestedAt: DateTime!
+  completedAt: DateTime
+  stepsGenerated: Int
+  tasksGenerated: Int
+  model: String
+  error: String
+  userContext: String
+}
+
 type WorkBreakdownState {
   title: String
   description: String
@@ -135,6 +153,8 @@ type WorkBreakdownState {
   tasks: [Task!]!
   dependencies: [Dependency!]!
   notes: [AnalystNote!]!
+  aiContext: String
+  extractionHistory: [ExtractionRecord!]!
 }
 
 # project
@@ -266,7 +286,8 @@ input RemoveSubstepInput {
 
 input AddPrerequisiteInput {
   id: OID!
-  description: String!
+  name: String!
+  description: String
   owner: String!
   scope: PrerequisiteScope!
   stepId: OID
@@ -276,6 +297,7 @@ input AddPrerequisiteInput {
 
 input UpdatePrerequisiteInput {
   id: OID!
+  name: String
   description: String
   owner: String
   notes: String
@@ -342,6 +364,8 @@ input RemoveTaskInput {
 input SetTaskStatusInput {
   id: OID!
   status: TaskStatus!
+  blockedReason: String
+  blockedByItemId: OID
 }
 
 # dependencies
@@ -375,4 +399,31 @@ input AddNoteInput {
 
 input RemoveNoteInput {
   id: OID!
+}
+
+# extraction
+
+input SetAiContextInput {
+  context: String
+}
+
+input AddExtractionRecordInput {
+  id: OID!
+  type: ExtractionType!
+  requestedAt: DateTime!
+  model: String
+  userContext: String
+}
+
+input UpdateExtractionRecordInput {
+  id: OID!
+  status: ExtractionStatus!
+  completedAt: DateTime
+  stepsGenerated: Int
+  tasksGenerated: Int
+  error: String
+}
+
+input ClearExtractionHistoryInput {
+  beforeDate: DateTime
 }

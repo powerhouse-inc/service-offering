@@ -18,8 +18,10 @@ import {
   ReportSetupPaymentInputSchema,
   ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
-  updateServiceLevel,
-  UpdateServiceLevelInputSchema,
+  addServiceFacetSelection,
+  removeServiceFacetSelection,
+  AddServiceFacetSelectionInputSchema,
+  RemoveServiceFacetSelectionInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 describe("ServiceOperations", () => {
@@ -145,16 +147,36 @@ describe("ServiceOperations", () => {
     expect(updatedDocument.operations.global[0].index).toEqual(0);
   });
 
-  it("should handle updateServiceLevel operation", () => {
+  it("should handle addServiceFacetSelection operation", () => {
     const document = utils.createDocument();
-    const input = generateMock(UpdateServiceLevelInputSchema());
+    const input = generateMock(AddServiceFacetSelectionInputSchema());
 
-    const updatedDocument = reducer(document, updateServiceLevel(input));
+    const updatedDocument = reducer(document, addServiceFacetSelection(input));
 
     expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
-      "UPDATE_SERVICE_LEVEL",
+      "ADD_SERVICE_FACET_SELECTION",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle removeServiceFacetSelection operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(RemoveServiceFacetSelectionInputSchema());
+
+    const updatedDocument = reducer(
+      document,
+      removeServiceFacetSelection(input),
+    );
+
+    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "REMOVE_SERVICE_FACET_SELECTION",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

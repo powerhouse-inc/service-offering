@@ -317,8 +317,8 @@
               "examples": [],
               "id": "op-add-prerequisite",
               "name": "ADD_PREREQUISITE",
-              "reducer": "state.prerequisites.push({\n  id: action.input.id,\n  description: action.input.description,\n  owner: action.input.owner,\n  scope: action.input.scope,\n  stepId: action.input.stepId || null,\n  status: null,\n  notes: action.input.notes || null,\n  createdAt: action.input.createdAt,\n});",
-              "schema": "input AddPrerequisiteInput {\n  id: OID!\n  description: String!\n  owner: String!\n  scope: PrerequisiteScope!\n  stepId: OID\n  notes: String\n  createdAt: DateTime!\n}",
+              "reducer": "state.prerequisites.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  owner: action.input.owner,\n  scope: action.input.scope,\n  stepId: action.input.stepId || null,\n  status: null,\n  notes: action.input.notes || null,\n  createdAt: action.input.createdAt,\n});",
+              "schema": "input AddPrerequisiteInput {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  scope: PrerequisiteScope!\n  stepId: OID\n  notes: String\n  createdAt: DateTime!\n}",
               "scope": "global",
               "template": "Add global or step-level prerequisite"
             },
@@ -336,8 +336,8 @@
               "examples": [],
               "id": "op-update-prerequisite",
               "name": "UPDATE_PREREQUISITE",
-              "reducer": "const prereq = state.prerequisites.find(p => p.id === action.input.id);\nif (!prereq) throw new UpdatePrerequisiteNotFoundError(`Prerequisite ${action.input.id} not found`);\nif (action.input.description) prereq.description = action.input.description;\nif (action.input.owner) prereq.owner = action.input.owner;\nif (action.input.notes !== undefined && action.input.notes !== null) prereq.notes = action.input.notes;",
-              "schema": "input UpdatePrerequisiteInput {\n  id: OID!\n  description: String\n  owner: String\n  notes: String\n}",
+              "reducer": "const prereq = state.prerequisites.find(p => p.id === action.input.id);\nif (!prereq) throw new UpdatePrerequisiteNotFoundError(`Prerequisite ${action.input.id} not found`);\nif (action.input.name) prereq.name = action.input.name;\nif (action.input.description !== undefined && action.input.description !== null) prereq.description = action.input.description;\nif (action.input.owner) prereq.owner = action.input.owner;\nif (action.input.notes !== undefined && action.input.notes !== null) prereq.notes = action.input.notes;",
+              "schema": "input UpdatePrerequisiteInput {\n  id: OID!\n  name: String\n  description: String\n  owner: String\n  notes: String\n}",
               "scope": "global",
               "template": "Edit prerequisite details"
             },
@@ -392,7 +392,7 @@
               "examples": [],
               "id": "op-add-task",
               "name": "ADD_TASK",
-              "reducer": "state.tasks.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  owner: action.input.owner,\n  status: null,\n  source: action.input.source,\n  extractionContext: action.input.extractionContext || null,\n  stepId: action.input.stepId,\n  substepId: action.input.substepId || null,\n  sequenceOrder: action.input.sequenceOrder,\n  notes: action.input.notes || null,\n  createdAt: action.input.createdAt,\n});",
+              "reducer": "state.tasks.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  owner: action.input.owner,\n  status: null,\n  source: action.input.source,\n  extractionContext: action.input.extractionContext || null,\n  stepId: action.input.stepId,\n  substepId: action.input.substepId || null,\n  sequenceOrder: action.input.sequenceOrder,\n  notes: action.input.notes || null,\n  blockedReason: null,\n  blockedByItemId: null,\n  createdAt: action.input.createdAt,\n});",
               "schema": "input AddTaskInput {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  source: TaskSource!\n  extractionContext: String\n  notes: String\n  createdAt: DateTime!\n}",
               "scope": "global",
               "template": "Manually add a single task"
@@ -403,7 +403,7 @@
               "examples": [],
               "id": "op-bulk-add-tasks",
               "name": "BULK_ADD_TASKS",
-              "reducer": "for (const t of action.input.tasks) {\n  state.tasks.push({\n    id: t.id,\n    name: t.name,\n    description: t.description || null,\n    owner: t.owner,\n    status: null,\n    source: t.source,\n    extractionContext: t.extractionContext || null,\n    stepId: t.stepId,\n    substepId: t.substepId || null,\n    sequenceOrder: t.sequenceOrder,\n    notes: t.notes || null,\n    createdAt: t.createdAt,\n  });\n}",
+              "reducer": "for (const t of action.input.tasks) {\n  state.tasks.push({\n    id: t.id,\n    name: t.name,\n    description: t.description || null,\n    owner: t.owner,\n    status: null,\n    source: t.source,\n    extractionContext: t.extractionContext || null,\n    stepId: t.stepId,\n    substepId: t.substepId || null,\n    sequenceOrder: t.sequenceOrder,\n    notes: t.notes || null,\n    blockedReason: null,\n    blockedByItemId: null,\n    createdAt: t.createdAt,\n  });\n}",
               "schema": "input TaskInput {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  source: TaskSource!\n  extractionContext: String\n  notes: String\n  createdAt: DateTime!\n}\n\ninput BulkAddTasksInput {\n  tasks: [TaskInput!]!\n}",
               "scope": "global",
               "template": "Batch-add extracted tasks (AI-assisted or bulk import)"
@@ -460,8 +460,8 @@
               "examples": [],
               "id": "op-set-task-status",
               "name": "SET_TASK_STATUS",
-              "reducer": "const task = state.tasks.find(t => t.id === action.input.id);\nif (!task) throw new SetTaskStatusNotFoundError(`Task ${action.input.id} not found`);\ntask.status = action.input.status;",
-              "schema": "input SetTaskStatusInput {\n  id: OID!\n  status: TaskStatus!\n}",
+              "reducer": "const task = state.tasks.find(t => t.id === action.input.id);\nif (!task) throw new SetTaskStatusNotFoundError(`Task ${action.input.id} not found`);\ntask.status = action.input.status;\nif (action.input.status === 'BLOCKED') {\n  task.blockedReason = action.input.blockedReason || null;\n  task.blockedByItemId = action.input.blockedByItemId || null;\n  if (action.input.blockedReason) {\n    task.notes = `[BLOCKED] ${action.input.blockedReason}`;\n  }\n} else {\n  task.blockedReason = null;\n  task.blockedByItemId = null;\n}",
+              "schema": "input SetTaskStatusInput {\n  id: OID!\n  status: TaskStatus!\n  blockedReason: String\n  blockedByItemId: OID\n}",
               "scope": "global",
               "template": "Update task status"
             }
@@ -559,13 +559,72 @@
               "template": "Remove an analyst note"
             }
           ]
+        },
+        {
+          "description": "AI extraction context persistence and audit trail",
+          "id": "mod-extraction",
+          "name": "extraction",
+          "operations": [
+            {
+              "description": "Persist user's AI context instructions in document state",
+              "errors": [],
+              "examples": [],
+              "id": "op-set-ai-context",
+              "name": "SET_AI_CONTEXT",
+              "reducer": "state.aiContext = action.input.context || null;",
+              "schema": "input SetAiContextInput {\n  context: String\n}",
+              "scope": "global",
+              "template": "Persist user's AI context instructions in document state"
+            },
+            {
+              "description": "Log the start of an AI extraction request",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-extraction-record",
+              "name": "ADD_EXTRACTION_RECORD",
+              "reducer": "state.extractionHistory.push({\n  id: action.input.id,\n  type: action.input.type,\n  status: \"PENDING\",\n  requestedAt: action.input.requestedAt,\n  completedAt: null,\n  stepsGenerated: null,\n  tasksGenerated: null,\n  model: action.input.model || null,\n  error: null,\n  userContext: action.input.userContext || null,\n});",
+              "schema": "input AddExtractionRecordInput {\n  id: OID!\n  type: ExtractionType!\n  requestedAt: DateTime!\n  model: String\n  userContext: String\n}",
+              "scope": "global",
+              "template": "Log the start of an AI extraction request"
+            },
+            {
+              "description": "Update an extraction record with completion status and results",
+              "errors": [
+                {
+                  "code": "EXTRACTION_RECORD_NOT_FOUND",
+                  "description": "The specified extraction record ID does not exist",
+                  "id": "err-update-extraction-record-not-found",
+                  "name": "UpdateExtractionRecordNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-extraction-record",
+              "name": "UPDATE_EXTRACTION_RECORD",
+              "reducer": "const record = state.extractionHistory.find(r => r.id === action.input.id);\nif (!record) throw new UpdateExtractionRecordNotFoundError(`Extraction record ${action.input.id} not found`);\nrecord.status = action.input.status;\nif (action.input.completedAt) record.completedAt = action.input.completedAt;\nif (action.input.stepsGenerated !== undefined && action.input.stepsGenerated !== null) record.stepsGenerated = action.input.stepsGenerated;\nif (action.input.tasksGenerated !== undefined && action.input.tasksGenerated !== null) record.tasksGenerated = action.input.tasksGenerated;\nif (action.input.error !== undefined && action.input.error !== null) record.error = action.input.error;",
+              "schema": "input UpdateExtractionRecordInput {\n  id: OID!\n  status: ExtractionStatus!\n  completedAt: DateTime\n  stepsGenerated: Int\n  tasksGenerated: Int\n  error: String\n}",
+              "scope": "global",
+              "template": "Update an extraction record with completion status and results"
+            },
+            {
+              "description": "Clear extraction history records, optionally before a given date",
+              "errors": [],
+              "examples": [],
+              "id": "op-clear-extraction-history",
+              "name": "CLEAR_EXTRACTION_HISTORY",
+              "reducer": "if (action.input.beforeDate) {\n  state.extractionHistory = state.extractionHistory.filter(r => r.requestedAt >= action.input.beforeDate);\n} else {\n  state.extractionHistory = [];\n}",
+              "schema": "input ClearExtractionHistoryInput {\n  beforeDate: DateTime\n}",
+              "scope": "global",
+              "template": "Clear extraction history records, optionally before a given date"
+            }
+          ]
         }
       ],
       "state": {
         "global": {
           "examples": [],
-          "initialValue": "{\n  \"title\": null,\n  \"description\": null,\n  \"phase\": \"CAPTURE\",\n  \"status\": \"NOT_STARTED\",\n  \"templateMode\": \"NONE\",\n  \"appliedTemplateId\": null,\n  \"templates\": [],\n  \"inputs\": [],\n  \"steps\": [],\n  \"prerequisites\": [],\n  \"tasks\": [],\n  \"dependencies\": [],\n  \"notes\": []\n}",
-          "schema": "enum WorkBreakdownPhase { CAPTURE SCENARIO PREREQUISITES TASKS REVIEW COMPLETE }\nenum WorkBreakdownStatus { NOT_STARTED IN_PROGRESS ON_HOLD COMPLETED }\nenum TemplateMode { NONE PRE_SELECTED AUTO_DETECTED }\nenum TaskStatus { PENDING IN_PROGRESS BLOCKED DONE }\nenum TaskSource { EXTRACTED MANUAL }\nenum PrerequisiteScope { GLOBAL STEP }\nenum PrerequisiteStatus { NOT_MET IN_PROGRESS MET }\nenum DependencySourceType { TASK PREREQUISITE }\nenum DependencyTargetType { TASK PREREQUISITE }\n\ntype TemplateSubstep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n}\n\ntype TemplateStep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [TemplateSubstep!]!\n}\n\ntype DemoTemplate {\n  id: OID!\n  name: String!\n  description: String\n  domain: String\n  steps: [TemplateStep!]!\n  createdAt: DateTime\n}\n\ntype StakeholderInput {\n  id: OID!\n  rawContent: String!\n  source: String\n  submittedBy: String\n  createdAt: DateTime!\n}\n\ntype DemoSubstep {\n  id: OID!\n  stepId: OID!\n  order: Int!\n  name: String!\n  description: String\n  acceptanceCriteria: String\n}\n\ntype DemoStep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [DemoSubstep!]!\n  templateStepId: OID\n}\n\ntype Prerequisite {\n  id: OID!\n  description: String!\n  owner: String!\n  scope: PrerequisiteScope!\n  stepId: OID\n  status: PrerequisiteStatus\n  notes: String\n  createdAt: DateTime\n}\n\ntype Task {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  status: TaskStatus\n  source: TaskSource!\n  extractionContext: String\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  notes: String\n  createdAt: DateTime\n}\n\ntype Dependency {\n  id: OID!\n  sourceId: OID!\n  sourceType: DependencySourceType!\n  targetId: OID!\n  targetType: DependencyTargetType!\n  description: String\n}\n\ntype AnalystNote {\n  id: OID!\n  phase: WorkBreakdownPhase!\n  content: String!\n  createdAt: DateTime!\n}\n\ntype WorkBreakdownState {\n  title: String\n  description: String\n  phase: WorkBreakdownPhase\n  status: WorkBreakdownStatus\n  templateMode: TemplateMode\n  appliedTemplateId: OID\n  templates: [DemoTemplate!]!\n  inputs: [StakeholderInput!]!\n  steps: [DemoStep!]!\n  prerequisites: [Prerequisite!]!\n  tasks: [Task!]!\n  dependencies: [Dependency!]!\n  notes: [AnalystNote!]!\n}"
+          "initialValue": "{\n  \"title\": null,\n  \"description\": null,\n  \"phase\": \"CAPTURE\",\n  \"status\": \"NOT_STARTED\",\n  \"templateMode\": \"NONE\",\n  \"appliedTemplateId\": null,\n  \"templates\": [],\n  \"inputs\": [],\n  \"steps\": [],\n  \"prerequisites\": [],\n  \"tasks\": [],\n  \"dependencies\": [],\n  \"notes\": [],\n  \"aiContext\": null,\n  \"extractionHistory\": []\n}",
+          "schema": "enum WorkBreakdownPhase { CAPTURE STRUCTURE EXECUTION REVIEW }\nenum WorkBreakdownStatus { NOT_STARTED IN_PROGRESS ON_HOLD COMPLETED }\nenum TemplateMode { NONE PRE_SELECTED AUTO_DETECTED }\nenum TaskStatus { PENDING IN_PROGRESS BLOCKED DONE }\nenum TaskSource { EXTRACTED MANUAL }\nenum PrerequisiteScope { GLOBAL STEP }\nenum PrerequisiteStatus { NOT_MET IN_PROGRESS MET }\nenum DependencySourceType { TASK PREREQUISITE }\nenum DependencyTargetType { TASK PREREQUISITE }\nenum ExtractionType { SCENARIO TASK }\nenum ExtractionStatus { PENDING COMPLETED FAILED }\n\ntype TemplateSubstep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n}\n\ntype TemplateStep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [TemplateSubstep!]!\n}\n\ntype DemoTemplate {\n  id: OID!\n  name: String!\n  description: String\n  domain: String\n  steps: [TemplateStep!]!\n  createdAt: DateTime\n}\n\ntype StakeholderInput {\n  id: OID!\n  rawContent: String!\n  source: String\n  submittedBy: String\n  createdAt: DateTime!\n}\n\ntype DemoSubstep {\n  id: OID!\n  stepId: OID!\n  order: Int!\n  name: String!\n  description: String\n  acceptanceCriteria: String\n}\n\ntype DemoStep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [DemoSubstep!]!\n  templateStepId: OID\n}\n\ntype Prerequisite {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  scope: PrerequisiteScope!\n  stepId: OID\n  status: PrerequisiteStatus\n  notes: String\n  createdAt: DateTime\n}\n\ntype Task {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  status: TaskStatus\n  source: TaskSource!\n  extractionContext: String\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  notes: String\n  blockedReason: String\n  blockedByItemId: OID\n  createdAt: DateTime\n}\n\ntype Dependency {\n  id: OID!\n  sourceId: OID!\n  sourceType: DependencySourceType!\n  targetId: OID!\n  targetType: DependencyTargetType!\n  description: String\n}\n\ntype AnalystNote {\n  id: OID!\n  phase: WorkBreakdownPhase!\n  content: String!\n  createdAt: DateTime!\n}\n\ntype ExtractionRecord {\n  id: OID!\n  type: ExtractionType!\n  status: ExtractionStatus!\n  requestedAt: DateTime!\n  completedAt: DateTime\n  stepsGenerated: Int\n  tasksGenerated: Int\n  model: String\n  error: String\n  userContext: String\n}\n\ntype WorkBreakdownState {\n  title: String\n  description: String\n  phase: WorkBreakdownPhase\n  status: WorkBreakdownStatus\n  templateMode: TemplateMode\n  appliedTemplateId: OID\n  templates: [DemoTemplate!]!\n  inputs: [StakeholderInput!]!\n  steps: [DemoStep!]!\n  prerequisites: [Prerequisite!]!\n  tasks: [Task!]!\n  dependencies: [Dependency!]!\n  notes: [AnalystNote!]!\n  aiContext: String\n  extractionHistory: [ExtractionRecord!]!\n}"
         },
         "local": {
           "examples": [],

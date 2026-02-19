@@ -3,11 +3,6 @@ export type ErrorCode =
   | "UpdateTierNotFoundError"
   | "UpdatePricingTierNotFoundError"
   | "DeleteTierNotFoundError"
-  | "AddPricingOptionTierNotFoundError"
-  | "UpdatePricingOptionTierNotFoundError"
-  | "PricingOptionNotFoundError"
-  | "RemovePricingOptionTierNotFoundError"
-  | "RemovePricingOptionNotFoundError"
   | "AddServiceLevelTierNotFoundError"
   | "DuplicateServiceLevelIdError"
   | "UpdateServiceLevelTierNotFoundError"
@@ -19,7 +14,10 @@ export type ErrorCode =
   | "UpdateUsageLimitTierNotFoundError"
   | "UpdateUsageLimitNotFoundError"
   | "RemoveUsageLimitTierNotFoundError"
-  | "RemoveUsageLimitNotFoundError";
+  | "RemoveUsageLimitNotFoundError"
+  | "SetDefaultCycleTierNotFoundError"
+  | "SetCycleDiscountsTierNotFoundError"
+  | "SetPricingModeTierNotFoundError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -52,53 +50,6 @@ export class UpdatePricingTierNotFoundError
 export class DeleteTierNotFoundError extends Error implements ReducerError {
   errorCode = "DeleteTierNotFoundError" as ErrorCode;
   constructor(message = "DeleteTierNotFoundError") {
-    super(message);
-  }
-}
-
-export class AddPricingOptionTierNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "AddPricingOptionTierNotFoundError" as ErrorCode;
-  constructor(message = "AddPricingOptionTierNotFoundError") {
-    super(message);
-  }
-}
-
-export class UpdatePricingOptionTierNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "UpdatePricingOptionTierNotFoundError" as ErrorCode;
-  constructor(message = "UpdatePricingOptionTierNotFoundError") {
-    super(message);
-  }
-}
-
-export class PricingOptionNotFoundError extends Error implements ReducerError {
-  errorCode = "PricingOptionNotFoundError" as ErrorCode;
-  constructor(message = "PricingOptionNotFoundError") {
-    super(message);
-  }
-}
-
-export class RemovePricingOptionTierNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "RemovePricingOptionTierNotFoundError" as ErrorCode;
-  constructor(message = "RemovePricingOptionTierNotFoundError") {
-    super(message);
-  }
-}
-
-export class RemovePricingOptionNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "RemovePricingOptionNotFoundError" as ErrorCode;
-  constructor(message = "RemovePricingOptionNotFoundError") {
     super(message);
   }
 }
@@ -220,20 +171,41 @@ export class RemoveUsageLimitNotFoundError
   }
 }
 
+export class SetDefaultCycleTierNotFoundError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SetDefaultCycleTierNotFoundError" as ErrorCode;
+  constructor(message = "SetDefaultCycleTierNotFoundError") {
+    super(message);
+  }
+}
+
+export class SetCycleDiscountsTierNotFoundError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SetCycleDiscountsTierNotFoundError" as ErrorCode;
+  constructor(message = "SetCycleDiscountsTierNotFoundError") {
+    super(message);
+  }
+}
+
+export class SetPricingModeTierNotFoundError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SetPricingModeTierNotFoundError" as ErrorCode;
+  constructor(message = "SetPricingModeTierNotFoundError") {
+    super(message);
+  }
+}
+
 export const errors = {
   AddTier: { DuplicateTierIdError },
   UpdateTier: { UpdateTierNotFoundError },
   UpdateTierPricing: { UpdatePricingTierNotFoundError },
   DeleteTier: { DeleteTierNotFoundError },
-  AddTierPricingOption: { AddPricingOptionTierNotFoundError },
-  UpdateTierPricingOption: {
-    UpdatePricingOptionTierNotFoundError,
-    PricingOptionNotFoundError,
-  },
-  RemoveTierPricingOption: {
-    RemovePricingOptionTierNotFoundError,
-    RemovePricingOptionNotFoundError,
-  },
   AddServiceLevel: {
     AddServiceLevelTierNotFoundError,
     DuplicateServiceLevelIdError,
@@ -255,4 +227,7 @@ export const errors = {
     RemoveUsageLimitTierNotFoundError,
     RemoveUsageLimitNotFoundError,
   },
+  SetTierDefaultBillingCycle: { SetDefaultCycleTierNotFoundError },
+  SetTierBillingCycleDiscounts: { SetCycleDiscountsTierNotFoundError },
+  SetTierPricingMode: { SetPricingModeTierNotFoundError },
 };

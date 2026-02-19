@@ -1,3 +1,11 @@
+import type {
+  DiscountInfo,
+  RecurringCost,
+  Service,
+  ServiceGroup,
+  ServiceMetric,
+  SetupCost,
+} from "../../gen/schema/types.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
@@ -7,22 +15,17 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.customerId = input.customerId || null;
       state.customerName = input.customerName || null;
       state.customerEmail = input.customerEmail || null;
-      if (input.customerType) state.customerType = input.customerType;
-      state.operatorId = input.operatorId || null;
-      state.operatorName = input.operatorName || null;
       state.serviceOfferingId = input.serviceOfferingId || null;
-      state.tierId = input.tierId || null;
       state.tierName = input.tierName || null;
       state.tierPricingOptionId = input.tierPricingOptionId || null;
       state.tierPrice = input.tierPrice ?? null;
       state.tierCurrency = input.tierCurrency || null;
+      state.tierPricingMode = input.tierPricingMode || null;
+      state.selectedBillingCycle = input.selectedBillingCycle || null;
+      state.globalCurrency = input.globalCurrency || null;
       state.autoRenew = input.autoRenew ?? false;
       state.createdAt = input.createdAt;
       state.status = "PENDING";
-      state.targetAudienceId = input.targetAudienceId || null;
-      state.targetAudienceLabel = input.targetAudienceLabel || null;
-      state.projectedBillAmount = input.projectedBillAmount ?? null;
-      state.projectedBillCurrency = input.projectedBillCurrency || null;
 
       if (input.resourceId) {
         state.resource = {
@@ -30,6 +33,196 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           label: input.resourceLabel || null,
           thumbnailUrl: input.resourceThumbnailUrl || null,
         };
+      }
+
+      if (input.services) {
+        for (const svc of input.services) {
+          let svcDiscount: DiscountInfo | null = null;
+          if (svc.recurringDiscount) {
+            svcDiscount = {
+              originalAmount: svc.recurringDiscount.originalAmount,
+              discountType: svc.recurringDiscount.discountType,
+              discountValue: svc.recurringDiscount.discountValue,
+              source: svc.recurringDiscount.source,
+            };
+          }
+          let svcSetup: SetupCost | null = null;
+          if (svc.setupAmount && svc.setupCurrency) {
+            svcSetup = {
+              amount: svc.setupAmount,
+              currency: svc.setupCurrency,
+              billingDate: null,
+              paymentDate: null,
+            };
+          }
+          let svcRecurring: RecurringCost | null = null;
+          if (
+            svc.recurringAmount &&
+            svc.recurringCurrency &&
+            svc.recurringBillingCycle
+          ) {
+            svcRecurring = {
+              amount: svc.recurringAmount,
+              currency: svc.recurringCurrency,
+              billingCycle: svc.recurringBillingCycle,
+              nextBillingDate: null,
+              lastPaymentDate: null,
+              discount: svcDiscount,
+            };
+          }
+          const metrics: ServiceMetric[] = (svc.metrics || []).map((m) => ({
+            id: m.id,
+            name: m.name,
+            unitName: m.unitName,
+            limit: m.limit ?? null,
+            freeLimit: m.freeLimit ?? null,
+            paidLimit: m.paidLimit ?? null,
+            currentUsage: m.currentUsage,
+            usageResetPeriod: m.usageResetPeriod || null,
+            nextUsageReset: null,
+            unitCost:
+              m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle
+                ? {
+                    amount: m.unitCostAmount,
+                    currency: m.unitCostCurrency,
+                    billingCycle: m.unitCostBillingCycle,
+                    nextBillingDate: null,
+                    lastPaymentDate: null,
+                    discount: null,
+                  }
+                : null,
+          }));
+          state.services.push({
+            id: svc.id,
+            name: svc.name || null,
+            description: svc.description || null,
+            customValue: svc.customValue || null,
+            facetSelections: (svc.facetSelections || []).map((f) => ({
+              id: f.id,
+              facetName: f.facetName,
+              selectedOption: f.selectedOption,
+            })),
+            setupCost: svcSetup,
+            recurringCost: svcRecurring,
+            metrics,
+          });
+        }
+      }
+
+      if (input.serviceGroups) {
+        for (const grp of input.serviceGroups) {
+          let grpDiscount: DiscountInfo | null = null;
+          if (grp.recurringDiscount) {
+            grpDiscount = {
+              originalAmount: grp.recurringDiscount.originalAmount,
+              discountType: grp.recurringDiscount.discountType,
+              discountValue: grp.recurringDiscount.discountValue,
+              source: grp.recurringDiscount.source,
+            };
+          }
+          let grpSetup: SetupCost | null = null;
+          if (grp.setupAmount && grp.setupCurrency) {
+            grpSetup = {
+              amount: grp.setupAmount,
+              currency: grp.setupCurrency,
+              billingDate: grp.setupBillingDate || null,
+              paymentDate: null,
+            };
+          }
+          let grpRecurring: RecurringCost | null = null;
+          if (
+            grp.recurringAmount &&
+            grp.recurringCurrency &&
+            grp.recurringBillingCycle
+          ) {
+            grpRecurring = {
+              amount: grp.recurringAmount,
+              currency: grp.recurringCurrency,
+              billingCycle: grp.recurringBillingCycle,
+              nextBillingDate: null,
+              lastPaymentDate: null,
+              discount: grpDiscount,
+            };
+          }
+          const groupServices: Service[] = (grp.services || []).map((svc) => {
+            let svcD: DiscountInfo | null = null;
+            if (svc.recurringDiscount) {
+              svcD = {
+                originalAmount: svc.recurringDiscount.originalAmount,
+                discountType: svc.recurringDiscount.discountType,
+                discountValue: svc.recurringDiscount.discountValue,
+                source: svc.recurringDiscount.source,
+              };
+            }
+            return {
+              id: svc.id,
+              name: svc.name || null,
+              description: svc.description || null,
+              customValue: svc.customValue || null,
+              facetSelections: (svc.facetSelections || []).map((f) => ({
+                id: f.id,
+                facetName: f.facetName,
+                selectedOption: f.selectedOption,
+              })),
+              setupCost:
+                svc.setupAmount && svc.setupCurrency
+                  ? {
+                      amount: svc.setupAmount,
+                      currency: svc.setupCurrency,
+                      billingDate: null,
+                      paymentDate: null,
+                    }
+                  : null,
+              recurringCost:
+                svc.recurringAmount &&
+                svc.recurringCurrency &&
+                svc.recurringBillingCycle
+                  ? {
+                      amount: svc.recurringAmount,
+                      currency: svc.recurringCurrency,
+                      billingCycle: svc.recurringBillingCycle,
+                      nextBillingDate: null,
+                      lastPaymentDate: null,
+                      discount: svcD,
+                    }
+                  : null,
+              metrics: (svc.metrics || []).map((m) => ({
+                id: m.id,
+                name: m.name,
+                unitName: m.unitName,
+                limit: m.limit ?? null,
+                freeLimit: m.freeLimit ?? null,
+                paidLimit: m.paidLimit ?? null,
+                currentUsage: m.currentUsage,
+                usageResetPeriod: m.usageResetPeriod || null,
+                nextUsageReset: null,
+                unitCost:
+                  m.unitCostAmount &&
+                  m.unitCostCurrency &&
+                  m.unitCostBillingCycle
+                    ? {
+                        amount: m.unitCostAmount,
+                        currency: m.unitCostCurrency,
+                        billingCycle: m.unitCostBillingCycle,
+                        nextBillingDate: null,
+                        lastPaymentDate: null,
+                        discount: null,
+                      }
+                    : null,
+              })),
+            };
+          });
+          const serviceGroup: ServiceGroup = {
+            id: grp.id,
+            name: grp.name,
+            optional: grp.optional,
+            costType: grp.costType || null,
+            setupCost: grpSetup,
+            recurringCost: grpRecurring,
+            services: groupServices,
+          };
+          state.serviceGroups.push(serviceGroup);
+        }
       }
     },
 
@@ -102,13 +295,13 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
 
     updateTierInfoOperation(state, action) {
       const { input } = action;
-      if (input.tierId) state.tierId = input.tierId;
       if (input.tierName) state.tierName = input.tierName;
       if (input.tierPricingOptionId)
         state.tierPricingOptionId = input.tierPricingOptionId;
       if (input.tierPrice !== undefined && input.tierPrice !== null)
         state.tierPrice = input.tierPrice;
       if (input.tierCurrency) state.tierCurrency = input.tierCurrency;
+      if (input.tierPricingMode) state.tierPricingMode = input.tierPricingMode;
     },
 
     setOperatorNotesOperation(state, action) {
@@ -133,15 +326,5 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       if (action.input.projectedBillCurrency) {
         state.projectedBillCurrency = action.input.projectedBillCurrency;
       }
-    },
-
-    setTargetAudienceOperation(state, action) {
-      state.targetAudienceId = action.input.targetAudienceId;
-      state.targetAudienceLabel = action.input.targetAudienceLabel;
-    },
-
-    removeTargetAudienceOperation(state, _action) {
-      state.targetAudienceId = null;
-      state.targetAudienceLabel = null;
     },
   };

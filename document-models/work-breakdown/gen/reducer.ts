@@ -12,6 +12,7 @@ import { workBreakdownPrerequisitesOperations } from "../src/reducers/prerequisi
 import { workBreakdownTasksOperations } from "../src/reducers/tasks.js";
 import { workBreakdownDependenciesOperations } from "../src/reducers/dependencies.js";
 import { workBreakdownNotesOperations } from "../src/reducers/notes.js";
+import { workBreakdownExtractionOperations } from "../src/reducers/extraction.js";
 
 import {
   SetProjectInfoInputSchema,
@@ -45,6 +46,10 @@ import {
   RemoveDependencyInputSchema,
   AddNoteInputSchema,
   RemoveNoteInputSchema,
+  SetAiContextInputSchema,
+  AddExtractionRecordInputSchema,
+  UpdateExtractionRecordInputSchema,
+  ClearExtractionHistoryInputSchema,
 } from "./schema/zod.js";
 
 const stateReducer: StateReducer<WorkBreakdownPHState> = (
@@ -420,6 +425,54 @@ const stateReducer: StateReducer<WorkBreakdownPHState> = (
       RemoveNoteInputSchema().parse(action.input);
 
       workBreakdownNotesOperations.removeNoteOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_AI_CONTEXT": {
+      SetAiContextInputSchema().parse(action.input);
+
+      workBreakdownExtractionOperations.setAiContextOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "ADD_EXTRACTION_RECORD": {
+      AddExtractionRecordInputSchema().parse(action.input);
+
+      workBreakdownExtractionOperations.addExtractionRecordOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "UPDATE_EXTRACTION_RECORD": {
+      UpdateExtractionRecordInputSchema().parse(action.input);
+
+      workBreakdownExtractionOperations.updateExtractionRecordOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "CLEAR_EXTRACTION_HISTORY": {
+      ClearExtractionHistoryInputSchema().parse(action.input);
+
+      workBreakdownExtractionOperations.clearExtractionHistoryOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

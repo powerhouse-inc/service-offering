@@ -4,45 +4,45 @@ import {
   UpdateTierInputSchema,
   UpdateTierPricingInputSchema,
   DeleteTierInputSchema,
-  AddTierPricingOptionInputSchema,
-  UpdateTierPricingOptionInputSchema,
-  RemoveTierPricingOptionInputSchema,
   AddServiceLevelInputSchema,
   UpdateServiceLevelInputSchema,
   RemoveServiceLevelInputSchema,
   AddUsageLimitInputSchema,
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
+  SetTierDefaultBillingCycleInputSchema,
+  SetTierBillingCycleDiscountsInputSchema,
+  SetTierPricingModeInputSchema,
 } from "../schema/zod.js";
 import type {
   AddTierInput,
   UpdateTierInput,
   UpdateTierPricingInput,
   DeleteTierInput,
-  AddTierPricingOptionInput,
-  UpdateTierPricingOptionInput,
-  RemoveTierPricingOptionInput,
   AddServiceLevelInput,
   UpdateServiceLevelInput,
   RemoveServiceLevelInput,
   AddUsageLimitInput,
   UpdateUsageLimitInput,
   RemoveUsageLimitInput,
+  SetTierDefaultBillingCycleInput,
+  SetTierBillingCycleDiscountsInput,
+  SetTierPricingModeInput,
 } from "../types.js";
 import type {
   AddTierAction,
   UpdateTierAction,
   UpdateTierPricingAction,
   DeleteTierAction,
-  AddTierPricingOptionAction,
-  UpdateTierPricingOptionAction,
-  RemoveTierPricingOptionAction,
   AddServiceLevelAction,
   UpdateServiceLevelAction,
   RemoveServiceLevelAction,
   AddUsageLimitAction,
   UpdateUsageLimitAction,
   RemoveUsageLimitAction,
+  SetTierDefaultBillingCycleAction,
+  SetTierBillingCycleDiscountsAction,
+  SetTierPricingModeAction,
 } from "./actions.js";
 
 export const addTier = (input: AddTierInput) =>
@@ -78,33 +78,6 @@ export const deleteTier = (input: DeleteTierInput) =>
     { ...input },
     undefined,
     DeleteTierInputSchema,
-    "global",
-  );
-
-export const addTierPricingOption = (input: AddTierPricingOptionInput) =>
-  createAction<AddTierPricingOptionAction>(
-    "ADD_TIER_PRICING_OPTION",
-    { ...input },
-    undefined,
-    AddTierPricingOptionInputSchema,
-    "global",
-  );
-
-export const updateTierPricingOption = (input: UpdateTierPricingOptionInput) =>
-  createAction<UpdateTierPricingOptionAction>(
-    "UPDATE_TIER_PRICING_OPTION",
-    { ...input },
-    undefined,
-    UpdateTierPricingOptionInputSchema,
-    "global",
-  );
-
-export const removeTierPricingOption = (input: RemoveTierPricingOptionInput) =>
-  createAction<RemoveTierPricingOptionAction>(
-    "REMOVE_TIER_PRICING_OPTION",
-    { ...input },
-    undefined,
-    RemoveTierPricingOptionInputSchema,
     "global",
   );
 
@@ -159,5 +132,36 @@ export const removeUsageLimit = (input: RemoveUsageLimitInput) =>
     { ...input },
     undefined,
     RemoveUsageLimitInputSchema,
+    "global",
+  );
+
+export const setTierDefaultBillingCycle = (
+  input: SetTierDefaultBillingCycleInput,
+) =>
+  createAction<SetTierDefaultBillingCycleAction>(
+    "SET_TIER_DEFAULT_BILLING_CYCLE",
+    { ...input },
+    undefined,
+    SetTierDefaultBillingCycleInputSchema,
+    "global",
+  );
+
+export const setTierBillingCycleDiscounts = (
+  input: SetTierBillingCycleDiscountsInput,
+) =>
+  createAction<SetTierBillingCycleDiscountsAction>(
+    "SET_TIER_BILLING_CYCLE_DISCOUNTS",
+    { ...input },
+    undefined,
+    SetTierBillingCycleDiscountsInputSchema,
+    "global",
+  );
+
+export const setTierPricingMode = (input: SetTierPricingModeInput) =>
+  createAction<SetTierPricingModeAction>(
+    "SET_TIER_PRICING_MODE",
+    { ...input },
+    undefined,
+    SetTierPricingModeInputSchema,
     "global",
   );

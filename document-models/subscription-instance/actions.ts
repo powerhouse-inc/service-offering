@@ -5,9 +5,6 @@ import {
   serviceGroupActions,
   metricsActions,
   customerActions,
-  optionGroupActions,
-  facetActions,
-  requestsActions,
 } from "./gen/creators.js";
 
 /** Actions for the SubscriptionInstance document model */
@@ -19,7 +16,4 @@ export const actions = {
   ...serviceGroupActions,
   ...metricsActions,
   ...customerActions,
-  ...optionGroupActions,
-  ...facetActions,
-  ...requestsActions,
 };

@@ -11,9 +11,6 @@ export const serviceOfferingServiceManagementOperations: ServiceOfferingServiceM
         displayOrder: action.input.displayOrder ?? null,
         isSetupFormation: action.input.isSetupFormation || false,
         optionGroupId: action.input.optionGroupId || null,
-        costType: action.input.costType || null,
-        price: action.input.price || null,
-        currency: action.input.currency || null,
         facetBindings: [],
       });
       state.lastModified = action.input.lastModified;
@@ -47,15 +44,6 @@ export const serviceOfferingServiceManagementOperations: ServiceOfferingServiceM
         }
         if (action.input.optionGroupId !== undefined) {
           service.optionGroupId = action.input.optionGroupId || null;
-        }
-        if (action.input.costType !== undefined) {
-          service.costType = action.input.costType || null;
-        }
-        if (action.input.price !== undefined) {
-          service.price = action.input.price || null;
-        }
-        if (action.input.currency !== undefined) {
-          service.currency = action.input.currency || null;
         }
       }
       state.lastModified = action.input.lastModified;

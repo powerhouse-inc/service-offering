@@ -1,19 +1,19 @@
-import { useState, useCallback } from "react";
-import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 import type {
-  ClientRequest,
   Service,
-  ServiceGroup,
   ServiceMetric,
 } from "../../../document-models/subscription-instance/gen/schema/types.js";
 import type { ViewMode } from "../types.js";
 import { MetricActions } from "./MetricActions.js";
-import { createClientRequest } from "../../../document-models/subscription-instance/gen/requests/creators.js";
+import {
+  formatCurrency as fmtCurrency,
+  formatBillingCycleSuffix,
+  formatDiscountBadge,
+} from "./billing-utils.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -27,19 +27,24 @@ function UsageBar({
   dispatch,
   isOperator,
   customerName,
-  pendingRequest,
 }: {
   serviceId: string;
   metric: ServiceMetric;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   isOperator: boolean;
   customerName?: string | null;
-  pendingRequest?: ClientRequest | null;
 }) {
-  const effectiveLimit = metric.freeLimit ?? metric.paidLimit;
-  const percentage = effectiveLimit
-    ? Math.min(100, (metric.currentUsage / effectiveLimit) * 100)
-    : 0;
+  const freeLimit = metric.freeLimit ?? metric.limit ?? 0;
+  const paidLimit = metric.paidLimit ?? null;
+  const displayLimit = paidLimit ?? freeLimit;
+
+  const percentage =
+    displayLimit > 0
+      ? Math.min(100, (metric.currentUsage / displayLimit) * 100)
+      : 0;
+
+  const freePortion =
+    displayLimit > 0 ? Math.min(100, (freeLimit / displayLimit) * 100) : 0;
 
   const getBarColor = () => {
     if (percentage >= 90) return "si-usage-bar__fill--danger";
@@ -47,32 +52,7 @@ function UsageBar({
     return "si-usage-bar__fill--normal";
   };
 
-  const formatLimit = () => {
-    const parts: string[] = [];
-    if (metric.freeLimit != null)
-      parts.push(`${metric.freeLimit.toLocaleString()} free`);
-    if (metric.paidLimit != null)
-      parts.push(`${metric.paidLimit.toLocaleString()} max`);
-    return parts.length > 0 ? parts.join(" / ") : null;
-  };
-
-  const limitLabel = formatLimit();
-
-  // Compute overage for this metric
-  const hasOverage =
-    metric.freeLimit != null &&
-    metric.currentUsage > metric.freeLimit &&
-    metric.unitCost != null;
-  const overageExcess = hasOverage
-    ? metric.currentUsage - metric.freeLimit!
-    : 0;
-  const overageCost = hasOverage ? overageExcess * metric.unitCost!.amount : 0;
-
-  const formatCurrency = (amount: number, currency: string) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(amount);
+  const isOverFree = metric.currentUsage > freeLimit && freeLimit > 0;
 
   return (
     <div className="si-metric">
@@ -80,20 +60,28 @@ function UsageBar({
         <span className="si-metric__name">{metric.name}</span>
         <span className="si-metric__value">
           {metric.currentUsage.toLocaleString()}
-          {limitLabel && ` / ${limitLabel}`}
+          {displayLimit > 0 && ` / ${displayLimit.toLocaleString()}`}
           <span className="si-metric__unit"> {metric.unitName}</span>
         </span>
       </div>
       <div className="si-metric__body">
-        {effectiveLimit != null && (
+        {displayLimit > 0 && (
           <div className="si-usage-bar">
+            {/* Free portion marker */}
+            {paidLimit != null && freeLimit > 0 && freeLimit < paidLimit && (
+              <div
+                className="si-usage-bar__free-marker"
+                style={{ left: `${freePortion}%` }}
+                title={`${freeLimit.toLocaleString()} free`}
+              />
+            )}
             <div
               className={`si-usage-bar__fill ${getBarColor()}`}
               style={{ width: `${percentage}%` }}
               role="progressbar"
               aria-valuenow={metric.currentUsage}
               aria-valuemin={0}
-              aria-valuemax={effectiveLimit}
+              aria-valuemax={displayLimit}
             />
           </div>
         )}
@@ -103,38 +91,31 @@ function UsageBar({
           dispatch={dispatch}
           isOperator={isOperator}
           customerName={customerName}
-          pendingRequest={pendingRequest}
         />
       </div>
-      {hasOverage && (
-        <div className="si-metric__overage">
-          Overage: {overageExcess.toLocaleString()} {metric.unitName} &times;{" "}
-          {formatCurrency(metric.unitCost!.amount, metric.unitCost!.currency)} ={" "}
-          <strong>
-            {formatCurrency(overageCost, metric.unitCost!.currency)}
-          </strong>
-        </div>
-      )}
-      {metric.paidLimit != null && !hasOverage && (
-        <div
-          className="si-metric__paid-limit"
-          title="Maximum purchasable limit"
-        >
-          Paid limit: {metric.paidLimit.toLocaleString()} {metric.unitName}
+      {/* Free/Paid limit info */}
+      {paidLimit != null && freeLimit > 0 && freeLimit !== paidLimit && (
+        <p className="si-metric__paid-limit">
+          {freeLimit.toLocaleString()} free · {paidLimit.toLocaleString()} max
           {metric.unitCost && (
             <span>
-              {" "}
-              at{" "}
-              {formatCurrency(metric.unitCost.amount, metric.unitCost.currency)}
-              /{metric.unitName}
+              {" · "}overage:{" "}
+              {fmtCurrency(metric.unitCost.amount, metric.unitCost.currency)}/
+              {metric.unitName}
             </span>
           )}
+        </p>
+      )}
+      {/* Overage indicator */}
+      {isOverFree && metric.unitCost && (
+        <div className="si-metric__overage">
+          <strong>{(metric.currentUsage - freeLimit).toLocaleString()}</strong>{" "}
+          {metric.unitName} over free limit
         </div>
       )}
-      {(metric.nextUsageReset ||
-        (metric.usageResetPeriod && metric.usageResetPeriod !== "NONE")) && (
+      {(metric.nextUsageReset || metric.usageResetPeriod) && (
         <p className="si-metric__reset">
-          {metric.usageResetPeriod && metric.usageResetPeriod !== "NONE" && (
+          {metric.usageResetPeriod && (
             <span className="si-metric__reset-period">
               {metric.usageResetPeriod.charAt(0) +
                 metric.usageResetPeriod.slice(1).toLowerCase()}{" "}
@@ -143,9 +124,7 @@ function UsageBar({
           )}
           {metric.nextUsageReset && (
             <span>
-              {metric.usageResetPeriod && metric.usageResetPeriod !== "NONE"
-                ? " · "
-                : "Resets "}
+              {metric.usageResetPeriod ? " · " : "Resets "}
               {new Date(metric.nextUsageReset).toLocaleDateString()}
             </span>
           )}
@@ -160,8 +139,6 @@ interface ServiceCardProps {
   mode: ViewMode;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   customerName?: string | null;
-  showSetupCost?: boolean;
-  clientRequests?: ClientRequest[];
 }
 
 function ServiceCard({
@@ -169,218 +146,37 @@ function ServiceCard({
   mode,
   dispatch,
   customerName,
-  showSetupCost,
-  clientRequests,
 }: ServiceCardProps) {
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(amount);
-  };
-
-  const formatBillingCycle = (cycle: string) => {
-    const labels: Record<string, string> = {
-      MONTHLY: "/mo",
-      ANNUAL: "/yr",
-      QUARTERLY: "/qtr",
-      SEMI_ANNUAL: "/6mo",
-      ONE_TIME: "",
-    };
-    return labels[cycle] || "";
-  };
-
   return (
     <div className="si-service-card">
       <div className="si-service-card__header">
         <h4 className="si-service-card__name">{service.name || "Service"}</h4>
-        <div className="si-service-card__header-right">
-          {service.recurringCost && (
-            <span className="si-service-card__price">
-              {formatCurrency(
-                service.recurringCost.amount,
-                service.recurringCost.currency,
-              )}
-              {formatBillingCycle(service.recurringCost.billingCycle)}
-            </span>
-          )}
-          {!service.recurringCost && service.setupCost && (
-            <span
-              className="si-service-card__price"
-              style={{ color: "var(--si-violet-600)" }}
-            >
-              {formatCurrency(
-                service.setupCost.amount,
-                service.setupCost.currency,
-              )}
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 400,
-                  color: "var(--si-slate-500)",
-                  marginLeft: 4,
-                }}
-              >
-                setup
-              </span>
-            </span>
-          )}
-        </div>
+        {service.customValue && (
+          <span className="si-service-card__custom-value">
+            {service.customValue}
+          </span>
+        )}
       </div>
 
       {service.description && (
         <p className="si-service-card__desc">{service.description}</p>
       )}
 
-      {/* Setup Cost */}
-      {showSetupCost && service.setupCost && service.recurringCost && (
-        <div className="si-service-card__setup">
-          <span className="si-service-card__setup-label">Setup fee:</span>
-          <span className="si-service-card__setup-value">
-            {formatCurrency(
-              service.setupCost.amount,
-              service.setupCost.currency,
-            )}
-            {service.setupCost.paymentDate ? (
-              <span className="si-service-card__paid"> (Paid)</span>
-            ) : (
-              <span className="si-service-card__pending"> (Pending)</span>
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* Standalone setup cost (no recurring) */}
-      {showSetupCost && service.setupCost && !service.recurringCost && (
-        <div className="si-service-card__setup">
-          <span className="si-service-card__setup-label">Status:</span>
-          <span className="si-service-card__setup-value">
-            {service.setupCost.paymentDate ? (
-              <span className="si-service-card__paid">Paid</span>
-            ) : (
-              <span className="si-service-card__pending">Pending</span>
-            )}
-          </span>
-        </div>
-      )}
-
       {/* Metrics / Usage */}
       {service.metrics.length > 0 && (
         <div className="si-service-card__metrics">
-          {service.metrics.map((metric) => {
-            const pendingReq = clientRequests?.find(
-              (r) => r.status === "PENDING" && r.metricId === metric.id,
-            );
-            return (
-              <UsageBar
-                key={metric.id}
-                serviceId={service.id}
-                metric={metric}
-                dispatch={dispatch}
-                isOperator={mode === "operator"}
-                customerName={customerName}
-                pendingRequest={pendingReq}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Next billing info */}
-      {service.recurringCost?.nextBillingDate && (
-        <p className="si-service-card__billing">
-          Next billing:{" "}
-          {new Date(service.recurringCost.nextBillingDate).toLocaleDateString()}
-        </p>
-      )}
-    </div>
-  );
-}
-
-interface RequestAddonRemovalModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  group: ServiceGroup | null;
-  dispatch: DocumentDispatch<SubscriptionInstanceAction>;
-}
-
-function RequestAddonRemovalModal({
-  isOpen,
-  onClose,
-  group,
-  dispatch,
-}: RequestAddonRemovalModalProps) {
-  const [reason, setReason] = useState("");
-
-  const handleSubmit = useCallback(() => {
-    if (!group) return;
-
-    dispatch(
-      createClientRequest({
-        id: generateId(),
-        type: "REMOVE_SERVICE",
-        description: `Request to remove add-on: ${group.name}`,
-        reason: reason || undefined,
-        createdAt: new Date().toISOString(),
-        serviceName: group.name,
-      }),
-    );
-
-    setReason("");
-    onClose();
-  }, [onClose, group, reason, dispatch]);
-
-  const handleClose = useCallback(() => {
-    setReason("");
-    onClose();
-  }, [onClose]);
-
-  if (!isOpen || !group) return null;
-
-  return (
-    <div className="si-modal-overlay" onClick={handleClose}>
-      <div className="si-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="si-modal__header">
-          <h3 className="si-modal__title">Request Add-on Removal</h3>
-          <span className="si-modal__subtitle">{group.name}</span>
-        </div>
-        <div className="si-modal__body">
-          <p className="si-modal__message">
-            Submit a request to remove the <strong>{group.name}</strong> add-on
-            and all its services from your subscription. The operator will
-            review your request.
-          </p>
-          <div className="si-form-group">
-            <label className="si-form-label" htmlFor="addon-removal-reason">
-              Reason (optional)
-            </label>
-            <textarea
-              id="addon-removal-reason"
-              className="si-input si-input--textarea"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why you want to remove this add-on..."
-              rows={3}
+          {service.metrics.map((metric) => (
+            <UsageBar
+              key={metric.id}
+              serviceId={service.id}
+              metric={metric}
+              dispatch={dispatch}
+              isOperator={mode === "operator"}
+              customerName={customerName}
             />
-          </div>
+          ))}
         </div>
-        <div className="si-modal__footer">
-          <button
-            type="button"
-            className="si-btn si-btn--ghost"
-            onClick={handleClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="si-btn si-btn--danger"
-            onClick={handleSubmit}
-          >
-            Submit Request
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -398,8 +194,6 @@ export function ServicesPanel({
 
   const hasRecurring = state.services.length > 0 || recurringGroups.length > 0;
   const hasAddons = addonGroups.length > 0;
-
-  const [groupToRemove, setGroupToRemove] = useState<ServiceGroup | null>(null);
 
   const recurringServiceCount =
     state.services.length +
@@ -458,8 +252,6 @@ export function ServicesPanel({
                   mode={mode}
                   dispatch={dispatch}
                   customerName={state.customerName}
-                  showSetupCost={mode === "operator"}
-                  clientRequests={state.clientRequests}
                 />
               ))}
             </div>
@@ -470,9 +262,26 @@ export function ServicesPanel({
             <div key={group.id} className="si-service-group">
               <div className="si-service-group__header">
                 <h4 className="si-service-group__name">{group.name}</h4>
-                {group.billingCycle && (
-                  <span className="si-badge si-badge--sky si-badge--sm">
-                    {group.billingCycle.replace(/_/g, " ")}
+                {group.recurringCost && (
+                  <span className="si-service-group__price">
+                    {group.recurringCost.discount && (
+                      <>
+                        <span className="si-service-group__original-price">
+                          {fmtCurrency(
+                            group.recurringCost.discount.originalAmount,
+                            group.recurringCost.currency,
+                          )}
+                        </span>
+                        <span className="si-service-group__discount-badge">
+                          {formatDiscountBadge(group.recurringCost.discount)}
+                        </span>
+                      </>
+                    )}
+                    {fmtCurrency(
+                      group.recurringCost.amount,
+                      group.recurringCost.currency,
+                    )}
+                    {formatBillingCycleSuffix(group.recurringCost.billingCycle)}
                   </span>
                 )}
               </div>
@@ -484,8 +293,6 @@ export function ServicesPanel({
                     mode={mode}
                     dispatch={dispatch}
                     customerName={state.customerName}
-                    showSetupCost={mode === "operator"}
-                    clientRequests={state.clientRequests}
                   />
                 ))}
               </div>
@@ -511,20 +318,27 @@ export function ServicesPanel({
                 <span className="si-badge si-badge--violet si-badge--sm">
                   Optional
                 </span>
-                {group.billingCycle && (
-                  <span className="si-badge si-badge--sky si-badge--sm">
-                    {group.billingCycle.replace(/_/g, " ")}
+                {group.recurringCost && (
+                  <span className="si-service-group__price">
+                    {group.recurringCost.discount && (
+                      <>
+                        <span className="si-service-group__original-price">
+                          {fmtCurrency(
+                            group.recurringCost.discount.originalAmount,
+                            group.recurringCost.currency,
+                          )}
+                        </span>
+                        <span className="si-service-group__discount-badge">
+                          {formatDiscountBadge(group.recurringCost.discount)}
+                        </span>
+                      </>
+                    )}
+                    {fmtCurrency(
+                      group.recurringCost.amount,
+                      group.recurringCost.currency,
+                    )}
+                    {formatBillingCycleSuffix(group.recurringCost.billingCycle)}
                   </span>
-                )}
-                {mode === "client" && (
-                  <button
-                    type="button"
-                    className="si-btn si-btn--xs si-btn--danger-ghost"
-                    style={{ marginLeft: "auto" }}
-                    onClick={() => setGroupToRemove(group)}
-                  >
-                    Request Removal
-                  </button>
                 )}
               </div>
               <div className="si-services-grid">
@@ -535,8 +349,6 @@ export function ServicesPanel({
                     mode={mode}
                     dispatch={dispatch}
                     customerName={state.customerName}
-                    showSetupCost
-                    clientRequests={state.clientRequests}
                   />
                 ))}
               </div>
@@ -544,14 +356,6 @@ export function ServicesPanel({
           ))}
         </div>
       )}
-
-      {/* Add-on Removal Request Modal */}
-      <RequestAddonRemovalModal
-        isOpen={groupToRemove !== null}
-        onClose={() => setGroupToRemove(null)}
-        group={groupToRemove}
-        dispatch={dispatch}
-      />
     </>
   );
 }

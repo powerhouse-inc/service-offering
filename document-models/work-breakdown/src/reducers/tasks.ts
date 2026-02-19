@@ -19,6 +19,8 @@ export const workBreakdownTasksOperations: WorkBreakdownTasksOperations = {
       substepId: action.input.substepId || null,
       sequenceOrder: action.input.sequenceOrder,
       notes: action.input.notes || null,
+      blockedReason: null,
+      blockedByItemId: null,
       createdAt: action.input.createdAt,
     });
   },
@@ -36,6 +38,8 @@ export const workBreakdownTasksOperations: WorkBreakdownTasksOperations = {
         substepId: t.substepId || null,
         sequenceOrder: t.sequenceOrder,
         notes: t.notes || null,
+        blockedReason: null,
+        blockedByItemId: null,
         createdAt: t.createdAt,
       });
     }
@@ -73,5 +77,15 @@ export const workBreakdownTasksOperations: WorkBreakdownTasksOperations = {
     if (!task)
       throw new SetTaskStatusNotFoundError(`Task ${action.input.id} not found`);
     task.status = action.input.status;
+    if (action.input.status === "BLOCKED") {
+      task.blockedReason = action.input.blockedReason || null;
+      task.blockedByItemId = action.input.blockedByItemId || null;
+      if (action.input.blockedReason) {
+        task.notes = `[BLOCKED] ${action.input.blockedReason}`;
+      }
+    } else {
+      task.blockedReason = null;
+      task.blockedByItemId = null;
+    }
   },
 };

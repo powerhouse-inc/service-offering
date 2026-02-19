@@ -22,8 +22,8 @@
               "examples": [],
               "id": "INITIALIZE_SUBSCRIPTION",
               "name": "INITIALIZE_SUBSCRIPTION",
-              "reducer": "",
-              "schema": "input InitializeSubscriptionInput {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    customerType: CustomerType\n    operatorId: PHID\n    operatorName: String\n    serviceOfferingId: PHID\n    tierId: OID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    resourceId: PHID\n    resourceLabel: String\n    resourceThumbnailUrl: URL\n    autoRenew: Boolean\n    targetAudienceId: OID\n    targetAudienceLabel: String\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n    createdAt: DateTime!\n}",
+              "reducer": "const { input } = action;\nstate.customerId = input.customerId || null;\nstate.customerName = input.customerName || null;\nstate.customerEmail = input.customerEmail || null;\nstate.serviceOfferingId = input.serviceOfferingId || null;\nstate.tierName = input.tierName || null;\nstate.tierPricingOptionId = input.tierPricingOptionId || null;\nstate.tierPrice = input.tierPrice || null;\nstate.tierCurrency = input.tierCurrency || null;\nstate.selectedBillingCycle = input.selectedBillingCycle || null;\nstate.autoRenew = input.autoRenew ?? false;\nstate.createdAt = input.createdAt;\nstate.status = \"PENDING\";\nif (input.resourceId) {\n  state.resource = {\n    id: input.resourceId,\n    label: input.resourceLabel || null,\n    thumbnailUrl: input.resourceThumbnailUrl || null,\n  };\n}\nif (input.services) {\n  for (const svc of input.services) {\n    state.services.push({\n      id: svc.id,\n      name: svc.name || null,\n      description: svc.description || null,\n      customValue: svc.customValue || null,\n      facetSelections: (svc.facetSelections || []).map(f => ({ id: f.id, facetName: f.facetName, selectedOption: f.selectedOption })),\n      setupCost: svc.setupAmount && svc.setupCurrency ? { amount: svc.setupAmount, currency: svc.setupCurrency, billingDate: null, paymentDate: null } : null,\n      recurringCost: svc.recurringAmount && svc.recurringCurrency && svc.recurringBillingCycle ? { amount: svc.recurringAmount, currency: svc.recurringCurrency, billingCycle: svc.recurringBillingCycle, nextBillingDate: null, lastPaymentDate: null } : null,\n      metrics: (svc.metrics || []).map(m => ({ id: m.id, name: m.name, unitName: m.unitName, limit: m.limit || null, currentUsage: m.currentUsage, usageResetPeriod: m.usageResetPeriod || null, nextUsageReset: null, unitCost: m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle ? { amount: m.unitCostAmount, currency: m.unitCostCurrency, billingCycle: m.unitCostBillingCycle, nextBillingDate: null, lastPaymentDate: null } : null })),\n    });\n  }\n}\nif (input.serviceGroups) {\n  for (const grp of input.serviceGroups) {\n    const groupServices = (grp.services || []).map(svc => ({\n      id: svc.id,\n      name: svc.name || null,\n      description: svc.description || null,\n      customValue: svc.customValue || null,\n      facetSelections: (svc.facetSelections || []).map(f => ({ id: f.id, facetName: f.facetName, selectedOption: f.selectedOption })),\n      setupCost: svc.setupAmount && svc.setupCurrency ? { amount: svc.setupAmount, currency: svc.setupCurrency, billingDate: null, paymentDate: null } : null,\n      recurringCost: svc.recurringAmount && svc.recurringCurrency && svc.recurringBillingCycle ? { amount: svc.recurringAmount, currency: svc.recurringCurrency, billingCycle: svc.recurringBillingCycle, nextBillingDate: null, lastPaymentDate: null } : null,\n      metrics: (svc.metrics || []).map(m => ({ id: m.id, name: m.name, unitName: m.unitName, limit: m.limit || null, currentUsage: m.currentUsage, usageResetPeriod: m.usageResetPeriod || null, nextUsageReset: null, unitCost: m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle ? { amount: m.unitCostAmount, currency: m.unitCostCurrency, billingCycle: m.unitCostBillingCycle, nextBillingDate: null, lastPaymentDate: null } : null })),\n    }));\n    state.serviceGroups.push({\n      id: grp.id,\n      name: grp.name,\n      optional: grp.optional,\n      setupCost: grp.setupAmount && grp.setupCurrency ? { amount: grp.setupAmount, currency: grp.setupCurrency, billingDate: grp.setupBillingDate || null, paymentDate: null } : null,\n      recurringCost: grp.recurringAmount && grp.recurringCurrency && grp.recurringBillingCycle ? { amount: grp.recurringAmount, currency: grp.recurringCurrency, billingCycle: grp.recurringBillingCycle, nextBillingDate: null, lastPaymentDate: null } : null,\n      services: groupServices,\n    });\n  }\n}",
+              "schema": "input InitializeFacetSelectionInput {\n    id: OID!\n    facetName: String!\n    selectedOption: String!\n}\n\ninput InitializeMetricInput {\n    id: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n}\n\ninput InitializeServiceInput {\n    id: OID!\n    name: String\n    description: String\n    customValue: String\n    facetSelections: [InitializeFacetSelectionInput!]\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    metrics: [InitializeMetricInput!]\n}\n\ninput InitializeServiceGroupInput {\n    id: OID!\n    name: String!\n    optional: Boolean!\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    services: [InitializeServiceInput!]\n}\n\ninput InitializeSubscriptionInput {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    serviceOfferingId: PHID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    selectedBillingCycle: BillingCycle\n    resourceId: PHID\n    resourceLabel: String\n    resourceThumbnailUrl: URL\n    autoRenew: Boolean\n    createdAt: DateTime!\n    services: [InitializeServiceInput!]\n    serviceGroups: [InitializeServiceGroupInput!]\n}",
               "scope": "global",
               "template": "Initialize a new subscription with customer and offering details"
             },
@@ -149,13 +149,13 @@
               "template": "Update customer information"
             },
             {
-              "description": "Update tier information including tier ID reference",
+              "description": "Update tier information",
               "errors": [],
               "examples": [],
               "id": "UPDATE_TIER_INFO",
               "name": "UPDATE_TIER_INFO",
-              "reducer": "",
-              "schema": "input UpdateTierInfoInput {\n    tierId: OID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n}",
+              "reducer": "const { input } = action;\nif (input.tierName) state.tierName = input.tierName;\nif (input.tierPricingOptionId) state.tierPricingOptionId = input.tierPricingOptionId;\nif (input.tierPrice !== undefined && input.tierPrice !== null) state.tierPrice = input.tierPrice;\nif (input.tierCurrency) state.tierCurrency = input.tierCurrency;",
+              "schema": "input UpdateTierInfoInput {\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n}",
               "scope": "global",
               "template": "Update tier information"
             },
@@ -193,7 +193,7 @@
               "template": "Set the renewal date"
             },
             {
-              "description": "Update billing projection fields (next billing date, projected amount)",
+              "description": "Update billing projection fields",
               "errors": [],
               "examples": [],
               "id": "UPDATE_BILLING_PROJECTION",
@@ -202,28 +202,6 @@
               "schema": "input UpdateBillingProjectionInput {\n    nextBillingDate: DateTime\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n}",
               "scope": "global",
               "template": "Update billing projection fields"
-            },
-            {
-              "description": "Set the target audience for this subscription",
-              "errors": [],
-              "examples": [],
-              "id": "SET_TARGET_AUDIENCE",
-              "name": "SET_TARGET_AUDIENCE",
-              "reducer": "",
-              "schema": "input SetTargetAudienceInput {\n    targetAudienceId: OID!\n    targetAudienceLabel: String!\n}",
-              "scope": "global",
-              "template": "Set the target audience for this subscription"
-            },
-            {
-              "description": "Remove the target audience from this subscription",
-              "errors": [],
-              "examples": [],
-              "id": "REMOVE_TARGET_AUDIENCE",
-              "name": "REMOVE_TARGET_AUDIENCE",
-              "reducer": "",
-              "schema": "input RemoveTargetAudienceInput {\n    targetAudienceId: OID!\n}",
-              "scope": "global",
-              "template": "Remove the target audience from this subscription"
             }
           ]
         },
@@ -238,8 +216,8 @@
               "examples": [],
               "id": "ADD_SERVICE",
               "name": "ADD_SERVICE",
-              "reducer": "",
-              "schema": "input AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    serviceLevel: ServiceLevel\n    customValue: String\n    facetLabel: String\n    isSetupService: Boolean\n    displayOrder: Int\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
+              "reducer": "const { input } = action;\nlet setupCost = null;\nif (input.setupAmount && input.setupCurrency) {\n  setupCost = { amount: input.setupAmount, currency: input.setupCurrency, billingDate: input.setupBillingDate || null, paymentDate: input.setupPaymentDate || null };\n}\nlet recurringCost = null;\nif (input.recurringAmount && input.recurringCurrency && input.recurringBillingCycle) {\n  recurringCost = { amount: input.recurringAmount, currency: input.recurringCurrency, billingCycle: input.recurringBillingCycle, nextBillingDate: input.recurringNextBillingDate || null, lastPaymentDate: input.recurringLastPaymentDate || null };\n}\nstate.services.push({ id: input.serviceId, name: input.name || null, description: input.description || null, customValue: input.customValue || null, facetSelections: [], setupCost, recurringCost, metrics: [] });",
+              "schema": "input AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
               "scope": "global",
               "template": "Add a new service to the subscription"
             },
@@ -299,26 +277,37 @@
               "template": "Report a recurring payment for a service"
             },
             {
-              "description": "Update service name and description",
+              "description": "Update service name, description and custom value",
               "errors": [],
               "examples": [],
               "id": "UPDATE_SERVICE_INFO",
               "name": "UPDATE_SERVICE_INFO",
-              "reducer": "",
-              "schema": "input UpdateServiceInfoInput {\n    serviceId: OID!\n    name: String\n    description: String\n}",
+              "reducer": "const { input } = action;\nconst service = state.services.find(s => s.id === input.serviceId);\nif (service) {\n  if (input.name) service.name = input.name;\n  if (input.description) service.description = input.description;\n  if (input.customValue !== undefined && input.customValue !== null) service.customValue = input.customValue;\n}",
+              "schema": "input UpdateServiceInfoInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n}",
               "scope": "global",
-              "template": "Update service name and description"
+              "template": "Update service name, description and custom value"
             },
             {
-              "description": "Update the service level of a service in the subscription",
+              "description": "Add a facet selection to a service",
               "errors": [],
               "examples": [],
-              "id": "UPDATE_SERVICE_LEVEL",
-              "name": "UPDATE_SERVICE_LEVEL",
-              "reducer": "",
-              "schema": "input UpdateServiceLevelInput {\n    serviceId: OID!\n    serviceLevel: ServiceLevel!\n}",
+              "id": "ADD_SERVICE_FACET_SELECTION",
+              "name": "ADD_SERVICE_FACET_SELECTION",
+              "reducer": "const { input } = action;\nconst service = state.services.find(s => s.id === input.serviceId);\nif (service) {\n  service.facetSelections.push({ id: input.facetSelectionId, facetName: input.facetName, selectedOption: input.selectedOption });\n}",
+              "schema": "input AddServiceFacetSelectionInput {\n    serviceId: OID!\n    facetSelectionId: OID!\n    facetName: String!\n    selectedOption: String!\n}",
               "scope": "global",
-              "template": "Update the service level of a service"
+              "template": "Add a facet selection to a service"
+            },
+            {
+              "description": "Remove a facet selection from a service",
+              "errors": [],
+              "examples": [],
+              "id": "REMOVE_SERVICE_FACET_SELECTION",
+              "name": "REMOVE_SERVICE_FACET_SELECTION",
+              "reducer": "const { input } = action;\nconst service = state.services.find(s => s.id === input.serviceId);\nif (service) {\n  const index = service.facetSelections.findIndex(f => f.id === input.facetSelectionId);\n  if (index !== -1) service.facetSelections.splice(index, 1);\n}",
+              "schema": "input RemoveServiceFacetSelectionInput {\n    serviceId: OID!\n    facetSelectionId: OID!\n}",
+              "scope": "global",
+              "template": "Remove a facet selection from a service"
             }
           ]
         },
@@ -333,8 +322,8 @@
               "examples": [],
               "id": "ADD_SERVICE_GROUP",
               "name": "ADD_SERVICE_GROUP",
-              "reducer": "",
-              "schema": "input AddServiceGroupInput {\n    groupId: OID!\n    name: String!\n    optional: Boolean!\n    billingCycle: BillingCycle\n    optionGroupId: OID\n    displayOrder: Int\n}",
+              "reducer": "const { input } = action;\nlet setupCost = null;\nif (input.setupAmount && input.setupCurrency) {\n  setupCost = { amount: input.setupAmount, currency: input.setupCurrency, billingDate: input.setupBillingDate || null, paymentDate: null };\n}\nlet recurringCost = null;\nif (input.recurringAmount && input.recurringCurrency && input.recurringBillingCycle) {\n  recurringCost = { amount: input.recurringAmount, currency: input.recurringCurrency, billingCycle: input.recurringBillingCycle, nextBillingDate: null, lastPaymentDate: null };\n}\nstate.serviceGroups.push({ id: input.groupId, name: input.name, optional: input.optional, setupCost, recurringCost, services: [] });",
+              "schema": "input AddServiceGroupInput {\n    groupId: OID!\n    name: String!\n    optional: Boolean!\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n}",
               "scope": "global",
               "template": "Add a new service group"
             },
@@ -355,8 +344,8 @@
               "examples": [],
               "id": "ADD_SERVICE_TO_GROUP",
               "name": "ADD_SERVICE_TO_GROUP",
-              "reducer": "",
-              "schema": "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    serviceLevel: ServiceLevel\n    customValue: String\n    facetLabel: String\n    isSetupService: Boolean\n    displayOrder: Int\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
+              "reducer": "const { input } = action;\nconst group = state.serviceGroups.find(g => g.id === input.groupId);\nif (group) {\n  let setupCost = null;\n  if (input.setupAmount && input.setupCurrency) {\n    setupCost = { amount: input.setupAmount, currency: input.setupCurrency, billingDate: input.setupBillingDate || null, paymentDate: input.setupPaymentDate || null };\n  }\n  let recurringCost = null;\n  if (input.recurringAmount && input.recurringCurrency && input.recurringBillingCycle) {\n    recurringCost = { amount: input.recurringAmount, currency: input.recurringCurrency, billingCycle: input.recurringBillingCycle, nextBillingDate: input.recurringNextBillingDate || null, lastPaymentDate: input.recurringLastPaymentDate || null };\n  }\n  group.services.push({ id: input.serviceId, name: input.name || null, description: input.description || null, customValue: input.customValue || null, facetSelections: [], setupCost, recurringCost, metrics: [] });\n}",
+              "schema": "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
               "scope": "global",
               "template": "Add a service to a group"
             },
@@ -370,6 +359,17 @@
               "schema": "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n}",
               "scope": "global",
               "template": "Remove a service from a group"
+            },
+            {
+              "description": "Update the recurring cost of a service group",
+              "errors": [],
+              "examples": [],
+              "id": "UPDATE_SERVICE_GROUP_COST",
+              "name": "UPDATE_SERVICE_GROUP_COST",
+              "reducer": "const { input } = action;\nconst group = state.serviceGroups.find(g => g.id === input.groupId);\nif (group) {\n  if (input.setupAmount && input.setupCurrency) {\n    if (!group.setupCost) {\n      group.setupCost = { amount: input.setupAmount, currency: input.setupCurrency, billingDate: input.setupBillingDate || null, paymentDate: null };\n    } else {\n      group.setupCost.amount = input.setupAmount;\n      group.setupCost.currency = input.setupCurrency;\n      if (input.setupBillingDate) group.setupCost.billingDate = input.setupBillingDate;\n    }\n  }\n  if (input.recurringAmount && input.recurringCurrency && input.recurringBillingCycle) {\n    if (!group.recurringCost) {\n      group.recurringCost = { amount: input.recurringAmount, currency: input.recurringCurrency, billingCycle: input.recurringBillingCycle, nextBillingDate: null, lastPaymentDate: null };\n    } else {\n      group.recurringCost.amount = input.recurringAmount;\n      group.recurringCost.currency = input.recurringCurrency;\n      group.recurringCost.billingCycle = input.recurringBillingCycle;\n    }\n  }\n}",
+              "schema": "input UpdateServiceGroupCostInput {\n    groupId: OID!\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n}",
+              "scope": "global",
+              "template": "Update the recurring cost of a service group"
             }
           ]
         },
@@ -385,7 +385,7 @@
               "id": "ADD_SERVICE_METRIC",
               "name": "ADD_SERVICE_METRIC",
               "reducer": "",
-              "schema": "input AddServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String!\n    unitName: String!\n    freeLimit: Int\n    paidLimit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n    unitCostNextBillingDate: DateTime\n    unitCostLastPaymentDate: DateTime\n}",
+              "schema": "input AddServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n    unitCostNextBillingDate: DateTime\n    unitCostLastPaymentDate: DateTime\n}",
               "scope": "global",
               "template": "Add a metric to a service"
             },
@@ -396,7 +396,7 @@
               "id": "UPDATE_METRIC",
               "name": "UPDATE_METRIC",
               "reducer": "",
-              "schema": "input UpdateMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}",
+              "schema": "input UpdateMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String\n    unitName: String\n    limit: Int\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}",
               "scope": "global",
               "template": "Update metric properties"
             },
@@ -474,111 +474,13 @@
               "template": "Update team member count"
             }
           ]
-        },
-        {
-          "description": "Selected option group management for subscription add-ons",
-          "id": "option-group",
-          "name": "Option Group",
-          "operations": [
-            {
-              "description": "Add a selected option group to the subscription",
-              "errors": [],
-              "examples": [],
-              "id": "ADD_SELECTED_OPTION_GROUP",
-              "name": "ADD_SELECTED_OPTION_GROUP",
-              "reducer": "",
-              "schema": "input AddSelectedOptionGroupInput {\n    id: OID!\n    optionGroupId: OID!\n    name: String!\n    isAddOn: Boolean!\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n}",
-              "scope": "global",
-              "template": "Add a selected option group to the subscription"
-            },
-            {
-              "description": "Remove a selected option group from the subscription",
-              "errors": [],
-              "examples": [],
-              "id": "REMOVE_SELECTED_OPTION_GROUP",
-              "name": "REMOVE_SELECTED_OPTION_GROUP",
-              "reducer": "",
-              "schema": "input RemoveSelectedOptionGroupInput {\n    id: OID!\n}",
-              "scope": "global",
-              "template": "Remove a selected option group from the subscription"
-            }
-          ]
-        },
-        {
-          "description": "Facet selection management for subscription resource configuration",
-          "id": "facet",
-          "name": "Facet",
-          "operations": [
-            {
-              "description": "Set or update a facet selection for the subscription",
-              "errors": [],
-              "examples": [],
-              "id": "SET_FACET_SELECTION",
-              "name": "SET_FACET_SELECTION",
-              "reducer": "",
-              "schema": "input SetFacetSelectionInput {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}",
-              "scope": "global",
-              "template": "Set or update a facet selection"
-            },
-            {
-              "description": "Remove a facet selection from the subscription",
-              "errors": [],
-              "examples": [],
-              "id": "REMOVE_FACET_SELECTION",
-              "name": "REMOVE_FACET_SELECTION",
-              "reducer": "",
-              "schema": "input RemoveFacetSelectionInput {\n    categoryKey: String!\n}",
-              "scope": "global",
-              "template": "Remove a facet selection"
-            }
-          ]
-        },
-        {
-          "description": "Client request management for approval workflows",
-          "id": "requests",
-          "name": "Requests",
-          "operations": [
-            {
-              "description": "Create a new client request for operator review",
-              "errors": [],
-              "examples": [],
-              "id": "CREATE_CLIENT_REQUEST",
-              "name": "CREATE_CLIENT_REQUEST",
-              "reducer": "",
-              "schema": "input CreateClientRequestInput {\n    id: OID!\n    type: RequestType!\n    description: String!\n    reason: String\n    createdAt: DateTime!\n    serviceId: OID\n    serviceName: String\n    metricId: OID\n    metricName: String\n    requestedValue: Int\n    optionGroupId: OID\n    optionGroupName: String\n}",
-              "scope": "global",
-              "template": "Create a new client request"
-            },
-            {
-              "description": "Approve a pending client request",
-              "errors": [],
-              "examples": [],
-              "id": "APPROVE_REQUEST",
-              "name": "APPROVE_REQUEST",
-              "reducer": "",
-              "schema": "input ApproveRequestInput {\n    requestId: OID!\n    resolvedAt: DateTime!\n    operatorResponse: String\n}",
-              "scope": "global",
-              "template": "Approve a pending client request"
-            },
-            {
-              "description": "Reject a pending client request",
-              "errors": [],
-              "examples": [],
-              "id": "REJECT_REQUEST",
-              "name": "REJECT_REQUEST",
-              "reducer": "",
-              "schema": "input RejectRequestInput {\n    requestId: OID!\n    resolvedAt: DateTime!\n    operatorResponse: String\n}",
-              "scope": "global",
-              "template": "Reject a pending client request"
-            }
-          ]
         }
       ],
       "state": {
         "global": {
           "examples": [],
-          "initialValue": "{\"customerId\":null,\"customerName\":null,\"customerEmail\":null,\"customerType\":null,\"teamMemberCount\":null,\"operatorId\":null,\"operatorName\":null,\"serviceOfferingId\":null,\"tierId\":null,\"tierName\":null,\"tierPricingOptionId\":null,\"tierPrice\":null,\"tierCurrency\":null,\"resource\":null,\"status\":\"PENDING\",\"createdAt\":null,\"activatedSince\":null,\"pausedSince\":null,\"expiringSince\":null,\"renewalDate\":null,\"cancelledSince\":null,\"cancellationReason\":null,\"autoRenew\":false,\"operatorNotes\":null,\"budget\":null,\"nextBillingDate\":null,\"projectedBillAmount\":null,\"projectedBillCurrency\":null,\"targetAudienceId\":null,\"targetAudienceLabel\":null,\"services\":[],\"serviceGroups\":[],\"selectedOptionGroups\":[],\"facetSelections\":[],\"clientRequests\":[]}",
-          "schema": "type SubscriptionInstanceState {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    customerType: CustomerType\n    teamMemberCount: Int\n    operatorId: PHID\n    operatorName: String\n    serviceOfferingId: PHID\n    tierId: OID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    resource: ResourceDocument\n    status: SubscriptionStatus!\n    createdAt: DateTime\n    activatedSince: DateTime\n    pausedSince: DateTime\n    expiringSince: DateTime\n    renewalDate: DateTime\n    cancelledSince: DateTime\n    cancellationReason: String\n    autoRenew: Boolean!\n    operatorNotes: String\n    budget: BudgetCategory\n    nextBillingDate: DateTime\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n    targetAudienceId: OID\n    targetAudienceLabel: String\n    services: [Service!]!\n    serviceGroups: [ServiceGroup!]!\n    selectedOptionGroups: [SelectedOptionGroup!]!\n    facetSelections: [SubscriptionFacetSelection!]!\n    clientRequests: [ClientRequest!]!\n}\n\nenum CustomerType {\n    INDIVIDUAL\n    TEAM\n}\n\ntype ServiceGroup {\n    id: OID!\n    optional: Boolean!\n    name: String!\n    billingCycle: BillingCycle\n    optionGroupId: OID\n    displayOrder: Int\n    services: [Service!]!\n}\n\ntype ResourceDocument {\n    id: PHID!\n    label: String\n    thumbnailUrl: URL\n}\n\nenum SubscriptionStatus {\n    PENDING\n    ACTIVE\n    PAUSED\n    EXPIRING\n    CANCELLED\n}\n\ntype RecurringCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingCycle: BillingCycle!\n    nextBillingDate: DateTime\n    lastPaymentDate: DateTime\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingDate: DateTime\n    paymentDate: DateTime\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype BudgetCategory {\n    id: OID!\n    label: String!\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype Service {\n    id: OID!\n    name: String\n    description: String\n    serviceLevel: ServiceLevel\n    customValue: String\n    facetLabel: String\n    isSetupService: Boolean\n    displayOrder: Int\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    metrics: [ServiceMetric!]!\n}\n\ntype ServiceMetric {\n    id: OID!\n    name: String!\n    unitName: String!\n    freeLimit: Int\n    paidLimit: Int\n    unitCost: RecurringCost\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}\n\nenum ResetPeriod {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype SelectedOptionGroup {\n    id: OID!\n    optionGroupId: OID!\n    name: String!\n    isAddOn: Boolean!\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}\n\ntype SubscriptionFacetSelection {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\nenum RequestType {\n    REMOVE_SERVICE\n    INCREASE_LIMIT\n    REMOVE_OPTION\n    GENERAL\n}\n\nenum RequestStatus {\n    PENDING\n    APPROVED\n    REJECTED\n}\n\ntype ClientRequest {\n    id: OID!\n    type: RequestType!\n    status: RequestStatus!\n    description: String!\n    reason: String\n    createdAt: DateTime!\n    resolvedAt: DateTime\n    operatorResponse: String\n    serviceId: OID\n    serviceName: String\n    metricId: OID\n    metricName: String\n    requestedValue: Int\n    optionGroupId: OID\n    optionGroupName: String\n}"
+          "initialValue": "{\"customerId\":null,\"customerName\":null,\"customerEmail\":null,\"customerType\":null,\"teamMemberCount\":null,\"operatorId\":null,\"serviceOfferingId\":null,\"tierName\":null,\"tierPricingOptionId\":null,\"tierPrice\":null,\"tierCurrency\":null,\"selectedBillingCycle\":null,\"resource\":null,\"status\":\"PENDING\",\"createdAt\":null,\"activatedSince\":null,\"pausedSince\":null,\"expiringSince\":null,\"renewalDate\":null,\"cancelledSince\":null,\"cancellationReason\":null,\"autoRenew\":false,\"operatorNotes\":null,\"budget\":null,\"nextBillingDate\":null,\"projectedBillAmount\":null,\"projectedBillCurrency\":null,\"services\":[],\"serviceGroups\":[]}",
+          "schema": "type SubscriptionInstanceState {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    customerType: CustomerType\n    teamMemberCount: Int\n    operatorId: PHID\n    serviceOfferingId: PHID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    selectedBillingCycle: BillingCycle\n    resource: ResourceDocument\n    status: SubscriptionStatus!\n    createdAt: DateTime\n    activatedSince: DateTime\n    pausedSince: DateTime\n    expiringSince: DateTime\n    renewalDate: DateTime\n    cancelledSince: DateTime\n    cancellationReason: String\n    autoRenew: Boolean!\n    operatorNotes: String\n    budget: BudgetCategory\n    nextBillingDate: DateTime\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n    services: [Service!]!\n    serviceGroups: [ServiceGroup!]!\n}\n\nenum CustomerType {\n    INDIVIDUAL\n    TEAM\n}\n\ntype ServiceGroup {\n    id: OID!\n    optional: Boolean!\n    name: String!\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    services: [Service!]!\n}\n\ntype ResourceDocument {\n    id: PHID!\n    label: String\n    thumbnailUrl: URL\n}\n\nenum SubscriptionStatus {\n    PENDING\n    ACTIVE\n    PAUSED\n    EXPIRING\n    CANCELLED\n}\n\ntype RecurringCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingCycle: BillingCycle!\n    nextBillingDate: DateTime\n    lastPaymentDate: DateTime\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingDate: DateTime\n    paymentDate: DateTime\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype BudgetCategory {\n    id: OID!\n    label: String!\n}\n\ntype Service {\n    id: OID!\n    name: String\n    description: String\n    customValue: String\n    facetSelections: [ServiceFacetSelection!]!\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    metrics: [ServiceMetric!]!\n}\n\ntype ServiceFacetSelection {\n    id: OID!\n    facetName: String!\n    selectedOption: String!\n}\n\ntype ServiceMetric {\n    id: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    unitCost: RecurringCost\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}\n\nenum ResetPeriod {\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}"
         },
         "local": {
           "examples": [],

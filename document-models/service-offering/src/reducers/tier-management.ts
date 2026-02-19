@@ -1,9 +1,7 @@
 import {
-  AddPricingOptionTierNotFoundError,
-  UpdatePricingOptionTierNotFoundError,
-  PricingOptionNotFoundError,
-  RemovePricingOptionTierNotFoundError,
-  RemovePricingOptionNotFoundError,
+  SetDefaultCycleTierNotFoundError,
+  SetCycleDiscountsTierNotFoundError,
+  SetPricingModeTierNotFoundError,
 } from "../../gen/tier-management/error.js";
 import type { ServiceOfferingTierManagementOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -20,8 +18,10 @@ export const serviceOfferingTierManagementOperations: ServiceOfferingTierManagem
           amount: action.input.amount || null,
           currency: action.input.currency,
         },
-        pricingOptions: [],
         isCustomPricing: action.input.isCustomPricing || false,
+        pricingMode: null,
+        defaultBillingCycle: null,
+        billingCycleDiscounts: [],
       });
       state.lastModified = action.input.lastModified;
     },
@@ -176,77 +176,34 @@ export const serviceOfferingTierManagementOperations: ServiceOfferingTierManagem
       }
       state.lastModified = action.input.lastModified;
     },
-    addTierPricingOptionOperation(state, action) {
+    setTierDefaultBillingCycleOperation(state, action) {
       const tier = state.tiers.find((t) => t.id === action.input.tierId);
       if (!tier) {
-        throw new AddPricingOptionTierNotFoundError(
+        throw new SetDefaultCycleTierNotFoundError(
           "Tier with the specified ID does not exist",
         );
       }
-      const isDefault =
-        action.input.isDefault || tier.pricingOptions.length === 0;
-      if (isDefault) {
-        tier.pricingOptions.forEach((po) => {
-          po.isDefault = false;
-        });
-      }
-      tier.pricingOptions.push({
-        id: action.input.pricingOptionId,
-        amount: action.input.amount,
-        currency: action.input.currency,
-        isDefault: isDefault,
-      });
+      tier.defaultBillingCycle = action.input.defaultBillingCycle;
       state.lastModified = action.input.lastModified;
     },
-    updateTierPricingOptionOperation(state, action) {
+    setTierBillingCycleDiscountsOperation(state, action) {
       const tier = state.tiers.find((t) => t.id === action.input.tierId);
       if (!tier) {
-        throw new UpdatePricingOptionTierNotFoundError(
+        throw new SetCycleDiscountsTierNotFoundError(
           "Tier with the specified ID does not exist",
         );
       }
-      const pricingOption = tier.pricingOptions.find(
-        (po) => po.id === action.input.pricingOptionId,
-      );
-      if (!pricingOption) {
-        throw new PricingOptionNotFoundError(
-          "Pricing option with the specified ID does not exist",
-        );
-      }
-      if (action.input.amount !== undefined && action.input.amount !== null) {
-        pricingOption.amount = action.input.amount;
-      }
-      if (action.input.currency) {
-        pricingOption.currency = action.input.currency;
-      }
-      if (action.input.isDefault === true) {
-        tier.pricingOptions.forEach((po) => {
-          po.isDefault = false;
-        });
-        pricingOption.isDefault = true;
-      }
+      tier.billingCycleDiscounts = action.input.discounts;
       state.lastModified = action.input.lastModified;
     },
-    removeTierPricingOptionOperation(state, action) {
+    setTierPricingModeOperation(state, action) {
       const tier = state.tiers.find((t) => t.id === action.input.tierId);
       if (!tier) {
-        throw new RemovePricingOptionTierNotFoundError(
+        throw new SetPricingModeTierNotFoundError(
           "Tier with the specified ID does not exist",
         );
       }
-      const optionIndex = tier.pricingOptions.findIndex(
-        (po) => po.id === action.input.pricingOptionId,
-      );
-      if (optionIndex === -1) {
-        throw new RemovePricingOptionNotFoundError(
-          "Pricing option with the specified ID does not exist",
-        );
-      }
-      const wasDefault = tier.pricingOptions[optionIndex].isDefault;
-      tier.pricingOptions.splice(optionIndex, 1);
-      if (wasDefault && tier.pricingOptions.length > 0) {
-        tier.pricingOptions[0].isDefault = true;
-      }
+      tier.pricingMode = action.input.pricingMode;
       state.lastModified = action.input.lastModified;
     },
   };

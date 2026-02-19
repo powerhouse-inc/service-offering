@@ -21,15 +21,15 @@ import {
   UpdateTierInputSchema,
   UpdateTierPricingInputSchema,
   DeleteTierInputSchema,
-  AddTierPricingOptionInputSchema,
-  UpdateTierPricingOptionInputSchema,
-  RemoveTierPricingOptionInputSchema,
   AddServiceLevelInputSchema,
   UpdateServiceLevelInputSchema,
   RemoveServiceLevelInputSchema,
   AddUsageLimitInputSchema,
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
+  SetTierDefaultBillingCycleInputSchema,
+  SetTierBillingCycleDiscountsInputSchema,
+  SetTierPricingModeInputSchema,
   UpdateOfferingInfoInputSchema,
   UpdateOfferingStatusInputSchema,
   SetOperatorInputSchema,
@@ -45,10 +45,22 @@ import {
   AddOptionGroupInputSchema,
   UpdateOptionGroupInputSchema,
   DeleteOptionGroupInputSchema,
+  SetOptionGroupStandalonePricingInputSchema,
+  AddOptionGroupTierPricingInputSchema,
+  UpdateOptionGroupTierPricingInputSchema,
+  RemoveOptionGroupTierPricingInputSchema,
+  SetOptionGroupDiscountModeInputSchema,
   AddServiceGroupInputSchema,
   UpdateServiceGroupInputSchema,
   DeleteServiceGroupInputSchema,
   ReorderServiceGroupsInputSchema,
+  AddServiceGroupTierPricingInputSchema,
+  SetServiceGroupSetupCostInputSchema,
+  RemoveServiceGroupSetupCostInputSchema,
+  AddRecurringPriceOptionInputSchema,
+  UpdateRecurringPriceOptionInputSchema,
+  RemoveRecurringPriceOptionInputSchema,
+  RemoveServiceGroupTierPricingInputSchema,
 } from "./schema/zod.js";
 
 const stateReducer: StateReducer<ServiceOfferingPHState> = (
@@ -168,42 +180,6 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       break;
     }
 
-    case "ADD_TIER_PRICING_OPTION": {
-      AddTierPricingOptionInputSchema().parse(action.input);
-
-      serviceOfferingTierManagementOperations.addTierPricingOptionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "UPDATE_TIER_PRICING_OPTION": {
-      UpdateTierPricingOptionInputSchema().parse(action.input);
-
-      serviceOfferingTierManagementOperations.updateTierPricingOptionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_TIER_PRICING_OPTION": {
-      RemoveTierPricingOptionInputSchema().parse(action.input);
-
-      serviceOfferingTierManagementOperations.removeTierPricingOptionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
     case "ADD_SERVICE_LEVEL": {
       AddServiceLevelInputSchema().parse(action.input);
 
@@ -268,6 +244,42 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       RemoveUsageLimitInputSchema().parse(action.input);
 
       serviceOfferingTierManagementOperations.removeUsageLimitOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_TIER_DEFAULT_BILLING_CYCLE": {
+      SetTierDefaultBillingCycleInputSchema().parse(action.input);
+
+      serviceOfferingTierManagementOperations.setTierDefaultBillingCycleOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_TIER_BILLING_CYCLE_DISCOUNTS": {
+      SetTierBillingCycleDiscountsInputSchema().parse(action.input);
+
+      serviceOfferingTierManagementOperations.setTierBillingCycleDiscountsOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_TIER_PRICING_MODE": {
+      SetTierPricingModeInputSchema().parse(action.input);
+
+      serviceOfferingTierManagementOperations.setTierPricingModeOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -456,6 +468,66 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       break;
     }
 
+    case "SET_OPTION_GROUP_STANDALONE_PRICING": {
+      SetOptionGroupStandalonePricingInputSchema().parse(action.input);
+
+      serviceOfferingOptionGroupManagementOperations.setOptionGroupStandalonePricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "ADD_OPTION_GROUP_TIER_PRICING": {
+      AddOptionGroupTierPricingInputSchema().parse(action.input);
+
+      serviceOfferingOptionGroupManagementOperations.addOptionGroupTierPricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "UPDATE_OPTION_GROUP_TIER_PRICING": {
+      UpdateOptionGroupTierPricingInputSchema().parse(action.input);
+
+      serviceOfferingOptionGroupManagementOperations.updateOptionGroupTierPricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_OPTION_GROUP_TIER_PRICING": {
+      RemoveOptionGroupTierPricingInputSchema().parse(action.input);
+
+      serviceOfferingOptionGroupManagementOperations.removeOptionGroupTierPricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_OPTION_GROUP_DISCOUNT_MODE": {
+      SetOptionGroupDiscountModeInputSchema().parse(action.input);
+
+      serviceOfferingOptionGroupManagementOperations.setOptionGroupDiscountModeOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
     case "ADD_SERVICE_GROUP": {
       AddServiceGroupInputSchema().parse(action.input);
 
@@ -496,6 +568,90 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       ReorderServiceGroupsInputSchema().parse(action.input);
 
       serviceOfferingServiceGroupManagementOperations.reorderServiceGroupsOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "ADD_SERVICE_GROUP_TIER_PRICING": {
+      AddServiceGroupTierPricingInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.addServiceGroupTierPricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_SERVICE_GROUP_SETUP_COST": {
+      SetServiceGroupSetupCostInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.setServiceGroupSetupCostOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_SERVICE_GROUP_SETUP_COST": {
+      RemoveServiceGroupSetupCostInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.removeServiceGroupSetupCostOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "ADD_RECURRING_PRICE_OPTION": {
+      AddRecurringPriceOptionInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.addRecurringPriceOptionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "UPDATE_RECURRING_PRICE_OPTION": {
+      UpdateRecurringPriceOptionInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.updateRecurringPriceOptionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_RECURRING_PRICE_OPTION": {
+      RemoveRecurringPriceOptionInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.removeRecurringPriceOptionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REMOVE_SERVICE_GROUP_TIER_PRICING": {
+      RemoveServiceGroupTierPricingInputSchema().parse(action.input);
+
+      serviceOfferingServiceGroupManagementOperations.removeServiceGroupTierPricingOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

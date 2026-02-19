@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
   ServiceSubscriptionTier,
+  OptionGroup,
   BillingCycle,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
@@ -12,7 +13,12 @@ import {
   updateTier,
   updateTierPricing,
   deleteTier,
+  setTierPricingMode,
 } from "../../../document-models/service-offering/gen/creators.js";
+import { BillingCycleConfigPanel } from "./TierPricingOptionsPanel.js";
+import { calculateTierRecurringPrice, formatPrice } from "./pricing-utils.js";
+import { BudgetIndicator } from "./BudgetIndicator.js";
+import { OverBudgetDialog } from "./OverBudgetDialog.js";
 
 interface TierDefinitionProps {
   document: ServiceOfferingDocument;
@@ -190,17 +196,43 @@ const tierStyles = `
 
   .tier-def__grid {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 1rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tier-def__grid::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .tier-def__grid::-webkit-scrollbar-track {
+    background: var(--so-slate-100);
+    border-radius: 4px;
+  }
+
+  .tier-def__grid::-webkit-scrollbar-thumb {
+    background: var(--so-slate-300);
+    border-radius: 4px;
+  }
+
+  .tier-def__grid::-webkit-scrollbar-thumb:hover {
+    background: var(--so-slate-400);
   }
 
   /* Tier Card */
   .tier-card {
     width: 320px;
+    max-height: 85vh;
     background: var(--so-white);
     border-radius: var(--so-radius-lg);
     box-shadow: var(--so-shadow-md);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     transition: var(--so-transition-base);
     animation: tier-slide-up 0.3s ease-out;
     position: relative;
@@ -265,6 +297,26 @@ const tierStyles = `
 
   .tier-card__body {
     padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .tier-card__body::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .tier-card__body::-webkit-scrollbar-track {
+    background: var(--so-slate-50);
+    border-radius: 3px;
+  }
+
+  .tier-card__body::-webkit-scrollbar-thumb {
+    background: var(--so-slate-300);
+    border-radius: 3px;
+  }
+
+  .tier-card__body::-webkit-scrollbar-thumb:hover {
+    background: var(--so-slate-400);
   }
 
   .tier-card__header {
@@ -365,6 +417,54 @@ const tierStyles = `
     margin-bottom: 1rem;
   }
 
+  .tier-card__pricing-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.375rem;
+  }
+
+  .tier-card__pricing-header .tier-card__label {
+    margin-bottom: 0;
+  }
+
+  .tier-card__mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1875rem 0.5rem;
+    font-family: var(--so-font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    background: var(--so-slate-100);
+    border: 1px solid var(--so-slate-200);
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all var(--so-transition-fast);
+  }
+
+  .tier-card__mode-toggle:hover {
+    background: var(--so-slate-200);
+    color: var(--so-slate-700);
+  }
+
+  .tier-card__mode-toggle--calculated {
+    background: var(--so-emerald-50);
+    border-color: var(--so-emerald-200);
+    color: var(--so-emerald-700);
+  }
+
+  .tier-card__mode-toggle--calculated:hover {
+    background: var(--so-emerald-100);
+    color: var(--so-emerald-800);
+  }
+
+  .tier-card__mode-icon {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
   .tier-card__pricing-box {
     display: flex;
     align-items: center;
@@ -373,6 +473,114 @@ const tierStyles = `
     background: var(--so-slate-50);
     border-radius: var(--so-radius-md);
     border: 1px solid var(--so-slate-100);
+  }
+
+  .tier-card__pricing-box--calculated {
+    background: var(--so-emerald-50);
+    border-color: var(--so-emerald-200);
+  }
+
+  .tier-card__calculated-amount {
+    font-family: var(--so-font-mono);
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: var(--so-emerald-700);
+  }
+
+  .tier-card__calculated-label {
+    font-size: 0.875rem;
+    color: var(--so-emerald-600);
+    font-weight: 500;
+  }
+
+  .tier-card__breakdown {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    background: var(--so-slate-50);
+    border-radius: var(--so-radius-sm);
+    border: 1px solid var(--so-slate-100);
+  }
+
+  .tier-card__breakdown-title {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.375rem;
+  }
+
+  .tier-card__breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.1875rem 0;
+  }
+
+  .tier-card__breakdown-row--missing .tier-card__breakdown-name {
+    color: var(--so-amber-600);
+  }
+
+  .tier-card__breakdown-row--missing .tier-card__breakdown-amount {
+    color: var(--so-amber-500);
+    font-style: italic;
+  }
+
+  .tier-card__breakdown-name {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--so-slate-600);
+  }
+
+  .tier-card__breakdown-warn {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: var(--so-amber-500);
+  }
+
+  .tier-card__breakdown-amount {
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--so-slate-700);
+  }
+
+  .tier-card__missing-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.6875rem;
+    color: var(--so-amber-700);
+    background: var(--so-amber-50);
+    border: 1px solid var(--so-amber-200);
+    border-radius: var(--so-radius-sm);
+  }
+
+  .tier-card__missing-warning svg {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    color: var(--so-amber-500);
+  }
+
+  .tier-card__calc-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.375rem;
+    font-size: 0.6875rem;
+    color: var(--so-slate-500);
+  }
+
+  .tier-card__calc-hint-icon {
+    flex-shrink: 0;
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
   .tier-card__currency {
@@ -939,6 +1147,12 @@ const tierStyles = `
 export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
   const { state } = document;
   const tiers = state.global.tiers ?? [];
+  const optionGroups = state.global.optionGroups ?? [];
+
+  const regularGroups = useMemo(
+    () => optionGroups.filter((g) => g.costType !== "SETUP" && !g.isAddOn),
+    [optionGroups],
+  );
 
   const [isAddingTier, setIsAddingTier] = useState(false);
   const [newTier, setNewTier] = useState({
@@ -1061,6 +1275,7 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
               dispatch={dispatch}
               onDelete={() => handleDeleteTier(tier.id)}
               isRecommended={index === recommendedTierIndex}
+              regularGroups={regularGroups}
             />
           ))}
 
@@ -1210,6 +1425,7 @@ interface TierCardProps {
   dispatch: DocumentDispatch<ServiceOfferingAction>;
   onDelete: () => void;
   isRecommended?: boolean;
+  regularGroups: OptionGroup[];
 }
 
 function TierCard({
@@ -1218,6 +1434,7 @@ function TierCard({
   dispatch,
   onDelete,
   isRecommended,
+  regularGroups,
 }: TierCardProps) {
   const [localName, setLocalName] = useState(tier.name);
   const [localAmount, setLocalAmount] = useState(
@@ -1227,6 +1444,72 @@ function TierCard({
     tier.description || "",
   );
   const isCustomPricing = tier.isCustomPricing ?? false;
+  const pricingMode = tier.pricingMode ?? null;
+  const isCalculated = pricingMode === "CALCULATED";
+
+  const calculatedPrice = useMemo(
+    () => calculateTierRecurringPrice(regularGroups, "MONTHLY", tier.id),
+    [regularGroups, tier.id],
+  );
+
+  const handleTogglePricingMode = () => {
+    const newMode = isCalculated ? "MANUAL_OVERRIDE" : "CALCULATED";
+    dispatch(
+      setTierPricingMode({
+        tierId: tier.id,
+        pricingMode: newMode,
+        lastModified: new Date().toISOString(),
+      }),
+    );
+    if (newMode === "CALCULATED") {
+      setLocalAmount(calculatedPrice.monthlyTotal.toString());
+      dispatch(
+        updateTierPricing({
+          tierId: tier.id,
+          amount: calculatedPrice.monthlyTotal,
+          lastModified: new Date().toISOString(),
+        }),
+      );
+    }
+  };
+
+  // Over-budget detection: show dialog when calculated sum first crosses manual price
+  const [showOverBudget, setShowOverBudget] = useState(false);
+  const prevCalcTotal = useRef(calculatedPrice.monthlyTotal);
+
+  useEffect(() => {
+    const manualAmount = tier.pricing.amount ?? 0;
+    const wasUnder = prevCalcTotal.current <= manualAmount;
+    const isNowOver = calculatedPrice.monthlyTotal > manualAmount;
+    if (
+      !isCalculated &&
+      !isCustomPricing &&
+      manualAmount > 0 &&
+      wasUnder &&
+      isNowOver
+    ) {
+      setShowOverBudget(true);
+    }
+    prevCalcTotal.current = calculatedPrice.monthlyTotal;
+  }, [
+    calculatedPrice.monthlyTotal,
+    tier.pricing.amount,
+    isCalculated,
+    isCustomPricing,
+  ]);
+
+  const handleOverBudgetUpdatePrice = () => {
+    const newAmount = calculatedPrice.monthlyTotal;
+    setLocalAmount(newAmount.toString());
+    dispatch(
+      updateTierPricing({
+        tierId: tier.id,
+        amount: newAmount,
+        lastModified: new Date().toISOString(),
+      }),
+    );
+    setShowOverBudget(false);
+  };
 
   const handleNameBlur = () => {
     if (localName !== tier.name && localName.trim()) {
@@ -1340,54 +1623,212 @@ function TierCard({
 
         {!isCustomPricing && (
           <div className="tier-card__pricing">
-            <span className="tier-card__label">Recurring Price</span>
-            <div className="tier-card__pricing-box">
-              <span className="tier-card__currency">$</span>
-              <input
-                type="number"
-                value={localAmount}
-                onChange={(e) => setLocalAmount(e.target.value)}
-                onBlur={() => handlePricingChange(localAmount)}
-                className="tier-card__amount-input"
-                step="0.01"
-              />
-              {/* Billing cycle is configured at the ServiceGroup level */}
-            </div>
-            {/* Charm Pricing Suggestions - Left-Digit Bias */}
-            {localAmount && parseFloat(localAmount) > 0 && (
-              <div className="tier-card__charm-pricing">
-                <span className="tier-card__charm-label">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Charm prices:
-                </span>
-                <div className="tier-card__charm-options">
-                  {getCharmPriceSuggestions(parseFloat(localAmount)).map(
-                    (price) => (
-                      <button
-                        key={price}
-                        type="button"
-                        onClick={() => {
-                          setLocalAmount(price.toFixed(2));
-                          handlePricingChange(price.toFixed(2));
-                        }}
-                        className={`tier-card__charm-btn ${parseFloat(localAmount) === price ? "tier-card__charm-btn--active" : ""}`}
-                      >
-                        ${price.toFixed(2).replace(/\.00$/, "")}
-                      </button>
-                    ),
+            <div className="tier-card__pricing-header">
+              <span className="tier-card__label">Recurring Price</span>
+              <button
+                type="button"
+                className={`tier-card__mode-toggle ${isCalculated ? "tier-card__mode-toggle--calculated" : ""}`}
+                onClick={handleTogglePricingMode}
+                title={
+                  isCalculated
+                    ? "Switch to manual pricing"
+                    : "Calculate from service groups"
+                }
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="tier-card__mode-icon"
+                >
+                  {isCalculated ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
                   )}
+                </svg>
+                {isCalculated ? "Calculated" : "Manual"}
+              </button>
+            </div>
+
+            {isCalculated ? (
+              <>
+                <div className="tier-card__pricing-box tier-card__pricing-box--calculated">
+                  <span className="tier-card__currency">$</span>
+                  <span className="tier-card__calculated-amount">
+                    {formatPrice(calculatedPrice.monthlyTotal).replace("$", "")}
+                  </span>
+                  <span className="tier-card__calculated-label">/mo</span>
                 </div>
-              </div>
+
+                {calculatedPrice.groupBreakdown.length > 0 && (
+                  <div className="tier-card__breakdown">
+                    <span className="tier-card__breakdown-title">
+                      Sum of {calculatedPrice.groupBreakdown.length} service
+                      group
+                      {calculatedPrice.groupBreakdown.length !== 1 ? "s" : ""}
+                    </span>
+                    {calculatedPrice.groupBreakdown.map((g) => (
+                      <div
+                        key={g.groupId}
+                        className={`tier-card__breakdown-row ${!g.hasPrice ? "tier-card__breakdown-row--missing" : ""}`}
+                      >
+                        <span className="tier-card__breakdown-name">
+                          {!g.hasPrice && (
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className="tier-card__breakdown-warn"
+                            >
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                          )}
+                          {g.groupName}
+                        </span>
+                        <span className="tier-card__breakdown-amount">
+                          {g.hasPrice ? formatPrice(g.monthlyAmount) : "$0"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {calculatedPrice.missingPriceGroups.length > 0 && (
+                  <div className="tier-card__missing-warning">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <span>
+                      {calculatedPrice.missingPriceGroups.length} group
+                      {calculatedPrice.missingPriceGroups.length !== 1
+                        ? "s"
+                        : ""}{" "}
+                      without pricing (counted as $0)
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="tier-card__pricing-box">
+                  <span className="tier-card__currency">$</span>
+                  <input
+                    type="number"
+                    value={localAmount}
+                    onChange={(e) => setLocalAmount(e.target.value)}
+                    onBlur={() => handlePricingChange(localAmount)}
+                    className="tier-card__amount-input"
+                    step="0.01"
+                  />
+                </div>
+
+                {calculatedPrice.monthlyTotal > 0 &&
+                  localAmount &&
+                  parseFloat(localAmount) > 0 && (
+                    <div className="tier-card__calc-hint">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="tier-card__calc-hint-icon"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>
+                        Calculated sum:{" "}
+                        {formatPrice(calculatedPrice.monthlyTotal)}/mo
+                        {parseFloat(localAmount) !==
+                          calculatedPrice.monthlyTotal && (
+                          <>
+                            {" "}
+                            (
+                            {parseFloat(localAmount) >
+                            calculatedPrice.monthlyTotal
+                              ? "+"
+                              : ""}
+                            {formatPrice(
+                              parseFloat(localAmount) -
+                                calculatedPrice.monthlyTotal,
+                            )}{" "}
+                            difference)
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                {/* Charm Pricing Suggestions - Left-Digit Bias */}
+                {localAmount && parseFloat(localAmount) > 0 && (
+                  <div className="tier-card__charm-pricing">
+                    <span className="tier-card__charm-label">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Charm prices:
+                    </span>
+                    <div className="tier-card__charm-options">
+                      {getCharmPriceSuggestions(parseFloat(localAmount)).map(
+                        (price) => (
+                          <button
+                            key={price}
+                            type="button"
+                            onClick={() => {
+                              setLocalAmount(price.toFixed(2));
+                              handlePricingChange(price.toFixed(2));
+                            }}
+                            className={`tier-card__charm-btn ${parseFloat(localAmount) === price ? "tier-card__charm-btn--active" : ""}`}
+                          >
+                            ${price.toFixed(2).replace(/\.00$/, "")}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
+
+        {/* Budget Indicator - shown in MANUAL_OVERRIDE mode when there's a calculated sum */}
+        {!isCalculated &&
+          !isCustomPricing &&
+          (tier.pricing.amount ?? 0) > 0 &&
+          calculatedPrice.monthlyTotal > 0 && (
+            <BudgetIndicator
+              budget={tier.pricing.amount ?? 0}
+              allocated={calculatedPrice.monthlyTotal}
+              currency={tier.pricing.currency || "USD"}
+            />
+          )}
 
         <div className="tier-card__description">
           <span className="tier-card__label">Description</span>
@@ -1400,6 +1841,20 @@ function TierCard({
             className="tier-card__desc-textarea"
           />
         </div>
+
+        {/* Billing Cycle Configuration */}
+        <BillingCycleConfigPanel
+          tierId={tier.id}
+          basePrice={
+            isCalculated
+              ? calculatedPrice.monthlyTotal
+              : (tier.pricing.amount ?? null)
+          }
+          currency={tier.pricing.currency || "USD"}
+          billingCycleDiscounts={tier.billingCycleDiscounts ?? []}
+          isCustomPricing={isCustomPricing}
+          dispatch={dispatch}
+        />
       </div>
 
       <div className="tier-card__footer">
@@ -1420,6 +1875,17 @@ function TierCard({
           Configure service levels in the Matrix view
         </span>
       </div>
+
+      {/* Over-Budget Dialog */}
+      {showOverBudget && (
+        <OverBudgetDialog
+          manualBudget={tier.pricing.amount ?? 0}
+          calculatedTotal={calculatedPrice.monthlyTotal}
+          currency={tier.pricing.currency || "USD"}
+          onUpdatePrice={handleOverBudgetUpdatePrice}
+          onKeepManual={() => setShowOverBudget(false)}
+        />
+      )}
     </div>
   );
 }

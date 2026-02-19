@@ -58,12 +58,55 @@ type FacetTarget {
     selectedOptions: [String!]!
 }
 
+type DiscountRule {
+    discountType: DiscountType!
+    discountValue: Float!
+}
+
+enum DiscountType {
+    PERCENTAGE
+    FLAT_AMOUNT
+}
+
+type BillingCycleDiscount {
+    billingCycle: BillingCycle!
+    discountRule: DiscountRule!
+}
+
 type ServiceGroup {
     id: OID!
     name: String!
     description: String
     billingCycle: BillingCycle!
     displayOrder: Int
+    tierPricing: [ServiceGroupTierPricing!]!
+}
+
+type ServiceGroupTierPricing {
+    id: OID!
+    tierId: OID!
+    setupCostsPerCycle: [SetupCostPerCycle!]!
+    recurringPricing: [RecurringPriceOption!]!
+}
+
+type SetupCost {
+    amount: Amount_Money!
+    currency: Currency!
+}
+
+type SetupCostPerCycle {
+    id: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+}
+
+type RecurringPriceOption {
+    id: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRule
 }
 
 type Service {
@@ -74,15 +117,7 @@ type Service {
     serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-    costType: ServiceCostType
-    price: Amount_Money
-    currency: Currency
     facetBindings: [ResourceFacetBinding!]!
-}
-
-enum ServiceCostType {
-    RECURRING
-    SETUP
 }
 
 type ResourceFacetBinding {
@@ -97,8 +132,10 @@ type ServiceSubscriptionTier {
     name: String!
     description: String
     isCustomPricing: Boolean!
+    pricingMode: TierPricingMode
     pricing: ServicePricing!
-    pricingOptions: [TierPricingOption!]!
+    defaultBillingCycle: BillingCycle
+    billingCycleDiscounts: [BillingCycleDiscount!]!
     serviceLevels: [ServiceLevelBinding!]!
     usageLimits: [ServiceUsageLimit!]!
 }
@@ -106,13 +143,6 @@ type ServiceSubscriptionTier {
 type ServicePricing {
     amount: Amount_Money
     currency: Currency!
-}
-
-type TierPricingOption {
-    id: OID!
-    amount: Amount_Money!
-    currency: Currency!
-    isDefault: Boolean!
 }
 
 enum BillingCycle {
@@ -170,10 +200,42 @@ type OptionGroup {
     description: String
     isAddOn: Boolean!
     defaultSelected: Boolean!
+    pricingMode: AddOnPricingMode
+    standalonePricing: StandalonePricing
+    tierDependentPricing: [OptionGroupTierPricing!]
     costType: GroupCostType
-    billingCycle: BillingCycle
+    availableBillingCycles: [BillingCycle!]!
+    billingCycleDiscounts: [BillingCycleDiscount!]!
+    discountMode: DiscountMode
     price: Amount_Money
     currency: Currency
+}
+
+enum AddOnPricingMode {
+    TIER_DEPENDENT
+    STANDALONE
+}
+
+enum DiscountMode {
+    INHERIT_TIER
+    INDEPENDENT
+}
+
+enum TierPricingMode {
+    CALCULATED
+    MANUAL_OVERRIDE
+}
+
+type StandalonePricing {
+    setupCost: SetupCost
+    recurringPricing: [RecurringPriceOption!]!
+}
+
+type OptionGroupTierPricing {
+    id: OID!
+    tierId: OID!
+    setupCost: SetupCost
+    recurringPricing: [RecurringPriceOption!]!
 }
 
 enum GroupCostType {
@@ -191,9 +253,6 @@ input AddServiceInput {
     displayOrder: Int
     isSetupFormation: Boolean
     optionGroupId: OID
-    costType: ServiceCostType
-    price: Amount_Money
-    currency: Currency
     lastModified: DateTime!
 }
 
@@ -205,9 +264,6 @@ input UpdateServiceInput {
     displayOrder: Int
     isSetupFormation: Boolean
     optionGroupId: OID
-    costType: ServiceCostType
-    price: Amount_Money
-    currency: Currency
     lastModified: DateTime!
 }
 
@@ -260,30 +316,6 @@ input UpdateTierPricingInput {
 
 input DeleteTierInput {
     id: OID!
-    lastModified: DateTime!
-}
-
-input AddTierPricingOptionInput {
-    tierId: OID!
-    pricingOptionId: OID!
-    amount: Amount_Money!
-    currency: Currency!
-    isDefault: Boolean
-    lastModified: DateTime!
-}
-
-input UpdateTierPricingOptionInput {
-    tierId: OID!
-    pricingOptionId: OID!
-    amount: Amount_Money
-    currency: Currency
-    isDefault: Boolean
-    lastModified: DateTime!
-}
-
-input RemoveTierPricingOptionInput {
-    tierId: OID!
-    pricingOptionId: OID!
     lastModified: DateTime!
 }
 
@@ -344,6 +376,34 @@ input UpdateUsageLimitInput {
 input RemoveUsageLimitInput {
     tierId: OID!
     limitId: OID!
+    lastModified: DateTime!
+}
+
+input SetTierDefaultBillingCycleInput {
+    tierId: OID!
+    defaultBillingCycle: BillingCycle!
+    lastModified: DateTime!
+}
+
+input DiscountRuleInput {
+    discountType: DiscountType!
+    discountValue: Float!
+}
+
+input BillingCycleDiscountInput {
+    billingCycle: BillingCycle!
+    discountRule: DiscountRuleInput!
+}
+
+input SetTierBillingCycleDiscountsInput {
+    tierId: OID!
+    discounts: [BillingCycleDiscountInput!]!
+    lastModified: DateTime!
+}
+
+input SetTierPricingModeInput {
+    tierId: OID!
+    pricingMode: TierPricingMode!
     lastModified: DateTime!
 }
 
@@ -430,7 +490,7 @@ input AddOptionGroupInput {
     isAddOn: Boolean!
     defaultSelected: Boolean!
     costType: GroupCostType
-    billingCycle: BillingCycle
+    availableBillingCycles: [BillingCycle!]
     price: Amount_Money
     currency: Currency
     lastModified: DateTime!
@@ -443,7 +503,7 @@ input UpdateOptionGroupInput {
     isAddOn: Boolean
     defaultSelected: Boolean
     costType: GroupCostType
-    billingCycle: BillingCycle
+    availableBillingCycles: [BillingCycle!]
     price: Amount_Money
     currency: Currency
     lastModified: DateTime!
@@ -451,6 +511,55 @@ input UpdateOptionGroupInput {
 
 input DeleteOptionGroupInput {
     id: OID!
+    lastModified: DateTime!
+}
+
+input RecurringPriceOptionInput {
+    id: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRuleInput
+}
+
+input SetupCostInput {
+    amount: Amount_Money!
+    currency: Currency!
+}
+
+input SetOptionGroupStandalonePricingInput {
+    optionGroupId: OID!
+    setupCost: SetupCostInput
+    recurringPricing: [RecurringPriceOptionInput!]!
+    lastModified: DateTime!
+}
+
+input AddOptionGroupTierPricingInput {
+    optionGroupId: OID!
+    tierPricingId: OID!
+    tierId: OID!
+    setupCost: SetupCostInput
+    recurringPricing: [RecurringPriceOptionInput!]!
+    lastModified: DateTime!
+}
+
+input UpdateOptionGroupTierPricingInput {
+    optionGroupId: OID!
+    tierId: OID!
+    setupCost: SetupCostInput
+    recurringPricing: [RecurringPriceOptionInput!]
+    lastModified: DateTime!
+}
+
+input RemoveOptionGroupTierPricingInput {
+    optionGroupId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+input SetOptionGroupDiscountModeInput {
+    optionGroupId: OID!
+    discountMode: DiscountMode!
     lastModified: DateTime!
 }
 
@@ -481,5 +590,60 @@ input DeleteServiceGroupInput {
 
 input ReorderServiceGroupsInput {
     order: [OID!]!
+    lastModified: DateTime!
+}
+
+input AddServiceGroupTierPricingInput {
+    serviceGroupId: OID!
+    tierPricingId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+input SetServiceGroupSetupCostInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    amount: Amount_Money!
+    currency: Currency!
+    lastModified: DateTime!
+}
+
+input RemoveServiceGroupSetupCostInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+input AddRecurringPriceOptionInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    priceOptionId: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    lastModified: DateTime!
+}
+
+input UpdateRecurringPriceOptionInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    priceOptionId: OID!
+    billingCycle: BillingCycle
+    amount: Amount_Money
+    currency: Currency
+    discount: DiscountRuleInput
+    lastModified: DateTime!
+}
+
+input RemoveRecurringPriceOptionInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    priceOptionId: OID!
+    lastModified: DateTime!
+}
+
+input RemoveServiceGroupTierPricingInput {
+    serviceGroupId: OID!
+    tierId: OID!
     lastModified: DateTime!
 }

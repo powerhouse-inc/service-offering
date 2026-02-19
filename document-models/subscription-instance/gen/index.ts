@@ -19,6 +19,3 @@ export * from "./service/operations.js";
 export * from "./service-group/operations.js";
 export * from "./metrics/operations.js";
 export * from "./customer/operations.js";
-export * from "./option-group/operations.js";
-export * from "./facet/operations.js";
-export * from "./requests/operations.js";

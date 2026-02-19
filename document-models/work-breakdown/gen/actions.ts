@@ -5,6 +5,7 @@ import type { WorkBreakdownPrerequisitesAction } from "./prerequisites/actions.j
 import type { WorkBreakdownTasksAction } from "./tasks/actions.js";
 import type { WorkBreakdownDependenciesAction } from "./dependencies/actions.js";
 import type { WorkBreakdownNotesAction } from "./notes/actions.js";
+import type { WorkBreakdownExtractionAction } from "./extraction/actions.js";
 
 export * from "./project/actions.js";
 export * from "./templates/actions.js";
@@ -13,6 +14,7 @@ export * from "./prerequisites/actions.js";
 export * from "./tasks/actions.js";
 export * from "./dependencies/actions.js";
 export * from "./notes/actions.js";
+export * from "./extraction/actions.js";
 
 export type WorkBreakdownAction =
   | WorkBreakdownProjectAction
@@ -21,4 +23,5 @@ export type WorkBreakdownAction =
   | WorkBreakdownPrerequisitesAction
   | WorkBreakdownTasksAction
   | WorkBreakdownDependenciesAction
-  | WorkBreakdownNotesAction;
+  | WorkBreakdownNotesAction
+  | WorkBreakdownExtractionAction;

@@ -1,6 +1,7 @@
 import * as z from "zod";
 import type {
   AddDependencyInput,
+  AddExtractionRecordInput,
   AddInputInput,
   AddNoteInput,
   AddPrerequisiteInput,
@@ -11,12 +12,16 @@ import type {
   AnalystNote,
   ApplyTemplateInput,
   BulkAddTasksInput,
+  ClearExtractionHistoryInput,
   DemoStep,
   DemoSubstep,
   DemoTemplate,
   Dependency,
   DependencySourceType,
   DependencyTargetType,
+  ExtractionRecord,
+  ExtractionStatus,
+  ExtractionType,
   Prerequisite,
   PrerequisiteScope,
   PrerequisiteStatus,
@@ -28,6 +33,7 @@ import type {
   RemoveSubstepInput,
   RemoveTaskInput,
   RemoveTemplateInput,
+  SetAiContextInput,
   SetPhaseInput,
   SetPrerequisiteStatusInput,
   SetProjectInfoInput,
@@ -45,6 +51,7 @@ import type {
   TemplateSubstep,
   TemplateSubstepInput,
   UpdateDependencyInput,
+  UpdateExtractionRecordInput,
   UpdateInputInput,
   UpdatePrerequisiteInput,
   UpdateStepInput,
@@ -73,6 +80,14 @@ export const DependencySourceTypeSchema = z.enum(["PREREQUISITE", "TASK"]);
 
 export const DependencyTargetTypeSchema = z.enum(["PREREQUISITE", "TASK"]);
 
+export const ExtractionStatusSchema = z.enum([
+  "COMPLETED",
+  "FAILED",
+  "PENDING",
+]);
+
+export const ExtractionTypeSchema = z.enum(["SCENARIO", "TASK"]);
+
 export const PrerequisiteScopeSchema = z.enum(["GLOBAL", "STEP"]);
 
 export const PrerequisiteStatusSchema = z.enum([
@@ -98,11 +113,9 @@ export const TemplateModeSchema = z.enum([
 
 export const WorkBreakdownPhaseSchema = z.enum([
   "CAPTURE",
-  "COMPLETE",
-  "PREREQUISITES",
+  "EXECUTION",
   "REVIEW",
-  "SCENARIO",
-  "TASKS",
+  "STRUCTURE",
 ]);
 
 export const WorkBreakdownStatusSchema = z.enum([
@@ -122,6 +135,18 @@ export function AddDependencyInputSchema(): z.ZodObject<
     sourceType: DependencySourceTypeSchema,
     targetId: z.string(),
     targetType: DependencyTargetTypeSchema,
+  });
+}
+
+export function AddExtractionRecordInputSchema(): z.ZodObject<
+  Properties<AddExtractionRecordInput>
+> {
+  return z.object({
+    id: z.string(),
+    model: z.string().nullish(),
+    requestedAt: z.string().datetime(),
+    type: ExtractionTypeSchema,
+    userContext: z.string().nullish(),
   });
 }
 
@@ -149,8 +174,9 @@ export function AddPrerequisiteInputSchema(): z.ZodObject<
 > {
   return z.object({
     createdAt: z.string().datetime(),
-    description: z.string(),
+    description: z.string().nullish(),
     id: z.string(),
+    name: z.string(),
     notes: z.string().nullish(),
     owner: z.string(),
     scope: PrerequisiteScopeSchema,
@@ -237,6 +263,32 @@ export function BulkAddTasksInputSchema(): z.ZodObject<
   });
 }
 
+export function ClearExtractionHistoryInputSchema(): z.ZodObject<
+  Properties<ClearExtractionHistoryInput>
+> {
+  return z.object({
+    beforeDate: z.string().datetime().nullish(),
+  });
+}
+
+export function ExtractionRecordSchema(): z.ZodObject<
+  Properties<ExtractionRecord>
+> {
+  return z.object({
+    __typename: z.literal("ExtractionRecord").optional(),
+    completedAt: z.string().datetime().nullish(),
+    error: z.string().nullish(),
+    id: z.string(),
+    model: z.string().nullish(),
+    requestedAt: z.string().datetime(),
+    status: ExtractionStatusSchema,
+    stepsGenerated: z.number().nullish(),
+    tasksGenerated: z.number().nullish(),
+    type: ExtractionTypeSchema,
+    userContext: z.string().nullish(),
+  });
+}
+
 export function DemoStepSchema(): z.ZodObject<Properties<DemoStep>> {
   return z.object({
     __typename: z.literal("DemoStep").optional(),
@@ -289,8 +341,9 @@ export function PrerequisiteSchema(): z.ZodObject<Properties<Prerequisite>> {
   return z.object({
     __typename: z.literal("Prerequisite").optional(),
     createdAt: z.string().datetime().nullish(),
-    description: z.string(),
+    description: z.string().nullish(),
     id: z.string(),
+    name: z.string(),
     notes: z.string().nullish(),
     owner: z.string(),
     scope: PrerequisiteScopeSchema,
@@ -364,6 +417,14 @@ export function RemoveTemplateInputSchema(): z.ZodObject<
   });
 }
 
+export function SetAiContextInputSchema(): z.ZodObject<
+  Properties<SetAiContextInput>
+> {
+  return z.object({
+    context: z.string().nullish(),
+  });
+}
+
 export function SetPhaseInputSchema(): z.ZodObject<Properties<SetPhaseInput>> {
   return z.object({
     phase: WorkBreakdownPhaseSchema,
@@ -401,6 +462,8 @@ export function SetTaskStatusInputSchema(): z.ZodObject<
   Properties<SetTaskStatusInput>
 > {
   return z.object({
+    blockedByItemId: z.string().nullish(),
+    blockedReason: z.string().nullish(),
     id: z.string(),
     status: TaskStatusSchema,
   });
@@ -430,6 +493,8 @@ export function StakeholderInputSchema(): z.ZodObject<
 export function TaskSchema(): z.ZodObject<Properties<Task>> {
   return z.object({
     __typename: z.literal("Task").optional(),
+    blockedByItemId: z.string().nullish(),
+    blockedReason: z.string().nullish(),
     createdAt: z.string().datetime().nullish(),
     description: z.string().nullish(),
     extractionContext: z.string().nullish(),
@@ -516,6 +581,19 @@ export function UpdateDependencyInputSchema(): z.ZodObject<
   });
 }
 
+export function UpdateExtractionRecordInputSchema(): z.ZodObject<
+  Properties<UpdateExtractionRecordInput>
+> {
+  return z.object({
+    completedAt: z.string().datetime().nullish(),
+    error: z.string().nullish(),
+    id: z.string(),
+    status: ExtractionStatusSchema,
+    stepsGenerated: z.number().nullish(),
+    tasksGenerated: z.number().nullish(),
+  });
+}
+
 export function UpdateInputInputSchema(): z.ZodObject<
   Properties<UpdateInputInput>
 > {
@@ -533,6 +611,7 @@ export function UpdatePrerequisiteInputSchema(): z.ZodObject<
   return z.object({
     description: z.string().nullish(),
     id: z.string(),
+    name: z.string().nullish(),
     notes: z.string().nullish(),
     owner: z.string().nullish(),
   });
@@ -593,9 +672,11 @@ export function WorkBreakdownStateSchema(): z.ZodObject<
 > {
   return z.object({
     __typename: z.literal("WorkBreakdownState").optional(),
+    aiContext: z.string().nullish(),
     appliedTemplateId: z.string().nullish(),
     dependencies: z.array(z.lazy(() => DependencySchema())),
     description: z.string().nullish(),
+    extractionHistory: z.array(z.lazy(() => ExtractionRecordSchema())),
     inputs: z.array(z.lazy(() => StakeholderInputSchema())),
     notes: z.array(z.lazy(() => AnalystNoteSchema())),
     phase: WorkBreakdownPhaseSchema.nullish(),

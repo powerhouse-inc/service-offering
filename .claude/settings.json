@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__frame0__set_current_page_by_id"
+    ]
+  }
+}

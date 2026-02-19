@@ -13,6 +13,7 @@ import { createDocument } from "./utils.js";
 
 export function defaultGlobalState(): WorkBreakdownGlobalState {
   return {
+    aiContext: null,
     title: null,
     description: null,
     phase: "CAPTURE",
@@ -26,6 +27,7 @@ export function defaultGlobalState(): WorkBreakdownGlobalState {
     tasks: [],
     dependencies: [],
     notes: [],
+    extractionHistory: [],
   };
 }
 

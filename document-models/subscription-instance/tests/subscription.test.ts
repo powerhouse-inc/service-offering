@@ -38,10 +38,6 @@ import {
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
   UpdateBillingProjectionInputSchema,
-  setTargetAudience,
-  removeTargetAudience,
-  SetTargetAudienceInputSchema,
-  RemoveTargetAudienceInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 // Note: setOperatorInfo has been removed from the document model
@@ -331,40 +327,6 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "UPDATE_BILLING_PROJECTION",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle setTargetAudience operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(SetTargetAudienceInputSchema());
-
-    const updatedDocument = reducer(document, setTargetAudience(input));
-
-    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SET_TARGET_AUDIENCE",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle removeTargetAudience operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(RemoveTargetAudienceInputSchema());
-
-    const updatedDocument = reducer(document, removeTargetAudience(input));
-
-    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "REMOVE_TARGET_AUDIENCE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

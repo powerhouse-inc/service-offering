@@ -12,3 +12,5 @@ export * from "./dependencies/creators.js";
 export * as dependenciesActions from "./dependencies/creators.js";
 export * from "./notes/creators.js";
 export * as notesActions from "./notes/creators.js";
+export * from "./extraction/creators.js";
+export * as extractionActions from "./extraction/creators.js";

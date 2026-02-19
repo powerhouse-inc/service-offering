@@ -47,6 +47,13 @@
             "documentTypes": [
                 "powerhouse/business-analysis"
             ]
+        },
+        {
+            "id": "work-breakdown-editor",
+            "name": "WorkBreakdownEditor",
+            "documentTypes": [
+                "powerhouse/work-breakdown"
+            ]
         }
     ],
     "apps": [],
