@@ -256,10 +256,10 @@
               "description": "Suspends the resource instance (deprecated - use specific suspension operations)",
               "errors": [
                 {
-                  "code": "INVALID_STATUS_TRANSITION_SUSPEND_INSTANCE",
-                  "description": "Can only suspend ACTIVE instances",
                   "id": "invalid-status-suspend-instance",
                   "name": "InvalidStatusTransitionSuspendInstanceError",
+                  "code": "INVALID_STATUS_TRANSITION_SUSPEND_INSTANCE",
+                  "description": "Can only suspend ACTIVE instances",
                   "template": ""
                 }
               ],
@@ -275,10 +275,10 @@
               "description": "Terminates the resource instance (not reversible)",
               "errors": [
                 {
-                  "code": "ALREADY_TERMINATED",
-                  "description": "Instance is already terminated and cannot be terminated again",
                   "id": "already-terminated",
                   "name": "AlreadyTerminatedError",
+                  "code": "ALREADY_TERMINATED",
+                  "description": "Instance is already terminated and cannot be terminated again",
                   "template": ""
                 }
               ],
@@ -301,10 +301,10 @@
               "description": "Sets a facet selection for the instance",
               "errors": [
                 {
-                  "code": "CONFIGURATION_LOCKED",
-                  "description": "Cannot modify configuration while instance is ACTIVE",
                   "id": "config-locked",
                   "name": "ConfigurationLockedError",
+                  "code": "CONFIGURATION_LOCKED",
+                  "description": "Cannot modify configuration while instance is ACTIVE",
                   "template": ""
                 }
               ],
@@ -320,10 +320,10 @@
               "description": "Removes a facet selection from the instance",
               "errors": [
                 {
-                  "code": "CONFIGURATION_LOCKED_REMOVE_INSTANCE_FACET",
-                  "description": "Cannot modify configuration while instance is ACTIVE",
                   "id": "config-locked-remove",
                   "name": "ConfigurationLockedRemoveInstanceFacetError",
+                  "code": "CONFIGURATION_LOCKED_REMOVE_INSTANCE_FACET",
+                  "description": "Cannot modify configuration while instance is ACTIVE",
                   "template": ""
                 }
               ],
@@ -339,10 +339,10 @@
               "description": "Updates an existing facet selection",
               "errors": [
                 {
-                  "code": "CONFIGURATION_LOCKED_UPDATE_INSTANCE_FACET",
-                  "description": "Cannot modify configuration while instance is ACTIVE",
                   "id": "config-locked-update",
                   "name": "ConfigurationLockedUpdateInstanceFacetError",
+                  "code": "CONFIGURATION_LOCKED_UPDATE_INSTANCE_FACET",
+                  "description": "Cannot modify configuration while instance is ACTIVE",
                   "template": ""
                 }
               ],
@@ -358,10 +358,10 @@
               "description": "Applies multiple configuration changes in one operation",
               "errors": [
                 {
-                  "code": "CONFIGURATION_LOCKED_APPLY_CONFIGURATION_CHANGES",
-                  "description": "Cannot modify configuration while instance is ACTIVE. Suspend the instance first.",
                   "id": "config-locked-apply",
                   "name": "ConfigurationLockedApplyConfigurationChangesError",
+                  "code": "CONFIGURATION_LOCKED_APPLY_CONFIGURATION_CHANGES",
+                  "description": "Cannot modify configuration while instance is ACTIVE. Suspend the instance first.",
                   "template": ""
                 }
               ],

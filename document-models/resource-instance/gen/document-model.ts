@@ -298,10 +298,10 @@ export const documentModel: DocumentModelGlobalState = {
                 "Suspends the resource instance (deprecated - use specific suspension operations)",
               errors: [
                 {
-                  code: "INVALID_STATUS_TRANSITION_SUSPEND_INSTANCE",
-                  description: "Can only suspend ACTIVE instances",
                   id: "invalid-status-suspend-instance",
                   name: "InvalidStatusTransitionSuspendInstanceError",
+                  code: "INVALID_STATUS_TRANSITION_SUSPEND_INSTANCE",
+                  description: "Can only suspend ACTIVE instances",
                   template: "",
                 },
               ],
@@ -320,11 +320,11 @@ export const documentModel: DocumentModelGlobalState = {
               description: "Terminates the resource instance (not reversible)",
               errors: [
                 {
+                  id: "already-terminated",
+                  name: "AlreadyTerminatedError",
                   code: "ALREADY_TERMINATED",
                   description:
                     "Instance is already terminated and cannot be terminated again",
-                  id: "already-terminated",
-                  name: "AlreadyTerminatedError",
                   template: "",
                 },
               ],
@@ -349,11 +349,11 @@ export const documentModel: DocumentModelGlobalState = {
               description: "Sets a facet selection for the instance",
               errors: [
                 {
+                  id: "config-locked",
+                  name: "ConfigurationLockedError",
                   code: "CONFIGURATION_LOCKED",
                   description:
                     "Cannot modify configuration while instance is ACTIVE",
-                  id: "config-locked",
-                  name: "ConfigurationLockedError",
                   template: "",
                 },
               ],
@@ -371,11 +371,11 @@ export const documentModel: DocumentModelGlobalState = {
               description: "Removes a facet selection from the instance",
               errors: [
                 {
+                  id: "config-locked-remove",
+                  name: "ConfigurationLockedRemoveInstanceFacetError",
                   code: "CONFIGURATION_LOCKED_REMOVE_INSTANCE_FACET",
                   description:
                     "Cannot modify configuration while instance is ACTIVE",
-                  id: "config-locked-remove",
-                  name: "ConfigurationLockedRemoveInstanceFacetError",
                   template: "",
                 },
               ],
@@ -393,11 +393,11 @@ export const documentModel: DocumentModelGlobalState = {
               description: "Updates an existing facet selection",
               errors: [
                 {
+                  id: "config-locked-update",
+                  name: "ConfigurationLockedUpdateInstanceFacetError",
                   code: "CONFIGURATION_LOCKED_UPDATE_INSTANCE_FACET",
                   description:
                     "Cannot modify configuration while instance is ACTIVE",
-                  id: "config-locked-update",
-                  name: "ConfigurationLockedUpdateInstanceFacetError",
                   template: "",
                 },
               ],
@@ -416,11 +416,11 @@ export const documentModel: DocumentModelGlobalState = {
                 "Applies multiple configuration changes in one operation",
               errors: [
                 {
+                  id: "config-locked-apply",
+                  name: "ConfigurationLockedApplyConfigurationChangesError",
                   code: "CONFIGURATION_LOCKED_APPLY_CONFIGURATION_CHANGES",
                   description:
                     "Cannot modify configuration while instance is ACTIVE. Suspend the instance first.",
-                  id: "config-locked-apply",
-                  name: "ConfigurationLockedApplyConfigurationChangesError",
                   template: "",
                 },
               ],
