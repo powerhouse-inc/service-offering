@@ -279,3 +279,174 @@ export async function fetchRemoteBuilderProfilesByIds(
     return new Map();
   }
 }
+
+// ============================================================
+// Resource Template queries
+// ============================================================
+
+const GET_RESOURCE_TEMPLATES_QUERY = `
+  query GetResourceTemplates($driveId: String!) {
+    ResourceTemplate {
+      getDocuments(driveId: $driveId) {
+        id
+        name
+        documentType
+        state {
+          id
+          operatorId
+          title
+          summary
+          description
+          thumbnailUrl
+          infoLink
+          status
+          lastModified
+          targetAudiences {
+            id
+            label
+            color
+          }
+          setupServices
+          recurringServices
+          facetTargets {
+            id
+            categoryKey
+            categoryLabel
+            selectedOptions
+          }
+          services {
+            id
+            title
+            description
+            displayOrder
+            isSetupFormation
+            optionGroupId
+          }
+        }
+      }
+    }
+  }
+`;
+
+export interface RemoteResourceTemplate {
+  id: string;
+  name: string;
+  documentType: string;
+  /** Resolved operator/builder name (from builder profile in the same drive) */
+  operatorName: string | null;
+  state: {
+    id: string | null;
+    operatorId: string | null;
+    title: string;
+    summary: string;
+    description: string | null;
+    thumbnailUrl: string | null;
+    infoLink: string | null;
+    status: string;
+    lastModified: string | null;
+    targetAudiences: Array<{
+      id: string;
+      label: string;
+      color: string | null;
+    }>;
+    setupServices: string[];
+    recurringServices: string[];
+    facetTargets: Array<{
+      id: string;
+      categoryKey: string;
+      categoryLabel: string;
+      selectedOptions: string[];
+    }>;
+    services: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      displayOrder: number | null;
+      isSetupFormation: boolean;
+      optionGroupId: string | null;
+    }>;
+  };
+}
+
+/** Raw response shape from GraphQL (without enriched operatorName) */
+type RawRemoteResourceTemplate = Omit<RemoteResourceTemplate, "operatorName">;
+
+interface ResourceTemplatesResponse {
+  ResourceTemplate: {
+    getDocuments: RawRemoteResourceTemplate[];
+  };
+}
+
+/**
+ * Fetches resource template documents from a specific drive
+ */
+export async function fetchResourceTemplatesFromDrive(
+  driveId: string,
+  options?: { silent?: boolean },
+): Promise<RawRemoteResourceTemplate[]> {
+  const data = await graphqlRequest<ResourceTemplatesResponse>(
+    GET_RESOURCE_TEMPLATES_QUERY,
+    { driveId },
+    options,
+  );
+  return data?.ResourceTemplate?.getDocuments ?? [];
+}
+
+/**
+ * Fetches all resource templates from all available remote drives.
+ * Also resolves operator names by fetching builder profiles from each drive.
+ */
+export async function fetchAllRemoteResourceTemplates(): Promise<
+  RemoteResourceTemplate[]
+> {
+  try {
+    const drives = await fetchRemoteDrives();
+    if (!drives.length) {
+      return [];
+    }
+
+    // For each drive, fetch templates AND builder profiles in parallel
+    const perDrivePromises = drives.map(async (driveSlug) => {
+      const [templates, profiles] = await Promise.all([
+        fetchResourceTemplatesFromDrive(driveSlug, { silent: true }).catch(
+          () => [] as RawRemoteResourceTemplate[],
+        ),
+        fetchBuilderProfilesFromDrive(driveSlug, { silent: true }).catch(
+          () => [] as RemoteBuilderProfile[],
+        ),
+      ]);
+
+      // Build a profileId → name map for this drive
+      const profileNameMap = new Map<string, string>();
+      for (const profile of profiles) {
+        if (profile.state.name) {
+          profileNameMap.set(profile.id, profile.state.name);
+        }
+      }
+
+      // Enrich templates with operator name
+      return templates.map((t) => ({
+        ...t,
+        operatorName: t.state.operatorId
+          ? (profileNameMap.get(t.state.operatorId) ?? null)
+          : null,
+      }));
+    });
+
+    const templateArrays = await Promise.all(perDrivePromises);
+
+    // Flatten and dedupe by ID
+    const templateMap = new Map<string, RemoteResourceTemplate>();
+    for (const templates of templateArrays) {
+      for (const template of templates) {
+        if (!templateMap.has(template.id)) {
+          templateMap.set(template.id, template);
+        }
+      }
+    }
+
+    return Array.from(templateMap.values());
+  } catch {
+    return [];
+  }
+}
