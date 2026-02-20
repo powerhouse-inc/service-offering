@@ -1,6 +1,6 @@
 {
   "name": "@powerhousedao/service-offering",
-  "description": "",
+  "description": "service offering document models",
   "version": "0.0.1",
   "license": "AGPL-3.0-only",
   "type": "module",
