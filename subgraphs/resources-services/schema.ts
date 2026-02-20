@@ -144,6 +144,7 @@ export const schema: DocumentNode = gql`
     services: [RSOfferingService!]!
     tiers: [RSServiceSubscriptionTier!]!
     optionGroups: [RSOfferingOptionGroup!]!
+    finalConfiguration: RSFinalConfiguration
   }
 
   enum RSServiceStatus {
@@ -166,13 +167,70 @@ export const schema: DocumentNode = gql`
     selectedOptions: [String!]!
   }
 
+  # ---------- Discount & Pricing Primitives ----------
+
+  enum RSDiscountType {
+    PERCENTAGE
+    FLAT_AMOUNT
+  }
+
+  enum RSDiscountMode {
+    INHERIT_TIER
+    INDEPENDENT
+  }
+
+  type RSDiscountRule {
+    discountType: RSDiscountType!
+    discountValue: Float!
+  }
+
+  type RSBillingCycleDiscount {
+    billingCycle: RSBillingCycle!
+    discountRule: RSDiscountRule!
+  }
+
+  type RSSetupCost {
+    amount: Amount_Money!
+    currency: Currency!
+    discount: RSDiscountRule
+  }
+
+  type RSSetupCostPerCycle {
+    id: OID!
+    billingCycle: RSBillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: RSDiscountRule
+  }
+
+  type RSRecurringPriceOption {
+    id: OID!
+    billingCycle: RSBillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: RSDiscountRule
+  }
+
+  # ---------- Service Groups ----------
+
   type RSServiceGroup {
     id: OID!
     name: String!
     description: String
     billingCycle: RSBillingCycle!
     displayOrder: Int
+    discountMode: RSDiscountMode
+    tierPricing: [RSServiceGroupTierPricing!]!
   }
+
+  type RSServiceGroupTierPricing {
+    id: OID!
+    tierId: OID!
+    setupCostsPerCycle: [RSSetupCostPerCycle!]!
+    recurringPricing: [RSRecurringPriceOption!]!
+  }
+
+  # ---------- Services ----------
 
   type RSOfferingService {
     id: OID!
@@ -182,15 +240,7 @@ export const schema: DocumentNode = gql`
     serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-    costType: RSServiceCostType
-    price: Amount_Money
-    currency: Currency
     facetBindings: [RSResourceFacetBinding!]!
-  }
-
-  enum RSServiceCostType {
-    RECURRING
-    SETUP
   }
 
   type RSResourceFacetBinding {
@@ -200,13 +250,22 @@ export const schema: DocumentNode = gql`
     supportedOptions: [OID!]!
   }
 
+  # ---------- Tiers ----------
+
+  enum RSTierPricingMode {
+    CALCULATED
+    MANUAL_OVERRIDE
+  }
+
   type RSServiceSubscriptionTier {
     id: OID!
     name: String!
     description: String
     isCustomPricing: Boolean!
+    pricingMode: RSTierPricingMode
     pricing: RSServicePricing!
-    pricingOptions: [RSTierPricingOption!]!
+    defaultBillingCycle: RSBillingCycle
+    billingCycleDiscounts: [RSBillingCycleDiscount!]!
     serviceLevels: [RSServiceLevelBinding!]!
     usageLimits: [RSServiceUsageLimit!]!
   }
@@ -214,13 +273,6 @@ export const schema: DocumentNode = gql`
   type RSServicePricing {
     amount: Amount_Money
     currency: Currency!
-  }
-
-  type RSTierPricingOption {
-    id: OID!
-    amount: Amount_Money!
-    currency: Currency!
-    isDefault: Boolean!
   }
 
   enum RSBillingCycle {
@@ -262,9 +314,26 @@ export const schema: DocumentNode = gql`
   }
 
   enum RSUsageResetCycle {
+    NONE
+    HOURLY
     DAILY
     WEEKLY
     MONTHLY
+    QUARTERLY
+    SEMI_ANNUAL
+    ANNUAL
+  }
+
+  # ---------- Option Groups ----------
+
+  enum RSAddOnPricingMode {
+    TIER_DEPENDENT
+    STANDALONE
+  }
+
+  enum RSGroupCostType {
+    RECURRING
+    SETUP
   }
 
   type RSOfferingOptionGroup {
@@ -273,14 +342,73 @@ export const schema: DocumentNode = gql`
     description: String
     isAddOn: Boolean!
     defaultSelected: Boolean!
+    pricingMode: RSAddOnPricingMode
+    standalonePricing: RSStandalonePricing
+    tierDependentPricing: [RSOptionGroupTierPricing!]
     costType: RSGroupCostType
-    billingCycle: RSBillingCycle
+    availableBillingCycles: [RSBillingCycle!]!
+    billingCycleDiscounts: [RSBillingCycleDiscount!]!
+    discountMode: RSDiscountMode
     price: Amount_Money
     currency: Currency
   }
 
-  enum RSGroupCostType {
-    RECURRING
-    SETUP
+  type RSStandalonePricing {
+    setupCost: RSSetupCost
+    recurringPricing: [RSRecurringPriceOption!]!
+  }
+
+  type RSOptionGroupTierPricing {
+    id: OID!
+    tierId: OID!
+    setupCost: RSSetupCost
+    setupCostDiscounts: [RSBillingCycleDiscount!]!
+    recurringPricing: [RSRecurringPriceOption!]!
+  }
+
+  # ---------- Final Configuration ----------
+
+  type RSResolvedDiscount {
+    discountType: RSDiscountType!
+    discountValue: Float!
+    originalAmount: Amount_Money!
+    discountedAmount: Amount_Money!
+  }
+
+  type RSFinalOptionGroupConfig {
+    id: OID!
+    optionGroupId: OID!
+    effectiveBillingCycle: RSBillingCycle!
+    billingCycleOverridden: Boolean!
+    discountStripped: Boolean!
+    recurringAmount: Amount_Money
+    currency: Currency
+    discount: RSResolvedDiscount
+    setupCost: Amount_Money
+    setupCostCurrency: Currency
+    setupCostDiscount: RSResolvedDiscount
+  }
+
+  type RSFinalAddOnConfig {
+    id: OID!
+    optionGroupId: OID!
+    selectedBillingCycle: RSBillingCycle!
+    recurringAmount: Amount_Money
+    currency: Currency
+    discount: RSResolvedDiscount
+    setupCost: Amount_Money
+    setupCostCurrency: Currency
+    setupCostDiscount: RSResolvedDiscount
+  }
+
+  type RSFinalConfiguration {
+    selectedTierId: OID!
+    selectedBillingCycle: RSBillingCycle!
+    tierBasePrice: Amount_Money
+    tierCurrency: Currency!
+    tierDiscount: RSResolvedDiscount
+    optionGroupConfigs: [RSFinalOptionGroupConfig!]!
+    addOnConfigs: [RSFinalAddOnConfig!]!
+    lastModified: DateTime!
   }
 `;

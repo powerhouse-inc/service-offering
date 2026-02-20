@@ -8,8 +8,8 @@ import type {
   ServiceOfferingDocument,
   ServiceStatus,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import { addFile, type DocumentDriveDocument } from "document-drive";
-import { BuilderProfile } from "@powerhousedao/builder-profile/document-models";
+import { createAction } from "document-model/core";
+import { addFile } from "document-drive";
 import { ResourceInstance } from "@powerhousedao/service-offering/document-models";
 
 // Filter types
@@ -288,9 +288,13 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
 
           await reactor.addAction(
             builderProfileDoc.header.id,
-            BuilderProfile.actions.updateProfile({
-              name: name,
-            }),
+            createAction(
+              "UPDATE_PROFILE",
+              { name },
+              undefined,
+              undefined,
+              "global",
+            ),
           );
 
           // create resource-instance doc inside the team-builder-admin drive
@@ -501,6 +505,42 @@ async function populateResourceInstance(
 }
 
 /**
+ * Map a DiscountRule to the GraphQL shape, or null
+ */
+function mapDiscountRule(
+  rule: { discountType: string; discountValue: number } | null | undefined,
+) {
+  if (!rule) return null;
+  return {
+    discountType: rule.discountType,
+    discountValue: rule.discountValue,
+  };
+}
+
+/**
+ * Map a ResolvedDiscount to the GraphQL shape, or null
+ */
+function mapResolvedDiscount(
+  d:
+    | {
+        discountType: string;
+        discountValue: number;
+        originalAmount: number;
+        discountedAmount: number;
+      }
+    | null
+    | undefined,
+) {
+  if (!d) return null;
+  return {
+    discountType: d.discountType,
+    discountValue: d.discountValue,
+    originalAmount: d.originalAmount,
+    discountedAmount: d.discountedAmount,
+  };
+}
+
+/**
  * Map ServiceOfferingState from document model to GraphQL response
  */
 function mapServiceOfferingState(
@@ -535,6 +575,25 @@ function mapServiceOfferingState(
       description: group.description || null,
       billingCycle: group.billingCycle,
       displayOrder: group.displayOrder ?? null,
+      discountMode: group.discountMode || null,
+      tierPricing: (group.tierPricing || []).map((tp) => ({
+        id: tp.id,
+        tierId: tp.tierId,
+        setupCostsPerCycle: (tp.setupCostsPerCycle || []).map((sc) => ({
+          id: sc.id,
+          billingCycle: sc.billingCycle,
+          amount: sc.amount,
+          currency: sc.currency,
+          discount: mapDiscountRule(sc.discount),
+        })),
+        recurringPricing: (tp.recurringPricing || []).map((rp) => ({
+          id: rp.id,
+          billingCycle: rp.billingCycle,
+          amount: rp.amount,
+          currency: rp.currency,
+          discount: mapDiscountRule(rp.discount),
+        })),
+      })),
     })),
     services: state.services.map((service) => ({
       id: service.id,
@@ -544,9 +603,6 @@ function mapServiceOfferingState(
       serviceGroupId: service.serviceGroupId || null,
       isSetupFormation: service.isSetupFormation,
       optionGroupId: service.optionGroupId || null,
-      costType: service.costType || null,
-      price: service.price ?? null,
-      currency: service.currency || null,
       facetBindings: (service.facetBindings || []).map((binding) => ({
         id: binding.id,
         facetName: binding.facetName,
@@ -559,15 +615,18 @@ function mapServiceOfferingState(
       name: tier.name,
       description: tier.description || null,
       isCustomPricing: tier.isCustomPricing,
+      pricingMode: tier.pricingMode || null,
       pricing: {
         amount: tier.pricing.amount ?? null,
         currency: tier.pricing.currency,
       },
-      pricingOptions: tier.pricingOptions.map((option) => ({
-        id: option.id,
-        amount: option.amount,
-        currency: option.currency,
-        isDefault: option.isDefault,
+      defaultBillingCycle: tier.defaultBillingCycle || null,
+      billingCycleDiscounts: (tier.billingCycleDiscounts || []).map((d) => ({
+        billingCycle: d.billingCycle,
+        discountRule: {
+          discountType: d.discountRule.discountType,
+          discountValue: d.discountRule.discountValue,
+        },
       })),
       serviceLevels: tier.serviceLevels.map((level) => ({
         id: level.id,
@@ -595,11 +654,105 @@ function mapServiceOfferingState(
       description: group.description || null,
       isAddOn: group.isAddOn,
       defaultSelected: group.defaultSelected,
+      pricingMode: group.pricingMode || null,
+      standalonePricing: group.standalonePricing
+        ? {
+            setupCost: group.standalonePricing.setupCost
+              ? {
+                  amount: group.standalonePricing.setupCost.amount,
+                  currency: group.standalonePricing.setupCost.currency,
+                  discount: mapDiscountRule(
+                    group.standalonePricing.setupCost.discount,
+                  ),
+                }
+              : null,
+            recurringPricing: (
+              group.standalonePricing.recurringPricing || []
+            ).map((rp) => ({
+              id: rp.id,
+              billingCycle: rp.billingCycle,
+              amount: rp.amount,
+              currency: rp.currency,
+              discount: mapDiscountRule(rp.discount),
+            })),
+          }
+        : null,
+      tierDependentPricing: (group.tierDependentPricing || []).map((tp) => ({
+        id: tp.id,
+        tierId: tp.tierId,
+        setupCost: tp.setupCost
+          ? {
+              amount: tp.setupCost.amount,
+              currency: tp.setupCost.currency,
+              discount: mapDiscountRule(tp.setupCost.discount),
+            }
+          : null,
+        setupCostDiscounts: (tp.setupCostDiscounts || []).map((d) => ({
+          billingCycle: d.billingCycle,
+          discountRule: {
+            discountType: d.discountRule.discountType,
+            discountValue: d.discountRule.discountValue,
+          },
+        })),
+        recurringPricing: (tp.recurringPricing || []).map((rp) => ({
+          id: rp.id,
+          billingCycle: rp.billingCycle,
+          amount: rp.amount,
+          currency: rp.currency,
+          discount: mapDiscountRule(rp.discount),
+        })),
+      })),
       costType: group.costType || null,
-      billingCycle: group.billingCycle || null,
+      availableBillingCycles: group.availableBillingCycles || [],
+      billingCycleDiscounts: (group.billingCycleDiscounts || []).map((d) => ({
+        billingCycle: d.billingCycle,
+        discountRule: {
+          discountType: d.discountRule.discountType,
+          discountValue: d.discountRule.discountValue,
+        },
+      })),
+      discountMode: group.discountMode || null,
       price: group.price ?? null,
       currency: group.currency || null,
     })),
+    finalConfiguration: state.finalConfiguration
+      ? {
+          selectedTierId: state.finalConfiguration.selectedTierId,
+          selectedBillingCycle: state.finalConfiguration.selectedBillingCycle,
+          tierBasePrice: state.finalConfiguration.tierBasePrice ?? null,
+          tierCurrency: state.finalConfiguration.tierCurrency,
+          tierDiscount: mapResolvedDiscount(
+            state.finalConfiguration.tierDiscount,
+          ),
+          optionGroupConfigs: state.finalConfiguration.optionGroupConfigs.map(
+            (ogc) => ({
+              id: ogc.id,
+              optionGroupId: ogc.optionGroupId,
+              effectiveBillingCycle: ogc.effectiveBillingCycle,
+              billingCycleOverridden: ogc.billingCycleOverridden,
+              discountStripped: ogc.discountStripped,
+              recurringAmount: ogc.recurringAmount ?? null,
+              currency: ogc.currency || null,
+              discount: mapResolvedDiscount(ogc.discount),
+              setupCost: ogc.setupCost ?? null,
+              setupCostCurrency: ogc.setupCostCurrency || null,
+              setupCostDiscount: mapResolvedDiscount(ogc.setupCostDiscount),
+            }),
+          ),
+          addOnConfigs: state.finalConfiguration.addOnConfigs.map((aoc) => ({
+            id: aoc.id,
+            optionGroupId: aoc.optionGroupId,
+            selectedBillingCycle: aoc.selectedBillingCycle,
+            recurringAmount: aoc.recurringAmount ?? null,
+            currency: aoc.currency || null,
+            discount: mapResolvedDiscount(aoc.discount),
+            setupCost: aoc.setupCost ?? null,
+            setupCostCurrency: aoc.setupCostCurrency || null,
+            setupCostDiscount: mapResolvedDiscount(aoc.setupCostDiscount),
+          })),
+          lastModified: state.finalConfiguration.lastModified,
+        }
+      : null,
   };
 }
 

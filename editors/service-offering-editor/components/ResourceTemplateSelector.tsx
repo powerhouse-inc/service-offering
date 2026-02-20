@@ -7,6 +7,7 @@ import type {
 import {
   selectResourceTemplate,
   changeResourceTemplate,
+  setOperator,
   addFacetOption,
   removeFacetOption,
   setFacetTarget,
@@ -160,6 +161,13 @@ export function ResourceTemplateSelector({
           }),
         );
       }
+
+      dispatch(
+        setOperator({
+          operatorId: template.state.global.operatorId ?? "",
+          lastModified: now,
+        }),
+      );
       setShowingSelector(false);
     },
     [currentTemplateId, dispatch],
