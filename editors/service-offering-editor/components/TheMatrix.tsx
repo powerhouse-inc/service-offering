@@ -2477,9 +2477,19 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     return categories;
   }, [offeringFacetTargets]);
 
+  // Restore UI state from persisted finalConfiguration, or use defaults
+  const savedConfig = state.global.finalConfiguration;
+
   const [enabledOptionalGroups, setEnabledOptionalGroups] = useState<
     Set<string>
-  >(new Set(optionGroups.filter((g) => g.defaultSelected).map((g) => g.id)));
+  >(() => {
+    if (savedConfig?.addOnConfigs && savedConfig.addOnConfigs.length > 0) {
+      return new Set(savedConfig.addOnConfigs.map((a) => a.optionGroupId));
+    }
+    return new Set(
+      optionGroups.filter((g) => g.defaultSelected).map((g) => g.id),
+    );
+  });
 
   const [selectedCell, setSelectedCell] = useState<{
     serviceId: string;
@@ -2506,21 +2516,48 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     Set<string>
   >(new Set());
 
-  const [selectedTierIdx, setSelectedTierIdx] = useState<number>(0);
+  const [selectedTierIdx, setSelectedTierIdx] = useState<number>(() => {
+    if (savedConfig?.selectedTierId) {
+      const idx = tiers.findIndex((t) => t.id === savedConfig.selectedTierId);
+      return idx >= 0 ? idx : 0;
+    }
+    return 0;
+  });
 
   // Global billing cycle view - lets users see prices/discounts for different cycles
-  const [activeBillingCycle, setActiveBillingCycle] =
-    useState<BillingCycle>("MONTHLY");
+  const [activeBillingCycle, setActiveBillingCycle] = useState<BillingCycle>(
+    () => savedConfig?.selectedBillingCycle || "MONTHLY",
+  );
 
   // Per-addon billing cycle state (add-ons have independent cycle selection)
   const [addonBillingCycles, setAddonBillingCycles] = useState<
     Record<string, BillingCycle>
-  >({});
+  >(() => {
+    if (savedConfig?.addOnConfigs) {
+      const cycles: Record<string, BillingCycle> = {};
+      for (const addon of savedConfig.addOnConfigs) {
+        cycles[addon.optionGroupId] = addon.selectedBillingCycle;
+      }
+      return cycles;
+    }
+    return {};
+  });
 
   // Per-group billing cycle state (non-addon service groups can select their own cycle)
   const [groupBillingCycles, setGroupBillingCycles] = useState<
     Record<string, BillingCycle>
-  >({});
+  >(() => {
+    if (savedConfig?.optionGroupConfigs) {
+      const cycles: Record<string, BillingCycle> = {};
+      for (const cfg of savedConfig.optionGroupConfigs) {
+        if (cfg.billingCycleOverridden) {
+          cycles[cfg.optionGroupId] = cfg.effectiveBillingCycle;
+        }
+      }
+      return cycles;
+    }
+    return {};
+  });
 
   // Detect CUSTOM billing mode: any non-addon group has a cycle different from global
   const isCustomBillingMode = useMemo(() => {
@@ -2532,6 +2569,73 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   // Billing cycle majority detection (state only — memo goes after regularGroups is defined)
   const [majorityDismissed, setMajorityDismissed] = useState(false);
 
+  // Stable ref holding latest config-relevant state so dispatchFinalConfig
+  // can be defined early without depending on useMemo-derived values.
+  const configStateRef = useRef({
+    tiers,
+    selectedTierIdx,
+    activeBillingCycle,
+    groupBillingCycles,
+    addonBillingCycles,
+    enabledOptionalGroups,
+    serviceGroups,
+    optionGroups,
+  });
+  // Keep the ref fresh on every render
+  configStateRef.current = {
+    tiers,
+    selectedTierIdx,
+    activeBillingCycle,
+    groupBillingCycles,
+    addonBillingCycles,
+    enabledOptionalGroups,
+    serviceGroups,
+    optionGroups,
+  };
+
+  // Debounced dispatcher for SET_FINAL_CONFIGURATION.
+  // Called explicitly from user interaction handlers only.
+  const finalConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const dispatchFinalConfig = useCallback(
+    (overrides?: {
+      selectedTierIdx?: number;
+      activeBillingCycle?: BillingCycle;
+      groupBillingCycles?: Record<string, BillingCycle>;
+      addonBillingCycles?: Record<string, BillingCycle>;
+      enabledAddonIds?: Set<string>;
+    }) => {
+      if (finalConfigTimerRef.current) {
+        clearTimeout(finalConfigTimerRef.current);
+      }
+      finalConfigTimerRef.current = setTimeout(() => {
+        const s = configStateRef.current;
+        const og = s.optionGroups;
+        const result = resolveConfiguration({
+          tiers: s.tiers,
+          selectedTierIdx: overrides?.selectedTierIdx ?? s.selectedTierIdx,
+          activeBillingCycle:
+            overrides?.activeBillingCycle ?? s.activeBillingCycle,
+          regularGroups: og.filter((g) => !g.isAddOn && g.costType !== "SETUP"),
+          setupGroups: og.filter((g) => !g.isAddOn && g.costType === "SETUP"),
+          addonGroups: og.filter((g) => g.isAddOn),
+          groupBillingCycles:
+            overrides?.groupBillingCycles ?? s.groupBillingCycles,
+          addonBillingCycles:
+            overrides?.addonBillingCycles ?? s.addonBillingCycles,
+          enabledAddonIds:
+            overrides?.enabledAddonIds ?? s.enabledOptionalGroups,
+          serviceGroups: s.serviceGroups,
+        });
+        if (result) {
+          dispatch(setFinalConfiguration(result));
+        }
+      }, 300);
+    },
+    [dispatch],
+  );
+
   // Handle group cycle override with majority-based auto-remerge
   const handleGroupCycleChange = useCallback(
     (groupId: string, newCycle: BillingCycle) => {
@@ -2541,7 +2645,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         const totalRegular = optionGroups.filter(
           (g) => g.costType !== "SETUP" && !g.isAddOn,
         ).length;
-        if (totalRegular === 0) return updated;
+        if (totalRegular === 0) {
+          dispatchFinalConfig({ groupBillingCycles: updated });
+          return updated;
+        }
         // Compute effective cycle for each regular group
         const cycleCounts = new Map<BillingCycle, number>();
         for (const g of optionGroups) {
@@ -2556,21 +2663,33 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             setTimeout(() => {
               setActiveBillingCycle(cycle);
               setGroupBillingCycles({});
+              dispatchFinalConfig({
+                activeBillingCycle: cycle,
+                groupBillingCycles: {},
+              });
             }, 0);
             return prev;
           }
         }
+        dispatchFinalConfig({ groupBillingCycles: updated });
         return updated;
       });
     },
-    [activeBillingCycle, optionGroups],
+    [activeBillingCycle, optionGroups, dispatchFinalConfig],
   );
 
   // When switching to a global cycle, reset all group overrides (exit Custom mode)
-  const handleGlobalCycleChange = useCallback((cycle: BillingCycle) => {
-    setActiveBillingCycle(cycle);
-    setGroupBillingCycles({});
-  }, []);
+  const handleGlobalCycleChange = useCallback(
+    (cycle: BillingCycle) => {
+      setActiveBillingCycle(cycle);
+      setGroupBillingCycles({});
+      dispatchFinalConfig({
+        activeBillingCycle: cycle,
+        groupBillingCycles: {},
+      });
+    },
+    [dispatchFinalConfig],
+  );
 
   // All recurring billing cycles are always available for global selection
   const availableCyclesForSelectedTier = RECURRING_BILLING_CYCLES;
@@ -2671,15 +2790,12 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     return optionGroups.filter((g) => g.isAddOn);
   }, [optionGroups]);
 
-  // Auto-dispatch SET_FINAL_CONFIGURATION whenever pricing-relevant state changes
-  const finalConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  // On mount: dispatch once if finalConfiguration is not already set
+  const mountedRef = useRef(false);
   useEffect(() => {
-    if (finalConfigTimerRef.current) {
-      clearTimeout(finalConfigTimerRef.current);
-    }
-    finalConfigTimerRef.current = setTimeout(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    if (!state.global.finalConfiguration) {
       const result = resolveConfiguration({
         tiers,
         selectedTierIdx,
@@ -2695,25 +2811,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       if (result) {
         dispatch(setFinalConfiguration(result));
       }
-    }, 300);
-    return () => {
-      if (finalConfigTimerRef.current) {
-        clearTimeout(finalConfigTimerRef.current);
-      }
-    };
-  }, [
-    selectedTierIdx,
-    activeBillingCycle,
-    groupBillingCycles,
-    addonBillingCycles,
-    enabledOptionalGroups,
-    tiers,
-    regularGroups,
-    setupGroups,
-    addonGroups,
-    serviceGroups,
-    dispatch,
-  ]);
+    }
+  }, []);
 
   const ungroupedSetupServices = useMemo(() => {
     return (groupedServices.get(UNGROUPED_ID) || []).filter(
@@ -2948,6 +3047,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       } else {
         next.add(groupId);
       }
+      dispatchFinalConfig({ enabledAddonIds: next });
       return next;
     });
   };
@@ -3543,7 +3643,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   return (
                     <th
                       key={tier.id}
-                      onClick={() => setSelectedTierIdx(idx)}
+                      onClick={() => {
+                        setSelectedTierIdx(idx);
+                        dispatchFinalConfig({ selectedTierIdx: idx });
+                      }}
                       className={`matrix__tier-header ${
                         idx === selectedTierIdx
                           ? "matrix__tier-header--selected"
@@ -3921,12 +4024,14 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     onReorderService={handleReorderService}
                     activeBillingCycle={activeBillingCycle}
                     addonActiveCycle={addonBillingCycles[group.id] || "MONTHLY"}
-                    onAddonCycleChange={(cycle) =>
-                      setAddonBillingCycles((prev) => ({
-                        ...prev,
+                    onAddonCycleChange={(cycle) => {
+                      const updated = {
+                        ...addonBillingCycles,
                         [group.id]: cycle,
-                      }))
-                    }
+                      };
+                      setAddonBillingCycles(updated);
+                      dispatchFinalConfig({ addonBillingCycles: updated });
+                    }}
                     isCustomBillingMode={isCustomBillingMode}
                     tierBaseMonthly={addonTierBaseMo}
                   />
@@ -4242,8 +4347,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                             base * (1 - disc.discountValue / 100) * 100,
                           ) / 100;
                       } else {
-                        totalSetupEffective +=
-                          Math.max(0, base - disc.discountValue);
+                        totalSetupEffective += Math.max(
+                          0,
+                          base - disc.discountValue,
+                        );
                       }
                     } else {
                       totalSetupEffective += base;
