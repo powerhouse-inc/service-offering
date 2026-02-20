@@ -2691,9 +2691,6 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     [dispatchFinalConfig],
   );
 
-  // All recurring billing cycles are always available for global selection
-  const availableCyclesForSelectedTier = RECURRING_BILLING_CYCLES;
-
   // Initialize selected facets from offering's facet targets
   const [selectedFacets, setSelectedFacets] = useState<Record<string, string>>(
     () => {
@@ -2785,6 +2782,20 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       ),
     [regularGroups, activeBillingCycle, groupBillingCycles],
   );
+
+  // Global billing cycle bar: driven by the selected tier's billingCycleDiscounts
+  // MONTHLY is always available; other cycles appear when the tier has them configured
+  const availableCyclesForSelectedTier = useMemo(() => {
+    const tier = tiers[selectedTierIdx];
+    if (!tier || tier.billingCycleDiscounts.length === 0) {
+      return RECURRING_BILLING_CYCLES;
+    }
+    const tierCycleSet = new Set<BillingCycle>(
+      tier.billingCycleDiscounts.map((d) => d.billingCycle),
+    );
+    tierCycleSet.add("MONTHLY");
+    return RECURRING_BILLING_CYCLES.filter((c) => tierCycleSet.has(c));
+  }, [tiers, selectedTierIdx]);
 
   const addonGroups = useMemo(() => {
     return optionGroups.filter((g) => g.isAddOn);
@@ -5047,10 +5058,13 @@ function ServiceGroupSection({
                 <span className="matrix__group-subtitle">Optional Add-on</span>
               )}
             </div>
-            {/* Selectable billing cycles for non-addon option groups — always show all recurring cycles */}
+            {/* Selectable billing cycles for non-addon option groups — filtered by availableBillingCycles */}
             {!group.isAddOn && onGroupCycleChange && (
               <div className="matrix__group-cycle-tabs">
-                {RECURRING_BILLING_CYCLES.map((cycle) => (
+                {(group.availableBillingCycles.length > 0
+                  ? group.availableBillingCycles
+                  : RECURRING_BILLING_CYCLES
+                ).map((cycle) => (
                   <button
                     key={cycle}
                     onClick={(e) => {
