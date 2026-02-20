@@ -246,19 +246,49 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       }),
     );
 
-    // If a recurring/add-on price is set, automatically set it as the standalone setup cost
+    // If a recurring/add-on price is set, set as standalone monthly recurring + per-tier pricing
     if (!isSetup && price && price > 0) {
+      const billingCycle = isAddOn ? newGroupBillingCycle : newGroupBillingCycle;
       dispatch(
         setOptionGroupStandalonePricing({
           optionGroupId: groupId,
-          setupCost: {
-            amount: price,
-            currency: "USD",
-          },
-          recurringPricing: [],
+          setupCost: null,
+          recurringPricing: [
+            {
+              id: generateId(),
+              billingCycle,
+              amount: price,
+              currency: "USD",
+              discount: null,
+            },
+          ],
           lastModified: new Date().toISOString(),
         }),
       );
+      // Pre-populate per-tier pricing for each existing tier
+      if (!isAddOn) {
+        for (const tier of tiers) {
+          dispatch(
+            addOptionGroupTierPricing({
+              optionGroupId: groupId,
+              tierPricingId: generateId(),
+              tierId: tier.id,
+              setupCost: null,
+              setupCostDiscounts: [],
+              recurringPricing: [
+                {
+                  id: generateId(),
+                  billingCycle,
+                  amount: price,
+                  currency: "USD",
+                  discount: null,
+                },
+              ],
+              lastModified: new Date().toISOString(),
+            }),
+          );
+        }
+      }
     }
 
     setNewGroupName("");
@@ -2367,10 +2397,30 @@ function GroupButton({
         </div>
         <div className="catalog__group-meta">
           <span>{serviceCount} services</span>
-          {(group.isAddOn || group.costType === "SETUP") &&
-            group.price != null && (
-              <span className="catalog__group-fee">${group.price}</span>
-            )}
+          {group.costType === "SETUP" && group.price != null && (
+            <span className="catalog__group-fee">
+              {formatPrice(group.price, "USD")}
+            </span>
+          )}
+          {group.isAddOn && group.price != null && (
+            <span className="catalog__group-fee">
+              {formatPrice(group.price, "USD")}
+            </span>
+          )}
+          {!isSetup && !group.isAddOn && (() => {
+            const monthlyPrice =
+              group.tierDependentPricing?.[0]?.recurringPricing?.find(
+                (p) => p.billingCycle === "MONTHLY",
+              )?.amount ??
+              group.standalonePricing?.recurringPricing?.find(
+                (p) => p.billingCycle === "MONTHLY",
+              )?.amount;
+            return monthlyPrice != null && monthlyPrice > 0 ? (
+              <span className="catalog__group-fee">
+                {formatPrice(monthlyPrice, "USD")}/mo
+              </span>
+            ) : null;
+          })()}
         </div>
       </button>
       {isHovered && (
