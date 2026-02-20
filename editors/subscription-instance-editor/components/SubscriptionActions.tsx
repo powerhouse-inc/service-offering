@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
@@ -12,10 +13,6 @@ import {
   cancelSubscription,
   renewExpiringSubscription,
 } from "../../../document-models/subscription-instance/gen/subscription/creators.js";
-
-// Note: The requests module (pendingRequests, ClientRequest, RequestType, etc.)
-// has been removed from the SubscriptionInstance document model.
-// Client request functionality is disabled until the module is re-implemented.
 
 interface SubscriptionActionsProps {
   document: SubscriptionInstanceDocument;
@@ -149,33 +146,22 @@ export function SubscriptionActions({
     setConfirmAction(null);
   }, [dispatch]);
 
-  // Determine which handler to use based on mode
   const handleConfirm = useCallback(() => {
-    // Only operator mode can perform direct actions
-    // Client request functionality is disabled
-    if (mode === "operator") {
-      switch (confirmAction) {
-        case "pause":
-          handleOperatorPause();
-          break;
-        case "resume":
-          handleOperatorResume();
-          break;
-        case "cancel":
-          handleOperatorCancel();
-          break;
-        case "renew":
-          handleOperatorRenew();
-          break;
-      }
-    } else {
-      // Client mode - requests are disabled
-      console.warn("Client request functionality is currently disabled");
-      setConfirmAction(null);
-      setReason("");
+    switch (confirmAction) {
+      case "pause":
+        handleOperatorPause();
+        break;
+      case "resume":
+        handleOperatorResume();
+        break;
+      case "cancel":
+        handleOperatorCancel();
+        break;
+      case "renew":
+        handleOperatorRenew();
+        break;
     }
   }, [
-    mode,
     confirmAction,
     handleOperatorPause,
     handleOperatorResume,
@@ -299,15 +285,6 @@ export function SubscriptionActions({
                 Cancel
               </button>
             )}
-          </div>
-        )}
-
-        {/* Client view - request actions (disabled) */}
-        {mode === "client" && !isCancelled && (
-          <div className="si-actions__buttons">
-            <p className="si-actions__disabled-note">
-              Client request functionality is currently unavailable.
-            </p>
           </div>
         )}
       </div>

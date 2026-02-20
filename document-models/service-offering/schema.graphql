@@ -36,6 +36,7 @@ type ServiceOfferingState {
     services: [Service!]!
     tiers: [ServiceSubscriptionTier!]!
     optionGroups: [OptionGroup!]!
+    finalConfiguration: FinalConfiguration
 }
 
 enum ServiceStatus {
@@ -58,12 +59,58 @@ type FacetTarget {
     selectedOptions: [String!]!
 }
 
+type DiscountRule {
+    discountType: DiscountType!
+    discountValue: Float!
+}
+
+enum DiscountType {
+    PERCENTAGE
+    FLAT_AMOUNT
+}
+
+type BillingCycleDiscount {
+    billingCycle: BillingCycle!
+    discountRule: DiscountRule!
+}
+
 type ServiceGroup {
     id: OID!
     name: String!
     description: String
     billingCycle: BillingCycle!
     displayOrder: Int
+    discountMode: DiscountMode
+    tierPricing: [ServiceGroupTierPricing!]!
+}
+
+type ServiceGroupTierPricing {
+    id: OID!
+    tierId: OID!
+    setupCostsPerCycle: [SetupCostPerCycle!]!
+    recurringPricing: [RecurringPriceOption!]!
+}
+
+type SetupCost {
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRule
+}
+
+type SetupCostPerCycle {
+    id: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRule
+}
+
+type RecurringPriceOption {
+    id: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRule
 }
 
 type Service {
@@ -74,15 +121,7 @@ type Service {
     serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-    costType: ServiceCostType
-    price: Amount_Money
-    currency: Currency
     facetBindings: [ResourceFacetBinding!]!
-}
-
-enum ServiceCostType {
-    RECURRING
-    SETUP
 }
 
 type ResourceFacetBinding {
@@ -97,8 +136,10 @@ type ServiceSubscriptionTier {
     name: String!
     description: String
     isCustomPricing: Boolean!
+    pricingMode: TierPricingMode
     pricing: ServicePricing!
-    pricingOptions: [TierPricingOption!]!
+    defaultBillingCycle: BillingCycle
+    billingCycleDiscounts: [BillingCycleDiscount!]!
     serviceLevels: [ServiceLevelBinding!]!
     usageLimits: [ServiceUsageLimit!]!
 }
@@ -106,13 +147,6 @@ type ServiceSubscriptionTier {
 type ServicePricing {
     amount: Amount_Money
     currency: Currency!
-}
-
-type TierPricingOption {
-    id: OID!
-    amount: Amount_Money!
-    currency: Currency!
-    isDefault: Boolean!
 }
 
 enum BillingCycle {
@@ -154,9 +188,14 @@ type ServiceUsageLimit {
 }
 
 enum UsageResetCycle {
+    NONE
+    HOURLY
     DAILY
     WEEKLY
     MONTHLY
+    QUARTERLY
+    SEMI_ANNUAL
+    ANNUAL
 }
 
 type OptionGroup {
@@ -165,10 +204,43 @@ type OptionGroup {
     description: String
     isAddOn: Boolean!
     defaultSelected: Boolean!
+    pricingMode: AddOnPricingMode
+    standalonePricing: StandalonePricing
+    tierDependentPricing: [OptionGroupTierPricing!]
     costType: GroupCostType
-    billingCycle: BillingCycle
+    availableBillingCycles: [BillingCycle!]!
+    billingCycleDiscounts: [BillingCycleDiscount!]!
+    discountMode: DiscountMode
     price: Amount_Money
     currency: Currency
+}
+
+enum AddOnPricingMode {
+    TIER_DEPENDENT
+    STANDALONE
+}
+
+enum DiscountMode {
+    INHERIT_TIER
+    INDEPENDENT
+}
+
+enum TierPricingMode {
+    CALCULATED
+    MANUAL_OVERRIDE
+}
+
+type StandalonePricing {
+    setupCost: SetupCost
+    recurringPricing: [RecurringPriceOption!]!
+}
+
+type OptionGroupTierPricing {
+    id: OID!
+    tierId: OID!
+    setupCost: SetupCost
+    setupCostDiscounts: [BillingCycleDiscount!]!
+    recurringPricing: [RecurringPriceOption!]!
 }
 
 enum GroupCostType {
@@ -176,173 +248,51 @@ enum GroupCostType {
     SETUP
 }
 
-# Service Management
+type ResolvedDiscount {
+    discountType: DiscountType!
+    discountValue: Float!
+    originalAmount: Amount_Money!
+    discountedAmount: Amount_Money!
+}
 
-input AddServiceInput {
+type FinalOptionGroupConfig {
     id: OID!
-    title: String!
-    description: String
-    serviceGroupId: OID
-    displayOrder: Int
-    isSetupFormation: Boolean
-    optionGroupId: OID
-    costType: ServiceCostType
-    price: Amount_Money
+    optionGroupId: OID!
+    effectiveBillingCycle: BillingCycle!
+    billingCycleOverridden: Boolean!
+    discountStripped: Boolean!
+    recurringAmount: Amount_Money
     currency: Currency
-    lastModified: DateTime!
+    discount: ResolvedDiscount
+    setupCost: Amount_Money
+    setupCostCurrency: Currency
+    setupCostDiscount: ResolvedDiscount
 }
 
-input UpdateServiceInput {
+type FinalAddOnConfig {
     id: OID!
-    title: String
-    description: String
-    serviceGroupId: OID
-    displayOrder: Int
-    isSetupFormation: Boolean
-    optionGroupId: OID
-    costType: ServiceCostType
-    price: Amount_Money
+    optionGroupId: OID!
+    selectedBillingCycle: BillingCycle!
+    recurringAmount: Amount_Money
     currency: Currency
+    discount: ResolvedDiscount
+    setupCost: Amount_Money
+    setupCostCurrency: Currency
+    setupCostDiscount: ResolvedDiscount
+}
+
+type FinalConfiguration {
+    selectedTierId: OID!
+    selectedBillingCycle: BillingCycle!
+    tierBasePrice: Amount_Money
+    tierCurrency: Currency!
+    tierDiscount: ResolvedDiscount
+    optionGroupConfigs: [FinalOptionGroupConfig!]!
+    addOnConfigs: [FinalAddOnConfig!]!
     lastModified: DateTime!
 }
 
-input DeleteServiceInput {
-    id: OID!
-    lastModified: DateTime!
-}
-
-input AddFacetBindingInput {
-    serviceId: OID!
-    bindingId: OID!
-    facetName: String!
-    facetType: PHID!
-    supportedOptions: [OID!]!
-    lastModified: DateTime!
-}
-
-input RemoveFacetBindingInput {
-    serviceId: OID!
-    bindingId: OID!
-    lastModified: DateTime!
-}
-
-# Tier Management
-
-input AddTierInput {
-    id: OID!
-    name: String!
-    description: String
-    amount: Amount_Money
-    currency: Currency!
-    isCustomPricing: Boolean
-    lastModified: DateTime!
-}
-
-input UpdateTierInput {
-    id: OID!
-    name: String
-    description: String
-    isCustomPricing: Boolean
-    lastModified: DateTime!
-}
-
-input UpdateTierPricingInput {
-    tierId: OID!
-    amount: Amount_Money
-    currency: Currency
-    lastModified: DateTime!
-}
-
-input DeleteTierInput {
-    id: OID!
-    lastModified: DateTime!
-}
-
-input AddTierPricingOptionInput {
-    tierId: OID!
-    pricingOptionId: OID!
-    amount: Amount_Money!
-    currency: Currency!
-    isDefault: Boolean
-    lastModified: DateTime!
-}
-
-input UpdateTierPricingOptionInput {
-    tierId: OID!
-    pricingOptionId: OID!
-    amount: Amount_Money
-    currency: Currency
-    isDefault: Boolean
-    lastModified: DateTime!
-}
-
-input RemoveTierPricingOptionInput {
-    tierId: OID!
-    pricingOptionId: OID!
-    lastModified: DateTime!
-}
-
-input AddServiceLevelInput {
-    tierId: OID!
-    serviceLevelId: OID!
-    serviceId: OID!
-    level: ServiceLevel!
-    optionGroupId: OID
-    customValue: String
-    lastModified: DateTime!
-}
-
-input UpdateServiceLevelInput {
-    tierId: OID!
-    serviceLevelId: OID!
-    level: ServiceLevel
-    optionGroupId: OID
-    customValue: String
-    lastModified: DateTime!
-}
-
-input RemoveServiceLevelInput {
-    tierId: OID!
-    serviceLevelId: OID!
-    lastModified: DateTime!
-}
-
-input AddUsageLimitInput {
-    tierId: OID!
-    limitId: OID!
-    serviceId: OID!
-    metric: String!
-    unitName: String
-    freeLimit: Int
-    paidLimit: Int
-    resetCycle: UsageResetCycle
-    notes: String
-    unitPrice: Amount_Money
-    unitPriceCurrency: Currency
-    lastModified: DateTime!
-}
-
-input UpdateUsageLimitInput {
-    tierId: OID!
-    limitId: OID!
-    metric: String
-    unitName: String
-    freeLimit: Int
-    paidLimit: Int
-    resetCycle: UsageResetCycle
-    notes: String
-    unitPrice: Amount_Money
-    unitPriceCurrency: Currency
-    lastModified: DateTime!
-}
-
-input RemoveUsageLimitInput {
-    tierId: OID!
-    limitId: OID!
-    lastModified: DateTime!
-}
-
-# Offering Management
+# offering
 
 input UpdateOfferingInfoInput {
     title: String
@@ -416,7 +366,171 @@ input ChangeResourceTemplateInput {
     lastModified: DateTime!
 }
 
-# Option Group Management
+# services
+
+input AddServiceInput {
+    id: OID!
+    title: String!
+    description: String
+    serviceGroupId: OID
+    displayOrder: Int
+    isSetupFormation: Boolean
+    optionGroupId: OID
+    lastModified: DateTime!
+}
+
+input UpdateServiceInput {
+    id: OID!
+    title: String
+    description: String
+    serviceGroupId: OID
+    displayOrder: Int
+    isSetupFormation: Boolean
+    optionGroupId: OID
+    lastModified: DateTime!
+}
+
+input DeleteServiceInput {
+    id: OID!
+    lastModified: DateTime!
+}
+
+input AddFacetBindingInput {
+    serviceId: OID!
+    bindingId: OID!
+    facetName: String!
+    facetType: PHID!
+    supportedOptions: [OID!]!
+    lastModified: DateTime!
+}
+
+input RemoveFacetBindingInput {
+    serviceId: OID!
+    bindingId: OID!
+    lastModified: DateTime!
+}
+
+# tiers
+
+input AddTierInput {
+    id: OID!
+    name: String!
+    description: String
+    amount: Amount_Money
+    currency: Currency!
+    isCustomPricing: Boolean
+    lastModified: DateTime!
+}
+
+input UpdateTierInput {
+    id: OID!
+    name: String
+    description: String
+    isCustomPricing: Boolean
+    lastModified: DateTime!
+}
+
+input UpdateTierPricingInput {
+    tierId: OID!
+    amount: Amount_Money
+    currency: Currency
+    lastModified: DateTime!
+}
+
+input DeleteTierInput {
+    id: OID!
+    lastModified: DateTime!
+}
+
+input AddServiceLevelInput {
+    tierId: OID!
+    serviceLevelId: OID!
+    serviceId: OID!
+    level: ServiceLevel!
+    optionGroupId: OID
+    customValue: String
+    lastModified: DateTime!
+}
+
+input UpdateServiceLevelInput {
+    tierId: OID!
+    serviceLevelId: OID!
+    level: ServiceLevel
+    optionGroupId: OID
+    customValue: String
+    lastModified: DateTime!
+}
+
+input RemoveServiceLevelInput {
+    tierId: OID!
+    serviceLevelId: OID!
+    lastModified: DateTime!
+}
+
+input AddUsageLimitInput {
+    tierId: OID!
+    limitId: OID!
+    serviceId: OID!
+    metric: String!
+    unitName: String
+    freeLimit: Int
+    paidLimit: Int
+    resetCycle: UsageResetCycle
+    notes: String
+    unitPrice: Amount_Money
+    unitPriceCurrency: Currency
+    lastModified: DateTime!
+}
+
+input UpdateUsageLimitInput {
+    tierId: OID!
+    limitId: OID!
+    metric: String
+    unitName: String
+    freeLimit: Int
+    paidLimit: Int
+    resetCycle: UsageResetCycle
+    notes: String
+    unitPrice: Amount_Money
+    unitPriceCurrency: Currency
+    lastModified: DateTime!
+}
+
+input RemoveUsageLimitInput {
+    tierId: OID!
+    limitId: OID!
+    lastModified: DateTime!
+}
+
+input SetTierDefaultBillingCycleInput {
+    tierId: OID!
+    defaultBillingCycle: BillingCycle!
+    lastModified: DateTime!
+}
+
+input DiscountRuleInput {
+    discountType: DiscountType!
+    discountValue: Float!
+}
+
+input BillingCycleDiscountInput {
+    billingCycle: BillingCycle!
+    discountRule: DiscountRuleInput!
+}
+
+input SetTierBillingCycleDiscountsInput {
+    tierId: OID!
+    discounts: [BillingCycleDiscountInput!]!
+    lastModified: DateTime!
+}
+
+input SetTierPricingModeInput {
+    tierId: OID!
+    pricingMode: TierPricingMode!
+    lastModified: DateTime!
+}
+
+# option-groups
 
 input AddOptionGroupInput {
     id: OID!
@@ -425,7 +539,7 @@ input AddOptionGroupInput {
     isAddOn: Boolean!
     defaultSelected: Boolean!
     costType: GroupCostType
-    billingCycle: BillingCycle
+    availableBillingCycles: [BillingCycle!]
     price: Amount_Money
     currency: Currency
     lastModified: DateTime!
@@ -438,7 +552,7 @@ input UpdateOptionGroupInput {
     isAddOn: Boolean
     defaultSelected: Boolean
     costType: GroupCostType
-    billingCycle: BillingCycle
+    availableBillingCycles: [BillingCycle!]
     price: Amount_Money
     currency: Currency
     lastModified: DateTime!
@@ -449,7 +563,59 @@ input DeleteOptionGroupInput {
     lastModified: DateTime!
 }
 
-# Service Group Management
+input RecurringPriceOptionInput {
+    id: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRuleInput
+}
+
+input SetupCostInput {
+    amount: Amount_Money!
+    currency: Currency!
+    discount: DiscountRuleInput
+}
+
+input SetOptionGroupStandalonePricingInput {
+    optionGroupId: OID!
+    setupCost: SetupCostInput
+    recurringPricing: [RecurringPriceOptionInput!]!
+    lastModified: DateTime!
+}
+
+input AddOptionGroupTierPricingInput {
+    optionGroupId: OID!
+    tierPricingId: OID!
+    tierId: OID!
+    setupCost: SetupCostInput
+    setupCostDiscounts: [BillingCycleDiscountInput!]
+    recurringPricing: [RecurringPriceOptionInput!]!
+    lastModified: DateTime!
+}
+
+input UpdateOptionGroupTierPricingInput {
+    optionGroupId: OID!
+    tierId: OID!
+    setupCost: SetupCostInput
+    setupCostDiscounts: [BillingCycleDiscountInput!]
+    recurringPricing: [RecurringPriceOptionInput!]
+    lastModified: DateTime!
+}
+
+input RemoveOptionGroupTierPricingInput {
+    optionGroupId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+input SetOptionGroupDiscountModeInput {
+    optionGroupId: OID!
+    discountMode: DiscountMode!
+    lastModified: DateTime!
+}
+
+# service-groups
 
 input AddServiceGroupInput {
     id: OID!
@@ -457,6 +623,7 @@ input AddServiceGroupInput {
     description: String
     billingCycle: BillingCycle!
     displayOrder: Int
+    discountMode: DiscountMode
     lastModified: DateTime!
 }
 
@@ -466,6 +633,7 @@ input UpdateServiceGroupInput {
     description: String
     billingCycle: BillingCycle
     displayOrder: Int
+    discountMode: DiscountMode
     lastModified: DateTime!
 }
 
@@ -476,5 +644,112 @@ input DeleteServiceGroupInput {
 
 input ReorderServiceGroupsInput {
     order: [OID!]!
+    lastModified: DateTime!
+}
+
+input AddServiceGroupTierPricingInput {
+    serviceGroupId: OID!
+    tierPricingId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+input SetServiceGroupSetupCostInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    amount: Amount_Money!
+    currency: Currency!
+    discountType: DiscountType
+    discountValue: Float
+    lastModified: DateTime!
+}
+
+input RemoveServiceGroupSetupCostInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+input AddRecurringPriceOptionInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    priceOptionId: OID!
+    billingCycle: BillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    lastModified: DateTime!
+}
+
+input UpdateRecurringPriceOptionInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    priceOptionId: OID!
+    billingCycle: BillingCycle
+    amount: Amount_Money
+    currency: Currency
+    discount: DiscountRuleInput
+    lastModified: DateTime!
+}
+
+input RemoveRecurringPriceOptionInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    priceOptionId: OID!
+    lastModified: DateTime!
+}
+
+input RemoveServiceGroupTierPricingInput {
+    serviceGroupId: OID!
+    tierId: OID!
+    lastModified: DateTime!
+}
+
+# configuration
+
+input ResolvedDiscountInput {
+    discountType: DiscountType!
+    discountValue: Float!
+    originalAmount: Amount_Money!
+    discountedAmount: Amount_Money!
+}
+
+input FinalOptionGroupConfigInput {
+    id: OID!
+    optionGroupId: OID!
+    effectiveBillingCycle: BillingCycle!
+    billingCycleOverridden: Boolean!
+    discountStripped: Boolean!
+    recurringAmount: Amount_Money
+    currency: Currency
+    discount: ResolvedDiscountInput
+    setupCost: Amount_Money
+    setupCostCurrency: Currency
+    setupCostDiscount: ResolvedDiscountInput
+}
+
+input FinalAddOnConfigInput {
+    id: OID!
+    optionGroupId: OID!
+    selectedBillingCycle: BillingCycle!
+    recurringAmount: Amount_Money
+    currency: Currency
+    discount: ResolvedDiscountInput
+    setupCost: Amount_Money
+    setupCostCurrency: Currency
+    setupCostDiscount: ResolvedDiscountInput
+}
+
+input SetFinalConfigurationInput {
+    selectedTierId: OID!
+    selectedBillingCycle: BillingCycle!
+    tierBasePrice: Amount_Money
+    tierCurrency: Currency!
+    tierDiscount: ResolvedDiscountInput
+    optionGroupConfigs: [FinalOptionGroupConfigInput!]!
+    addOnConfigs: [FinalAddOnConfigInput!]!
+    lastModified: DateTime!
+}
+
+input ClearFinalConfigurationInput {
     lastModified: DateTime!
 }

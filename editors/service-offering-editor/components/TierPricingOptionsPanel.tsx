@@ -1,39 +1,58 @@
 import { useState } from "react";
-import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingAction,
-  TierPricingOption,
+  BillingCycle,
+  BillingCycleDiscount,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import {
-  addTierPricingOption,
-  updateTierPricingOption,
-  removeTierPricingOption,
-} from "../../../document-models/service-offering/gen/creators.js";
-import { formatPrice } from "./pricing-utils.js";
+import { setTierBillingCycleDiscounts } from "../../../document-models/service-offering/gen/creators.js";
+import { formatPrice, BILLING_CYCLE_MONTHS } from "./pricing-utils.js";
 
-interface TierPricingOptionsPanelProps {
+interface BillingCycleConfigPanelProps {
   tierId: string;
-  pricingOptions: TierPricingOption[];
+  basePrice: number | null;
+  currency: string;
+  billingCycleDiscounts: BillingCycleDiscount[];
+  isCustomPricing: boolean;
   dispatch: DocumentDispatch<ServiceOfferingAction>;
-  accentColor?: string;
 }
 
+const CYCLE_ORDER: BillingCycle[] = [
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMI_ANNUAL",
+  "ANNUAL",
+];
+
+const CYCLE_LABELS: Record<string, string> = {
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  SEMI_ANNUAL: "Semi-Annual",
+  ANNUAL: "Annual",
+};
+
+const CYCLE_SHORT: Record<string, string> = {
+  MONTHLY: "1mo",
+  QUARTERLY: "3mo",
+  SEMI_ANNUAL: "6mo",
+  ANNUAL: "12mo",
+};
+
 const panelStyles = `
-  .pricing-options-panel {
+  .bcp {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--so-slate-200);
   }
 
-  .pricing-options-panel__header {
+  .bcp__header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.375rem;
     margin-bottom: 0.75rem;
   }
 
-  .pricing-options-panel__title {
+  .bcp__title {
     font-family: var(--so-font-mono);
     font-size: 0.625rem;
     font-weight: 500;
@@ -45,284 +64,13 @@ const panelStyles = `
     gap: 0.375rem;
   }
 
-  .pricing-options-panel__title svg {
+  .bcp__title svg {
     width: 0.875rem;
     height: 0.875rem;
     color: var(--so-violet-500);
   }
 
-  .pricing-options-panel__add-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    font-family: var(--so-font-sans);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    color: var(--so-violet-600);
-    background: var(--so-violet-50);
-    border: 1px solid var(--so-violet-200);
-    border-radius: var(--so-radius-sm);
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .pricing-options-panel__add-btn:hover {
-    background: var(--so-violet-100);
-    border-color: var(--so-violet-300);
-  }
-
-  .pricing-options-panel__add-btn svg {
-    width: 0.75rem;
-    height: 0.75rem;
-  }
-
-  .pricing-options-panel__list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  /* Individual Pricing Option Row */
-  .pricing-option-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 0.75rem;
-    background: var(--so-slate-50);
-    border: 1px solid var(--so-slate-100);
-    border-radius: var(--so-radius-md);
-    transition: all 0.15s ease;
-  }
-
-  .pricing-option-row:hover {
-    border-color: var(--so-slate-200);
-  }
-
-  .pricing-option-row--default {
-    background: var(--so-violet-50);
-    border-color: var(--so-violet-200);
-  }
-
-  .pricing-option-row__cycle {
-    flex-shrink: 0;
-    font-family: var(--so-font-mono);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--so-slate-600);
-    padding: 0.25rem 0.5rem;
-    background: var(--so-white);
-    border-radius: var(--so-radius-sm);
-    min-width: 4rem;
-    text-align: center;
-  }
-
-  .pricing-option-row--default .pricing-option-row__cycle {
-    color: var(--so-violet-700);
-    background: var(--so-violet-100);
-  }
-
-  .pricing-option-row__amount-group {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    flex: 1;
-  }
-
-  .pricing-option-row__currency {
-    font-family: var(--so-font-mono);
-    font-size: 0.875rem;
-    color: var(--so-slate-400);
-  }
-
-  .pricing-option-row__amount-input {
-    width: 5rem;
-    font-family: var(--so-font-mono);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--so-slate-800);
-    background: var(--so-white);
-    border: 1px solid var(--so-slate-200);
-    border-radius: var(--so-radius-sm);
-    padding: 0.25rem 0.5rem;
-    outline: none;
-    transition: border-color 0.15s ease;
-  }
-
-  .pricing-option-row__amount-input:focus {
-    border-color: var(--so-violet-400);
-  }
-
-  .pricing-option-row__monthly {
-    flex: 1;
-    font-family: var(--so-font-sans);
-    font-size: 0.6875rem;
-    color: var(--so-emerald-600);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .pricing-option-row__actions {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    flex-shrink: 0;
-  }
-
-  .pricing-option-row__default-badge {
-    font-family: var(--so-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--so-violet-600);
-    padding: 0.125rem 0.375rem;
-    background: var(--so-violet-100);
-    border-radius: var(--so-radius-sm);
-  }
-
-  .pricing-option-row__action-btn {
-    padding: 0.25rem;
-    color: var(--so-slate-400);
-    background: transparent;
-    border: none;
-    border-radius: var(--so-radius-sm);
-    cursor: pointer;
-    transition: all 0.1s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .pricing-option-row__action-btn:hover {
-    color: var(--so-slate-600);
-    background: var(--so-slate-100);
-  }
-
-  .pricing-option-row__action-btn--make-default:hover {
-    color: var(--so-violet-600);
-    background: var(--so-violet-50);
-  }
-
-  .pricing-option-row__action-btn--delete:hover {
-    color: var(--so-rose-500);
-    background: var(--so-rose-50);
-  }
-
-  .pricing-option-row__action-btn svg {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  /* Add New Option Form */
-  .pricing-option-add-form {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--so-violet-50);
-    border: 2px dashed var(--so-violet-200);
-    border-radius: var(--so-radius-md);
-    animation: pricing-option-fade-in 0.2s ease-out;
-  }
-
-  @keyframes pricing-option-fade-in {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .pricing-option-add-form__cycle-select {
-    font-family: var(--so-font-sans);
-    font-size: 0.75rem;
-    color: var(--so-slate-700);
-    background: var(--so-white);
-    border: 1px solid var(--so-violet-200);
-    border-radius: var(--so-radius-sm);
-    padding: 0.375rem 0.5rem;
-    cursor: pointer;
-    outline: none;
-  }
-
-  .pricing-option-add-form__cycle-select:focus {
-    border-color: var(--so-violet-400);
-  }
-
-  .pricing-option-add-form__amount-group {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    flex: 1;
-  }
-
-  .pricing-option-add-form__currency {
-    font-family: var(--so-font-mono);
-    font-size: 0.875rem;
-    color: var(--so-slate-400);
-  }
-
-  .pricing-option-add-form__amount-input {
-    width: 5rem;
-    font-family: var(--so-font-mono);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--so-slate-800);
-    background: var(--so-white);
-    border: 1px solid var(--so-violet-200);
-    border-radius: var(--so-radius-sm);
-    padding: 0.375rem 0.5rem;
-    outline: none;
-  }
-
-  .pricing-option-add-form__amount-input:focus {
-    border-color: var(--so-violet-400);
-  }
-
-  .pricing-option-add-form__actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .pricing-option-add-form__btn {
-    padding: 0.375rem 0.625rem;
-    font-family: var(--so-font-sans);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    border-radius: var(--so-radius-sm);
-    cursor: pointer;
-    transition: all 0.1s ease;
-  }
-
-  .pricing-option-add-form__btn--add {
-    color: var(--so-white);
-    background: var(--so-violet-600);
-    border: none;
-  }
-
-  .pricing-option-add-form__btn--add:hover:not(:disabled) {
-    background: var(--so-violet-700);
-  }
-
-  .pricing-option-add-form__btn--add:disabled {
-    background: var(--so-slate-300);
-    cursor: not-allowed;
-  }
-
-  .pricing-option-add-form__btn--cancel {
-    color: var(--so-slate-600);
-    background: var(--so-white);
-    border: 1px solid var(--so-slate-200);
-  }
-
-  .pricing-option-add-form__btn--cancel:hover {
-    background: var(--so-slate-50);
-  }
-
-  /* Empty State */
-  .pricing-options-panel__empty {
+  .bcp__no-price {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -333,86 +81,318 @@ const panelStyles = `
     font-size: 0.75rem;
   }
 
-  .pricing-options-panel__empty svg {
+  .bcp__no-price svg {
     width: 1rem;
     height: 1rem;
+    flex-shrink: 0;
     color: var(--so-slate-400);
+  }
+
+  .bcp__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Row container */
+  .bcp-row {
+    border: 1px solid var(--so-slate-150, var(--so-slate-100));
+    border-radius: var(--so-radius-md);
+    overflow: hidden;
+    transition: all 0.15s ease;
+  }
+
+  .bcp-row--active {
+    border-color: var(--so-violet-200);
+  }
+
+  .bcp-row--disabled {
+    opacity: 0.5;
+  }
+
+  /* Top part: checkbox + label + total */
+  .bcp-row__top {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--so-white);
+    cursor: default;
+  }
+
+  .bcp-row--active .bcp-row__top {
+    background: var(--so-violet-50);
+  }
+
+  .bcp-row__checkbox {
+    width: 1.125rem;
+    height: 1.125rem;
+    accent-color: var(--so-violet-500);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .bcp-row__checkbox:disabled {
+    cursor: default;
+  }
+
+  .bcp-row__label {
+    font-family: var(--so-font-sans);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--so-slate-700);
+    flex: 1;
+  }
+
+  .bcp-row__total {
+    font-family: var(--so-font-mono);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--so-slate-800);
+    white-space: nowrap;
+  }
+
+  .bcp-row__dash {
+    font-family: var(--so-font-mono);
+    font-size: 0.875rem;
+    color: var(--so-slate-300);
+    margin-left: auto;
+  }
+
+  /* Expanded detail area */
+  .bcp-row__detail {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem 0.625rem;
+    background: var(--so-slate-50);
+    border-top: 1px solid var(--so-slate-100);
+  }
+
+  .bcp-row--active .bcp-row__detail {
+    background: var(--so-violet-50);
+    border-top-color: var(--so-violet-100);
+  }
+
+  .bcp-row__detail-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .bcp-row__detail-col--price {
+    flex: 1;
+  }
+
+  .bcp-row__detail-col--discount {
+    flex: 1;
+  }
+
+  .bcp-row__detail-label {
+    font-family: var(--so-font-mono);
+    font-size: 0.5625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--so-slate-400);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .bcp-row__detail-label svg {
+    width: 0.6875rem;
+    height: 0.6875rem;
+  }
+
+  .bcp-row__calc {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    color: var(--so-slate-500);
+    padding: 0.25rem 0;
+    min-height: 1.75rem;
+  }
+
+  .bcp-row__calc-result {
+    font-weight: 600;
+    color: var(--so-slate-700);
+  }
+
+  .bcp-row__discount-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    background: var(--so-white);
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-sm);
+    padding: 0.25rem 0.5rem;
+    min-height: 1.75rem;
+  }
+
+  .bcp-row--active .bcp-row__discount-input-wrap {
+    border-color: var(--so-violet-200);
+  }
+
+  .bcp-row__discount-prefix {
+    font-family: var(--so-font-mono);
+    font-size: 0.8125rem;
+    color: var(--so-slate-400);
+    user-select: none;
+  }
+
+  .bcp-row__discount-input {
+    width: 4.5rem;
+    font-family: var(--so-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--so-slate-800);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+  }
+
+  .bcp-row__discount-input::placeholder {
+    color: var(--so-slate-300);
+  }
+
+  /* Effective price line (only when discount > 0) */
+  .bcp-row__effective {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background: var(--so-emerald-50);
+    border-top: 1px solid var(--so-emerald-100);
+  }
+
+  .bcp-row__effective-arrow {
+    font-size: 0.6875rem;
+    color: var(--so-emerald-400);
+  }
+
+  .bcp-row__effective-price {
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--so-emerald-700);
+  }
+
+  .bcp-row__effective-savings {
+    font-family: var(--so-font-mono);
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: var(--so-emerald-600);
+    background: var(--so-emerald-100);
+    padding: 0.0625rem 0.3125rem;
+    border-radius: var(--so-radius-sm);
+    margin-left: auto;
   }
 `;
 
-export function TierPricingOptionsPanel({
+export function BillingCycleConfigPanel({
   tierId,
-  pricingOptions,
+  basePrice,
+  currency,
+  billingCycleDiscounts,
+  isCustomPricing,
   dispatch,
-}: TierPricingOptionsPanelProps) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [newOption, setNewOption] = useState({
-    amount: "",
-  });
+}: BillingCycleConfigPanelProps) {
+  if (isCustomPricing) return null;
 
-  const handleAddOption = () => {
-    if (!newOption.amount) return;
+  const hasBasePrice = basePrice !== null && basePrice > 0;
 
-    dispatch(
-      addTierPricingOption({
-        tierId,
-        pricingOptionId: generateId(),
-        amount: parseFloat(newOption.amount),
-        currency: "USD",
-        isDefault: pricingOptions.length === 0,
-        lastModified: new Date().toISOString(),
-      }),
-    );
-
-    setNewOption({ amount: "" });
-    setIsAdding(false);
+  const isCycleEnabled = (cycle: BillingCycle): boolean => {
+    if (cycle === "MONTHLY") return true;
+    return billingCycleDiscounts.some((d) => d.billingCycle === cycle);
   };
 
-  const handleUpdateAmount = (optionId: string, amount: string) => {
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount)) return;
+  const getDiscountValue = (cycle: BillingCycle): number => {
+    const entry = billingCycleDiscounts.find((d) => d.billingCycle === cycle);
+    return entry?.discountRule?.discountValue ?? 0;
+  };
 
+  const getCycleTotal = (cycle: BillingCycle): number | null => {
+    if (!hasBasePrice) return null;
+    return basePrice * BILLING_CYCLE_MONTHS[cycle];
+  };
+
+  const dispatchDiscounts = (updated: BillingCycleDiscount[]) => {
     dispatch(
-      updateTierPricingOption({
+      setTierBillingCycleDiscounts({
         tierId,
-        pricingOptionId: optionId,
-        amount: parsedAmount,
+        discounts: updated,
         lastModified: new Date().toISOString(),
-      }),
+      }) as ServiceOfferingAction,
     );
   };
 
-  const handleMakeDefault = (optionId: string) => {
-    dispatch(
-      updateTierPricingOption({
-        tierId,
-        pricingOptionId: optionId,
-        isDefault: true,
-        lastModified: new Date().toISOString(),
-      }),
-    );
-  };
+  const handleToggleCycle = (cycle: BillingCycle, enabled: boolean) => {
+    if (cycle === "MONTHLY") return;
 
-  const handleRemoveOption = (optionId: string) => {
-    if (pricingOptions.length <= 1) {
-      alert("Cannot remove the last pricing option");
-      return;
+    if (enabled) {
+      dispatchDiscounts([
+        ...billingCycleDiscounts,
+        {
+          billingCycle: cycle,
+          discountRule: {
+            discountType: "FLAT_AMOUNT" as const,
+            discountValue: 0,
+          },
+        },
+      ]);
+    } else {
+      dispatchDiscounts(
+        billingCycleDiscounts.filter((d) => d.billingCycle !== cycle),
+      );
     }
-    dispatch(
-      removeTierPricingOption({
-        tierId,
-        pricingOptionId: optionId,
-        lastModified: new Date().toISOString(),
-      }),
+  };
+
+  const handleDiscountChange = (cycle: BillingCycle, value: number) => {
+    const rounded = Math.round(Math.max(0, value) * 100) / 100;
+
+    const existing = billingCycleDiscounts.find(
+      (d) => d.billingCycle === cycle,
     );
+
+    if (existing) {
+      dispatchDiscounts(
+        billingCycleDiscounts.map((d) =>
+          d.billingCycle === cycle
+            ? {
+                billingCycle: cycle,
+                discountRule: {
+                  discountType: "FLAT_AMOUNT" as const,
+                  discountValue: rounded,
+                },
+              }
+            : d,
+        ),
+      );
+    } else {
+      // Monthly case: create entry
+      dispatchDiscounts([
+        ...billingCycleDiscounts,
+        {
+          billingCycle: cycle,
+          discountRule: {
+            discountType: "FLAT_AMOUNT" as const,
+            discountValue: rounded,
+          },
+        },
+      ]);
+    }
   };
 
   return (
     <>
       <style>{panelStyles}</style>
-      <div className="pricing-options-panel">
-        <div className="pricing-options-panel__header">
-          <span className="pricing-options-panel__title">
+      <div className="bcp">
+        <div className="bcp__header">
+          <span className="bcp__title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -421,181 +401,202 @@ export function TierPricingOptionsPanel({
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            Pricing Options
+            Billing Cycles & Discounts
           </span>
-          {!isAdding && (
-            <button
-              onClick={() => {
-                setNewOption({ amount: "" });
-                setIsAdding(true);
-              }}
-              className="pricing-options-panel__add-btn"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Add Option
-            </button>
-          )}
         </div>
 
-        <div className="pricing-options-panel__list">
-          {pricingOptions.length === 0 && !isAdding && (
-            <div className="pricing-options-panel__empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              No pricing options configured. Add billing cycle options to offer
-              flexible pricing.
-            </div>
-          )}
+        {!hasBasePrice && (
+          <div className="bcp__no-price">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Set a base price above to configure billing cycles.
+          </div>
+        )}
 
-          {pricingOptions.map((option) => (
-            <PricingOptionRow
-              key={option.id}
-              option={option}
-              canDelete={pricingOptions.length > 1}
-              onUpdateAmount={(amount) => handleUpdateAmount(option.id, amount)}
-              onMakeDefault={() => handleMakeDefault(option.id)}
-              onRemove={() => handleRemoveOption(option.id)}
-            />
-          ))}
+        <div className="bcp__rows">
+          {CYCLE_ORDER.map((cycle) => {
+            const enabled = isCycleEnabled(cycle);
+            const isMonthly = cycle === "MONTHLY";
+            const total = getCycleTotal(cycle);
+            const discount = getDiscountValue(cycle);
 
-          {isAdding && (
-            <div className="pricing-option-add-form">
-              <div className="pricing-option-add-form__amount-group">
-                <span className="pricing-option-add-form__currency">$</span>
-                <input
-                  type="number"
-                  value={newOption.amount}
-                  onChange={(e) =>
-                    setNewOption({ ...newOption, amount: e.target.value })
-                  }
-                  placeholder="0.00"
-                  step="0.01"
-                  className="pricing-option-add-form__amount-input"
-                  autoFocus
-                />
-              </div>
-              <div className="pricing-option-add-form__actions">
-                <button
-                  onClick={handleAddOption}
-                  disabled={
-                    !newOption.amount || parseFloat(newOption.amount) <= 0
-                  }
-                  className="pricing-option-add-form__btn pricing-option-add-form__btn--add"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => {
-                    setIsAdding(false);
-                    setNewOption({ amount: "" });
-                  }}
-                  className="pricing-option-add-form__btn pricing-option-add-form__btn--cancel"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+            return (
+              <BillingCycleRow
+                key={cycle}
+                cycle={cycle}
+                label={CYCLE_LABELS[cycle]}
+                shortLabel={CYCLE_SHORT[cycle]}
+                enabled={enabled}
+                isMonthly={isMonthly}
+                basePrice={basePrice}
+                total={total}
+                discount={discount}
+                currency={currency}
+                hasBasePrice={hasBasePrice}
+                onToggleCycle={(checked) => handleToggleCycle(cycle, checked)}
+                onDiscountChange={(val) => handleDiscountChange(cycle, val)}
+              />
+            );
+          })}
         </div>
       </div>
     </>
   );
 }
 
-interface PricingOptionRowProps {
-  option: TierPricingOption;
-  canDelete: boolean;
-  onUpdateAmount: (amount: string) => void;
-  onMakeDefault: () => void;
-  onRemove: () => void;
+interface BillingCycleRowProps {
+  cycle: BillingCycle;
+  label: string;
+  shortLabel: string;
+  enabled: boolean;
+  isMonthly: boolean;
+  basePrice: number | null;
+  total: number | null;
+  discount: number;
+  currency: string;
+  hasBasePrice: boolean;
+  onToggleCycle: (checked: boolean) => void;
+  onDiscountChange: (value: number) => void;
 }
 
-function PricingOptionRow({
-  option,
-  canDelete,
-  onUpdateAmount,
-  onMakeDefault,
-  onRemove,
-}: PricingOptionRowProps) {
-  const [localAmount, setLocalAmount] = useState(
-    option.amount?.toString() ?? "",
-  );
+function BillingCycleRow({
+  label,
+  shortLabel,
+  enabled,
+  isMonthly,
+  basePrice,
+  total,
+  discount,
+  currency,
+  hasBasePrice,
+  onToggleCycle,
+  onDiscountChange,
+}: BillingCycleRowProps) {
+  const [localDiscount, setLocalDiscount] = useState(discount.toString());
 
-  const priceDisplay = formatPrice(
-    option.amount ?? 0,
-    option.currency ?? "USD",
-  );
+  // Sync local state when discount changes externally
+  const discountStr = discount.toString();
+  if (
+    discountStr !== localDiscount &&
+    document.activeElement?.tagName !== "INPUT"
+  ) {
+    setLocalDiscount(discountStr);
+  }
+
+  const handleDiscountBlur = () => {
+    const parsed = parseFloat(localDiscount);
+    if (!isNaN(parsed) && parsed >= 0 && parsed !== discount) {
+      onDiscountChange(parsed);
+    } else if (localDiscount === "" || isNaN(parseFloat(localDiscount))) {
+      setLocalDiscount("0");
+      if (discount !== 0) onDiscountChange(0);
+    }
+  };
+
+  const effectivePrice =
+    total !== null && discount > 0 ? Math.max(0, total - discount) : null;
+
+  const savingsPercent =
+    total !== null && total > 0 && discount > 0
+      ? Math.round((discount / total) * 100)
+      : 0;
+
+  const currencySymbol = currency === "USD" ? "$" : currency;
+
+  const rowClass = [
+    "bcp-row",
+    enabled ? "bcp-row--active" : "",
+    !hasBasePrice && !isMonthly ? "bcp-row--disabled" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div
-      className={`pricing-option-row ${option.isDefault ? "pricing-option-row--default" : ""}`}
-    >
-      <span className="pricing-option-row__cycle">Option</span>
-      <div className="pricing-option-row__amount-group">
-        <span className="pricing-option-row__currency">$</span>
+    <div className={rowClass}>
+      {/* Top: checkbox + label + total */}
+      <div className="bcp-row__top">
         <input
-          type="number"
-          value={localAmount}
-          onChange={(e) => setLocalAmount(e.target.value)}
-          onBlur={() => {
-            if (localAmount && parseFloat(localAmount) !== option.amount) {
-              onUpdateAmount(localAmount);
-            }
-          }}
-          step="0.01"
-          className="pricing-option-row__amount-input"
+          type="checkbox"
+          checked={enabled}
+          disabled={isMonthly}
+          onChange={(e) => onToggleCycle(e.target.checked)}
+          className="bcp-row__checkbox"
+          title={isMonthly ? "Monthly is always enabled" : `Toggle ${label}`}
         />
-      </div>
-      <span className="pricing-option-row__monthly">{priceDisplay}</span>
-      <div className="pricing-option-row__actions">
-        {option.isDefault ? (
-          <span className="pricing-option-row__default-badge">Default</span>
+        <span className="bcp-row__label">{label}</span>
+        {enabled && total !== null ? (
+          <span className="bcp-row__total">{formatPrice(total, currency)}</span>
         ) : (
-          <button
-            onClick={onMakeDefault}
-            className="pricing-option-row__action-btn pricing-option-row__action-btn--make-default"
-            title="Make default"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-              />
-            </svg>
-          </button>
-        )}
-        {canDelete && (
-          <button
-            onClick={onRemove}
-            className="pricing-option-row__action-btn pricing-option-row__action-btn--delete"
-            title="Remove"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          !enabled && <span className="bcp-row__dash">--</span>
         )}
       </div>
+
+      {/* Detail: standard price calc + flat discount input */}
+      {enabled && hasBasePrice && (
+        <div className="bcp-row__detail">
+          <div className="bcp-row__detail-col bcp-row__detail-col--price">
+            <span className="bcp-row__detail-label">Standard Price</span>
+            <div className="bcp-row__calc">
+              <span>
+                {currencySymbol}
+                {basePrice} &times; {shortLabel}
+              </span>
+              <span className="bcp-row__calc-result">
+                {formatPrice(total ?? 0, currency)}
+              </span>
+            </div>
+          </div>
+          <div className="bcp-row__detail-col bcp-row__detail-col--discount">
+            <span className="bcp-row__detail-label">
+              Flat Discount
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
+            </span>
+            <div className="bcp-row__discount-input-wrap">
+              <span className="bcp-row__discount-prefix">
+                - {currencySymbol}
+              </span>
+              <input
+                type="number"
+                value={localDiscount}
+                onChange={(e) => setLocalDiscount(e.target.value)}
+                onBlur={handleDiscountBlur}
+                placeholder="0"
+                step="0.01"
+                min="0"
+                className="bcp-row__discount-input"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Effective price bar (only when discount > 0) */}
+      {effectivePrice !== null && discount > 0 && (
+        <div className="bcp-row__effective">
+          <span className="bcp-row__effective-arrow">&rarr;</span>
+          <span className="bcp-row__effective-price">
+            {formatPrice(effectivePrice, currency)}
+          </span>
+          {savingsPercent > 0 && (
+            <span className="bcp-row__effective-savings">
+              {savingsPercent}% off
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

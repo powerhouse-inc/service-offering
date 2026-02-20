@@ -13,7 +13,17 @@ import type {
   BillingCycle,
   UsageResetCycle,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import { BILLING_CYCLE_SHORT_LABELS, formatPrice } from "./pricing-utils.js";
+import {
+  BILLING_CYCLE_SHORT_LABELS,
+  BILLING_CYCLE_LABELS,
+  BILLING_CYCLE_MONTHS,
+  RECURRING_BILLING_CYCLES,
+  formatPrice,
+  resolveGroupDiscountForTier,
+  calculateTierRecurringPrice,
+  detectMajorityCycle,
+  getGroupPriceForTier,
+} from "./pricing-utils.js";
 import {
   addServiceLevel,
   updateServiceLevel,
@@ -22,7 +32,9 @@ import {
   removeUsageLimit,
   addService,
   updateService,
+  setFinalConfiguration,
 } from "../../../document-models/service-offering/gen/creators.js";
+import { resolveConfiguration } from "./resolve-configuration.js";
 
 interface TheMatrixProps {
   document: ServiceOfferingDocument;
@@ -194,6 +206,8 @@ const matrixStyles = `
   /* Table */
   .matrix__table-wrap {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 220px);
   }
 
   .matrix__table {
@@ -287,6 +301,36 @@ const matrixStyles = `
 
   .matrix__tier-header--selected .matrix__tier-price {
     color: rgba(255, 255, 255, 0.85);
+  }
+
+  .matrix__tier-price-main {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--so-slate-900);
+    line-height: 1.2;
+  }
+
+  .matrix__tier-header--selected .matrix__tier-price-main {
+    color: var(--so-white);
+  }
+
+  .matrix__tier-price-unit {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--so-slate-500);
+  }
+
+  .matrix__tier-header--selected .matrix__tier-price-unit {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .matrix__tier-billed {
+    font-size: 0.6875rem;
+    color: var(--so-slate-400);
+  }
+
+  .matrix__tier-header--selected .matrix__tier-billed {
+    color: rgba(255, 255, 255, 0.65);
   }
 
   /* Billing Cycle Selector in Tier Header */
@@ -476,6 +520,44 @@ const matrixStyles = `
     margin-left: 8px;
   }
 
+  .matrix__group-cycle-tabs {
+    display: flex;
+    gap: 2px;
+    margin-left: 10px;
+    background: var(--so-slate-100);
+    border-radius: var(--so-radius-sm);
+    padding: 2px;
+  }
+
+  .matrix__group-cycle-tab {
+    padding: 0.125rem 0.5rem;
+    border: none;
+    border-radius: var(--so-radius-sm);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--so-slate-500);
+    background: transparent;
+    cursor: pointer;
+    transition: var(--so-transition-fast);
+    white-space: nowrap;
+  }
+
+  .matrix__group-cycle-tab:hover {
+    color: var(--so-violet-600);
+    background: var(--so-violet-50);
+  }
+
+  .matrix__group-cycle-tab--active {
+    background: var(--so-violet-100);
+    color: var(--so-violet-700);
+  }
+
+  .matrix__group-cycle-tab--active:hover {
+    background: var(--so-violet-200);
+  }
+
   .matrix__group-price-badge {
     display: inline-block;
     padding: 0.125rem 0.5rem;
@@ -485,6 +567,90 @@ const matrixStyles = `
     background: var(--so-amber-100);
     color: var(--so-amber-700);
     margin-left: 6px;
+  }
+
+  .matrix__group-name-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .matrix__group-subtitle {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--so-slate-400);
+  }
+
+  .matrix__addon-pricing-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+  }
+
+  .matrix__addon-price {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--so-slate-800);
+    white-space: nowrap;
+  }
+
+  .matrix__addon-cycle-tabs {
+    display: flex;
+    gap: 0.125rem;
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    overflow: hidden;
+  }
+
+  .matrix__addon-cycle-tab {
+    padding: 0.25rem 0.5rem;
+    font-family: var(--so-font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--so-slate-600);
+    background: var(--so-white);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .matrix__addon-cycle-tab:hover {
+    color: var(--so-violet-700);
+    background: var(--so-violet-50);
+  }
+
+  .matrix__addon-cycle-tab--active {
+    background: var(--so-violet-600);
+    color: var(--so-white);
+  }
+
+  .matrix__addon-cycle-tab--active:hover {
+    background: var(--so-violet-700);
+    color: var(--so-white);
+  }
+
+  .matrix__addon-billed {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    white-space: nowrap;
+  }
+
+  .matrix__addon-discount {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--so-emerald-600);
+    white-space: nowrap;
+  }
+
+  .matrix__addon-setup {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    white-space: nowrap;
   }
 
   /* Service Row */
@@ -945,7 +1111,6 @@ const matrixStyles = `
     background: inherit;
     cursor: pointer;
     transition: var(--so-transition-fast);
-    height: 2.25rem;
   }
 
   .matrix__metric-row:hover {
@@ -959,7 +1124,6 @@ const matrixStyles = `
     position: sticky;
     left: 0;
     z-index: 10;
-    height: 2.25rem;
     vertical-align: middle;
   }
 
@@ -1040,36 +1204,64 @@ const matrixStyles = `
   }
 
   .matrix__metric-value-cell {
-    padding: 0.375rem 1rem;
+    padding: 0.375rem 0.75rem;
     text-align: center;
     border-bottom: 1px solid var(--so-slate-100);
+    vertical-align: middle;
   }
 
-  .matrix__metric-value-container {
-    display: flex;
+  .matrix__metric-card {
+    display: inline-flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.125rem;
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    overflow: hidden;
+    min-width: 10rem;
   }
 
-  .matrix__metric-value {
+  .matrix__metric-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    gap: 1rem;
+  }
+
+  .matrix__metric-card-row--overage {
+    border-top: 1px solid var(--so-slate-100);
+  }
+
+  .matrix__metric-card-label {
     font-size: 0.6875rem;
     color: var(--so-slate-500);
-  }
-
-  .matrix__metric-overage {
-    font-family: var(--so-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 500;
-    color: #059669;
     white-space: nowrap;
   }
 
-  .matrix__metric-reset-cycle {
-    font-size: 0.5625rem;
+  .matrix__metric-card-value {
+    font-size: 0.75rem;
+    color: var(--so-slate-700);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .matrix__metric-card-value strong {
+    font-weight: 600;
+  }
+
+  .matrix__metric-card-value--overage {
+    color: var(--so-emerald-600);
     font-weight: 500;
-    color: #64748b;
-    text-transform: capitalize;
+  }
+
+  .matrix__metric-card-cycle {
+    font-size: 0.625rem;
+    font-weight: 400;
+    color: var(--so-slate-400);
+  }
+
+  .matrix__metric-empty {
+    font-size: 0.75rem;
+    color: var(--so-slate-300);
   }
 
   /* Add Metric Button on Service Row */
@@ -1215,7 +1407,19 @@ const matrixStyles = `
     background: var(--so-slate-50);
   }
 
-  /* Grand Total */
+  /* Grand Total - Sticky Footer */
+  .matrix__grand-total-sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+    border-top: 3px solid var(--so-violet-400);
+  }
+
+  .matrix__grand-total-sticky .matrix__table {
+    margin: 0;
+  }
+
   .matrix__grand-total-row {
     background: var(--so-violet-100);
   }
@@ -2029,6 +2233,217 @@ const matrixStyles = `
     color: #334155;
     font-weight: 600;
   }
+
+  /* Billing Cycle Selector Bar */
+  .matrix__billing-cycle-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--so-slate-50);
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-lg);
+    margin-bottom: 1rem;
+  }
+
+  .matrix__billing-cycle-label {
+    font-family: var(--so-font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--so-slate-500);
+    white-space: nowrap;
+  }
+
+  .matrix__billing-cycle-tabs {
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  .matrix__billing-cycle-tab {
+    padding: 0.375rem 0.875rem;
+    font-family: var(--so-font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--so-slate-600);
+    background: var(--so-white);
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .matrix__billing-cycle-tab:hover {
+    border-color: var(--so-violet-300);
+    color: var(--so-violet-700);
+  }
+
+  .matrix__billing-cycle-tab--active {
+    background: var(--so-violet-600);
+    border-color: var(--so-violet-600);
+    color: var(--so-white);
+  }
+
+  .matrix__billing-cycle-tab--active:hover {
+    background: var(--so-violet-700);
+    border-color: var(--so-violet-700);
+    color: var(--so-white);
+  }
+
+  .matrix__billing-cycle-tab--custom {
+    background: var(--so-amber-500);
+    border-color: var(--so-amber-500);
+    color: var(--so-white);
+    cursor: default;
+    font-style: italic;
+  }
+
+  .matrix__billing-cycle-tab--custom:hover {
+    background: var(--so-amber-500);
+    border-color: var(--so-amber-500);
+  }
+
+  /* Tier Discount Badge */
+  .matrix__tier-discount-badge {
+    display: inline-block;
+    margin-top: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    font-family: var(--so-font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--so-emerald-700);
+    background: var(--so-emerald-100);
+    border-radius: var(--so-radius-sm);
+  }
+
+  /* Discount Tag in Grand Total */
+  .matrix__discount-tag {
+    display: inline-block;
+    margin-left: 0.375rem;
+    padding: 0.0625rem 0.375rem;
+    font-family: var(--so-font-mono);
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: var(--so-emerald-700);
+    background: var(--so-emerald-100);
+    border-radius: var(--so-radius-sm);
+    vertical-align: middle;
+  }
+
+  /* Grand Total Cycle Label */
+  .matrix__grand-total-cycle {
+    font-weight: 400;
+    font-size: 0.6875rem;
+    color: var(--so-slate-400);
+    margin-left: 0.25rem;
+  }
+
+  /* Setup Price Badge in Group Header */
+  .matrix__group-price-badge--setup {
+    background: var(--so-amber-100) !important;
+    color: var(--so-amber-700) !important;
+  }
+
+  /* Majority Billing Cycle Suggestion Banner */
+  .matrix__majority-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--so-sky-50);
+    border: 1px solid var(--so-sky-200);
+    border-radius: var(--so-radius-md);
+    font-size: 0.75rem;
+    color: var(--so-sky-800);
+  }
+
+  .matrix__majority-icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: var(--so-sky-500);
+  }
+
+  .matrix__majority-text {
+    flex: 1;
+  }
+
+  .matrix__majority-btn {
+    padding: 0.25rem 0.5rem;
+    font-family: var(--so-font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    border-radius: var(--so-radius-sm);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all var(--so-transition-fast);
+  }
+
+  .matrix__majority-btn--switch {
+    background: var(--so-sky-600);
+    color: var(--so-white);
+  }
+
+  .matrix__majority-btn--switch:hover {
+    background: var(--so-sky-700);
+  }
+
+  .matrix__majority-btn--dismiss {
+    background: transparent;
+    color: var(--so-sky-600);
+    border-color: var(--so-sky-300);
+  }
+
+  .matrix__majority-btn--dismiss:hover {
+    background: var(--so-sky-100);
+  }
+
+  /* Calculated Price Badge in SUBTOTAL */
+  .matrix__calculated-badge {
+    display: inline-block;
+    margin-left: 0.25rem;
+    padding: 0 0.25rem;
+    font-family: var(--so-font-mono);
+    font-size: 0.5rem;
+    font-weight: 600;
+    color: var(--so-emerald-700);
+    background: var(--so-emerald-100);
+    border-radius: var(--so-radius-sm);
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  /* SUBTOTAL cell with tier vs group comparison */
+  .matrix__subtotal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+  }
+
+  .matrix__subtotal-tier-price {
+    font-weight: 600;
+  }
+
+  .matrix__subtotal-comparison {
+    font-size: 0.5625rem;
+    font-family: var(--so-font-mono);
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--so-radius-sm);
+  }
+
+  .matrix__subtotal-comparison--over {
+    color: var(--so-rose-700);
+    background: var(--so-rose-100);
+    font-weight: 600;
+  }
+
+  .matrix__subtotal-comparison--under {
+    color: var(--so-slate-500);
+    background: var(--so-slate-100);
+  }
 `;
 
 export function TheMatrix({ document, dispatch }: TheMatrixProps) {
@@ -2036,6 +2451,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const services = state.global.services ?? [];
   const tiers = state.global.tiers ?? [];
   const optionGroups = state.global.optionGroups ?? [];
+  const serviceGroups = state.global.serviceGroups ?? [];
 
   // Get selected facets from the offering document's facetTargets
   const offeringFacetTargets = state.global.facetTargets ?? [];
@@ -2061,9 +2477,19 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     return categories;
   }, [offeringFacetTargets]);
 
+  // Restore UI state from persisted finalConfiguration, or use defaults
+  const savedConfig = state.global.finalConfiguration;
+
   const [enabledOptionalGroups, setEnabledOptionalGroups] = useState<
     Set<string>
-  >(new Set(optionGroups.filter((g) => g.defaultSelected).map((g) => g.id)));
+  >(() => {
+    if (savedConfig?.addOnConfigs && savedConfig.addOnConfigs.length > 0) {
+      return new Set(savedConfig.addOnConfigs.map((a) => a.optionGroupId));
+    }
+    return new Set(
+      optionGroups.filter((g) => g.defaultSelected).map((g) => g.id),
+    );
+  });
 
   const [selectedCell, setSelectedCell] = useState<{
     serviceId: string;
@@ -2090,12 +2516,180 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     Set<string>
   >(new Set());
 
-  const [selectedTierIdx, setSelectedTierIdx] = useState<number>(0);
+  const [selectedTierIdx, setSelectedTierIdx] = useState<number>(() => {
+    if (savedConfig?.selectedTierId) {
+      const idx = tiers.findIndex((t) => t.id === savedConfig.selectedTierId);
+      return idx >= 0 ? idx : 0;
+    }
+    return 0;
+  });
 
-  // Selected billing cycle per tier (for tiers with multiple pricing options)
-  const [selectedBillingCycles, setSelectedBillingCycles] = useState<
-    Record<string, string>
-  >({});
+  // Global billing cycle view - lets users see prices/discounts for different cycles
+  const [activeBillingCycle, setActiveBillingCycle] = useState<BillingCycle>(
+    () => savedConfig?.selectedBillingCycle || "MONTHLY",
+  );
+
+  // Per-addon billing cycle state (add-ons have independent cycle selection)
+  const [addonBillingCycles, setAddonBillingCycles] = useState<
+    Record<string, BillingCycle>
+  >(() => {
+    if (savedConfig?.addOnConfigs) {
+      const cycles: Record<string, BillingCycle> = {};
+      for (const addon of savedConfig.addOnConfigs) {
+        cycles[addon.optionGroupId] = addon.selectedBillingCycle;
+      }
+      return cycles;
+    }
+    return {};
+  });
+
+  // Per-group billing cycle state (non-addon service groups can select their own cycle)
+  const [groupBillingCycles, setGroupBillingCycles] = useState<
+    Record<string, BillingCycle>
+  >(() => {
+    if (savedConfig?.optionGroupConfigs) {
+      const cycles: Record<string, BillingCycle> = {};
+      for (const cfg of savedConfig.optionGroupConfigs) {
+        if (cfg.billingCycleOverridden) {
+          cycles[cfg.optionGroupId] = cfg.effectiveBillingCycle;
+        }
+      }
+      return cycles;
+    }
+    return {};
+  });
+
+  // Detect CUSTOM billing mode: any non-addon group has a cycle different from global
+  const isCustomBillingMode = useMemo(() => {
+    const overrides = Object.values(groupBillingCycles);
+    if (overrides.length === 0) return false;
+    return overrides.some((cycle) => cycle !== activeBillingCycle);
+  }, [groupBillingCycles, activeBillingCycle]);
+
+  // Billing cycle majority detection (state only — memo goes after regularGroups is defined)
+  const [majorityDismissed, setMajorityDismissed] = useState(false);
+
+  // Stable ref holding latest config-relevant state so dispatchFinalConfig
+  // can be defined early without depending on useMemo-derived values.
+  const configStateRef = useRef({
+    tiers,
+    selectedTierIdx,
+    activeBillingCycle,
+    groupBillingCycles,
+    addonBillingCycles,
+    enabledOptionalGroups,
+    serviceGroups,
+    optionGroups,
+  });
+  // Keep the ref fresh on every render
+  configStateRef.current = {
+    tiers,
+    selectedTierIdx,
+    activeBillingCycle,
+    groupBillingCycles,
+    addonBillingCycles,
+    enabledOptionalGroups,
+    serviceGroups,
+    optionGroups,
+  };
+
+  // Debounced dispatcher for SET_FINAL_CONFIGURATION.
+  // Called explicitly from user interaction handlers only.
+  const finalConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const dispatchFinalConfig = useCallback(
+    (overrides?: {
+      selectedTierIdx?: number;
+      activeBillingCycle?: BillingCycle;
+      groupBillingCycles?: Record<string, BillingCycle>;
+      addonBillingCycles?: Record<string, BillingCycle>;
+      enabledAddonIds?: Set<string>;
+    }) => {
+      if (finalConfigTimerRef.current) {
+        clearTimeout(finalConfigTimerRef.current);
+      }
+      finalConfigTimerRef.current = setTimeout(() => {
+        const s = configStateRef.current;
+        const og = s.optionGroups;
+        const result = resolveConfiguration({
+          tiers: s.tiers,
+          selectedTierIdx: overrides?.selectedTierIdx ?? s.selectedTierIdx,
+          activeBillingCycle:
+            overrides?.activeBillingCycle ?? s.activeBillingCycle,
+          regularGroups: og.filter((g) => !g.isAddOn && g.costType !== "SETUP"),
+          setupGroups: og.filter((g) => !g.isAddOn && g.costType === "SETUP"),
+          addonGroups: og.filter((g) => g.isAddOn),
+          groupBillingCycles:
+            overrides?.groupBillingCycles ?? s.groupBillingCycles,
+          addonBillingCycles:
+            overrides?.addonBillingCycles ?? s.addonBillingCycles,
+          enabledAddonIds:
+            overrides?.enabledAddonIds ?? s.enabledOptionalGroups,
+          serviceGroups: s.serviceGroups,
+        });
+        if (result) {
+          dispatch(setFinalConfiguration(result));
+        }
+      }, 300);
+    },
+    [dispatch],
+  );
+
+  // Handle group cycle override with majority-based auto-remerge
+  const handleGroupCycleChange = useCallback(
+    (groupId: string, newCycle: BillingCycle) => {
+      setGroupBillingCycles((prev) => {
+        const updated = { ...prev, [groupId]: newCycle };
+        // Count total regular (non-setup, non-addon) groups
+        const totalRegular = optionGroups.filter(
+          (g) => g.costType !== "SETUP" && !g.isAddOn,
+        ).length;
+        if (totalRegular === 0) {
+          dispatchFinalConfig({ groupBillingCycles: updated });
+          return updated;
+        }
+        // Compute effective cycle for each regular group
+        const cycleCounts = new Map<BillingCycle, number>();
+        for (const g of optionGroups) {
+          if (g.costType === "SETUP" || g.isAddOn) continue;
+          const effective = updated[g.id] || activeBillingCycle;
+          cycleCounts.set(effective, (cycleCounts.get(effective) || 0) + 1);
+        }
+        // Check for majority (>50%) on a NEW cycle different from the global
+        for (const [cycle, count] of cycleCounts) {
+          if (count > totalRegular / 2 && cycle !== activeBillingCycle) {
+            // New majority found — adopt as global and clear overrides
+            setTimeout(() => {
+              setActiveBillingCycle(cycle);
+              setGroupBillingCycles({});
+              dispatchFinalConfig({
+                activeBillingCycle: cycle,
+                groupBillingCycles: {},
+              });
+            }, 0);
+            return prev;
+          }
+        }
+        dispatchFinalConfig({ groupBillingCycles: updated });
+        return updated;
+      });
+    },
+    [activeBillingCycle, optionGroups, dispatchFinalConfig],
+  );
+
+  // When switching to a global cycle, reset all group overrides (exit Custom mode)
+  const handleGlobalCycleChange = useCallback(
+    (cycle: BillingCycle) => {
+      setActiveBillingCycle(cycle);
+      setGroupBillingCycles({});
+      dispatchFinalConfig({
+        activeBillingCycle: cycle,
+        groupBillingCycles: {},
+      });
+    },
+    [dispatchFinalConfig],
+  );
 
   // Initialize selected facets from offering's facet targets
   const [selectedFacets, setSelectedFacets] = useState<Record<string, string>>(
@@ -2178,9 +2772,58 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     return optionGroups.filter((g) => g.costType !== "SETUP" && !g.isAddOn);
   }, [optionGroups]);
 
+  // Billing cycle majority suggestion: suggest switching when >50% of groups share a different cycle
+  const majorityResult = useMemo(
+    () =>
+      detectMajorityCycle(
+        regularGroups,
+        activeBillingCycle,
+        groupBillingCycles,
+      ),
+    [regularGroups, activeBillingCycle, groupBillingCycles],
+  );
+
+  // Global billing cycle bar: driven by the selected tier's billingCycleDiscounts
+  // MONTHLY is always available; other cycles appear when the tier has them configured
+  const availableCyclesForSelectedTier = useMemo(() => {
+    const tier = tiers[selectedTierIdx];
+    if (!tier || tier.billingCycleDiscounts.length === 0) {
+      return RECURRING_BILLING_CYCLES;
+    }
+    const tierCycleSet = new Set<BillingCycle>(
+      tier.billingCycleDiscounts.map((d) => d.billingCycle),
+    );
+    tierCycleSet.add("MONTHLY");
+    return RECURRING_BILLING_CYCLES.filter((c) => tierCycleSet.has(c));
+  }, [tiers, selectedTierIdx]);
+
   const addonGroups = useMemo(() => {
     return optionGroups.filter((g) => g.isAddOn);
   }, [optionGroups]);
+
+  // On mount: dispatch once if finalConfiguration is not already set
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    if (!state.global.finalConfiguration) {
+      const result = resolveConfiguration({
+        tiers,
+        selectedTierIdx,
+        activeBillingCycle,
+        regularGroups,
+        setupGroups,
+        addonGroups,
+        groupBillingCycles,
+        addonBillingCycles,
+        enabledAddonIds: enabledOptionalGroups,
+        serviceGroups,
+      });
+      if (result) {
+        dispatch(setFinalConfiguration(result));
+      }
+    }
+  }, []);
 
   const ungroupedSetupServices = useMemo(() => {
     return (groupedServices.get(UNGROUPED_ID) || []).filter(
@@ -2236,6 +2879,147 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     );
   };
 
+  // Calculate tier price for a billing cycle period
+  // Total = base monthly price x months in cycle, then subtract flat discount
+  // When pricingMode === "CALCULATED", uses sum of regular group prices
+  const getTierPriceForCycle = (
+    tier: ServiceSubscriptionTier,
+    cycle: BillingCycle,
+  ): {
+    amount: number;
+    monthlyEquivalent: number;
+    billedTotal: number;
+    hasDiscount: boolean;
+    savingsPercent: number;
+    discountLabel: string;
+  } => {
+    const baseMonthly =
+      tier.pricingMode === "CALCULATED"
+        ? calculateTierRecurringPrice(regularGroups, "MONTHLY", tier.id)
+            .monthlyTotal
+        : (tier.pricing.amount ?? 0);
+    const months = BILLING_CYCLE_MONTHS[cycle];
+    const totalForCycle = baseMonthly * months;
+
+    const discount = tier.billingCycleDiscounts?.find(
+      (d) => d.billingCycle === cycle,
+    );
+    if (!discount?.discountRule || discount.discountRule.discountValue === 0) {
+      return {
+        amount: totalForCycle,
+        monthlyEquivalent: baseMonthly,
+        billedTotal: totalForCycle,
+        hasDiscount: false,
+        savingsPercent: 0,
+        discountLabel: "",
+      };
+    }
+    const { discountType, discountValue } = discount.discountRule;
+    let adjusted: number;
+    let pct: number;
+    if (discountType === "PERCENTAGE") {
+      adjusted = totalForCycle * (1 - discountValue / 100);
+      pct = discountValue;
+    } else {
+      // FLAT_AMOUNT - discount is subtracted from the cycle total
+      adjusted = Math.max(0, totalForCycle - discountValue);
+      pct =
+        totalForCycle > 0
+          ? Math.round((discountValue / totalForCycle) * 100)
+          : 0;
+    }
+    adjusted = Math.round(adjusted * 100) / 100;
+    const monthlyEq =
+      months > 0 ? Math.round((adjusted / months) * 100) / 100 : adjusted;
+    return {
+      amount: adjusted,
+      monthlyEquivalent: monthlyEq,
+      billedTotal: adjusted,
+      hasDiscount: true,
+      savingsPercent: pct,
+      discountLabel: pct > 0 ? `SAVE ${pct}%` : "",
+    };
+  };
+
+  // Calculate add-on price for a billing cycle period
+  // Uses cascade: group discount → tier discount → no discount
+  const getAddonPriceForCycle = (
+    group: OptionGroup,
+    cycle: BillingCycle,
+    tier?: ServiceSubscriptionTier | null,
+    tierMonthlyBase?: number,
+  ): {
+    amount: number;
+    monthlyEquivalent: number;
+    billedTotal: number;
+    hasDiscount: boolean;
+    savingsPercent: number;
+    discountLabel: string;
+    baseMonthly: number;
+  } => {
+    // Get the monthly base price: tier-dependent first, then standalone fallback
+    const baseMonthly = tier
+      ? getGroupPriceForTier(group, tier.id).amount
+      : (group.standalonePricing?.recurringPricing?.find(
+          (p) => p.billingCycle === "MONTHLY",
+        )?.amount ?? 0);
+    const months = BILLING_CYCLE_MONTHS[cycle];
+    const totalForCycle = baseMonthly * months;
+
+    const resolved = resolveGroupDiscountForTier(
+      group,
+      tier?.id ?? "",
+      cycle,
+      tier ?? null,
+      undefined,
+      tierMonthlyBase,
+    );
+    if (!resolved) {
+      return {
+        amount: totalForCycle,
+        monthlyEquivalent: baseMonthly,
+        billedTotal: totalForCycle,
+        hasDiscount: false,
+        savingsPercent: 0,
+        discountLabel: "",
+        baseMonthly,
+      };
+    }
+    const { discountType, discountValue } = resolved.discountRule;
+    let adjusted: number;
+    let pct: number;
+    if (discountType === "PERCENTAGE") {
+      adjusted = totalForCycle * (1 - discountValue / 100);
+      pct = discountValue;
+    } else {
+      // FLAT_AMOUNT - discount is subtracted from the cycle total
+      adjusted = Math.max(0, totalForCycle - discountValue);
+      pct =
+        totalForCycle > 0
+          ? Math.round((discountValue / totalForCycle) * 100)
+          : 0;
+    }
+    adjusted = Math.round(adjusted * 100) / 100;
+    const monthlyEq =
+      months > 0 ? Math.round((adjusted / months) * 100) / 100 : adjusted;
+    const savings = Math.round((totalForCycle - adjusted) * 100) / 100;
+    const currency = group.currency || "USD";
+    return {
+      amount: adjusted,
+      monthlyEquivalent: monthlyEq,
+      billedTotal: adjusted,
+      hasDiscount: true,
+      savingsPercent: pct,
+      discountLabel:
+        resolved.originalTierFlat && savings > 0
+          ? `${formatPrice(savings, currency)} off`
+          : pct > 0
+            ? `SAVE ${Math.round(pct)}%`
+            : "",
+      baseMonthly,
+    };
+  };
+
   const handleSetServiceLevel = (
     serviceId: string,
     tierId: string,
@@ -2274,6 +3058,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       } else {
         next.add(groupId);
       }
+      dispatchFinalConfig({ enabledAddonIds: next });
       return next;
     });
   };
@@ -2441,7 +3226,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricOveragePrices(initialOveragePrices);
     setMetricOverageCycles(initialOverageCycles);
     setMetricUnitName("");
-    setMetricResetCycle("MONTHLY");
+    // Default to NONE for setup/formation services, MONTHLY otherwise
+    const service = services.find((s) => s.id === serviceId);
+    setMetricResetCycle(service?.isSetupFormation ? "NONE" : "MONTHLY");
   };
 
   const handleEditMetric = (serviceId: string, metric: string) => {
@@ -2787,30 +3574,90 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
           </div>
         )}
 
+        {/* Billing Cycle Selector */}
+        <div className="matrix__billing-cycle-bar">
+          <span className="matrix__billing-cycle-label">
+            Set Subscription Plan & Billing Cycle:
+          </span>
+          <div className="matrix__billing-cycle-tabs">
+            {availableCyclesForSelectedTier.map((cycle) => (
+              <button
+                key={cycle}
+                onClick={() => handleGlobalCycleChange(cycle)}
+                className={`matrix__billing-cycle-tab ${!isCustomBillingMode && activeBillingCycle === cycle ? "matrix__billing-cycle-tab--active" : ""}`}
+              >
+                {BILLING_CYCLE_SHORT_LABELS[cycle]}
+              </button>
+            ))}
+            {isCustomBillingMode && (
+              <span className="matrix__billing-cycle-tab matrix__billing-cycle-tab--custom matrix__billing-cycle-tab--active">
+                Custom
+              </span>
+            )}
+          </div>
+        </div>
+
+        {majorityResult && !majorityDismissed && (
+          <div className="matrix__majority-banner">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="matrix__majority-icon"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="matrix__majority-text">
+              {majorityResult.count} of {majorityResult.total} service groups
+              use{" "}
+              <strong>
+                {BILLING_CYCLE_SHORT_LABELS[majorityResult.majorityCycle]}
+              </strong>{" "}
+              billing.
+            </span>
+            <button
+              type="button"
+              className="matrix__majority-btn matrix__majority-btn--switch"
+              onClick={() => {
+                handleGlobalCycleChange(majorityResult.majorityCycle);
+                setMajorityDismissed(true);
+              }}
+            >
+              Switch to{" "}
+              {BILLING_CYCLE_SHORT_LABELS[majorityResult.majorityCycle]}
+            </button>
+            <button
+              type="button"
+              className="matrix__majority-btn matrix__majority-btn--dismiss"
+              onClick={() => setMajorityDismissed(true)}
+            >
+              Keep current
+            </button>
+          </div>
+        )}
+
         <div className="matrix__table-wrap">
           <table className="matrix__table">
             <thead>
               <tr>
                 <th className="matrix__corner-cell" />
                 {tiers.map((tier, idx) => {
-                  const hasPricingOptions =
-                    tier.pricingOptions && tier.pricingOptions.length > 0;
-                  const selectedCycleId = selectedBillingCycles[tier.id];
-                  const activePricingOption = hasPricingOptions
-                    ? tier.pricingOptions.find(
-                        (po) => po.id === selectedCycleId,
-                      ) ||
-                      tier.pricingOptions.find((po) => po.isDefault) ||
-                      tier.pricingOptions[0]
-                    : null;
-                  const displayAmount = activePricingOption
-                    ? activePricingOption.amount
-                    : tier.pricing.amount;
+                  const cyclePrice = tier.isCustomPricing
+                    ? null
+                    : getTierPriceForCycle(tier, activeBillingCycle);
 
                   return (
                     <th
                       key={tier.id}
-                      onClick={() => setSelectedTierIdx(idx)}
+                      onClick={() => {
+                        setSelectedTierIdx(idx);
+                        dispatchFinalConfig({ selectedTierIdx: idx });
+                      }}
                       className={`matrix__tier-header ${
                         idx === selectedTierIdx
                           ? "matrix__tier-header--selected"
@@ -2820,37 +3667,55 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                       <div className="matrix__tier-header-inner">
                         <div className="matrix__tier-radio" />
                         <span className="matrix__tier-name">{tier.name}</span>
-                        <span className="matrix__tier-price">
-                          {tier.isCustomPricing
-                            ? "Custom"
-                            : displayAmount !== null
-                              ? `$${displayAmount}/mo`
-                              : "$null/mo"}
-                        </span>
-                        {/* Billing Cycle Selector for tiers with multiple options */}
-                        {hasPricingOptions &&
-                          tier.pricingOptions.length > 1 && (
-                            <select
-                              value={
-                                selectedCycleId || activePricingOption?.id || ""
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                setSelectedBillingCycles((prev) => ({
-                                  ...prev,
-                                  [tier.id]: e.target.value,
-                                }));
-                              }}
-                              className="matrix__tier-cycle-select"
-                            >
-                              {tier.pricingOptions.map((po) => (
-                                <option key={po.id} value={po.id}>
-                                  ${po.amount}
-                                </option>
-                              ))}
-                            </select>
-                          )}
+                        {tier.isCustomPricing ? (
+                          <span className="matrix__tier-price">Custom</span>
+                        ) : cyclePrice ? (
+                          <>
+                            <span className="matrix__tier-price-main">
+                              {formatPrice(
+                                isCustomBillingMode ||
+                                  activeBillingCycle === "MONTHLY"
+                                  ? (tier.pricing.amount ?? 0)
+                                  : cyclePrice.monthlyEquivalent,
+                                tier.pricing.currency || "USD",
+                              )}
+                              <span className="matrix__tier-price-unit">
+                                /mo
+                              </span>
+                            </span>
+                            {!isCustomBillingMode &&
+                              activeBillingCycle !== "MONTHLY" && (
+                                <span className="matrix__tier-billed">
+                                  Billed{" "}
+                                  {formatPrice(
+                                    cyclePrice.billedTotal,
+                                    tier.pricing.currency || "USD",
+                                  )}{" "}
+                                  {BILLING_CYCLE_LABELS[activeBillingCycle]}
+                                </span>
+                              )}
+                            {!isCustomBillingMode &&
+                              cyclePrice.hasDiscount &&
+                              cyclePrice.savingsPercent > 0 && (
+                                <span className="matrix__tier-discount-badge">
+                                  {cyclePrice.discountLabel}
+                                </span>
+                              )}
+                          </>
+                        ) : tier.pricing.amount != null ? (
+                          <span className="matrix__tier-price">
+                            {formatPrice(
+                              tier.pricing.amount ?? 0,
+                              tier.pricing.currency || "USD",
+                            )}
+                            /
+                            {BILLING_CYCLE_SHORT_LABELS[
+                              activeBillingCycle
+                            ].toLowerCase()}
+                          </span>
+                        ) : (
+                          <span className="matrix__tier-price">—</span>
+                        )}
                       </div>
                     </th>
                   );
@@ -2918,6 +3783,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   onRemoveMetric={handleRemoveMetric}
                   onEditService={openEditServiceModal}
                   onReorderService={handleReorderService}
+                  activeBillingCycle={activeBillingCycle}
                 />
               ))}
 
@@ -2930,10 +3796,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     description: null,
                     isAddOn: false,
                     defaultSelected: true,
-                    billingCycle: null,
+                    availableBillingCycles: [],
+                    billingCycleDiscounts: [],
                     costType: null,
                     currency: null,
                     price: null,
+                    pricingMode: null,
+                    standalonePricing: null,
+                    tierDependentPricing: null,
+                    discountMode: null,
                   }}
                   services={ungroupedSetupServices}
                   tiers={tiers}
@@ -2955,6 +3826,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   onRemoveMetric={handleRemoveMetric}
                   onEditService={openEditServiceModal}
                   onReorderService={handleReorderService}
+                  activeBillingCycle={activeBillingCycle}
                 />
               )}
 
@@ -2981,33 +3853,50 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 </tr>
               )}
 
-              {regularGroups.map((group) => (
-                <ServiceGroupSection
-                  key={group.id}
-                  group={group}
-                  services={groupedServices.get(group.id) || []}
-                  tiers={tiers}
-                  isSetupFormation={false}
-                  isOptional={false}
-                  isEnabled={true}
-                  onToggle={() => {}}
-                  getServiceLevelForTier={getServiceLevelForTier}
-                  getUniqueMetricsForService={getUniqueMetricsForService}
-                  getUsageLimitForMetric={getUsageLimitForMetric}
-                  getLevelDisplay={getLevelDisplay}
-                  selectedCell={selectedCell}
-                  setSelectedCell={setSelectedCell}
-                  handleSetServiceLevel={handleSetServiceLevel}
-                  onAddService={openAddServiceModal}
-                  selectedTierIdx={selectedTierIdx}
-                  dispatch={dispatch}
-                  onAddMetric={handleAddMetric}
-                  onEditMetric={handleEditMetric}
-                  onRemoveMetric={handleRemoveMetric}
-                  onEditService={openEditServiceModal}
-                  onReorderService={handleReorderService}
-                />
-              ))}
+              {(() => {
+                const selectedTierForBase = tiers[selectedTierIdx] ?? null;
+                const tierBaseMo = selectedTierForBase
+                  ? calculateTierRecurringPrice(
+                      regularGroups,
+                      "MONTHLY",
+                      selectedTierForBase.id,
+                    ).monthlyTotal
+                  : 0;
+                return regularGroups.map((group) => (
+                  <ServiceGroupSection
+                    key={group.id}
+                    group={group}
+                    services={groupedServices.get(group.id) || []}
+                    tiers={tiers}
+                    isSetupFormation={false}
+                    isOptional={false}
+                    isEnabled={true}
+                    onToggle={() => {}}
+                    getServiceLevelForTier={getServiceLevelForTier}
+                    getUniqueMetricsForService={getUniqueMetricsForService}
+                    getUsageLimitForMetric={getUsageLimitForMetric}
+                    getLevelDisplay={getLevelDisplay}
+                    selectedCell={selectedCell}
+                    setSelectedCell={setSelectedCell}
+                    handleSetServiceLevel={handleSetServiceLevel}
+                    onAddService={openAddServiceModal}
+                    selectedTierIdx={selectedTierIdx}
+                    dispatch={dispatch}
+                    onAddMetric={handleAddMetric}
+                    onEditMetric={handleEditMetric}
+                    onRemoveMetric={handleRemoveMetric}
+                    onEditService={openEditServiceModal}
+                    onReorderService={handleReorderService}
+                    activeBillingCycle={activeBillingCycle}
+                    groupActiveCycle={groupBillingCycles[group.id]}
+                    onGroupCycleChange={(cycle) =>
+                      handleGroupCycleChange(group.id, cycle)
+                    }
+                    isCustomBillingMode={isCustomBillingMode}
+                    tierBaseMonthly={tierBaseMo}
+                  />
+                ));
+              })()}
 
               {ungroupedRegularServices.length > 0 && (
                 <ServiceGroupSection
@@ -3018,10 +3907,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     description: null,
                     isAddOn: false,
                     defaultSelected: true,
-                    billingCycle: null,
+                    availableBillingCycles: [],
+                    billingCycleDiscounts: [],
                     costType: null,
                     currency: null,
                     price: null,
+                    pricingMode: null,
+                    standalonePricing: null,
+                    tierDependentPricing: null,
+                    discountMode: null,
                   }}
                   services={ungroupedRegularServices}
                   tiers={tiers}
@@ -3043,85 +3937,378 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   onRemoveMetric={handleRemoveMetric}
                   onEditService={openEditServiceModal}
                   onReorderService={handleReorderService}
+                  activeBillingCycle={activeBillingCycle}
+                  isCustomBillingMode={isCustomBillingMode}
                 />
               )}
 
               <tr className="matrix__total-row">
                 <td>SUBTOTAL</td>
-                {tiers.map((tier) => (
-                  <td key={tier.id} style={{ textAlign: "center" }}>
-                    {tier.isCustomPricing
-                      ? "Custom"
-                      : `$${tier.pricing.amount}`}
-                  </td>
-                ))}
-              </tr>
+                {tiers.map((tier) => {
+                  if (tier.isCustomPricing) {
+                    return (
+                      <td key={tier.id} style={{ textAlign: "center" }}>
+                        Custom
+                      </td>
+                    );
+                  }
+                  const calcResult = calculateTierRecurringPrice(
+                    regularGroups,
+                    "MONTHLY",
+                    tier.id,
+                  );
+                  const groupSum = calcResult.monthlyTotal;
+                  const tierPrice = tier.pricing.amount ?? 0;
+                  const isCalculated = tier.pricingMode === "CALCULATED";
+                  const currency = tier.pricing.currency || "USD";
+                  const isOver =
+                    !isCalculated && tierPrice > 0 && groupSum > tierPrice;
 
-              {addonGroups.map((group) => (
-                <ServiceGroupSection
-                  key={group.id}
-                  group={group}
-                  services={groupedServices.get(group.id) || []}
-                  tiers={tiers}
-                  isSetupFormation={false}
-                  isOptional={true}
-                  isEnabled={enabledOptionalGroups.has(group.id)}
-                  onToggle={() => toggleOptionalGroup(group.id)}
-                  getServiceLevelForTier={getServiceLevelForTier}
-                  getUniqueMetricsForService={getUniqueMetricsForService}
-                  getUsageLimitForMetric={getUsageLimitForMetric}
-                  getLevelDisplay={getLevelDisplay}
-                  selectedCell={selectedCell}
-                  setSelectedCell={setSelectedCell}
-                  handleSetServiceLevel={handleSetServiceLevel}
-                  dispatch={dispatch}
-                  onAddService={openAddServiceModal}
-                  selectedTierIdx={selectedTierIdx}
-                  onAddMetric={handleAddMetric}
-                  onEditMetric={handleEditMetric}
-                  onRemoveMetric={handleRemoveMetric}
-                  onEditService={openEditServiceModal}
-                  onReorderService={handleReorderService}
-                />
-              ))}
-
-              {/* 1. Recurring Tier Price */}
-              <tr className="matrix__grand-total-row">
-                <td>Recurring Tier Price</td>
-                {tiers.map((tier, idx) => (
-                  <td
-                    key={tier.id}
-                    className={
-                      idx === selectedTierIdx
-                        ? "matrix__grand-total-cell--selected"
-                        : ""
-                    }
-                    style={{ textAlign: "center" }}
-                  >
-                    {idx === selectedTierIdx
-                      ? tier.isCustomPricing
-                        ? "Custom"
-                        : `${formatPrice(tier.pricing.amount || 0, tier.pricing.currency || "USD")}/mo`
-                      : null}
-                  </td>
-                ))}
-              </tr>
-
-              {/* 2. Recurring Add-on Prices - each add-on shown separately with its billing cycle */}
-              {addonGroups
-                .filter(
-                  (g) => enabledOptionalGroups.has(g.id) && g.price != null,
-                )
-                .map((g) => {
-                  const billingLabel = g.billingCycle
-                    ? `/${BILLING_CYCLE_SHORT_LABELS[g.billingCycle].toLowerCase()}`
-                    : "/mo";
                   return (
+                    <td key={tier.id} style={{ textAlign: "center" }}>
+                      <div className="matrix__subtotal-cell">
+                        <span className="matrix__subtotal-tier-price">
+                          {formatPrice(
+                            isCalculated ? groupSum : tierPrice,
+                            currency,
+                          )}
+                        </span>
+                        {isCalculated && (
+                          <span
+                            className="matrix__calculated-badge"
+                            title="Calculated from service groups"
+                          >
+                            calc
+                          </span>
+                        )}
+                        {!isCalculated &&
+                          groupSum > 0 &&
+                          tierPrice > 0 &&
+                          groupSum !== tierPrice && (
+                            <span
+                              className={`matrix__subtotal-comparison ${isOver ? "matrix__subtotal-comparison--over" : "matrix__subtotal-comparison--under"}`}
+                            >
+                              {isOver
+                                ? `Groups: ${formatPrice(groupSum, currency)} (+${formatPrice(groupSum - tierPrice, currency)})`
+                                : `Groups: ${formatPrice(groupSum, currency)}`}
+                            </span>
+                          )}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {(() => {
+                const addonTierForBase = tiers[selectedTierIdx] ?? null;
+                const addonTierBaseMo = addonTierForBase
+                  ? calculateTierRecurringPrice(
+                      regularGroups,
+                      "MONTHLY",
+                      addonTierForBase.id,
+                    ).monthlyTotal
+                  : 0;
+                return addonGroups.map((group) => (
+                  <ServiceGroupSection
+                    key={group.id}
+                    group={group}
+                    services={groupedServices.get(group.id) || []}
+                    tiers={tiers}
+                    isSetupFormation={false}
+                    isOptional={true}
+                    isEnabled={enabledOptionalGroups.has(group.id)}
+                    onToggle={() => toggleOptionalGroup(group.id)}
+                    getServiceLevelForTier={getServiceLevelForTier}
+                    getUniqueMetricsForService={getUniqueMetricsForService}
+                    getUsageLimitForMetric={getUsageLimitForMetric}
+                    getLevelDisplay={getLevelDisplay}
+                    selectedCell={selectedCell}
+                    setSelectedCell={setSelectedCell}
+                    handleSetServiceLevel={handleSetServiceLevel}
+                    dispatch={dispatch}
+                    onAddService={openAddServiceModal}
+                    selectedTierIdx={selectedTierIdx}
+                    onAddMetric={handleAddMetric}
+                    onEditMetric={handleEditMetric}
+                    onRemoveMetric={handleRemoveMetric}
+                    onEditService={openEditServiceModal}
+                    onReorderService={handleReorderService}
+                    activeBillingCycle={activeBillingCycle}
+                    addonActiveCycle={addonBillingCycles[group.id] || "MONTHLY"}
+                    onAddonCycleChange={(cycle) => {
+                      const updated = {
+                        ...addonBillingCycles,
+                        [group.id]: cycle,
+                      };
+                      setAddonBillingCycles(updated);
+                      dispatchFinalConfig({ addonBillingCycles: updated });
+                    }}
+                    isCustomBillingMode={isCustomBillingMode}
+                    tierBaseMonthly={addonTierBaseMo}
+                  />
+                ));
+              })()}
+            </tbody>
+          </table>
+
+          {/* Grand Total - Sticky at bottom of scroll container */}
+          <div className="matrix__grand-total-sticky">
+            <table className="matrix__table">
+              <tbody>
+                {/* 1. Recurring Tier Price — global mode: single row; custom mode: per-group rows */}
+                {!isCustomBillingMode ? (
+                  <tr className="matrix__grand-total-row">
+                    <td>
+                      Recurring Tier Price
+                      <span className="matrix__grand-total-cycle">
+                        /
+                        {BILLING_CYCLE_SHORT_LABELS[
+                          activeBillingCycle
+                        ].toLowerCase()}
+                      </span>
+                    </td>
+                    {tiers.map((tier, idx) => {
+                      const cyclePrice = getTierPriceForCycle(
+                        tier,
+                        activeBillingCycle,
+                      );
+                      return (
+                        <td
+                          key={tier.id}
+                          className={
+                            idx === selectedTierIdx
+                              ? "matrix__grand-total-cell--selected"
+                              : ""
+                          }
+                          style={{ textAlign: "center" }}
+                        >
+                          {idx === selectedTierIdx ? (
+                            tier.isCustomPricing ? (
+                              "Custom"
+                            ) : (
+                              <>
+                                {formatPrice(
+                                  cyclePrice.amount,
+                                  tier.pricing.currency || "USD",
+                                )}
+                                {cyclePrice.hasDiscount && (
+                                  <span className="matrix__discount-tag">
+                                    {cyclePrice.discountLabel}
+                                  </span>
+                                )}
+                              </>
+                            )
+                          ) : null}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ) : (
+                  /* Custom billing mode: itemized per-group rows */
+                  (() => {
+                    const selectedTierForGrand = tiers[selectedTierIdx] ?? null;
+                    const grandTierBaseMo = selectedTierForGrand
+                      ? calculateTierRecurringPrice(
+                          regularGroups,
+                          "MONTHLY",
+                          selectedTierForGrand.id,
+                        ).monthlyTotal
+                      : 0;
+                    return regularGroups.map((g) => {
+                      const effectiveCycle =
+                        groupBillingCycles[g.id] || activeBillingCycle;
+                      const selectedTierForPrice =
+                        tiers[selectedTierIdx] ?? null;
+                      const tierPriceInfo = selectedTierForPrice
+                        ? getGroupPriceForTier(g, selectedTierForPrice.id)
+                        : null;
+                      const baseMonthly =
+                        tierPriceInfo?.amount ??
+                        g.standalonePricing?.recurringPricing?.find(
+                          (p) => p.billingCycle === "MONTHLY",
+                        )?.amount ??
+                        0;
+                      const currency = g.currency || "USD";
+                      const months = BILLING_CYCLE_MONTHS[effectiveCycle];
+                      const totalForCycle = baseMonthly * months;
+                      const selectedTier = tiers[selectedTierIdx] ?? null;
+                      const resolved = resolveGroupDiscountForTier(
+                        g,
+                        selectedTier?.id ?? "",
+                        effectiveCycle,
+                        selectedTier,
+                        undefined,
+                        grandTierBaseMo,
+                      );
+                      let adjusted: number;
+                      let savingsPct: number;
+                      if (!resolved) {
+                        adjusted = totalForCycle;
+                        savingsPct = 0;
+                      } else if (
+                        resolved.discountRule.discountType === "PERCENTAGE"
+                      ) {
+                        adjusted =
+                          totalForCycle *
+                          (1 - resolved.discountRule.discountValue / 100);
+                        savingsPct = resolved.discountRule.discountValue;
+                      } else {
+                        // FLAT_AMOUNT from group's own independent discount
+                        adjusted = Math.max(
+                          0,
+                          totalForCycle - resolved.discountRule.discountValue,
+                        );
+                        savingsPct =
+                          totalForCycle > 0
+                            ? Math.round(
+                                (resolved.discountRule.discountValue /
+                                  totalForCycle) *
+                                  100,
+                              )
+                            : 0;
+                      }
+
+                      return (
+                        <tr
+                          key={`group-${g.id}`}
+                          className="matrix__grand-total-row"
+                        >
+                          <td>
+                            {g.name}
+                            <span className="matrix__grand-total-cycle">
+                              /
+                              {BILLING_CYCLE_SHORT_LABELS[
+                                effectiveCycle
+                              ].toLowerCase()}
+                            </span>
+                          </td>
+                          {tiers.map((tier, idx) => (
+                            <td
+                              key={tier.id}
+                              className={
+                                idx === selectedTierIdx
+                                  ? "matrix__grand-total-cell--selected"
+                                  : ""
+                              }
+                              style={{ textAlign: "center" }}
+                            >
+                              {idx === selectedTierIdx ? (
+                                tier.isCustomPricing ? (
+                                  "Custom"
+                                ) : baseMonthly > 0 ? (
+                                  <>
+                                    {formatPrice(adjusted, currency)}
+                                    {savingsPct > 0 && (
+                                      <span className="matrix__discount-tag">
+                                        {resolved?.originalTierFlat
+                                          ? `${formatPrice(totalForCycle - adjusted, currency)} off`
+                                          : `SAVE ${Math.round(savingsPct)}%`}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  "—"
+                                )
+                              ) : null}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    });
+                  })()
+                )}
+
+                {/* 2. Recurring Add-on Prices - use same calculation logic as tiers */}
+                {(() => {
+                  const addonTier = tiers[selectedTierIdx] ?? null;
+                  const addonTierBaseMo = addonTier
+                    ? calculateTierRecurringPrice(
+                        regularGroups,
+                        "MONTHLY",
+                        addonTier.id,
+                      ).monthlyTotal
+                    : 0;
+                  return addonGroups
+                    .filter((g) => {
+                      if (!enabledOptionalGroups.has(g.id)) return false;
+                      const addonPrice = getAddonPriceForCycle(
+                        g,
+                        addonBillingCycles[g.id] || activeBillingCycle,
+                        addonTier,
+                        addonTierBaseMo,
+                      );
+                      return addonPrice.baseMonthly > 0;
+                    })
+                    .map((g) => {
+                      const effectiveCycle =
+                        addonBillingCycles[g.id] || activeBillingCycle;
+                      const addonPrice = getAddonPriceForCycle(
+                        g,
+                        effectiveCycle,
+                        addonTier,
+                        addonTierBaseMo,
+                      );
+                      const currency = g.currency || "USD";
+                      return (
+                        <tr
+                          key={`addon-recurring-${g.id}`}
+                          className="matrix__grand-total-row matrix__grand-total-row--addon"
+                        >
+                          <td>
+                            + {g.name}
+                            <span className="matrix__grand-total-cycle">
+                              /
+                              {BILLING_CYCLE_SHORT_LABELS[
+                                effectiveCycle
+                              ].toLowerCase()}
+                            </span>
+                          </td>
+                          {tiers.map((tier, idx) => (
+                            <td
+                              key={tier.id}
+                              className={
+                                idx === selectedTierIdx
+                                  ? "matrix__grand-total-cell--selected"
+                                  : ""
+                              }
+                              style={{ textAlign: "center" }}
+                            >
+                              {idx === selectedTierIdx ? (
+                                <>
+                                  +{formatPrice(addonPrice.amount, currency)}
+                                  {addonPrice.hasDiscount && (
+                                    <span className="matrix__discount-tag">
+                                      {addonPrice.discountLabel}
+                                    </span>
+                                  )}
+                                </>
+                              ) : null}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    });
+                })()}
+
+                {/* 3. Add-on Setup Costs - one-time costs from standalone pricing */}
+                {addonGroups
+                  .filter(
+                    (g) =>
+                      enabledOptionalGroups.has(g.id) &&
+                      g.standalonePricing?.setupCost?.amount != null &&
+                      g.standalonePricing.setupCost.amount > 0,
+                  )
+                  .map((g) => (
                     <tr
-                      key={`addon-recurring-${g.id}`}
+                      key={`addon-setup-${g.id}`}
                       className="matrix__grand-total-row matrix__grand-total-row--addon"
                     >
-                      <td>+ {g.name}</td>
+                      <td>
+                        + {g.name}{" "}
+                        <span className="matrix__grand-total-cycle">
+                          (one-time setup)
+                        </span>
+                      </td>
                       {tiers.map((tier, idx) => (
                         <td
                           key={tier.id}
@@ -3133,79 +4320,81 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           style={{ textAlign: "center" }}
                         >
                           {idx === selectedTierIdx
-                            ? `${formatPrice(g.price || 0, g.currency || "USD")}${billingLabel}`
+                            ? `${formatPrice(
+                                g.standalonePricing?.setupCost?.amount || 0,
+                                g.standalonePricing?.setupCost?.currency ||
+                                  "USD",
+                              )} one-time`
+                            : null}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+
+                {/* 4. Setup & Formation Fees from setup groups (one-time) */}
+                {(() => {
+                  const selectedTier = tiers[selectedTierIdx] ?? null;
+                  let totalSetupBase = 0;
+                  let totalSetupEffective = 0;
+                  for (const g of setupGroups) {
+                    const base = g.price || 0;
+                    totalSetupBase += base;
+                    if (base === 0 || !selectedTier) {
+                      totalSetupEffective += base;
+                      continue;
+                    }
+                    const tp = g.tierDependentPricing?.find(
+                      (p) => p.tierId === selectedTier.id,
+                    );
+                    const cd = tp?.setupCostDiscounts?.find(
+                      (d) => d.billingCycle === activeBillingCycle,
+                    );
+                    const gd = tp?.setupCost?.discount;
+                    const disc = cd?.discountRule ?? gd;
+                    if (disc && disc.discountValue > 0) {
+                      if (disc.discountType === "PERCENTAGE") {
+                        totalSetupEffective +=
+                          Math.round(
+                            base * (1 - disc.discountValue / 100) * 100,
+                          ) / 100;
+                      } else {
+                        totalSetupEffective += Math.max(
+                          0,
+                          base - disc.discountValue,
+                        );
+                      }
+                    } else {
+                      totalSetupEffective += base;
+                    }
+                  }
+                  if (totalSetupBase === 0) return null;
+                  const hasDiscount = totalSetupEffective !== totalSetupBase;
+                  return (
+                    <tr className="matrix__grand-total-row matrix__grand-total-row--setup">
+                      <td>+ Setup & Formation Fees</td>
+                      {tiers.map((tier, idx) => (
+                        <td
+                          key={tier.id}
+                          className={
+                            idx === selectedTierIdx
+                              ? "matrix__grand-total-cell--selected"
+                              : ""
+                          }
+                          style={{ textAlign: "center" }}
+                        >
+                          {idx === selectedTierIdx
+                            ? hasDiscount
+                              ? `${formatPrice(totalSetupEffective, "USD")} one-time`
+                              : `${formatPrice(totalSetupBase, "USD")} one-time`
                             : null}
                         </td>
                       ))}
                     </tr>
                   );
-                })}
-
-              {/* 3. Setup fees for services in add-on groups (one-time) */}
-              {(() => {
-                const addonSetupServices = addonGroups.flatMap((g) => {
-                  if (!enabledOptionalGroups.has(g.id)) return [];
-                  return (groupedServices.get(g.id) || []).filter(
-                    (s) => s.costType === "SETUP" && s.price != null,
-                  );
-                });
-                const addonSetupTotal = addonSetupServices.reduce(
-                  (sum, s) => sum + (s.price || 0),
-                  0,
-                );
-                if (addonSetupTotal === 0) return null;
-                return (
-                  <tr className="matrix__grand-total-row matrix__grand-total-row--setup">
-                    <td>+ Add-on Setup Fees</td>
-                    {tiers.map((tier, idx) => (
-                      <td
-                        key={tier.id}
-                        className={
-                          idx === selectedTierIdx
-                            ? "matrix__grand-total-cell--selected"
-                            : ""
-                        }
-                        style={{ textAlign: "center" }}
-                      >
-                        {idx === selectedTierIdx
-                          ? `${formatPrice(addonSetupTotal, "USD")} one-time`
-                          : null}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })()}
-
-              {/* 4. Setup & Formation Fees from setup groups (one-time) */}
-              {(() => {
-                const totalSetupGroupFee = setupGroups.reduce(
-                  (sum, g) => sum + (g.price || 0),
-                  0,
-                );
-                if (totalSetupGroupFee === 0) return null;
-                return (
-                  <tr className="matrix__grand-total-row matrix__grand-total-row--setup">
-                    <td>+ Setup & Formation Fees</td>
-                    {tiers.map((tier, idx) => (
-                      <td
-                        key={tier.id}
-                        className={
-                          idx === selectedTierIdx
-                            ? "matrix__grand-total-cell--selected"
-                            : ""
-                        }
-                        style={{ textAlign: "center" }}
-                      >
-                        {idx === selectedTierIdx
-                          ? `${formatPrice(totalSetupGroupFee, "USD")} one-time`
-                          : null}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })()}
-            </tbody>
-          </table>
+                })()}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {selectedCell && (
@@ -3488,6 +4677,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   className="matrix__modal-input"
                   style={{ cursor: "pointer" }}
                 >
+                  <option value="NONE">None (One-time)</option>
                   <option value="DAILY">Daily</option>
                   <option value="WEEKLY">Weekly</option>
                   <option value="MONTHLY">Monthly</option>
@@ -3496,7 +4686,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   className="matrix__modal-hint"
                   style={{ marginTop: "0.375rem" }}
                 >
-                  How often usage limits reset
+                  How often usage limits reset. Use "None" for one-time setup
+                  costs.
                 </p>
               </div>
 
@@ -3684,7 +4875,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }}
                             >
                               per {metricUnitName || "unit"} above free limit
-                              {metricResetCycle
+                              {metricResetCycle && metricResetCycle !== "NONE"
                                 ? ` / ${metricResetCycle.toLowerCase()}`
                                 : ""}
                             </span>
@@ -3772,6 +4963,13 @@ interface ServiceGroupSectionProps {
     direction: "up" | "down",
     groupServices: Service[],
   ) => void;
+  activeBillingCycle: BillingCycle;
+  addonActiveCycle?: BillingCycle;
+  onAddonCycleChange?: (cycle: BillingCycle) => void;
+  groupActiveCycle?: BillingCycle;
+  onGroupCycleChange?: (cycle: BillingCycle) => void;
+  isCustomBillingMode?: boolean;
+  tierBaseMonthly?: number;
 }
 
 function ServiceGroupSection({
@@ -3795,9 +4993,39 @@ function ServiceGroupSection({
   onRemoveMetric,
   onEditService,
   onReorderService,
+  activeBillingCycle,
+  addonActiveCycle,
+  onAddonCycleChange,
+  groupActiveCycle,
+  onGroupCycleChange,
+  isCustomBillingMode: isCustom,
+  tierBaseMonthly: tierBaseMonthlyProp,
 }: ServiceGroupSectionProps) {
   const showGroup = services.length > 0 || onAddService;
   if (!showGroup) return null;
+
+  // For add-on groups, use their own billing cycle; for regular groups, use group override or global
+  const effectiveBillingCycle = group.isAddOn
+    ? addonActiveCycle || activeBillingCycle
+    : groupActiveCycle || activeBillingCycle;
+
+  // Available cycles for this group (from its standalone pricing)
+  const groupAvailableCycles = useMemo(() => {
+    if (!group.standalonePricing?.recurringPricing) {
+      return [] as BillingCycle[];
+    }
+    const ORDER: BillingCycle[] = [
+      "MONTHLY",
+      "QUARTERLY",
+      "SEMI_ANNUAL",
+      "ANNUAL",
+    ];
+    const cycles = group.standalonePricing.recurringPricing
+      .filter((p) => p.amount > 0)
+      .map((p) => p.billingCycle)
+      .filter((c): c is BillingCycle => c != null);
+    return cycles.sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+  }, [group]);
 
   const headerClass = isSetupFormation
     ? "matrix__group-header--setup"
@@ -3824,17 +5052,150 @@ function ServiceGroupSection({
                 <span className="matrix__group-toggle-knob" />
               </button>
             )}
-            <span className="matrix__group-name">{group.name}</span>
-            {group.billingCycle && (
-              <span className="matrix__group-billing-badge">
-                {BILLING_CYCLE_SHORT_LABELS[group.billingCycle]}
-              </span>
+            <div className="matrix__group-name-block">
+              <span className="matrix__group-name">{group.name}</span>
+              {group.isAddOn && (
+                <span className="matrix__group-subtitle">Optional Add-on</span>
+              )}
+            </div>
+            {/* Selectable billing cycles for non-addon option groups — filtered by availableBillingCycles */}
+            {!group.isAddOn && onGroupCycleChange && (
+              <div className="matrix__group-cycle-tabs">
+                {(group.availableBillingCycles.length > 0
+                  ? group.availableBillingCycles
+                  : RECURRING_BILLING_CYCLES
+                ).map((cycle) => (
+                  <button
+                    key={cycle}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onGroupCycleChange(cycle);
+                    }}
+                    className={`matrix__group-cycle-tab ${(groupActiveCycle || activeBillingCycle) === cycle ? "matrix__group-cycle-tab--active" : ""}`}
+                  >
+                    {BILLING_CYCLE_SHORT_LABELS[cycle]}
+                  </button>
+                ))}
+              </div>
             )}
-            {group.isAddOn && group.price != null && (
-              <span className="matrix__group-price-badge">
-                {formatPrice(group.price, group.currency || "USD")}
-              </span>
-            )}
+            {/* Group pricing: price + billing cycle tabs + discount + setup cost */}
+            {!isSetupFormation &&
+              (() => {
+                const selectedTierForPrice = tiers[selectedTierIdx] ?? null;
+                const tierPriceInfo = selectedTierForPrice
+                  ? getGroupPriceForTier(group, selectedTierForPrice.id)
+                  : null;
+                const baseMonthly =
+                  tierPriceInfo?.amount ??
+                  group.standalonePricing?.recurringPricing?.find(
+                    (p) => p.billingCycle === "MONTHLY",
+                  )?.amount ??
+                  0;
+                if (baseMonthly <= 0 && !group.standalonePricing?.setupCost)
+                  return null;
+                const currency = group.currency || "USD";
+                const setupCost = group.standalonePricing?.setupCost;
+                const months = BILLING_CYCLE_MONTHS[effectiveBillingCycle];
+                const totalForCycle = baseMonthly * months;
+                const selectedTier = tiers[selectedTierIdx] ?? null;
+                // Global mode: force inherit tier discount; custom mode: respect group's discountMode
+                const resolved = resolveGroupDiscountForTier(
+                  group,
+                  selectedTier?.id ?? "",
+                  effectiveBillingCycle,
+                  selectedTier,
+                  !isCustom && !group.isAddOn,
+                  tierBaseMonthlyProp,
+                );
+                let adjusted: number;
+                let savingsPct: number;
+                if (!resolved) {
+                  adjusted = totalForCycle;
+                  savingsPct = 0;
+                } else if (
+                  resolved.discountRule.discountType === "PERCENTAGE"
+                ) {
+                  adjusted =
+                    totalForCycle *
+                    (1 - resolved.discountRule.discountValue / 100);
+                  savingsPct = resolved.discountRule.discountValue;
+                } else {
+                  // FLAT_AMOUNT from group's own independent discount
+                  adjusted = Math.max(
+                    0,
+                    totalForCycle - resolved.discountRule.discountValue,
+                  );
+                  savingsPct =
+                    totalForCycle > 0
+                      ? Math.round(
+                          (resolved.discountRule.discountValue /
+                            totalForCycle) *
+                            100,
+                        )
+                      : 0;
+                }
+                const monthlyEq =
+                  months > 0
+                    ? Math.round((adjusted / months) * 100) / 100
+                    : adjusted;
+                return (
+                  <div className="matrix__addon-pricing-bar">
+                    {baseMonthly > 0 && (
+                      <span className="matrix__addon-price">
+                        {formatPrice(
+                          effectiveBillingCycle === "MONTHLY"
+                            ? baseMonthly
+                            : monthlyEq,
+                          currency,
+                        )}
+                        /mo
+                      </span>
+                    )}
+                    {/* Cycle tabs only for add-ons (regular groups have their own tabs above) */}
+                    {group.isAddOn &&
+                      groupAvailableCycles.length > 1 &&
+                      onAddonCycleChange && (
+                        <div className="matrix__addon-cycle-tabs">
+                          {groupAvailableCycles.map((cycle) => (
+                            <button
+                              key={cycle}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddonCycleChange(cycle);
+                              }}
+                              className={`matrix__addon-cycle-tab ${effectiveBillingCycle === cycle ? "matrix__addon-cycle-tab--active" : ""}`}
+                            >
+                              {BILLING_CYCLE_SHORT_LABELS[cycle]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    {effectiveBillingCycle !== "MONTHLY" && baseMonthly > 0 && (
+                      <span className="matrix__addon-billed">
+                        Billed {formatPrice(adjusted, currency)}{" "}
+                        {BILLING_CYCLE_LABELS[effectiveBillingCycle]}
+                      </span>
+                    )}
+                    {savingsPct > 0 && (
+                      <span className="matrix__addon-discount">
+                        {resolved?.originalTierFlat
+                          ? `${formatPrice(totalForCycle - adjusted, currency)} off (from ${formatPrice(resolved.originalTierFlat, currency)} tier discount)`
+                          : `SAVE ${Math.round(savingsPct)}%`}
+                      </span>
+                    )}
+                    {setupCost && setupCost.amount > 0 && (
+                      <span className="matrix__addon-setup">
+                        +{" "}
+                        {formatPrice(
+                          setupCost.amount,
+                          setupCost.currency || "USD",
+                        )}{" "}
+                        Setup
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
           </div>
         </td>
         <td
@@ -3912,74 +5273,134 @@ function ServiceGroupSection({
         </tr>
       )}
 
-      {isSetupFormation && (
-        <tr className="matrix__setup-total-row">
-          <td>TOTAL SETUP FEE</td>
-          <td colSpan={tiers.length} style={{ textAlign: "center" }}>
-            {group.price
-              ? `${formatPrice(group.price, group.currency || "USD")} flat fee (applied to all tiers)`
-              : "No setup fee configured"}
-          </td>
-        </tr>
-      )}
-
-      {isOptional && (
-        <>
-          {/* Show setup services within this add-on as a separate line */}
-          {(() => {
-            const setupServicesInGroup = services.filter(
-              (s) => s.costType === "SETUP" && s.price != null,
-            );
-            if (setupServicesInGroup.length === 0) return null;
-            const setupTotal = setupServicesInGroup.reduce(
-              (sum, s) => sum + (s.price || 0),
-              0,
-            );
+      {isSetupFormation &&
+        (() => {
+          const basePrice = group.price ?? 0;
+          if (basePrice === 0) {
             return (
               <tr className="matrix__setup-total-row">
-                <td>Setup fees ({group.name})</td>
+                <td>TOTAL SETUP FEE</td>
                 <td colSpan={tiers.length} style={{ textAlign: "center" }}>
-                  {isEnabled
-                    ? `${formatPrice(setupTotal, group.currency || "USD")} one-time`
-                    : "—"}
+                  No setup fee configured
                 </td>
               </tr>
             );
-          })()}
-          <tr className={`matrix__total-row ${headerClass}`}>
-            <td className={headerClass}>SUBTOTAL</td>
-            {tiers.map((tier, tierIdx) => {
-              const recurringPrice = isEnabled && group.price ? group.price : 0;
-              const billingLabel = group.billingCycle
-                ? `/${BILLING_CYCLE_SHORT_LABELS[group.billingCycle].toLowerCase()}`
-                : "/mo";
+          }
+          const selectedTier = tiers[selectedTierIdx] ?? null;
+          const tierPricing = selectedTier
+            ? group.tierDependentPricing?.find(
+                (tp) => tp.tierId === selectedTier.id,
+              )
+            : null;
+          const cycleDiscount = tierPricing?.setupCostDiscounts?.find(
+            (d) => d.billingCycle === activeBillingCycle,
+          );
+          const genericDiscount = tierPricing?.setupCost?.discount;
+          const discount = cycleDiscount?.discountRule ?? genericDiscount;
+          let effectivePrice = basePrice;
+          if (discount && discount.discountValue > 0) {
+            if (discount.discountType === "PERCENTAGE") {
+              effectivePrice = basePrice * (1 - discount.discountValue / 100);
+            } else {
+              effectivePrice = Math.max(0, basePrice - discount.discountValue);
+            }
+            effectivePrice = Math.round(effectivePrice * 100) / 100;
+          }
+          const curr = group.currency || "USD";
+          const hasDiscount = effectivePrice !== basePrice;
+          return (
+            <tr className="matrix__setup-total-row">
+              <td>TOTAL SETUP FEE</td>
+              <td colSpan={tiers.length} style={{ textAlign: "center" }}>
+                {hasDiscount ? (
+                  <>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        opacity: 0.5,
+                        marginRight: 6,
+                      }}
+                    >
+                      {formatPrice(basePrice, curr)}
+                    </span>
+                    {formatPrice(effectivePrice, curr)} flat fee
+                    {discount?.discountType === "PERCENTAGE"
+                      ? ` (${discount.discountValue}% off)`
+                      : ` (${formatPrice(discount?.discountValue ?? 0, curr)} off)`}
+                  </>
+                ) : (
+                  `${formatPrice(basePrice, curr)} flat fee (applied to all tiers)`
+                )}
+              </td>
+            </tr>
+          );
+        })()}
 
-              return (
-                <td
-                  key={tier.id}
-                  style={{
-                    textAlign: "center",
-                    background:
-                      tierIdx === selectedTierIdx && isEnabled
-                        ? "var(--so-violet-200)"
-                        : undefined,
-                    color:
-                      tierIdx === selectedTierIdx && isEnabled
-                        ? "var(--so-violet-900)"
-                        : undefined,
-                  }}
-                >
-                  {isEnabled && recurringPrice > 0
-                    ? `+${formatPrice(recurringPrice, group.currency || "USD")}${billingLabel}`
-                    : isEnabled
-                      ? "Included"
-                      : "—"}
-                </td>
-              );
-            })}
-          </tr>
-        </>
-      )}
+      {isOptional &&
+        (() => {
+          const selectedTier = tiers[selectedTierIdx] ?? null;
+          const tierPriceInfo =
+            isEnabled && selectedTier
+              ? getGroupPriceForTier(group, selectedTier.id)
+              : null;
+          const baseMonthly = isEnabled
+            ? (tierPriceInfo?.amount ??
+              group.standalonePricing?.recurringPricing?.find(
+                (p) => p.billingCycle === "MONTHLY",
+              )?.amount ??
+              0)
+            : 0;
+          const months = BILLING_CYCLE_MONTHS[effectiveBillingCycle];
+          const totalForCycle = baseMonthly * months;
+          // Global mode: force inherit tier discount; custom mode: respect group's discountMode
+          const resolved = resolveGroupDiscountForTier(
+            group,
+            selectedTier?.id ?? "",
+            effectiveBillingCycle,
+            selectedTier,
+            !isCustom && !group.isAddOn,
+            tierBaseMonthlyProp,
+          );
+          let adjustedTotal: number;
+          if (!resolved) {
+            adjustedTotal = totalForCycle;
+          } else if (resolved.discountRule.discountType === "PERCENTAGE") {
+            adjustedTotal =
+              totalForCycle * (1 - resolved.discountRule.discountValue / 100);
+          } else {
+            // FLAT_AMOUNT from group's own independent discount
+            adjustedTotal = Math.max(
+              0,
+              totalForCycle - resolved.discountRule.discountValue,
+            );
+          }
+          const setupCost = isEnabled
+            ? (group.standalonePricing?.setupCost?.amount ?? 0)
+            : 0;
+          const billingLabel = `/${BILLING_CYCLE_SHORT_LABELS[effectiveBillingCycle].toLowerCase()}`;
+          const currency = group.currency || "USD";
+
+          return (
+            <tr className={`matrix__total-row ${headerClass}`}>
+              <td className={headerClass}>SUBTOTAL</td>
+              <td colSpan={tiers.length} style={{ textAlign: "center" }}>
+                {isEnabled && (baseMonthly > 0 || setupCost > 0) ? (
+                  <>
+                    {baseMonthly > 0 &&
+                      `+${formatPrice(adjustedTotal, currency)}${billingLabel}`}
+                    {baseMonthly > 0 && setupCost > 0 && " + "}
+                    {setupCost > 0 &&
+                      `${formatPrice(setupCost, currency)} setup`}
+                  </>
+                ) : isEnabled ? (
+                  "Included"
+                ) : (
+                  "—"
+                )}
+              </td>
+            </tr>
+          );
+        })()}
     </>
   );
 }
@@ -4094,13 +5515,8 @@ function ServiceRowWithMetrics({
             >
               {service.title}
             </button>
-            {service.costType === "SETUP" && (
+            {service.isSetupFormation && (
               <span className="matrix__service-setup-badge">Setup</span>
-            )}
-            {service.costType === "SETUP" && service.price != null && (
-              <span className="matrix__service-setup-price">
-                {formatPrice(service.price, service.currency || "USD")}
-              </span>
             )}
             <button
               onClick={(e) => {
@@ -4233,31 +5649,55 @@ function ServiceRowWithMetrics({
                     : ""
                 }`}
               >
-                <div className="matrix__metric-value-container">
-                  <span className="matrix__metric-value">
-                    {usageLimit
-                      ? usageLimit.freeLimit
-                        ? `Free: ${usageLimit.freeLimit}${usageLimit.paidLimit ? ` / Paid: ${usageLimit.paidLimit}` : ""}`
-                        : usageLimit.notes || "Unlimited"
-                      : "—"}
-                  </span>
-                  {usageLimit?.resetCycle && (
-                    <span className="matrix__metric-reset-cycle">
-                      {usageLimit.resetCycle.toLowerCase()}
-                    </span>
-                  )}
-                  {usageLimit?.unitPrice != null && (
-                    <span className="matrix__metric-overage">
-                      +
-                      {formatPrice(
-                        usageLimit.unitPrice,
-                        usageLimit.unitPriceCurrency || "USD",
+                <div className="matrix__metric-card">
+                  {usageLimit ? (
+                    <>
+                      <div className="matrix__metric-card-row">
+                        <span className="matrix__metric-card-label">
+                          Included
+                        </span>
+                        <span className="matrix__metric-card-value">
+                          {usageLimit.freeLimit != null ? (
+                            <>
+                              <strong>
+                                {usageLimit.freeLimit}
+                                {usageLimit.unitName
+                                  ? ` ${usageLimit.unitName}`
+                                  : ""}
+                              </strong>
+                              {usageLimit.resetCycle &&
+                                usageLimit.resetCycle !== "NONE" && (
+                                  <span className="matrix__metric-card-cycle">
+                                    {" "}
+                                    / {usageLimit.resetCycle.toLowerCase()}
+                                  </span>
+                                )}
+                            </>
+                          ) : (
+                            <strong>{usageLimit.notes || "Unlimited"}</strong>
+                          )}
+                        </span>
+                      </div>
+                      {usageLimit.unitPrice != null && (
+                        <div className="matrix__metric-card-row matrix__metric-card-row--overage">
+                          <span className="matrix__metric-card-label">
+                            Overage
+                          </span>
+                          <span className="matrix__metric-card-value matrix__metric-card-value--overage">
+                            {formatPrice(
+                              usageLimit.unitPrice,
+                              usageLimit.unitPriceCurrency || "USD",
+                            )}
+                            <span className="matrix__metric-card-cycle">
+                              {" "}
+                              / extra
+                            </span>
+                          </span>
+                        </div>
                       )}
-                      /{usageLimit.unitName || "unit"} above free
-                      {usageLimit.resetCycle
-                        ? ` / ${usageLimit.resetCycle.toLowerCase()}`
-                        : ""}
-                    </span>
+                    </>
+                  ) : (
+                    <span className="matrix__metric-empty">—</span>
                   )}
                 </div>
               </td>
@@ -4671,6 +6111,7 @@ function MetricLimitItem({
             className="matrix__panel-input"
             style={{ cursor: "pointer" }}
           >
+            <option value="NONE">None (One-time)</option>
             <option value="DAILY">Daily</option>
             <option value="WEEKLY">Weekly</option>
             <option value="MONTHLY">Monthly</option>

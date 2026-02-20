@@ -8,16 +8,9 @@ import type {
 import {
   initializeSubscription,
   activateSubscription,
-  setAutoRenew,
   setRenewalDate,
   updateBillingProjection,
 } from "../../../document-models/subscription-instance/gen/subscription/creators.js";
-import { addService } from "../../../document-models/subscription-instance/gen/service/creators.js";
-import {
-  addServiceGroup,
-  addServiceToGroup,
-} from "../../../document-models/subscription-instance/gen/service-group/creators.js";
-import { addServiceMetric } from "../../../document-models/subscription-instance/gen/metrics/creators.js";
 import { setCustomerType } from "../../../document-models/subscription-instance/gen/customer/creators.js";
 
 interface MockDataButtonProps {
@@ -41,7 +34,8 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       Date.now() + 60 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
-    // 1. Initialize subscription if not already done
+    // 1. Initialize subscription with full service group structure
+    //    Pricing lives at the SERVICE GROUP level, not per-service
     if (!document.state.global.customerId) {
       dispatch(
         initializeSubscription({
@@ -53,6 +47,217 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
           resourceLabel: "Enterprise Cloud Platform",
           tierName: "Professional",
           tierPricingOptionId: generateId(),
+          tierPrice: 726,
+          tierCurrency: "USD",
+          tierPricingMode: "CALCULATED",
+          selectedBillingCycle: "MONTHLY",
+          globalCurrency: "USD",
+          autoRenew: true,
+          serviceGroups: [
+            // === Core Infrastructure (recurring, group-level price: $726/mo) ===
+            {
+              id: generateId(),
+              name: "Core Infrastructure",
+              optional: false,
+              costType: "RECURRING",
+              recurringAmount: 726,
+              recurringCurrency: "USD",
+              recurringBillingCycle: "MONTHLY",
+              setupAmount: 500,
+              setupCurrency: "USD",
+              services: [
+                {
+                  id: generateId(),
+                  name: "Cloud Compute",
+                  description:
+                    "Scalable virtual machines with automatic load balancing",
+                  metrics: [
+                    {
+                      id: generateId(),
+                      name: "vCPU Hours",
+                      unitName: "hours",
+                      currentUsage: 1250,
+                      freeLimit: 1000,
+                      paidLimit: 2000,
+                      unitCostAmount: 0.05,
+                      unitCostCurrency: "USD",
+                      unitCostBillingCycle: "MONTHLY",
+                      usageResetPeriod: "MONTHLY",
+                    },
+                    {
+                      id: generateId(),
+                      name: "RAM GB-Hours",
+                      unitName: "GB-hours",
+                      currentUsage: 3200,
+                      freeLimit: 3000,
+                      paidLimit: 5000,
+                      usageResetPeriod: "MONTHLY",
+                    },
+                    {
+                      id: generateId(),
+                      name: "Active Instances",
+                      unitName: "instances",
+                      currentUsage: 8,
+                      freeLimit: 10,
+                      paidLimit: 20,
+                    },
+                  ],
+                },
+                {
+                  id: generateId(),
+                  name: "Object Storage",
+                  description: "Unlimited cloud storage with CDN integration",
+                  metrics: [
+                    {
+                      id: generateId(),
+                      name: "Storage Used",
+                      unitName: "GB",
+                      currentUsage: 450,
+                      freeLimit: 500,
+                      paidLimit: 2000,
+                      unitCostAmount: 0.02,
+                      unitCostCurrency: "USD",
+                      unitCostBillingCycle: "MONTHLY",
+                    },
+                    {
+                      id: generateId(),
+                      name: "Bandwidth Out",
+                      unitName: "GB",
+                      currentUsage: 280,
+                      freeLimit: 500,
+                      usageResetPeriod: "MONTHLY",
+                    },
+                    {
+                      id: generateId(),
+                      name: "API Requests",
+                      unitName: "requests",
+                      currentUsage: 125000,
+                      freeLimit: 100000,
+                      paidLimit: 500000,
+                      unitCostAmount: 0.001,
+                      unitCostCurrency: "USD",
+                      unitCostBillingCycle: "MONTHLY",
+                      usageResetPeriod: "MONTHLY",
+                    },
+                  ],
+                },
+                {
+                  id: generateId(),
+                  name: "Managed Database",
+                  description: "PostgreSQL with automatic backups and failover",
+                  metrics: [
+                    {
+                      id: generateId(),
+                      name: "Database Size",
+                      unitName: "GB",
+                      currentUsage: 85,
+                      freeLimit: 50,
+                      paidLimit: 100,
+                      unitCostAmount: 0.5,
+                      unitCostCurrency: "USD",
+                      unitCostBillingCycle: "MONTHLY",
+                    },
+                    {
+                      id: generateId(),
+                      name: "Connections",
+                      unitName: "connections",
+                      currentUsage: 45,
+                      freeLimit: 50,
+                      paidLimit: 100,
+                    },
+                  ],
+                },
+                {
+                  id: generateId(),
+                  name: "Global CDN",
+                  description: "Content delivery network with edge caching",
+                  metrics: [
+                    {
+                      id: generateId(),
+                      name: "Cache Hit Rate",
+                      unitName: "%",
+                      currentUsage: 94,
+                      limit: 100,
+                    },
+                    {
+                      id: generateId(),
+                      name: "Edge Requests",
+                      unitName: "M requests",
+                      currentUsage: 12,
+                      freeLimit: 10,
+                      paidLimit: 50,
+                      unitCostAmount: 5,
+                      unitCostCurrency: "USD",
+                      unitCostBillingCycle: "MONTHLY",
+                      usageResetPeriod: "MONTHLY",
+                    },
+                  ],
+                },
+              ],
+            },
+            // === Security Suite (optional add-on, group-level price: $178/mo) ===
+            {
+              id: generateId(),
+              name: "Security Suite",
+              optional: true,
+              costType: "RECURRING",
+              recurringAmount: 178,
+              recurringCurrency: "USD",
+              recurringBillingCycle: "MONTHLY",
+              setupAmount: 750,
+              setupCurrency: "USD",
+              services: [
+                {
+                  id: generateId(),
+                  name: "DDoS Protection",
+                  description:
+                    "Advanced DDoS mitigation with real-time monitoring",
+                },
+                {
+                  id: generateId(),
+                  name: "WAF",
+                  description: "Web Application Firewall with custom rules",
+                },
+                {
+                  id: generateId(),
+                  name: "Security Audit & Onboarding",
+                  description: "Initial security assessment and configuration",
+                },
+              ],
+            },
+            // === Premium Support (optional add-on, group-level price: $498/mo) ===
+            {
+              id: generateId(),
+              name: "Premium Support",
+              optional: true,
+              costType: "RECURRING",
+              recurringAmount: 498,
+              recurringCurrency: "USD",
+              recurringBillingCycle: "MONTHLY",
+              setupAmount: 1200,
+              setupCurrency: "USD",
+              services: [
+                {
+                  id: generateId(),
+                  name: "24/7 Priority Support",
+                  description:
+                    "Direct access to senior engineers with 15-min response time",
+                },
+                {
+                  id: generateId(),
+                  name: "Dedicated Account Manager",
+                  description:
+                    "Personal account manager for strategic guidance",
+                },
+                {
+                  id: generateId(),
+                  name: "Team Onboarding Workshop",
+                  description:
+                    "Customized training sessions for your engineering team",
+                },
+              ],
+            },
+          ],
         }),
       );
     }
@@ -64,8 +269,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       }),
     );
 
-    // 3. Set auto-renew and renewal date
-    dispatch(setAutoRenew({ autoRenew: true }));
+    // 3. Set renewal date
     dispatch(setRenewalDate({ renewalDate: twoMonthsFromNow }));
 
     // 4. Set customer type
@@ -76,286 +280,13 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       }),
     );
 
-    // === SERVICES (4 core services) ===
-
-    const service1Id = generateId();
-    const service2Id = generateId();
-    const service3Id = generateId();
-    const service4Id = generateId();
-
-    // Service 1: Compute
-    dispatch(
-      addService({
-        serviceId: service1Id,
-        name: "Cloud Compute",
-        description: "Scalable virtual machines with automatic load balancing",
-        recurringAmount: 299,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-        setupAmount: 500,
-        setupCurrency: "USD",
-        setupPaymentDate: oneMonthAgo,
-      }),
-    );
-
-    // Service 2: Storage
-    dispatch(
-      addService({
-        serviceId: service2Id,
-        name: "Object Storage",
-        description: "Unlimited cloud storage with CDN integration",
-        recurringAmount: 149,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-      }),
-    );
-
-    // Service 3: Database
-    dispatch(
-      addService({
-        serviceId: service3Id,
-        name: "Managed Database",
-        description: "PostgreSQL with automatic backups and failover",
-        recurringAmount: 199,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-        setupAmount: 250,
-        setupCurrency: "USD",
-      }),
-    );
-
-    // Service 4: CDN
-    dispatch(
-      addService({
-        serviceId: service4Id,
-        name: "Global CDN",
-        description: "Content delivery network with edge caching",
-        recurringAmount: 79,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-      }),
-    );
-
-    // === METRICS (10 total, spread across services) ===
-
-    // Compute metrics (3)
-    dispatch(
-      addServiceMetric({
-        serviceId: service1Id,
-        metricId: generateId(),
-        name: "vCPU Hours",
-        unitName: "hours",
-        currentUsage: 1250,
-        limit: 2000,
-        usageResetPeriod: "MONTHLY",
-        nextUsageReset: oneMonthFromNow,
-        unitCostAmount: 0.05,
-        unitCostCurrency: "USD",
-        unitCostBillingCycle: "MONTHLY",
-      }),
-    );
-
-    dispatch(
-      addServiceMetric({
-        serviceId: service1Id,
-        metricId: generateId(),
-        name: "RAM GB-Hours",
-        unitName: "GB-hours",
-        currentUsage: 3200,
-        limit: 5000,
-        usageResetPeriod: "MONTHLY",
-        nextUsageReset: oneMonthFromNow,
-      }),
-    );
-
-    dispatch(
-      addServiceMetric({
-        serviceId: service1Id,
-        metricId: generateId(),
-        name: "Active Instances",
-        unitName: "instances",
-        currentUsage: 8,
-        limit: 20,
-      }),
-    );
-
-    // Storage metrics (3)
-    dispatch(
-      addServiceMetric({
-        serviceId: service2Id,
-        metricId: generateId(),
-        name: "Storage Used",
-        unitName: "GB",
-        currentUsage: 450,
-        limit: 1000,
-        unitCostAmount: 0.02,
-        unitCostCurrency: "USD",
-        unitCostBillingCycle: "MONTHLY",
-      }),
-    );
-
-    dispatch(
-      addServiceMetric({
-        serviceId: service2Id,
-        metricId: generateId(),
-        name: "Bandwidth Out",
-        unitName: "GB",
-        currentUsage: 280,
-        limit: 500,
-        usageResetPeriod: "MONTHLY",
-        nextUsageReset: oneMonthFromNow,
-      }),
-    );
-
-    dispatch(
-      addServiceMetric({
-        serviceId: service2Id,
-        metricId: generateId(),
-        name: "API Requests",
-        unitName: "requests",
-        currentUsage: 125000,
-        limit: 500000,
-        usageResetPeriod: "MONTHLY",
-        nextUsageReset: oneMonthFromNow,
-      }),
-    );
-
-    // Database metrics (2)
-    dispatch(
-      addServiceMetric({
-        serviceId: service3Id,
-        metricId: generateId(),
-        name: "Database Size",
-        unitName: "GB",
-        currentUsage: 85,
-        limit: 100,
-      }),
-    );
-
-    dispatch(
-      addServiceMetric({
-        serviceId: service3Id,
-        metricId: generateId(),
-        name: "Connections",
-        unitName: "connections",
-        currentUsage: 45,
-        limit: 100,
-      }),
-    );
-
-    // CDN metrics (2)
-    dispatch(
-      addServiceMetric({
-        serviceId: service4Id,
-        metricId: generateId(),
-        name: "Cache Hit Rate",
-        unitName: "%",
-        currentUsage: 94,
-        limit: 100,
-      }),
-    );
-
-    dispatch(
-      addServiceMetric({
-        serviceId: service4Id,
-        metricId: generateId(),
-        name: "Edge Requests",
-        unitName: "M requests",
-        currentUsage: 12,
-        limit: 50,
-        usageResetPeriod: "MONTHLY",
-        nextUsageReset: oneMonthFromNow,
-      }),
-    );
-
-    // === ADDON SERVICE GROUPS (2 optional groups) ===
-
-    const addonGroup1Id = generateId();
-    const addonGroup2Id = generateId();
-
-    // Addon Group 1: Security Suite
-    dispatch(
-      addServiceGroup({
-        groupId: addonGroup1Id,
-        name: "Security Suite",
-        optional: true,
-      }),
-    );
-
-    dispatch(
-      addServiceToGroup({
-        groupId: addonGroup1Id,
-        serviceId: generateId(),
-        name: "DDoS Protection",
-        description: "Advanced DDoS mitigation with real-time monitoring",
-        recurringAmount: 99,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-      }),
-    );
-
-    dispatch(
-      addServiceToGroup({
-        groupId: addonGroup1Id,
-        serviceId: generateId(),
-        name: "WAF",
-        description: "Web Application Firewall with custom rules",
-        recurringAmount: 79,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-      }),
-    );
-
-    // Addon Group 2: Premium Support
-    dispatch(
-      addServiceGroup({
-        groupId: addonGroup2Id,
-        name: "Premium Support",
-        optional: true,
-      }),
-    );
-
-    dispatch(
-      addServiceToGroup({
-        groupId: addonGroup2Id,
-        serviceId: generateId(),
-        name: "24/7 Priority Support",
-        description:
-          "Direct access to senior engineers with 15-min response time",
-        recurringAmount: 299,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-        setupAmount: 0,
-        setupCurrency: "USD",
-      }),
-    );
-
-    dispatch(
-      addServiceToGroup({
-        groupId: addonGroup2Id,
-        serviceId: generateId(),
-        name: "Dedicated Account Manager",
-        description: "Personal account manager for strategic guidance",
-        recurringAmount: 199,
-        recurringCurrency: "USD",
-        recurringBillingCycle: "MONTHLY",
-        recurringNextBillingDate: oneMonthFromNow,
-      }),
-    );
-
-    // === BILLING PROJECTION ===
-    // Total recurring: 299 + 149 + 199 + 79 = 726 (core) + 99 + 79 + 299 + 199 = 1402 (with addons)
+    // 5. Billing projection
+    // Core: $726/mo + Security: $178/mo + Support: $498/mo = $1,402/mo
+    // Plus metric overages: vCPU 250 × $0.05 = $12.50, API 25k × $0.001 = $25, DB 35 × $0.50 = $17.50, Edge 2M × $5 = $10
     dispatch(
       updateBillingProjection({
         nextBillingDate: oneMonthFromNow,
-        projectedBillAmount: 1402,
+        projectedBillAmount: 1467,
         projectedBillCurrency: "USD",
       }),
     );

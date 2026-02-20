@@ -3,6 +3,10 @@
     "reactor-mcp": {
       "type": "http",
       "url": "http://localhost:4001/mcp"
+    },
+    "frame0": {
+      "command": "npx",
+      "args": ["tsx", "/home/apeiron/frame0/frame0-mcp-server/src/index.ts", "--api-host=172.29.48.1"]
     }
   }
 }

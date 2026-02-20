@@ -70,6 +70,11 @@ export default function SubscriptionInstanceEditor() {
           mode={mode}
         />
 
+        {/* Billing Projection - Top Section */}
+        <div style={{ marginTop: 24 }}>
+          <BillingPanel document={document} dispatch={dispatch} mode={mode} />
+        </div>
+
         {/* Main Content Grid */}
         <div className="si-editor__grid">
           {/* Left Column - Services */}
@@ -79,7 +84,6 @@ export default function SubscriptionInstanceEditor() {
               dispatch={dispatch}
               mode={mode}
             />
-            <BillingPanel document={document} dispatch={dispatch} mode={mode} />
           </div>
 
           {/* Right Column - Info & Notes */}
@@ -517,10 +521,12 @@ const editorStyles = `
     margin: 0;
   }
 
-  .si-service-card__price {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--si-emerald-600);
+  .si-service-card__custom-value {
+    font-size: 0.75rem;
+    color: var(--si-slate-500);
+    background: var(--si-slate-100);
+    padding: 2px 8px;
+    border-radius: 4px;
     white-space: nowrap;
   }
 
@@ -2072,5 +2078,593 @@ const editorStyles = `
   .si-modal--lg {
     max-width: 600px;
     width: 90vw;
+  }
+
+  /* Overage Preview (in limit increase modal) */
+  .si-overage-preview {
+    background: var(--si-amber-50);
+    border: 1px solid var(--si-amber-100);
+    border-radius: var(--si-radius-md);
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .si-overage-preview__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--si-amber-600);
+    margin-bottom: 8px;
+  }
+
+  .si-overage-preview__row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    color: var(--si-slate-600);
+    padding: 4px 0;
+  }
+
+  .si-overage-preview__row--total {
+    font-weight: 600;
+    color: var(--si-amber-700);
+    padding-top: 8px;
+    margin-top: 4px;
+    border-top: 1px solid var(--si-amber-200);
+  }
+
+  .si-overage-preview__warning {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--si-rose-600);
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: var(--si-rose-50);
+    border-radius: var(--si-radius-sm);
+  }
+
+  /* Metric Pending Tag */
+  .si-metric-pending-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: var(--si-amber-100);
+    color: var(--si-amber-700);
+    border-radius: 4px;
+  }
+
+  /* Metric Limit Highlight (modal) */
+  .si-metric-limit-highlight {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 12px;
+    background: var(--si-slate-50);
+    border: 1px solid var(--si-slate-200);
+    border-radius: var(--si-radius);
+    text-align: center;
+  }
+
+  .si-metric-limit-highlight__label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--si-slate-500);
+  }
+
+  .si-metric-limit-highlight__value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--si-slate-800);
+  }
+
+  .si-metric-limit-highlight__note {
+    font-size: 0.6875rem;
+    color: var(--si-slate-400);
+    font-style: italic;
+  }
+
+  .si-metric-adjust-info--cost {
+    background: var(--si-blue-50);
+    border: 1px solid var(--si-blue-100);
+    border-radius: var(--si-radius-sm);
+    padding: 6px 10px;
+    color: var(--si-blue-700);
+    font-size: 0.75rem;
+  }
+
+  /* Metric Overage Indicator */
+  .si-metric__overage {
+    font-size: 0.6875rem;
+    color: var(--si-amber-700);
+    background: var(--si-amber-50);
+    border: 1px solid var(--si-amber-100);
+    border-radius: var(--si-radius-sm);
+    padding: 4px 8px;
+    margin-top: 6px;
+  }
+
+  .si-metric__overage strong {
+    color: var(--si-amber-800);
+  }
+
+  /* Metric Paid Limit */
+  .si-metric__paid-limit {
+    font-size: 0.6875rem;
+    color: var(--si-slate-500);
+    margin-top: 4px;
+  }
+
+  /* Metric Reset Period */
+  .si-metric__reset-period {
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+
+  /* Countdown in header stats */
+  .si-header__stat-countdown {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--si-slate-500);
+  }
+
+  /* Billing Section CSS (replaces inline styles) */
+  .si-billing-section {
+    margin-bottom: 16px;
+  }
+
+  .si-billing-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .si-billing-section__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--si-slate-500);
+    margin-bottom: 8px;
+  }
+
+  .si-billing-section__title--setup {
+    color: var(--si-violet-600);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .si-billing-section__title--overage {
+    color: var(--si-amber-600);
+  }
+
+  .si-billing-section__total {
+    font-weight: 500;
+    font-size: 0.8125rem;
+  }
+
+  .si-billing-section__lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .si-billing-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--si-slate-50);
+    border-radius: var(--si-radius-sm);
+    font-size: 0.875rem;
+  }
+
+  .si-billing-line--setup {
+    background: var(--si-violet-50);
+    border: 1px solid var(--si-violet-100);
+  }
+
+  .si-billing-line--overage {
+    background: var(--si-amber-50);
+    border: 1px solid var(--si-amber-100);
+  }
+
+  .si-billing-line__name {
+    color: var(--si-slate-700);
+  }
+
+  .si-billing-line__name--overage {
+    color: var(--si-amber-700);
+  }
+
+  .si-billing-line__cycle {
+    color: var(--si-slate-400);
+    font-size: 0.75rem;
+    margin-left: 6px;
+  }
+
+  .si-billing-line__calc {
+    color: var(--si-amber-500);
+    font-size: 0.75rem;
+    margin-left: 6px;
+  }
+
+  .si-billing-line__amount {
+    font-weight: 600;
+    color: var(--si-slate-800);
+  }
+
+  .si-billing-line__amount--setup {
+    color: var(--si-violet-700);
+  }
+
+  .si-billing-line__amount--overage {
+    color: var(--si-amber-700);
+  }
+
+  .si-billing-line__amount--paid {
+    color: var(--si-slate-500);
+    text-decoration: line-through;
+  }
+
+  .si-billing-line__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .si-billing-line__paid-tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--si-emerald-600);
+    text-transform: uppercase;
+  }
+
+  /* ─── Billing Projection: New Structure (SI-R3/R5/R7) ─── */
+
+  .si-billing-disclaimer {
+    font-size: 0.75rem;
+    color: var(--si-slate-500);
+    font-style: italic;
+    margin: 8px 0 16px;
+    padding: 0;
+  }
+
+  .si-billing-section-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .si-billing-section-label__text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--si-slate-500);
+  }
+
+  .si-billing-section-label__total {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--si-slate-700);
+  }
+
+  /* Section subtotal row (below line items) */
+  .si-billing-section-subtotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-top: 1px dashed var(--si-slate-200);
+  }
+
+  .si-billing-section-subtotal__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--si-slate-600);
+  }
+
+  .si-billing-section-subtotal__amount {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--si-slate-800);
+  }
+
+  /* Service group row in billing */
+  .si-billing-group {
+    margin-bottom: 4px;
+  }
+
+  .si-billing-group__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--si-slate-50);
+    border-radius: var(--si-radius-sm);
+    border: 1px solid var(--si-slate-200);
+  }
+
+  .si-billing-group__name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--si-slate-800);
+  }
+
+  .si-billing-group__amount-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .si-billing-group__original {
+    font-size: 0.8125rem;
+    color: var(--si-slate-400);
+    text-decoration: line-through;
+  }
+
+  .si-billing-group__discount-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--si-emerald-700);
+    background: var(--si-emerald-100);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .si-billing-group__amount {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--si-slate-800);
+  }
+
+  /* Group metrics in dynamic section */
+  .si-billing-group-metrics {
+    margin-bottom: 8px;
+  }
+
+  .si-billing-group-metrics__header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--si-slate-500);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    padding-left: 4px;
+  }
+
+  /* Metric line item */
+  .si-billing-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px 8px 20px;
+    background: var(--si-amber-50);
+    border: 1px solid var(--si-amber-100);
+    border-radius: var(--si-radius-sm);
+    margin-bottom: 4px;
+  }
+
+  .si-billing-metric__info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .si-billing-metric__name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--si-amber-700);
+  }
+
+  .si-billing-metric__usage {
+    font-size: 0.75rem;
+    color: var(--si-slate-500);
+  }
+
+  .si-billing-metric__right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .si-billing-metric__calc {
+    font-size: 0.75rem;
+    color: var(--si-amber-500);
+  }
+
+  .si-billing-metric__projection {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--si-amber-700);
+  }
+
+  /* Total row */
+  .si-billing-total {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid var(--si-slate-200);
+  }
+
+  .si-billing-total__breakdown {
+    text-align: right;
+    margin-bottom: 4px;
+  }
+
+  .si-billing-total__detail {
+    font-size: 0.75rem;
+    color: var(--si-slate-500);
+  }
+
+  .si-billing-total__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .si-billing-total__label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--si-slate-800);
+  }
+
+  .si-billing-total__amount {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--si-emerald-600);
+  }
+
+  .si-billing-total__cycle {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--si-slate-500);
+    margin-left: 4px;
+  }
+
+  /* ─── Setup costs collapsible (SI-R4) ─── */
+
+  .si-billing-setup {
+    margin-top: 16px;
+    border-top: 1px solid var(--si-slate-200);
+    padding-top: 12px;
+  }
+
+  .si-billing-setup__toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--si-violet-50);
+    border: 1px solid var(--si-violet-100);
+    border-radius: var(--si-radius-md);
+    cursor: pointer;
+    font-family: var(--si-font-sans);
+    font-size: 0.875rem;
+    color: var(--si-violet-700);
+    transition: background var(--si-transition-fast);
+  }
+
+  .si-billing-setup__toggle:hover {
+    background: var(--si-violet-100);
+  }
+
+  .si-billing-setup__toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .si-billing-setup__chevron {
+    width: 16px;
+    height: 16px;
+    transition: transform var(--si-transition-fast);
+  }
+
+  .si-billing-setup__chevron[data-expanded="true"] {
+    transform: rotate(90deg);
+  }
+
+  .si-billing-setup__count {
+    font-size: 0.75rem;
+    color: var(--si-slate-500);
+  }
+
+  .si-billing-setup__unpaid {
+    color: var(--si-amber-600);
+    font-weight: 500;
+  }
+
+  .si-billing-setup__total {
+    font-weight: 600;
+    color: var(--si-violet-700);
+  }
+
+  .si-billing-setup__content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  /* ─── Service group pricing in ServicesPanel ─── */
+
+  .si-service-group__price {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--si-emerald-600);
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .si-service-group__original-price {
+    font-size: 0.8125rem;
+    color: var(--si-slate-400);
+    text-decoration: line-through;
+  }
+
+  .si-service-group__discount-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--si-emerald-700);
+    background: var(--si-emerald-100);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* ─── Free limit marker in usage bar ─── */
+
+  .si-usage-bar {
+    position: relative;
+  }
+
+  .si-usage-bar__free-marker {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--si-emerald-500);
+    border-radius: 1px;
+    z-index: 1;
+  }
+
+  /* ─── SI-R8: Subtle operator edit icon ─── */
+
+  .si-metric-btn--edit {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--si-slate-400);
+    cursor: pointer;
+    transition: all var(--si-transition-fast);
+    opacity: 0.5;
+  }
+
+  .si-metric-btn--edit:hover {
+    opacity: 1;
+    background: var(--si-slate-100);
+    border-color: var(--si-slate-200);
+    color: var(--si-violet-600);
+  }
+
+  .si-metric-btn--edit svg {
+    width: 14px;
+    height: 14px;
   }
 `;

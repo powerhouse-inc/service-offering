@@ -4,18 +4,21 @@ import {
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
   RemoveServiceFromGroupInputSchema,
+  UpdateServiceGroupCostInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceGroupInput,
   RemoveServiceGroupInput,
   AddServiceToGroupInput,
   RemoveServiceFromGroupInput,
+  UpdateServiceGroupCostInput,
 } from "../types.js";
 import type {
   AddServiceGroupAction,
   RemoveServiceGroupAction,
   AddServiceToGroupAction,
   RemoveServiceFromGroupAction,
+  UpdateServiceGroupCostAction,
 } from "./actions.js";
 
 export const addServiceGroup = (input: AddServiceGroupInput) =>
@@ -51,5 +54,14 @@ export const removeServiceFromGroup = (input: RemoveServiceFromGroupInput) =>
     { ...input },
     undefined,
     RemoveServiceFromGroupInputSchema,
+    "global",
+  );
+
+export const updateServiceGroupCost = (input: UpdateServiceGroupCostInput) =>
+  createAction<UpdateServiceGroupCostAction>(
+    "UPDATE_SERVICE_GROUP_COST",
+    { ...input },
+    undefined,
+    UpdateServiceGroupCostInputSchema,
     "global",
   );

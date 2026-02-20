@@ -6,8 +6,8 @@ export const documentModel: DocumentModelGlobalState = {
     website: "https://www.powerhouse.inc/",
   },
   description:
-    "Document model for defining operator service offerings with subscription tiers, multi-billing cycle pricing options, facet bindings, usage limits with overage pricing, for the ACHRA Marketplace.",
-  extension: "",
+    "Defines a service offering with tiered pricing, service groups, option groups, and facet-based targeting.",
+  extension: "phso",
   id: "powerhouse/service-offering",
   name: "ServiceOffering",
   specifications: [
@@ -15,871 +15,1113 @@ export const documentModel: DocumentModelGlobalState = {
       changeLog: [],
       modules: [
         {
-          description: "Operations for managing services in the offering",
-          id: "service-management",
-          name: "Service Management",
+          description:
+            "Offering-level metadata, status, target audiences, facet targets, and resource templates",
+          id: "mod-offering",
+          name: "offering",
           operations: [
             {
-              description: "Adds a new service to the offering",
-              errors: [
-                {
-                  code: "DUPLICATE_SERVICE_ID",
-                  description: "A service with this ID already exists",
-                  id: "duplicate-service-id",
-                  name: "DuplicateServiceIdError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "add-service",
-              name: "ADD_SERVICE",
-              reducer:
-                "state.services.push({\n    id: action.input.id,\n    title: action.input.title,\n    description: action.input.description || null,\n    serviceGroupId: action.input.serviceGroupId || null,\n    displayOrder: action.input.displayOrder || null,\n    isSetupFormation: action.input.isSetupFormation || false,\n    optionGroupId: action.input.optionGroupId || null,\n    costType: action.input.costType || null,\n    price: action.input.price || null,\n    currency: action.input.currency || null,\n    facetBindings: []\n});\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input AddServiceInput {\n    id: OID!\n    title: String!\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    costType: ServiceCostType\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Adds a new service to the offering",
-            },
-            {
-              description: "Updates an existing service",
-              errors: [
-                {
-                  code: "UPDATE_SERVICE_NOT_FOUND",
-                  description: "Service with the specified ID does not exist",
-                  id: "service-not-found",
-                  name: "UpdateServiceNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "update-service",
-              name: "UPDATE_SERVICE",
-              reducer:
-                "const service = state.services.find(s => s.id === action.input.id);\nif (service) {\n    if (action.input.title) {\n        service.title = action.input.title;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        service.description = action.input.description;\n    }\n    if (action.input.serviceGroupId !== undefined) {\n        service.serviceGroupId = action.input.serviceGroupId || null;\n    }\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n        service.displayOrder = action.input.displayOrder;\n    }\n    if (action.input.isSetupFormation !== undefined && action.input.isSetupFormation !== null) {\n        service.isSetupFormation = action.input.isSetupFormation;\n    }\n    if (action.input.optionGroupId !== undefined) {\n        service.optionGroupId = action.input.optionGroupId || null;\n    }\n    if (action.input.costType !== undefined) {\n        service.costType = action.input.costType || null;\n    }\n    if (action.input.price !== undefined) {\n        service.price = action.input.price || null;\n    }\n    if (action.input.currency !== undefined) {\n        service.currency = action.input.currency || null;\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input UpdateServiceInput {\n    id: OID!\n    title: String\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    costType: ServiceCostType\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Updates an existing service",
-            },
-            {
-              description: "Removes a service from the offering",
-              errors: [
-                {
-                  code: "DELETE_SERVICE_NOT_FOUND",
-                  description: "Service with the specified ID does not exist",
-                  id: "service-not-found-delete",
-                  name: "DeleteServiceNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "delete-service",
-              name: "DELETE_SERVICE",
-              reducer:
-                "const serviceIndex = state.services.findIndex(s => s.id === action.input.id);\nif (serviceIndex !== -1) {\n    state.tiers.forEach(tier => {\n        tier.serviceLevels = tier.serviceLevels.filter(sl => sl.serviceId !== action.input.id);\n    });\n    state.services.splice(serviceIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input DeleteServiceInput {\n    id: OID!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Removes a service from the offering",
-            },
-            {
-              description: "Adds a facet binding to a service",
-              errors: [
-                {
-                  code: "ADD_FACET_SERVICE_NOT_FOUND",
-                  description: "Service with the specified ID does not exist",
-                  id: "service-not-found-facet",
-                  name: "AddFacetServiceNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "DUPLICATE_BINDING_ID",
-                  description: "A facet binding with this ID already exists",
-                  id: "duplicate-binding-id",
-                  name: "DuplicateBindingIdError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "add-facet-binding",
-              name: "ADD_FACET_BINDING",
-              reducer:
-                "const service = state.services.find(s => s.id === action.input.serviceId);\nif (service) {\n    service.facetBindings.push({\n        id: action.input.bindingId,\n        facetName: action.input.facetName,\n        facetType: action.input.facetType,\n        supportedOptions: action.input.supportedOptions\n    });\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input AddFacetBindingInput {\n    serviceId: OID!\n    bindingId: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Adds a facet binding to a service",
-            },
-            {
-              description: "Removes a facet binding from a service",
-              errors: [
-                {
-                  code: "REMOVE_FACET_SERVICE_NOT_FOUND",
-                  description: "Service with the specified ID does not exist",
-                  id: "service-not-found-remove-binding",
-                  name: "RemoveFacetServiceNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "BINDING_NOT_FOUND",
-                  description:
-                    "Facet binding with the specified ID does not exist",
-                  id: "binding-not-found",
-                  name: "BindingNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "remove-facet-binding",
-              name: "REMOVE_FACET_BINDING",
-              reducer:
-                "const service = state.services.find(s => s.id === action.input.serviceId);\nif (service) {\n    const bindingIndex = service.facetBindings.findIndex(fb => fb.id === action.input.bindingId);\n    if (bindingIndex !== -1) {\n        service.facetBindings.splice(bindingIndex, 1);\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input RemoveFacetBindingInput {\n    serviceId: OID!\n    bindingId: OID!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Removes a facet binding from a service",
-            },
-          ],
-        },
-        {
-          description: "Operations for managing subscription tiers",
-          id: "tier-management",
-          name: "Tier Management",
-          operations: [
-            {
-              description: "Adds a new subscription tier",
-              errors: [
-                {
-                  code: "DUPLICATE_TIER_ID",
-                  description: "A tier with this ID already exists",
-                  id: "duplicate-tier-id",
-                  name: "DuplicateTierIdError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "add-tier",
-              name: "ADD_TIER",
-              reducer:
-                "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    serviceLevels: [],\n    usageLimits: [],\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency\n    },\n    pricingOptions: [],\n    isCustomPricing: action.input.isCustomPricing || false\n});\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input AddTierInput {\n    id: OID!\n    name: String!\n    description: String\n    amount: Amount_Money\n    currency: Currency!\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Adds a new subscription tier",
-            },
-            {
-              description: "Updates an existing tier",
-              errors: [
-                {
-                  code: "UPDATE_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found",
-                  name: "UpdateTierNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "update-tier",
-              name: "UPDATE_TIER",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.id);\nif (tier) {\n    if (action.input.name) {\n        tier.name = action.input.name;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        tier.description = action.input.description;\n    }\n    if (action.input.isCustomPricing !== undefined && action.input.isCustomPricing !== null) {\n        tier.isCustomPricing = action.input.isCustomPricing;\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input UpdateTierInput {\n    id: OID!\n    name: String\n    description: String\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Updates an existing tier",
-            },
-            {
-              description: "Updates pricing for a tier",
-              errors: [
-                {
-                  code: "UPDATE_PRICING_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-pricing",
-                  name: "UpdatePricingTierNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "update-tier-pricing",
-              name: "UPDATE_TIER_PRICING",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    if (action.input.amount !== undefined) {\n        tier.pricing.amount = action.input.amount;\n    }\n    if (action.input.currency) {\n        tier.pricing.currency = action.input.currency;\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input UpdateTierPricingInput {\n    tierId: OID!\n    amount: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Updates pricing for a tier",
-            },
-            {
-              description: "Removes a tier from the offering",
-              errors: [
-                {
-                  code: "DELETE_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-delete",
-                  name: "DeleteTierNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "delete-tier",
-              name: "DELETE_TIER",
-              reducer:
-                "const tierIndex = state.tiers.findIndex(t => t.id === action.input.id);\nif (tierIndex !== -1) {\n    state.tiers.splice(tierIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input DeleteTierInput {\n    id: OID!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Removes a tier from the offering",
-            },
-            {
-              description:
-                "Adds a pricing option with a specific billing cycle to a tier",
-              errors: [
-                {
-                  code: "ADD_PRICING_OPTION_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "add-pricing-option-tier-not-found",
-                  name: "AddPricingOptionTierNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "add-tier-pricing-option",
-              name: "ADD_TIER_PRICING_OPTION",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new AddPricingOptionTierNotFoundError('Tier with the specified ID does not exist');\n}\nconst isDefault = action.input.isDefault || tier.pricingOptions.length === 0;\nif (isDefault) {\n    tier.pricingOptions.forEach(po => { po.isDefault = false; });\n}\ntier.pricingOptions.push({\n    id: action.input.pricingOptionId,\n    amount: action.input.amount,\n    currency: action.input.currency,\n    isDefault: isDefault\n});\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input AddTierPricingOptionInput {\n    tierId: OID!\n    pricingOptionId: OID!\n    amount: Amount_Money!\n    currency: Currency!\n    isDefault: Boolean\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template:
-                "Adds a pricing option with a specific billing cycle to a tier",
-            },
-            {
-              description: "Updates a pricing option for a tier",
-              errors: [
-                {
-                  code: "UPDATE_PRICING_OPTION_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "update-pricing-option-tier-not-found",
-                  name: "UpdatePricingOptionTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "PRICING_OPTION_NOT_FOUND",
-                  description:
-                    "Pricing option with the specified ID does not exist",
-                  id: "pricing-option-not-found",
-                  name: "PricingOptionNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "update-tier-pricing-option",
-              name: "UPDATE_TIER_PRICING_OPTION",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new UpdatePricingOptionTierNotFoundError('Tier with the specified ID does not exist');\n}\nconst pricingOption = tier.pricingOptions.find(po => po.id === action.input.pricingOptionId);\nif (!pricingOption) {\n    throw new PricingOptionNotFoundError('Pricing option with the specified ID does not exist');\n}\nif (action.input.amount !== undefined && action.input.amount !== null) {\n    pricingOption.amount = action.input.amount;\n}\nif (action.input.currency) {\n    pricingOption.currency = action.input.currency;\n}\nif (action.input.isDefault === true) {\n    tier.pricingOptions.forEach(po => { po.isDefault = false; });\n    pricingOption.isDefault = true;\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input UpdateTierPricingOptionInput {\n    tierId: OID!\n    pricingOptionId: OID!\n    amount: Amount_Money\n    currency: Currency\n    isDefault: Boolean\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Updates a pricing option for a tier",
-            },
-            {
-              description: "Removes a pricing option from a tier",
-              errors: [
-                {
-                  code: "REMOVE_PRICING_OPTION_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "remove-pricing-option-tier-not-found",
-                  name: "RemovePricingOptionTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "REMOVE_PRICING_OPTION_NOT_FOUND",
-                  description:
-                    "Pricing option with the specified ID does not exist",
-                  id: "remove-pricing-option-not-found",
-                  name: "RemovePricingOptionNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "remove-tier-pricing-option",
-              name: "REMOVE_TIER_PRICING_OPTION",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new RemovePricingOptionTierNotFoundError('Tier with the specified ID does not exist');\n}\nconst optionIndex = tier.pricingOptions.findIndex(po => po.id === action.input.pricingOptionId);\nif (optionIndex === -1) {\n    throw new RemovePricingOptionNotFoundError('Pricing option with the specified ID does not exist');\n}\nconst wasDefault = tier.pricingOptions[optionIndex].isDefault;\ntier.pricingOptions.splice(optionIndex, 1);\nif (wasDefault && tier.pricingOptions.length > 0) {\n    tier.pricingOptions[0].isDefault = true;\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input RemoveTierPricingOptionInput {\n    tierId: OID!\n    pricingOptionId: OID!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Removes a pricing option from a tier",
-            },
-            {
-              description: "Adds a service level binding to a tier",
-              errors: [
-                {
-                  code: "ADD_SERVICE_LEVEL_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-service-level",
-                  name: "AddServiceLevelTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "DUPLICATE_SERVICE_LEVEL_ID",
-                  description: "A service level with this ID already exists",
-                  id: "duplicate-service-level-id",
-                  name: "DuplicateServiceLevelIdError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "add-service-level",
-              name: "ADD_SERVICE_LEVEL",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    tier.serviceLevels.push({\n        id: action.input.serviceLevelId,\n        serviceId: action.input.serviceId,\n        level: action.input.level,\n        optionGroupId: action.input.optionGroupId || null,\n        customValue: action.input.customValue || null\n    });\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input AddServiceLevelInput {\n    tierId: OID!\n    serviceLevelId: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    optionGroupId: OID\n    customValue: String\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Adds a service level binding to a tier",
-            },
-            {
-              description: "Updates a service level binding",
-              errors: [
-                {
-                  code: "UPDATE_SERVICE_LEVEL_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-update-sl",
-                  name: "UpdateServiceLevelTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "UPDATE_SERVICE_LEVEL_NOT_FOUND",
-                  description:
-                    "Service level with the specified ID does not exist",
-                  id: "service-level-not-found",
-                  name: "UpdateServiceLevelNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "update-service-level",
-              name: "UPDATE_SERVICE_LEVEL",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    const serviceLevel = tier.serviceLevels.find(sl => sl.id === action.input.serviceLevelId);\n    if (serviceLevel) {\n        if (action.input.level) {\n            serviceLevel.level = action.input.level;\n        }\n        if (action.input.optionGroupId !== undefined) {\n            serviceLevel.optionGroupId = action.input.optionGroupId || null;\n        }\n        if (action.input.customValue !== undefined) {\n            serviceLevel.customValue = action.input.customValue || null;\n        }\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input UpdateServiceLevelInput {\n    tierId: OID!\n    serviceLevelId: OID!\n    level: ServiceLevel\n    optionGroupId: OID\n    customValue: String\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Updates a service level binding",
-            },
-            {
-              description: "Removes a service level binding from a tier",
-              errors: [
-                {
-                  code: "REMOVE_SERVICE_LEVEL_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-remove-sl",
-                  name: "RemoveServiceLevelTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "REMOVE_SERVICE_LEVEL_NOT_FOUND",
-                  description:
-                    "Service level with the specified ID does not exist",
-                  id: "service-level-not-found-remove",
-                  name: "RemoveServiceLevelNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "remove-service-level",
-              name: "REMOVE_SERVICE_LEVEL",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    const serviceLevelIndex = tier.serviceLevels.findIndex(sl => sl.id === action.input.serviceLevelId);\n    if (serviceLevelIndex !== -1) {\n        tier.serviceLevels.splice(serviceLevelIndex, 1);\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input RemoveServiceLevelInput {\n    tierId: OID!\n    serviceLevelId: OID!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Removes a service level binding from a tier",
-            },
-            {
-              description:
-                "Adds a usage limit to a tier with optional overage pricing",
-              errors: [
-                {
-                  code: "ADD_USAGE_LIMIT_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-usage-limit",
-                  name: "AddUsageLimitTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "DUPLICATE_USAGE_LIMIT_ID",
-                  description: "A usage limit with this ID already exists",
-                  id: "duplicate-usage-limit-id",
-                  name: "DuplicateUsageLimitIdError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "add-usage-limit",
-              name: "ADD_USAGE_LIMIT",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    tier.usageLimits.push({\n        id: action.input.limitId,\n        serviceId: action.input.serviceId,\n        metric: action.input.metric,\n        unitName: action.input.unitName || null,\n        freeLimit: action.input.freeLimit || null,\n        paidLimit: action.input.paidLimit || null,\n        resetCycle: action.input.resetCycle || null,\n        notes: action.input.notes || null,\n        unitPrice: action.input.unitPrice || null,\n        unitPriceCurrency: action.input.unitPriceCurrency || null\n    });\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input AddUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template:
-                "Adds a usage limit to a tier with optional overage pricing",
-            },
-            {
-              description: "Updates a usage limit including overage pricing",
-              errors: [
-                {
-                  code: "UPDATE_USAGE_LIMIT_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-update-limit",
-                  name: "UpdateUsageLimitTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "UPDATE_USAGE_LIMIT_NOT_FOUND",
-                  description:
-                    "Usage limit with the specified ID does not exist",
-                  id: "usage-limit-not-found",
-                  name: "UpdateUsageLimitNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "update-usage-limit",
-              name: "UPDATE_USAGE_LIMIT",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    const usageLimit = tier.usageLimits.find(ul => ul.id === action.input.limitId);\n    if (usageLimit) {\n        if (action.input.metric) {\n            usageLimit.metric = action.input.metric;\n        }\n        if (action.input.unitName !== undefined) {\n            usageLimit.unitName = action.input.unitName || null;\n        }\n        if (action.input.freeLimit !== undefined && action.input.freeLimit !== null) {\n            usageLimit.freeLimit = action.input.freeLimit;\n        }\n        if (action.input.paidLimit !== undefined && action.input.paidLimit !== null) {\n            usageLimit.paidLimit = action.input.paidLimit;\n        }\n        if (action.input.resetCycle !== undefined) {\n            usageLimit.resetCycle = action.input.resetCycle || null;\n        }\n        if (action.input.notes !== undefined) {\n            usageLimit.notes = action.input.notes || null;\n        }\n        if (action.input.unitPrice !== undefined) {\n            usageLimit.unitPrice = action.input.unitPrice || null;\n        }\n        if (action.input.unitPriceCurrency !== undefined) {\n            usageLimit.unitPriceCurrency = action.input.unitPriceCurrency || null;\n        }\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input UpdateUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    metric: String\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Updates a usage limit including overage pricing",
-            },
-            {
-              description: "Removes a usage limit from a tier",
-              errors: [
-                {
-                  code: "REMOVE_USAGE_LIMIT_TIER_NOT_FOUND",
-                  description: "Tier with the specified ID does not exist",
-                  id: "tier-not-found-remove-limit",
-                  name: "RemoveUsageLimitTierNotFoundError",
-                  template: "",
-                },
-                {
-                  code: "REMOVE_USAGE_LIMIT_NOT_FOUND",
-                  description:
-                    "Usage limit with the specified ID does not exist",
-                  id: "usage-limit-not-found-remove",
-                  name: "RemoveUsageLimitNotFoundError",
-                  template: "",
-                },
-              ],
-              examples: [],
-              id: "remove-usage-limit",
-              name: "REMOVE_USAGE_LIMIT",
-              reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (tier) {\n    const limitIndex = tier.usageLimits.findIndex(ul => ul.id === action.input.limitId);\n    if (limitIndex !== -1) {\n        tier.usageLimits.splice(limitIndex, 1);\n    }\n}\nstate.lastModified = action.input.lastModified;",
-              schema:
-                "input RemoveUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    lastModified: DateTime!\n}",
-              scope: "global",
-              template: "Removes a usage limit from a tier",
-            },
-          ],
-        },
-        {
-          description: "Operations for managing offering metadata",
-          id: "offering-management",
-          name: "Offering Management",
-          operations: [
-            {
-              description: "Updates offering title, summary, and info link",
+              description: "Update offering title, summary, description, URLs",
               errors: [],
               examples: [],
-              id: "update-offering-info",
+              id: "op-update-offering-info",
               name: "UPDATE_OFFERING_INFO",
               reducer:
-                "if (action.input.title) {\n    state.title = action.input.title;\n}\nif (action.input.summary) {\n    state.summary = action.input.summary;\n}\nif (action.input.description !== undefined) {\n    state.description = action.input.description || null;\n}\nif (action.input.thumbnailUrl !== undefined) {\n    state.thumbnailUrl = action.input.thumbnailUrl || null;\n}\nif (action.input.infoLink !== undefined) {\n    state.infoLink = action.input.infoLink || null;\n}\nstate.lastModified = action.input.lastModified;",
+                "if (action.input.title) state.title = action.input.title;\nif (action.input.summary) state.summary = action.input.summary;\nif (action.input.description !== undefined) state.description = action.input.description || null;\nif (action.input.thumbnailUrl !== undefined) state.thumbnailUrl = action.input.thumbnailUrl || null;\nif (action.input.infoLink !== undefined) state.infoLink = action.input.infoLink || null;\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input UpdateOfferingInfoInput {\n    title: String\n    summary: String\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Updates offering title, summary, and info link",
+              template: "Update offering title, summary, description, URLs",
             },
             {
-              description: "Updates the offering status",
+              description: "Change offering status",
               errors: [],
               examples: [],
-              id: "update-offering-status",
+              id: "op-update-offering-status",
               name: "UPDATE_OFFERING_STATUS",
               reducer:
                 "state.status = action.input.status;\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input UpdateOfferingStatusInput {\n    status: ServiceStatus!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Updates the offering status",
+              template: "Change offering status",
             },
             {
-              description: "Sets the operator for this offering",
+              description: "Set operator ID",
               errors: [],
               examples: [],
-              id: "set-operator",
+              id: "op-set-operator",
               name: "SET_OPERATOR",
               reducer:
                 "state.operatorId = action.input.operatorId;\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input SetOperatorInput {\n    operatorId: PHID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Sets the operator for this offering",
+              template: "Set operator ID",
             },
             {
-              description: "Sets the unique identifier for the offering",
+              description: "Set offering ID",
               errors: [],
               examples: [],
-              id: "set-offering-id",
+              id: "op-set-offering-id",
               name: "SET_OFFERING_ID",
               reducer:
                 "state.id = action.input.id;\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input SetOfferingIdInput {\n    id: PHID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Sets the unique identifier for the offering",
+              template: "Set offering ID",
             },
             {
-              description: "Adds a target audience tag to the offering",
-              errors: [
-                {
-                  code: "DUPLICATE_TARGET_AUDIENCE_ID",
-                  description: "A target audience with this ID already exists",
-                  id: "duplicate-target-audience-id",
-                  name: "DuplicateTargetAudienceIdError",
-                  template: "",
-                },
-              ],
+              description: "Add a target audience",
+              errors: [],
               examples: [],
-              id: "add-target-audience",
+              id: "op-add-target-audience",
               name: "ADD_TARGET_AUDIENCE",
               reducer:
-                "state.targetAudiences.push({\n    id: action.input.id,\n    label: action.input.label,\n    color: action.input.color || null\n});\nstate.lastModified = action.input.lastModified;",
+                "state.targetAudiences.push({\n    id: action.input.id,\n    label: action.input.label,\n    color: action.input.color || null,\n});\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input AddTargetAudienceInput {\n    id: OID!\n    label: String!\n    color: String\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Adds a target audience tag to the offering",
+              template: "Add a target audience",
             },
             {
-              description: "Removes a target audience tag from the offering",
+              description: "Remove a target audience by ID",
               errors: [
                 {
                   code: "TARGET_AUDIENCE_NOT_FOUND",
-                  description:
-                    "Target audience with the specified ID does not exist",
-                  id: "target-audience-not-found",
-                  name: "TargetAudienceNotFoundError",
+                  description: "Target audience with given ID not found",
+                  id: "err-remove-ta-not-found",
+                  name: "RemoveTargetAudienceNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "remove-target-audience",
+              id: "op-remove-target-audience",
               name: "REMOVE_TARGET_AUDIENCE",
               reducer:
-                "const audienceIndex = state.targetAudiences.findIndex(a => a.id === action.input.id);\nif (audienceIndex !== -1) {\n    state.targetAudiences.splice(audienceIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
+                "const index = state.targetAudiences.findIndex(ta => ta.id === action.input.id);\nif (index === -1) {\n    throw new RemoveTargetAudienceNotFoundError(`Target audience with ID ${action.input.id} not found`);\n}\nstate.targetAudiences.splice(index, 1);\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input RemoveTargetAudienceInput {\n    id: OID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Removes a target audience tag from the offering",
+              template: "Remove a target audience by ID",
             },
             {
-              description: "Sets or updates facet targeting for a category",
+              description: "Set or upsert a facet target category",
               errors: [],
               examples: [],
-              id: "set-facet-target",
+              id: "op-set-facet-target",
               name: "SET_FACET_TARGET",
               reducer:
-                "const existingIndex = state.facetTargets.findIndex(ft => ft.categoryKey === action.input.categoryKey);\nif (existingIndex !== -1) {\n    state.facetTargets[existingIndex] = {\n        id: action.input.id,\n        categoryKey: action.input.categoryKey,\n        categoryLabel: action.input.categoryLabel,\n        selectedOptions: action.input.selectedOptions\n    };\n} else {\n    state.facetTargets.push({\n        id: action.input.id,\n        categoryKey: action.input.categoryKey,\n        categoryLabel: action.input.categoryLabel,\n        selectedOptions: action.input.selectedOptions\n    });\n}\nstate.lastModified = action.input.lastModified;",
+                "const existingIndex = state.facetTargets.findIndex(ft => ft.categoryKey === action.input.categoryKey);\nconst facetTarget = {\n    id: action.input.id,\n    categoryKey: action.input.categoryKey,\n    categoryLabel: action.input.categoryLabel,\n    selectedOptions: action.input.selectedOptions,\n};\nif (existingIndex !== -1) {\n    state.facetTargets[existingIndex] = facetTarget;\n} else {\n    state.facetTargets.push(facetTarget);\n}\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input SetFacetTargetInput {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Sets or updates facet targeting for a category",
+              template: "Set or upsert a facet target category",
             },
             {
-              description: "Removes facet targeting for a category",
+              description: "Remove a facet target by category key",
               errors: [
                 {
                   code: "FACET_TARGET_NOT_FOUND",
-                  description:
-                    "Facet target for the specified category does not exist",
-                  id: "facet-target-not-found",
-                  name: "FacetTargetNotFoundError",
+                  description: "Facet target with given category key not found",
+                  id: "err-remove-ft-not-found",
+                  name: "RemoveFacetTargetNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "remove-facet-target",
+              id: "op-remove-facet-target",
               name: "REMOVE_FACET_TARGET",
               reducer:
-                "const targetIndex = state.facetTargets.findIndex(ft => ft.categoryKey === action.input.categoryKey);\nif (targetIndex !== -1) {\n    state.facetTargets.splice(targetIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
+                "const index = state.facetTargets.findIndex(ft => ft.categoryKey === action.input.categoryKey);\nif (index === -1) {\n    throw new RemoveFacetTargetNotFoundError(`Facet target with category key ${action.input.categoryKey} not found`);\n}\nstate.facetTargets.splice(index, 1);\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input RemoveFacetTargetInput {\n    categoryKey: String!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Removes facet targeting for a category",
+              template: "Remove a facet target by category key",
             },
             {
-              description: "Adds an option to a facet target",
+              description: "Add an option to an existing facet target",
               errors: [
                 {
-                  code: "FACET_TARGET_NOT_FOUND_ADD_OPTION",
-                  description:
-                    "Facet target for the specified category does not exist",
-                  id: "add-facet-option-not-found",
+                  code: "FACET_TARGET_NOT_FOUND",
+                  description: "Facet target with given category key not found",
+                  id: "err-add-fo-target-not-found",
                   name: "AddFacetOptionTargetNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "add-facet-option",
+              id: "op-add-facet-option",
               name: "ADD_FACET_OPTION",
               reducer:
-                "const facetTarget = state.facetTargets.find(ft => ft.categoryKey === action.input.categoryKey);\nif (facetTarget && !facetTarget.selectedOptions.includes(action.input.optionId)) {\n    facetTarget.selectedOptions.push(action.input.optionId);\n}\nstate.lastModified = action.input.lastModified;",
+                "const facetTarget = state.facetTargets.find(ft => ft.categoryKey === action.input.categoryKey);\nif (!facetTarget) {\n    throw new AddFacetOptionTargetNotFoundError(`Facet target with category key ${action.input.categoryKey} not found`);\n}\nfacetTarget.selectedOptions.push(action.input.optionId);\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input AddFacetOptionInput {\n    categoryKey: String!\n    optionId: String!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Adds an option to a facet target",
+              template: "Add an option to an existing facet target",
             },
             {
-              description: "Removes an option from a facet target",
-              errors: [],
+              description: "Remove an option from a facet target",
+              errors: [
+                {
+                  code: "FACET_TARGET_NOT_FOUND",
+                  description: "Facet target with given category key not found",
+                  id: "err-remove-fo-target-not-found",
+                  name: "RemoveFacetOptionTargetNotFoundError",
+                  template: "",
+                },
+              ],
               examples: [],
-              id: "remove-facet-option",
+              id: "op-remove-facet-option",
               name: "REMOVE_FACET_OPTION",
               reducer:
-                "const facetTarget = state.facetTargets.find(\n  (ft) => ft.categoryKey === action.input.categoryKey\n);\n\nif (facetTarget) {\n  const optionIndex = facetTarget.selectedOptions.indexOf(action.input.optionId);\n  if (optionIndex !== -1) {\n    facetTarget.selectedOptions.splice(optionIndex, 1);\n  }\n}\nstate.lastModified = action.input.lastModified;",
+                "const facetTarget = state.facetTargets.find(ft => ft.categoryKey === action.input.categoryKey);\nif (!facetTarget) {\n    throw new RemoveFacetOptionTargetNotFoundError(`Facet target with category key ${action.input.categoryKey} not found`);\n}\nconst optIndex = facetTarget.selectedOptions.indexOf(action.input.optionId);\nif (optIndex !== -1) {\n    facetTarget.selectedOptions.splice(optIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input RemoveFacetOptionInput {\n    categoryKey: String!\n    optionId: String!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Removes an option from a facet target",
+              template: "Remove an option from a facet target",
             },
             {
-              description:
-                "Selects a resource template for this service offering",
-              errors: [
-                {
-                  code: "TEMPLATE_ALREADY_SELECTED",
-                  description:
-                    "A resource template has already been selected. Use CHANGE_RESOURCE_TEMPLATE to change it.",
-                  id: "template-already-selected",
-                  name: "TemplateAlreadySelectedError",
-                  template: "",
-                },
-              ],
+              description: "Select a resource template",
+              errors: [],
               examples: [],
-              id: "select-resource-template",
+              id: "op-select-resource-template",
               name: "SELECT_RESOURCE_TEMPLATE",
               reducer:
-                "if (state.resourceTemplateId) {\n    throw new TemplateAlreadySelectedError('A resource template has already been selected. Use CHANGE_RESOURCE_TEMPLATE to change it.');\n}\nstate.resourceTemplateId = action.input.resourceTemplateId;\nstate.lastModified = action.input.lastModified;",
+                "state.resourceTemplateId = action.input.resourceTemplateId;\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input SelectResourceTemplateInput {\n    resourceTemplateId: PHID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Selects a resource template for this service offering",
+              template: "Select a resource template",
             },
             {
-              description:
-                "Changes the resource template for this service offering",
+              description: "Change the resource template",
               errors: [
-                {
-                  code: "NO_TEMPLATE_SELECTED",
-                  description:
-                    "No resource template has been selected yet. Use SELECT_RESOURCE_TEMPLATE first.",
-                  id: "no-template-selected",
-                  name: "NoTemplateSelectedError",
-                  template: "",
-                },
                 {
                   code: "TEMPLATE_MISMATCH",
                   description:
-                    "The previous template ID does not match the currently selected template.",
-                  id: "template-mismatch",
-                  name: "TemplateMismatchError",
+                    "The previous template ID does not match the current resource template",
+                  id: "err-change-rt-mismatch",
+                  name: "ChangeResourceTemplateMismatchError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "change-resource-template",
+              id: "op-change-resource-template",
               name: "CHANGE_RESOURCE_TEMPLATE",
               reducer:
-                "if (!state.resourceTemplateId) {\n    throw new NoTemplateSelectedError('No resource template has been selected yet. Use SELECT_RESOURCE_TEMPLATE first.');\n}\nif (state.resourceTemplateId !== action.input.previousTemplateId) {\n    throw new TemplateMismatchError('The previous template ID does not match the currently selected template.');\n}\nstate.resourceTemplateId = action.input.newTemplateId;\nstate.lastModified = action.input.lastModified;",
+                "if (state.resourceTemplateId !== action.input.previousTemplateId) {\n    throw new ChangeResourceTemplateMismatchError(`Current template ${state.resourceTemplateId} does not match previous template ${action.input.previousTemplateId}`);\n}\nstate.resourceTemplateId = action.input.newTemplateId;\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input ChangeResourceTemplateInput {\n    previousTemplateId: PHID!\n    newTemplateId: PHID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template:
-                "Changes the resource template for this service offering",
+              template: "Change the resource template",
+            },
+          ],
+        },
+        {
+          description: "Service CRUD and facet bindings",
+          id: "mod-services",
+          name: "services",
+          operations: [
+            {
+              description: "Add a new service",
+              errors: [],
+              examples: [],
+              id: "op-add-service",
+              name: "ADD_SERVICE",
+              reducer:
+                "state.services.push({\n    id: action.input.id,\n    title: action.input.title,\n    description: action.input.description || null,\n    serviceGroupId: action.input.serviceGroupId || null,\n    displayOrder: action.input.displayOrder || null,\n    isSetupFormation: action.input.isSetupFormation || false,\n    optionGroupId: action.input.optionGroupId || null,\n    facetBindings: [],\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddServiceInput {\n    id: OID!\n    title: String!\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add a new service",
+            },
+            {
+              description: "Update service fields",
+              errors: [
+                {
+                  code: "SERVICE_NOT_FOUND",
+                  description: "Service with given ID not found",
+                  id: "err-update-service-not-found",
+                  name: "UpdateServiceNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-update-service",
+              name: "UPDATE_SERVICE",
+              reducer:
+                "const service = state.services.find(s => s.id === action.input.id);\nif (!service) {\n    throw new UpdateServiceNotFoundError(`Service with ID ${action.input.id} not found`);\n}\nif (action.input.title) service.title = action.input.title;\nif (action.input.description !== undefined) service.description = action.input.description || null;\nif (action.input.serviceGroupId !== undefined) service.serviceGroupId = action.input.serviceGroupId || null;\nif (action.input.displayOrder !== undefined) service.displayOrder = action.input.displayOrder || null;\nif (action.input.isSetupFormation !== undefined && action.input.isSetupFormation !== null) service.isSetupFormation = action.input.isSetupFormation;\nif (action.input.optionGroupId !== undefined) service.optionGroupId = action.input.optionGroupId || null;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input UpdateServiceInput {\n    id: OID!\n    title: String\n    description: String\n    serviceGroupId: OID\n    displayOrder: Int\n    isSetupFormation: Boolean\n    optionGroupId: OID\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Update service fields",
+            },
+            {
+              description: "Delete a service",
+              errors: [
+                {
+                  code: "SERVICE_NOT_FOUND",
+                  description: "Service with given ID not found",
+                  id: "err-delete-service-not-found",
+                  name: "DeleteServiceNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-delete-service",
+              name: "DELETE_SERVICE",
+              reducer:
+                "const index = state.services.findIndex(s => s.id === action.input.id);\nif (index === -1) {\n    throw new DeleteServiceNotFoundError(`Service with ID ${action.input.id} not found`);\n}\nstate.services.splice(index, 1);\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input DeleteServiceInput {\n    id: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Delete a service",
+            },
+            {
+              description: "Add a facet binding to a service",
+              errors: [
+                {
+                  code: "SERVICE_NOT_FOUND",
+                  description: "Service with given ID not found",
+                  id: "err-add-fb-service-not-found",
+                  name: "AddFacetBindingServiceNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-add-facet-binding",
+              name: "ADD_FACET_BINDING",
+              reducer:
+                "const service = state.services.find(s => s.id === action.input.serviceId);\nif (!service) {\n    throw new AddFacetBindingServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nservice.facetBindings.push({\n    id: action.input.bindingId,\n    facetName: action.input.facetName,\n    facetType: action.input.facetType,\n    supportedOptions: action.input.supportedOptions,\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddFacetBindingInput {\n    serviceId: OID!\n    bindingId: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add a facet binding to a service",
+            },
+            {
+              description: "Remove a facet binding from a service",
+              errors: [
+                {
+                  code: "SERVICE_NOT_FOUND",
+                  description: "Service with given ID not found",
+                  id: "err-remove-fb-service-not-found",
+                  name: "RemoveFacetBindingServiceNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-facet-binding",
+              name: "REMOVE_FACET_BINDING",
+              reducer:
+                "const service = state.services.find(s => s.id === action.input.serviceId);\nif (!service) {\n    throw new RemoveFacetBindingServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst bindingIndex = service.facetBindings.findIndex(fb => fb.id === action.input.bindingId);\nif (bindingIndex !== -1) {\n    service.facetBindings.splice(bindingIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveFacetBindingInput {\n    serviceId: OID!\n    bindingId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove a facet binding from a service",
             },
           ],
         },
         {
           description:
-            "Operations for managing option groups (selectable add-on sections)",
-          id: "option-group-management",
-          name: "Option Group Management",
+            "Subscription tiers, service levels, usage limits, billing cycles, and discounts",
+          id: "mod-tiers",
+          name: "tiers",
           operations: [
             {
-              description: "Adds a new option group to the offering",
+              description: "Add a subscription tier",
+              errors: [],
+              examples: [],
+              id: "op-add-tier",
+              name: "ADD_TIER",
+              reducer:
+                "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isCustomPricing: action.input.isCustomPricing || false,\n    pricingMode: null,\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency,\n    },\n    defaultBillingCycle: null,\n    billingCycleDiscounts: [],\n    serviceLevels: [],\n    usageLimits: [],\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddTierInput {\n    id: OID!\n    name: String!\n    description: String\n    amount: Amount_Money\n    currency: Currency!\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add a subscription tier",
+            },
+            {
+              description: "Update tier metadata",
               errors: [
                 {
-                  code: "DUPLICATE_OPTION_GROUP_ID",
-                  description: "An option group with this ID already exists",
-                  id: "duplicate-option-group-id",
-                  name: "DuplicateOptionGroupIdError",
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-update-tier-not-found",
+                  name: "UpdateTierNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "add-option-group",
-              name: "ADD_OPTION_GROUP",
+              id: "op-update-tier",
+              name: "UPDATE_TIER",
               reducer:
-                "state.optionGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isAddOn: action.input.isAddOn,\n    defaultSelected: action.input.defaultSelected,\n    costType: action.input.costType || null,\n    billingCycle: action.input.billingCycle || null,\n    price: action.input.price || null,\n    currency: action.input.currency || null\n});\nstate.lastModified = action.input.lastModified;",
+                "const tier = state.tiers.find(t => t.id === action.input.id);\nif (!tier) {\n    throw new UpdateTierNotFoundError(`Tier with ID ${action.input.id} not found`);\n}\nif (action.input.name) tier.name = action.input.name;\nif (action.input.description !== undefined) tier.description = action.input.description || null;\nif (action.input.isCustomPricing !== undefined && action.input.isCustomPricing !== null) tier.isCustomPricing = action.input.isCustomPricing;\nstate.lastModified = action.input.lastModified;",
               schema:
-                "input AddOptionGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+                "input UpdateTierInput {\n    id: OID!\n    name: String\n    description: String\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Adds a new option group to the offering",
+              template: "Update tier metadata",
             },
             {
-              description: "Updates an existing option group",
+              description: "Update tier base pricing",
               errors: [
                 {
-                  code: "UPDATE_OPTION_GROUP_NOT_FOUND",
-                  description:
-                    "Option group with the specified ID does not exist",
-                  id: "option-group-not-found",
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-update-tier-pricing-not-found",
+                  name: "UpdateTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-update-tier-pricing",
+              name: "UPDATE_TIER_PRICING",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new UpdateTierPricingNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\nif (action.input.amount !== undefined) tier.pricing.amount = action.input.amount || null;\nif (action.input.currency) tier.pricing.currency = action.input.currency;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input UpdateTierPricingInput {\n    tierId: OID!\n    amount: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Update tier base pricing",
+            },
+            {
+              description: "Delete a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-delete-tier-not-found",
+                  name: "DeleteTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-delete-tier",
+              name: "DELETE_TIER",
+              reducer:
+                "const index = state.tiers.findIndex(t => t.id === action.input.id);\nif (index === -1) {\n    throw new DeleteTierNotFoundError(`Tier with ID ${action.input.id} not found`);\n}\nstate.tiers.splice(index, 1);\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input DeleteTierInput {\n    id: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Delete a tier",
+            },
+            {
+              description: "Bind a service level to a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-add-sl-tier-not-found",
+                  name: "AddServiceLevelTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-add-service-level",
+              name: "ADD_SERVICE_LEVEL",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new AddServiceLevelTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.serviceLevels.push({\n    id: action.input.serviceLevelId,\n    serviceId: action.input.serviceId,\n    level: action.input.level,\n    customValue: action.input.customValue || null,\n    optionGroupId: action.input.optionGroupId || null,\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddServiceLevelInput {\n    tierId: OID!\n    serviceLevelId: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    optionGroupId: OID\n    customValue: String\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Bind a service level to a tier",
+            },
+            {
+              description: "Update a service level binding",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-update-sl-tier-not-found",
+                  name: "UpdateServiceLevelTierNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "SERVICE_LEVEL_NOT_FOUND",
+                  description: "Service level binding with given ID not found",
+                  id: "err-update-sl-not-found",
+                  name: "UpdateServiceLevelNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-update-service-level",
+              name: "UPDATE_SERVICE_LEVEL",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new UpdateServiceLevelTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\nconst sl = tier.serviceLevels.find(s => s.id === action.input.serviceLevelId);\nif (!sl) {\n    throw new UpdateServiceLevelNotFoundError(`Service level with ID ${action.input.serviceLevelId} not found`);\n}\nif (action.input.level) sl.level = action.input.level;\nif (action.input.customValue !== undefined) sl.customValue = action.input.customValue || null;\nif (action.input.optionGroupId !== undefined) sl.optionGroupId = action.input.optionGroupId || null;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input UpdateServiceLevelInput {\n    tierId: OID!\n    serviceLevelId: OID!\n    level: ServiceLevel\n    optionGroupId: OID\n    customValue: String\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Update a service level binding",
+            },
+            {
+              description: "Remove a service level from a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-remove-sl-tier-not-found",
+                  name: "RemoveServiceLevelTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-service-level",
+              name: "REMOVE_SERVICE_LEVEL",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new RemoveServiceLevelTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\nconst index = tier.serviceLevels.findIndex(s => s.id === action.input.serviceLevelId);\nif (index !== -1) {\n    tier.serviceLevels.splice(index, 1);\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveServiceLevelInput {\n    tierId: OID!\n    serviceLevelId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove a service level from a tier",
+            },
+            {
+              description: "Add a usage limit to a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-add-ul-tier-not-found",
+                  name: "AddUsageLimitTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-add-usage-limit",
+              name: "ADD_USAGE_LIMIT",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new AddUsageLimitTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.usageLimits.push({\n    id: action.input.limitId,\n    serviceId: action.input.serviceId,\n    metric: action.input.metric,\n    unitName: action.input.unitName || null,\n    freeLimit: action.input.freeLimit || null,\n    paidLimit: action.input.paidLimit || null,\n    resetCycle: action.input.resetCycle || null,\n    notes: action.input.notes || null,\n    unitPrice: action.input.unitPrice || null,\n    unitPriceCurrency: action.input.unitPriceCurrency || null,\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add a usage limit to a tier",
+            },
+            {
+              description: "Update a usage limit",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-update-ul-tier-not-found",
+                  name: "UpdateUsageLimitTierNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "USAGE_LIMIT_NOT_FOUND",
+                  description: "Usage limit with given ID not found",
+                  id: "err-update-ul-not-found",
+                  name: "UpdateUsageLimitNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-update-usage-limit",
+              name: "UPDATE_USAGE_LIMIT",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new UpdateUsageLimitTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\nconst ul = tier.usageLimits.find(u => u.id === action.input.limitId);\nif (!ul) {\n    throw new UpdateUsageLimitNotFoundError(`Usage limit with ID ${action.input.limitId} not found`);\n}\nif (action.input.metric) ul.metric = action.input.metric;\nif (action.input.unitName !== undefined) ul.unitName = action.input.unitName || null;\nif (action.input.freeLimit !== undefined) ul.freeLimit = action.input.freeLimit || null;\nif (action.input.paidLimit !== undefined) ul.paidLimit = action.input.paidLimit || null;\nif (action.input.resetCycle !== undefined) ul.resetCycle = action.input.resetCycle || null;\nif (action.input.notes !== undefined) ul.notes = action.input.notes || null;\nif (action.input.unitPrice !== undefined) ul.unitPrice = action.input.unitPrice || null;\nif (action.input.unitPriceCurrency !== undefined) ul.unitPriceCurrency = action.input.unitPriceCurrency || null;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input UpdateUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    metric: String\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Update a usage limit",
+            },
+            {
+              description: "Remove a usage limit from a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-remove-ul-tier-not-found",
+                  name: "RemoveUsageLimitTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-usage-limit",
+              name: "REMOVE_USAGE_LIMIT",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new RemoveUsageLimitTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\nconst index = tier.usageLimits.findIndex(u => u.id === action.input.limitId);\nif (index !== -1) {\n    tier.usageLimits.splice(index, 1);\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveUsageLimitInput {\n    tierId: OID!\n    limitId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove a usage limit from a tier",
+            },
+            {
+              description: "Set the default billing cycle for a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-set-tbc-tier-not-found",
+                  name: "SetTierDefaultBillingCycleTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-tier-default-billing-cycle",
+              name: "SET_TIER_DEFAULT_BILLING_CYCLE",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetTierDefaultBillingCycleTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.defaultBillingCycle = action.input.defaultBillingCycle;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input SetTierDefaultBillingCycleInput {\n    tierId: OID!\n    defaultBillingCycle: BillingCycle!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Set the default billing cycle for a tier",
+            },
+            {
+              description: "Set billing cycle discounts for a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-set-tbcd-tier-not-found",
+                  name: "SetTierBillingCycleDiscountsTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-tier-billing-cycle-discounts",
+              name: "SET_TIER_BILLING_CYCLE_DISCOUNTS",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetTierBillingCycleDiscountsTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.billingCycleDiscounts = action.input.discounts.map(d => ({\n    billingCycle: d.billingCycle,\n    discountRule: {\n        discountType: d.discountRule.discountType,\n        discountValue: d.discountRule.discountValue,\n    },\n}));\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input DiscountRuleInput {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\ninput BillingCycleDiscountInput {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRuleInput!\n}\n\ninput SetTierBillingCycleDiscountsInput {\n    tierId: OID!\n    discounts: [BillingCycleDiscountInput!]!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Set billing cycle discounts for a tier",
+            },
+            {
+              description: "Set the pricing mode for a tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description: "Tier with given ID not found",
+                  id: "err-set-tpm-tier-not-found",
+                  name: "SetTierPricingModeTierNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-tier-pricing-mode",
+              name: "SET_TIER_PRICING_MODE",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetTierPricingModeTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.pricingMode = action.input.pricingMode;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input SetTierPricingModeInput {\n    tierId: OID!\n    pricingMode: TierPricingMode!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Set the pricing mode for a tier",
+            },
+          ],
+        },
+        {
+          description:
+            "Add-on option groups with standalone and tier-dependent pricing",
+          id: "mod-option-groups",
+          name: "option-groups",
+          operations: [
+            {
+              description: "Add an option group",
+              errors: [],
+              examples: [],
+              id: "op-add-option-group",
+              name: "ADD_OPTION_GROUP",
+              reducer:
+                "state.optionGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isAddOn: action.input.isAddOn,\n    defaultSelected: action.input.defaultSelected,\n    pricingMode: null,\n    standalonePricing: null,\n    tierDependentPricing: null,\n    costType: action.input.costType || null,\n    availableBillingCycles: action.input.availableBillingCycles || [],\n    billingCycleDiscounts: [],\n    discountMode: null,\n    price: action.input.price || null,\n    currency: action.input.currency || null,\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddOptionGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add an option group",
+            },
+            {
+              description: "Update option group fields",
+              errors: [
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-update-og-not-found",
                   name: "UpdateOptionGroupNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "update-option-group",
+              id: "op-update-option-group",
               name: "UPDATE_OPTION_GROUP",
               reducer:
-                "const optionGroup = state.optionGroups.find(og => og.id === action.input.id);\nif (optionGroup) {\n    if (action.input.name) {\n        optionGroup.name = action.input.name;\n    }\n    if (action.input.description !== undefined && action.input.description !== null) {\n        optionGroup.description = action.input.description;\n    }\n    if (action.input.isAddOn !== undefined && action.input.isAddOn !== null) {\n        optionGroup.isAddOn = action.input.isAddOn;\n    }\n    if (action.input.defaultSelected !== undefined && action.input.defaultSelected !== null) {\n        optionGroup.defaultSelected = action.input.defaultSelected;\n    }\n    if (action.input.costType !== undefined) {\n        optionGroup.costType = action.input.costType || null;\n    }\n    if (action.input.billingCycle !== undefined) {\n        optionGroup.billingCycle = action.input.billingCycle || null;\n    }\n    if (action.input.price !== undefined) {\n        optionGroup.price = action.input.price || null;\n    }\n    if (action.input.currency !== undefined) {\n        optionGroup.currency = action.input.currency || null;\n    }\n}\nstate.lastModified = action.input.lastModified;",
+                "const og = state.optionGroups.find(g => g.id === action.input.id);\nif (!og) {\n    throw new UpdateOptionGroupNotFoundError(`Option group with ID ${action.input.id} not found`);\n}\nif (action.input.name) og.name = action.input.name;\nif (action.input.description !== undefined) og.description = action.input.description || null;\nif (action.input.isAddOn !== undefined && action.input.isAddOn !== null) og.isAddOn = action.input.isAddOn;\nif (action.input.defaultSelected !== undefined && action.input.defaultSelected !== null) og.defaultSelected = action.input.defaultSelected;\nif (action.input.costType !== undefined) og.costType = action.input.costType || null;\nif (action.input.availableBillingCycles) og.availableBillingCycles = action.input.availableBillingCycles;\nif (action.input.price !== undefined) og.price = action.input.price || null;\nif (action.input.currency !== undefined) og.currency = action.input.currency || null;\nstate.lastModified = action.input.lastModified;",
               schema:
-                "input UpdateOptionGroupInput {\n    id: OID!\n    name: String\n    description: String\n    isAddOn: Boolean\n    defaultSelected: Boolean\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
+                "input UpdateOptionGroupInput {\n    id: OID!\n    name: String\n    description: String\n    isAddOn: Boolean\n    defaultSelected: Boolean\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]\n    price: Amount_Money\n    currency: Currency\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Updates an existing option group",
+              template: "Update option group fields",
             },
             {
-              description: "Removes an option group from the offering",
+              description: "Delete an option group",
               errors: [
                 {
-                  code: "DELETE_OPTION_GROUP_NOT_FOUND",
-                  description:
-                    "Option group with the specified ID does not exist",
-                  id: "option-group-not-found-delete",
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-delete-og-not-found",
                   name: "DeleteOptionGroupNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "delete-option-group",
+              id: "op-delete-option-group",
               name: "DELETE_OPTION_GROUP",
               reducer:
-                "const optionGroupIndex = state.optionGroups.findIndex(og => og.id === action.input.id);\nif (optionGroupIndex !== -1) {\n    state.tiers.forEach(tier => {\n        tier.serviceLevels.forEach(sl => {\n            if (sl.optionGroupId === action.input.id) {\n                sl.optionGroupId = null;\n            }\n        });\n    });\n    state.optionGroups.splice(optionGroupIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
+                "const index = state.optionGroups.findIndex(g => g.id === action.input.id);\nif (index === -1) {\n    throw new DeleteOptionGroupNotFoundError(`Option group with ID ${action.input.id} not found`);\n}\nstate.optionGroups.splice(index, 1);\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input DeleteOptionGroupInput {\n    id: OID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Removes an option group from the offering",
+              template: "Delete an option group",
+            },
+            {
+              description: "Set standalone pricing for an option group",
+              errors: [
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-set-ogsp-not-found",
+                  name: "SetOptionGroupStandalonePricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-option-group-standalone-pricing",
+              name: "SET_OPTION_GROUP_STANDALONE_PRICING",
+              reducer:
+                'const og = state.optionGroups.find(g => g.id === action.input.optionGroupId);\nif (!og) {\n    throw new SetOptionGroupStandalonePricingNotFoundError(`Option group with ID ${action.input.optionGroupId} not found`);\n}\nog.pricingMode = "STANDALONE";\nog.standalonePricing = {\n    setupCost: action.input.setupCost ? {\n        amount: action.input.setupCost.amount,\n        currency: action.input.setupCost.currency,\n        discount: action.input.setupCost.discount ? {\n            discountType: action.input.setupCost.discount.discountType,\n            discountValue: action.input.setupCost.discount.discountValue,\n        } : null,\n    } : null,\n    recurringPricing: action.input.recurringPricing.map(rp => ({\n        id: rp.id,\n        billingCycle: rp.billingCycle,\n        amount: rp.amount,\n        currency: rp.currency,\n        discount: rp.discount ? {\n            discountType: rp.discount.discountType,\n            discountValue: rp.discount.discountValue,\n        } : null,\n    })),\n};\nstate.lastModified = action.input.lastModified;',
+              schema:
+                "input RecurringPriceOptionInput {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRuleInput\n}\n\ninput SetupCostInput {\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRuleInput\n}\n\ninput SetOptionGroupStandalonePricingInput {\n    optionGroupId: OID!\n    setupCost: SetupCostInput\n    recurringPricing: [RecurringPriceOptionInput!]!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Set standalone pricing for an option group",
+            },
+            {
+              description: "Add tier-dependent pricing to an option group",
+              errors: [
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-add-ogtp-not-found",
+                  name: "AddOptionGroupTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-add-option-group-tier-pricing",
+              name: "ADD_OPTION_GROUP_TIER_PRICING",
+              reducer:
+                'const og = state.optionGroups.find(g => g.id === action.input.optionGroupId);\nif (!og) {\n    throw new AddOptionGroupTierPricingNotFoundError(`Option group with ID ${action.input.optionGroupId} not found`);\n}\nog.pricingMode = "TIER_DEPENDENT";\nif (!og.tierDependentPricing) {\n    og.tierDependentPricing = [];\n}\nog.tierDependentPricing.push({\n    id: action.input.tierPricingId,\n    tierId: action.input.tierId,\n    setupCost: action.input.setupCost ? {\n        amount: action.input.setupCost.amount,\n        currency: action.input.setupCost.currency,\n        discount: action.input.setupCost.discount ? {\n            discountType: action.input.setupCost.discount.discountType,\n            discountValue: action.input.setupCost.discount.discountValue,\n        } : null,\n    } : null,\n    setupCostDiscounts: (action.input.setupCostDiscounts || []).map(d => ({\n        billingCycle: d.billingCycle,\n        discountRule: {\n            discountType: d.discountRule.discountType,\n            discountValue: d.discountRule.discountValue,\n        },\n    })),\n    recurringPricing: action.input.recurringPricing.map(rp => ({\n        id: rp.id,\n        billingCycle: rp.billingCycle,\n        amount: rp.amount,\n        currency: rp.currency,\n        discount: rp.discount ? {\n            discountType: rp.discount.discountType,\n            discountValue: rp.discount.discountValue,\n        } : null,\n    })),\n});\nstate.lastModified = action.input.lastModified;',
+              schema:
+                "input AddOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierPricingId: OID!\n    tierId: OID!\n    setupCost: SetupCostInput\n    setupCostDiscounts: [BillingCycleDiscountInput!]\n    recurringPricing: [RecurringPriceOptionInput!]!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add tier-dependent pricing to an option group",
+            },
+            {
+              description: "Update tier-dependent pricing for an option group",
+              errors: [
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-update-ogtp-not-found",
+                  name: "UpdateOptionGroupTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-update-option-group-tier-pricing",
+              name: "UPDATE_OPTION_GROUP_TIER_PRICING",
+              reducer:
+                "const og = state.optionGroups.find(g => g.id === action.input.optionGroupId);\nif (!og) {\n    throw new UpdateOptionGroupTierPricingNotFoundError(`Option group with ID ${action.input.optionGroupId} not found`);\n}\nconst tp = og.tierDependentPricing?.find(t => t.tierId === action.input.tierId);\nif (tp) {\n    if (action.input.setupCost !== undefined) {\n        tp.setupCost = action.input.setupCost ? {\n            amount: action.input.setupCost.amount,\n            currency: action.input.setupCost.currency,\n            discount: action.input.setupCost.discount ? {\n                discountType: action.input.setupCost.discount.discountType,\n                discountValue: action.input.setupCost.discount.discountValue,\n            } : null,\n        } : null;\n    }\n    if (action.input.setupCostDiscounts !== undefined && action.input.setupCostDiscounts !== null) {\n        tp.setupCostDiscounts = action.input.setupCostDiscounts.map(d => ({\n            billingCycle: d.billingCycle,\n            discountRule: {\n                discountType: d.discountRule.discountType,\n                discountValue: d.discountRule.discountValue,\n            },\n        }));\n    }\n    if (action.input.recurringPricing) {\n        tp.recurringPricing = action.input.recurringPricing.map(rp => ({\n            id: rp.id,\n            billingCycle: rp.billingCycle,\n            amount: rp.amount,\n            currency: rp.currency,\n            discount: rp.discount ? {\n                discountType: rp.discount.discountType,\n                discountValue: rp.discount.discountValue,\n            } : null,\n        }));\n    }\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input UpdateOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierId: OID!\n    setupCost: SetupCostInput\n    setupCostDiscounts: [BillingCycleDiscountInput!]\n    recurringPricing: [RecurringPriceOptionInput!]\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Update tier-dependent pricing for an option group",
+            },
+            {
+              description: "Remove tier-dependent pricing from an option group",
+              errors: [
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-remove-ogtp-not-found",
+                  name: "RemoveOptionGroupTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-option-group-tier-pricing",
+              name: "REMOVE_OPTION_GROUP_TIER_PRICING",
+              reducer:
+                "const og = state.optionGroups.find(g => g.id === action.input.optionGroupId);\nif (!og) {\n    throw new RemoveOptionGroupTierPricingNotFoundError(`Option group with ID ${action.input.optionGroupId} not found`);\n}\nif (og.tierDependentPricing) {\n    const index = og.tierDependentPricing.findIndex(t => t.tierId === action.input.tierId);\n    if (index !== -1) {\n        og.tierDependentPricing.splice(index, 1);\n    }\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove tier-dependent pricing from an option group",
+            },
+            {
+              description: "Set the discount mode for an option group",
+              errors: [
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description: "Option group with given ID not found",
+                  id: "err-set-ogdm-not-found",
+                  name: "SetOptionGroupDiscountModeNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-option-group-discount-mode",
+              name: "SET_OPTION_GROUP_DISCOUNT_MODE",
+              reducer:
+                "const og = state.optionGroups.find(g => g.id === action.input.optionGroupId);\nif (!og) {\n    throw new SetOptionGroupDiscountModeNotFoundError(`Option group with ID ${action.input.optionGroupId} not found`);\n}\nog.discountMode = action.input.discountMode;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input SetOptionGroupDiscountModeInput {\n    optionGroupId: OID!\n    discountMode: DiscountMode!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Set the discount mode for an option group",
             },
           ],
         },
         {
           description:
-            "Operations for managing service groups that organize core services with billing cycles",
-          id: "service-group-management",
-          name: "Service Group Management",
+            "Service groups with group-level tier pricing, setup costs, and recurring price options",
+          id: "mod-service-groups",
+          name: "service-groups",
           operations: [
             {
-              description:
-                "Adds a new service group to organize core services with a billing cycle",
-              errors: [
-                {
-                  code: "DUPLICATE_SERVICE_GROUP_ID",
-                  description: "A service group with this ID already exists",
-                  id: "duplicate-service-group-id",
-                  name: "DuplicateServiceGroupIdError",
-                  template: "",
-                },
-              ],
+              description: "Add a service group",
+              errors: [],
               examples: [],
-              id: "add-service-group",
+              id: "op-add-service-group",
               name: "ADD_SERVICE_GROUP",
               reducer:
-                "const existing = state.serviceGroups.find(sg => sg.id === action.input.id);\nif (existing) {\n    throw new DuplicateServiceGroupIdError('A service group with this ID already exists');\n}\nstate.serviceGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    billingCycle: action.input.billingCycle,\n    displayOrder: action.input.displayOrder || null\n});\nstate.lastModified = action.input.lastModified;",
+                "state.serviceGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    billingCycle: action.input.billingCycle,\n    displayOrder: action.input.displayOrder || null,\n    discountMode: action.input.discountMode || null,\n    tierPricing: [],\n});\nstate.lastModified = action.input.lastModified;",
               schema:
-                "input AddServiceGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    lastModified: DateTime!\n}",
+                "input AddServiceGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    discountMode: DiscountMode\n    lastModified: DateTime!\n}",
               scope: "global",
-              template:
-                "Adds a new service group to organize core services with a billing cycle",
+              template: "Add a service group",
             },
             {
-              description: "Updates an existing service group",
+              description: "Update service group fields",
               errors: [
                 {
                   code: "SERVICE_GROUP_NOT_FOUND",
-                  description:
-                    "Service group with the specified ID does not exist",
-                  id: "service-group-not-found",
-                  name: "ServiceGroupNotFoundError",
+                  description: "Service group with given ID not found",
+                  id: "err-update-sg-not-found",
+                  name: "UpdateServiceGroupNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "update-service-group",
+              id: "op-update-service-group",
               name: "UPDATE_SERVICE_GROUP",
               reducer:
-                "const serviceGroup = state.serviceGroups.find(sg => sg.id === action.input.id);\nif (!serviceGroup) {\n    throw new ServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nif (action.input.name) {\n    serviceGroup.name = action.input.name;\n}\nif (action.input.description !== undefined && action.input.description !== null) {\n    serviceGroup.description = action.input.description;\n}\nif (action.input.billingCycle) {\n    serviceGroup.billingCycle = action.input.billingCycle;\n}\nif (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n    serviceGroup.displayOrder = action.input.displayOrder;\n}\nstate.lastModified = action.input.lastModified;",
+                "const sg = state.serviceGroups.find(g => g.id === action.input.id);\nif (!sg) {\n    throw new UpdateServiceGroupNotFoundError(`Service group with ID ${action.input.id} not found`);\n}\nif (action.input.name) sg.name = action.input.name;\nif (action.input.description !== undefined) sg.description = action.input.description || null;\nif (action.input.billingCycle) sg.billingCycle = action.input.billingCycle;\nif (action.input.displayOrder !== undefined) sg.displayOrder = action.input.displayOrder || null;\nif (action.input.discountMode !== undefined) sg.discountMode = action.input.discountMode || null;\nstate.lastModified = action.input.lastModified;",
               schema:
-                "input UpdateServiceGroupInput {\n    id: OID!\n    name: String\n    description: String\n    billingCycle: BillingCycle\n    displayOrder: Int\n    lastModified: DateTime!\n}",
+                "input UpdateServiceGroupInput {\n    id: OID!\n    name: String\n    description: String\n    billingCycle: BillingCycle\n    displayOrder: Int\n    discountMode: DiscountMode\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Updates an existing service group",
+              template: "Update service group fields",
             },
             {
-              description: "Removes a service group and unlinks its services",
+              description: "Delete a service group",
               errors: [
                 {
-                  code: "DELETE_SERVICE_GROUP_NOT_FOUND",
-                  description:
-                    "Service group with the specified ID does not exist",
-                  id: "delete-service-group-not-found",
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-delete-sg-not-found",
                   name: "DeleteServiceGroupNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "delete-service-group",
+              id: "op-delete-service-group",
               name: "DELETE_SERVICE_GROUP",
               reducer:
-                "const groupIndex = state.serviceGroups.findIndex(sg => sg.id === action.input.id);\nif (groupIndex === -1) {\n    throw new DeleteServiceGroupNotFoundError('Service group with the specified ID does not exist');\n}\nstate.services.forEach(service => {\n    if (service.serviceGroupId === action.input.id) {\n        service.serviceGroupId = null;\n    }\n});\nstate.serviceGroups.splice(groupIndex, 1);\nstate.lastModified = action.input.lastModified;",
+                "const index = state.serviceGroups.findIndex(g => g.id === action.input.id);\nif (index === -1) {\n    throw new DeleteServiceGroupNotFoundError(`Service group with ID ${action.input.id} not found`);\n}\nstate.serviceGroups.splice(index, 1);\nstate.lastModified = action.input.lastModified;",
               schema:
                 "input DeleteServiceGroupInput {\n    id: OID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Removes a service group and unlinks its services",
+              template: "Delete a service group",
             },
             {
-              description: "Changes the display order of service groups",
+              description: "Reorder service groups",
+              errors: [],
+              examples: [],
+              id: "op-reorder-service-groups",
+              name: "REORDER_SERVICE_GROUPS",
+              reducer:
+                "const ordered = [];\nfor (const id of action.input.order) {\n    const sg = state.serviceGroups.find(g => g.id === id);\n    if (sg) {\n        ordered.push(sg);\n    }\n}\nstate.serviceGroups = ordered;\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input ReorderServiceGroupsInput {\n    order: [OID!]!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Reorder service groups",
+            },
+            {
+              description: "Add tier pricing to a service group",
               errors: [
                 {
-                  code: "SERVICE_GROUP_NOT_FOUND_REORDER",
-                  description: "Service group not found during reorder",
-                  id: "reorder-service-group-not-found",
-                  name: "ReorderServiceGroupNotFoundError",
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-add-sgtp-not-found",
+                  name: "AddServiceGroupTierPricingNotFoundError",
                   template: "",
                 },
               ],
               examples: [],
-              id: "reorder-service-groups",
-              name: "REORDER_SERVICE_GROUPS",
+              id: "op-add-service-group-tier-pricing",
+              name: "ADD_SERVICE_GROUP_TIER_PRICING",
               reducer:
-                "const reordered = action.input.order.map((id, index) => {\n    const group = state.serviceGroups.find(sg => sg.id === id);\n    if (!group) {\n        throw new ServiceGroupNotFoundError('Service group with ID ' + id + ' not found during reorder');\n    }\n    group.displayOrder = index;\n    return group;\n});\nstate.serviceGroups = reordered;\nstate.lastModified = action.input.lastModified;",
+                "const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new AddServiceGroupTierPricingNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nsg.tierPricing.push({\n    id: action.input.tierPricingId,\n    tierId: action.input.tierId,\n    setupCostsPerCycle: [],\n    recurringPricing: [],\n});\nstate.lastModified = action.input.lastModified;",
               schema:
-                "input ReorderServiceGroupsInput {\n    order: [OID!]!\n    lastModified: DateTime!\n}",
+                "input AddServiceGroupTierPricingInput {\n    serviceGroupId: OID!\n    tierPricingId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
               scope: "global",
-              template: "Changes the display order of service groups",
+              template: "Add tier pricing to a service group",
+            },
+            {
+              description: "Set setup cost for a service group tier",
+              errors: [
+                {
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-set-sgsc-not-found",
+                  name: "SetServiceGroupSetupCostNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "TIER_PRICING_NOT_FOUND",
+                  description:
+                    "Tier pricing entry not found for given service group and tier",
+                  id: "err-set-sgsc-tier-not-found",
+                  name: "SetServiceGroupSetupCostTierPricingNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "INVALID_SETUP_DISCOUNT",
+                  description:
+                    "Percentage discount exceeds 100 or discount value is negative",
+                  id: "err-set-sgsc-invalid-discount",
+                  name: "InvalidSetupDiscountError",
+                  template: "",
+                },
+                {
+                  code: "INCOMPLETE_SETUP_DISCOUNT",
+                  description:
+                    "Both discountType and discountValue must be provided together or both omitted",
+                  id: "err-set-sgsc-incomplete-discount",
+                  name: "IncompleteSetupDiscountError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-service-group-setup-cost",
+              name: "SET_SERVICE_GROUP_SETUP_COST",
+              reducer:
+                'const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new SetServiceGroupSetupCostNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nconst tp = sg.tierPricing.find(t => t.tierId === action.input.tierId);\nif (!tp) {\n    throw new SetServiceGroupSetupCostTierPricingNotFoundError(`Tier pricing for tier ${action.input.tierId} not found in service group ${action.input.serviceGroupId}`);\n}\nconst hasDiscountType = action.input.discountType !== undefined && action.input.discountType !== null;\nconst hasDiscountValue = action.input.discountValue !== undefined && action.input.discountValue !== null;\nif (hasDiscountType !== hasDiscountValue) {\n    throw new IncompleteSetupDiscountError("Both discountType and discountValue must be provided together or both omitted");\n}\nif (hasDiscountValue && action.input.discountValue < 0) {\n    throw new InvalidSetupDiscountError("Discount value cannot be negative");\n}\nif (hasDiscountType && action.input.discountType === "PERCENTAGE" && action.input.discountValue > 100) {\n    throw new InvalidSetupDiscountError("Percentage discount cannot exceed 100");\n}\nconst existingIndex = tp.setupCostsPerCycle.findIndex(sc => sc.billingCycle === sg.billingCycle);\nconst setupCost = {\n    id: `${action.input.serviceGroupId}-${action.input.tierId}-setup`,\n    billingCycle: sg.billingCycle,\n    amount: action.input.amount,\n    currency: action.input.currency,\n    discount: hasDiscountType && hasDiscountValue ? {\n        discountType: action.input.discountType,\n        discountValue: action.input.discountValue,\n    } : null,\n};\nif (existingIndex !== -1) {\n    tp.setupCostsPerCycle[existingIndex] = setupCost;\n} else {\n    tp.setupCostsPerCycle.push(setupCost);\n}\nstate.lastModified = action.input.lastModified;',
+              schema:
+                "input SetServiceGroupSetupCostInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    amount: Amount_Money!\n    currency: Currency!\n    discountType: DiscountType\n    discountValue: Float\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Set setup cost for a service group tier",
+            },
+            {
+              description: "Remove setup cost from a service group tier",
+              errors: [
+                {
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-remove-sgsc-not-found",
+                  name: "RemoveServiceGroupSetupCostNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "TIER_PRICING_NOT_FOUND",
+                  description:
+                    "Tier pricing entry not found for given service group and tier",
+                  id: "err-remove-sgsc-tier-not-found",
+                  name: "RemoveServiceGroupSetupCostTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-service-group-setup-cost",
+              name: "REMOVE_SERVICE_GROUP_SETUP_COST",
+              reducer:
+                "const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new RemoveServiceGroupSetupCostNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nconst tp = sg.tierPricing.find(t => t.tierId === action.input.tierId);\nif (!tp) {\n    throw new RemoveServiceGroupSetupCostTierPricingNotFoundError(`Tier pricing for tier ${action.input.tierId} not found in service group ${action.input.serviceGroupId}`);\n}\ntp.setupCostsPerCycle = [];\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveServiceGroupSetupCostInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove setup cost from a service group tier",
+            },
+            {
+              description:
+                "Add a recurring price option to a service group tier",
+              errors: [
+                {
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-add-rpo-sg-not-found",
+                  name: "AddRecurringPriceOptionServiceGroupNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "TIER_PRICING_NOT_FOUND",
+                  description:
+                    "Tier pricing entry not found for given service group and tier",
+                  id: "err-add-rpo-tp-not-found",
+                  name: "AddRecurringPriceOptionTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-add-recurring-price-option",
+              name: "ADD_RECURRING_PRICE_OPTION",
+              reducer:
+                "const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new AddRecurringPriceOptionServiceGroupNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nconst tp = sg.tierPricing.find(t => t.tierId === action.input.tierId);\nif (!tp) {\n    throw new AddRecurringPriceOptionTierPricingNotFoundError(`Tier pricing for tier ${action.input.tierId} not found in service group ${action.input.serviceGroupId}`);\n}\ntp.recurringPricing.push({\n    id: action.input.priceOptionId,\n    billingCycle: action.input.billingCycle,\n    amount: action.input.amount,\n    currency: action.input.currency,\n    discount: null,\n});\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input AddRecurringPriceOptionInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    priceOptionId: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Add a recurring price option to a service group tier",
+            },
+            {
+              description: "Update a recurring price option",
+              errors: [
+                {
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-update-rpo-sg-not-found",
+                  name: "UpdateRecurringPriceOptionServiceGroupNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "TIER_PRICING_NOT_FOUND",
+                  description:
+                    "Tier pricing entry not found for given service group and tier",
+                  id: "err-update-rpo-tp-not-found",
+                  name: "UpdateRecurringPriceOptionTierPricingNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "PRICE_OPTION_NOT_FOUND",
+                  description: "Recurring price option with given ID not found",
+                  id: "err-update-rpo-not-found",
+                  name: "UpdateRecurringPriceOptionNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-update-recurring-price-option",
+              name: "UPDATE_RECURRING_PRICE_OPTION",
+              reducer:
+                "const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new UpdateRecurringPriceOptionServiceGroupNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nconst tp = sg.tierPricing.find(t => t.tierId === action.input.tierId);\nif (!tp) {\n    throw new UpdateRecurringPriceOptionTierPricingNotFoundError(`Tier pricing for tier ${action.input.tierId} not found in service group ${action.input.serviceGroupId}`);\n}\nconst rpo = tp.recurringPricing.find(r => r.id === action.input.priceOptionId);\nif (!rpo) {\n    throw new UpdateRecurringPriceOptionNotFoundError(`Recurring price option with ID ${action.input.priceOptionId} not found`);\n}\nif (action.input.billingCycle) rpo.billingCycle = action.input.billingCycle;\nif (action.input.amount !== undefined) rpo.amount = action.input.amount;\nif (action.input.currency) rpo.currency = action.input.currency;\nif (action.input.discount !== undefined) {\n    rpo.discount = action.input.discount ? {\n        discountType: action.input.discount.discountType,\n        discountValue: action.input.discount.discountValue,\n    } : null;\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input UpdateRecurringPriceOptionInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    priceOptionId: OID!\n    billingCycle: BillingCycle\n    amount: Amount_Money\n    currency: Currency\n    discount: DiscountRuleInput\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Update a recurring price option",
+            },
+            {
+              description: "Remove a recurring price option",
+              errors: [
+                {
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-remove-rpo-sg-not-found",
+                  name: "RemoveRecurringPriceOptionServiceGroupNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "TIER_PRICING_NOT_FOUND",
+                  description:
+                    "Tier pricing entry not found for given service group and tier",
+                  id: "err-remove-rpo-tp-not-found",
+                  name: "RemoveRecurringPriceOptionTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-recurring-price-option",
+              name: "REMOVE_RECURRING_PRICE_OPTION",
+              reducer:
+                "const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new RemoveRecurringPriceOptionServiceGroupNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nconst tp = sg.tierPricing.find(t => t.tierId === action.input.tierId);\nif (!tp) {\n    throw new RemoveRecurringPriceOptionTierPricingNotFoundError(`Tier pricing for tier ${action.input.tierId} not found in service group ${action.input.serviceGroupId}`);\n}\nconst index = tp.recurringPricing.findIndex(r => r.id === action.input.priceOptionId);\nif (index !== -1) {\n    tp.recurringPricing.splice(index, 1);\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveRecurringPriceOptionInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    priceOptionId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove a recurring price option",
+            },
+            {
+              description: "Remove all tier pricing from a service group",
+              errors: [
+                {
+                  code: "SERVICE_GROUP_NOT_FOUND",
+                  description: "Service group with given ID not found",
+                  id: "err-remove-sgtp-not-found",
+                  name: "RemoveServiceGroupTierPricingNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-remove-service-group-tier-pricing",
+              name: "REMOVE_SERVICE_GROUP_TIER_PRICING",
+              reducer:
+                "const sg = state.serviceGroups.find(g => g.id === action.input.serviceGroupId);\nif (!sg) {\n    throw new RemoveServiceGroupTierPricingNotFoundError(`Service group with ID ${action.input.serviceGroupId} not found`);\n}\nconst index = sg.tierPricing.findIndex(t => t.tierId === action.input.tierId);\nif (index !== -1) {\n    sg.tierPricing.splice(index, 1);\n}\nstate.lastModified = action.input.lastModified;",
+              schema:
+                "input RemoveServiceGroupTierPricingInput {\n    serviceGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Remove all tier pricing from a service group",
+            },
+          ],
+        },
+        {
+          description:
+            "Final configuration state for resolved tier selections and pricing",
+          id: "mod-configuration",
+          name: "configuration",
+          operations: [
+            {
+              description:
+                "Write the entire resolved configuration for a selected tier",
+              errors: [
+                {
+                  code: "TIER_NOT_FOUND",
+                  description:
+                    "selectedTierId does not match any tier in state.tiers",
+                  id: "err-set-config-tier-not-found",
+                  name: "SetConfigTierNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "OPTION_GROUP_NOT_FOUND",
+                  description:
+                    "An optionGroupId in optionGroupConfigs does not exist in state.optionGroups",
+                  id: "err-set-config-og-not-found",
+                  name: "SetConfigOptionGroupNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "ADD_ON_GROUP_NOT_FOUND",
+                  description:
+                    "An optionGroupId in addOnConfigs does not exist in state.optionGroups",
+                  id: "err-set-config-addon-not-found",
+                  name: "SetConfigAddOnGroupNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "op-set-final-configuration",
+              name: "SET_FINAL_CONFIGURATION",
+              reducer:
+                "const tier = state.tiers.find(t => t.id === action.input.selectedTierId);\nif (!tier) {\n    throw new SetConfigTierNotFoundError(`Tier with ID ${action.input.selectedTierId} not found`);\n}\nfor (const ogConfig of action.input.optionGroupConfigs) {\n    const og = state.optionGroups.find(g => g.id === ogConfig.optionGroupId);\n    if (!og) {\n        throw new SetConfigOptionGroupNotFoundError(`Option group with ID ${ogConfig.optionGroupId} not found`);\n    }\n}\nfor (const addonConfig of action.input.addOnConfigs) {\n    const og = state.optionGroups.find(g => g.id === addonConfig.optionGroupId);\n    if (!og) {\n        throw new SetConfigAddOnGroupNotFoundError(`Option group (add-on) with ID ${addonConfig.optionGroupId} not found`);\n    }\n}\nconst mapDiscount = (d) => d ? {\n    discountType: d.discountType,\n    discountValue: d.discountValue,\n    originalAmount: d.originalAmount,\n    discountedAmount: d.discountedAmount,\n} : null;\nstate.finalConfiguration = {\n    selectedTierId: action.input.selectedTierId,\n    selectedBillingCycle: action.input.selectedBillingCycle,\n    tierBasePrice: action.input.tierBasePrice || null,\n    tierCurrency: action.input.tierCurrency,\n    tierDiscount: mapDiscount(action.input.tierDiscount),\n    optionGroupConfigs: action.input.optionGroupConfigs.map(ogc => ({\n        id: ogc.id,\n        optionGroupId: ogc.optionGroupId,\n        effectiveBillingCycle: ogc.effectiveBillingCycle,\n        billingCycleOverridden: ogc.billingCycleOverridden,\n        discountStripped: ogc.discountStripped,\n        recurringAmount: ogc.recurringAmount || null,\n        currency: ogc.currency || null,\n        discount: mapDiscount(ogc.discount),\n        setupCost: ogc.setupCost || null,\n        setupCostCurrency: ogc.setupCostCurrency || null,\n        setupCostDiscount: mapDiscount(ogc.setupCostDiscount),\n    })),\n    addOnConfigs: action.input.addOnConfigs.map(ac => ({\n        id: ac.id,\n        optionGroupId: ac.optionGroupId,\n        selectedBillingCycle: ac.selectedBillingCycle,\n        recurringAmount: ac.recurringAmount || null,\n        currency: ac.currency || null,\n        discount: mapDiscount(ac.discount),\n        setupCost: ac.setupCost || null,\n        setupCostCurrency: ac.setupCostCurrency || null,\n        setupCostDiscount: mapDiscount(ac.setupCostDiscount),\n    })),\n    lastModified: action.input.lastModified,\n};",
+              schema:
+                "input ResolvedDiscountInput {\n    discountType: DiscountType!\n    discountValue: Float!\n    originalAmount: Amount_Money!\n    discountedAmount: Amount_Money!\n}\n\ninput FinalOptionGroupConfigInput {\n    id: OID!\n    optionGroupId: OID!\n    effectiveBillingCycle: BillingCycle!\n    billingCycleOverridden: Boolean!\n    discountStripped: Boolean!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscountInput\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscountInput\n}\n\ninput FinalAddOnConfigInput {\n    id: OID!\n    optionGroupId: OID!\n    selectedBillingCycle: BillingCycle!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscountInput\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscountInput\n}\n\ninput SetFinalConfigurationInput {\n    selectedTierId: OID!\n    selectedBillingCycle: BillingCycle!\n    tierBasePrice: Amount_Money\n    tierCurrency: Currency!\n    tierDiscount: ResolvedDiscountInput\n    optionGroupConfigs: [FinalOptionGroupConfigInput!]!\n    addOnConfigs: [FinalAddOnConfigInput!]!\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template:
+                "Write the entire resolved configuration for a selected tier",
+            },
+            {
+              description: "Reset final configuration to null (idempotent)",
+              errors: [],
+              examples: [],
+              id: "op-clear-final-configuration",
+              name: "CLEAR_FINAL_CONFIGURATION",
+              reducer: "state.finalConfiguration = null;",
+              schema:
+                "input ClearFinalConfigurationInput {\n    lastModified: DateTime!\n}",
+              scope: "global",
+              template: "Reset final configuration to null (idempotent)",
             },
           ],
         },
@@ -888,9 +1130,9 @@ export const documentModel: DocumentModelGlobalState = {
         global: {
           examples: [],
           initialValue:
-            '{\n    "id": "",\n    "operatorId": "",\n    "resourceTemplateId": null,\n    "title": "",\n    "summary": "",\n    "description": null,\n    "thumbnailUrl": null,\n    "infoLink": null,\n    "status": "DRAFT",\n    "lastModified": "1970-01-01T00:00:00.000Z",\n    "targetAudiences": [],\n    "facetTargets": [],\n    "serviceGroups": [],\n    "services": [],\n    "tiers": [],\n    "optionGroups": []\n}',
+            '{"id":"","operatorId":"","resourceTemplateId":null,"title":"","summary":"","description":null,"thumbnailUrl":null,"infoLink":null,"status":"DRAFT","lastModified":"2024-01-01T00:00:00Z","targetAudiences":[],"facetTargets":[],"serviceGroups":[],"services":[],"tiers":[],"optionGroups":[],"finalConfiguration":null}',
           schema:
-            "type ServiceOfferingState {\n    id: PHID!\n    operatorId: PHID!\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime!\n    targetAudiences: [TargetAudience!]!\n    facetTargets: [FacetTarget!]!\n    serviceGroups: [ServiceGroup!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype TargetAudience {\n    id: OID!\n    label: String!\n    color: String\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype ServiceGroup {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    serviceGroupId: OID\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n    costType: ServiceCostType\n    price: Amount_Money\n    currency: Currency\n    facetBindings: [ResourceFacetBinding!]!\n}\n\nenum ServiceCostType {\n    RECURRING\n    SETUP\n}\n\ntype ResourceFacetBinding {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricing: ServicePricing!\n    pricingOptions: [TierPricingOption!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\ntype TierPricingOption {\n    id: OID!\n    amount: Amount_Money!\n    currency: Currency!\n    isDefault: Boolean!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    DAILY\n    WEEKLY\n    MONTHLY\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    costType: GroupCostType\n    billingCycle: BillingCycle\n    price: Amount_Money\n    currency: Currency\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}",
+            "type ServiceOfferingState {\n    id: PHID!\n    operatorId: PHID!\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime!\n    targetAudiences: [TargetAudience!]!\n    facetTargets: [FacetTarget!]!\n    serviceGroups: [ServiceGroup!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n    finalConfiguration: FinalConfiguration\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype TargetAudience {\n    id: OID!\n    label: String!\n    color: String\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype DiscountRule {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\ntype BillingCycleDiscount {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRule!\n}\n\ntype ServiceGroup {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    discountMode: DiscountMode\n    tierPricing: [ServiceGroupTierPricing!]!\n}\n\ntype ServiceGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCostsPerCycle: [SetupCostPerCycle!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype SetupCostPerCycle {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype RecurringPriceOption {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    serviceGroupId: OID\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n    facetBindings: [ResourceFacetBinding!]!\n}\n\ntype ResourceFacetBinding {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricingMode: TierPricingMode\n    pricing: ServicePricing!\n    defaultBillingCycle: BillingCycle\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    pricingMode: AddOnPricingMode\n    standalonePricing: StandalonePricing\n    tierDependentPricing: [OptionGroupTierPricing!]\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    discountMode: DiscountMode\n    price: Amount_Money\n    currency: Currency\n}\n\nenum AddOnPricingMode {\n    TIER_DEPENDENT\n    STANDALONE\n}\n\nenum DiscountMode {\n    INHERIT_TIER\n    INDEPENDENT\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\ntype StandalonePricing {\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype OptionGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCost: SetupCost\n    setupCostDiscounts: [BillingCycleDiscount!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}\n\ntype ResolvedDiscount {\n    discountType: DiscountType!\n    discountValue: Float!\n    originalAmount: Amount_Money!\n    discountedAmount: Amount_Money!\n}\n\ntype FinalOptionGroupConfig {\n    id: OID!\n    optionGroupId: OID!\n    effectiveBillingCycle: BillingCycle!\n    billingCycleOverridden: Boolean!\n    discountStripped: Boolean!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscount\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscount\n}\n\ntype FinalAddOnConfig {\n    id: OID!\n    optionGroupId: OID!\n    selectedBillingCycle: BillingCycle!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscount\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscount\n}\n\ntype FinalConfiguration {\n    selectedTierId: OID!\n    selectedBillingCycle: BillingCycle!\n    tierBasePrice: Amount_Money\n    tierCurrency: Currency!\n    tierDiscount: ResolvedDiscount\n    optionGroupConfigs: [FinalOptionGroupConfig!]!\n    addOnConfigs: [FinalAddOnConfig!]!\n    lastModified: DateTime!\n}",
         },
         local: {
           examples: [],

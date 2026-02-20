@@ -8,9 +8,17 @@ import type {
   OptionGroup,
   BillingCycle,
   GroupCostType,
-  ServiceCostType,
+  DiscountMode,
+  DiscountType,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import { BILLING_CYCLE_SHORT_LABELS } from "./pricing-utils.js";
+import {
+  BILLING_CYCLE_SHORT_LABELS,
+  BILLING_CYCLE_MONTHS,
+  formatPrice,
+  resolveGroupDiscountForTier,
+  calculateTierRecurringPrice,
+  calculateEffectiveSetupPrice,
+} from "./pricing-utils.js";
 import {
   addService,
   updateService,
@@ -20,6 +28,10 @@ import {
   deleteOptionGroup,
   addServiceLevel,
   removeServiceLevel,
+  setOptionGroupStandalonePricing,
+  addOptionGroupTierPricing,
+  updateOptionGroupTierPricing,
+  setOptionGroupDiscountMode,
 } from "../../../document-models/service-offering/gen/creators.js";
 
 // Service Templates - Common services to reduce friction (Default Effect + Reduced Activation Energy)
@@ -131,9 +143,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
   const [newGroupBillingCycle, setNewGroupBillingCycle] =
     useState<BillingCycle>("MONTHLY");
   const [newService, setNewService] = useState({ title: "", description: "" });
-  const [newServiceCostType, setNewServiceCostType] =
-    useState<ServiceCostType>("RECURRING");
-  const [newServicePrice, setNewServicePrice] = useState("");
   const [selectedTierIds, setSelectedTierIds] = useState<Set<string>>(
     new Set(),
   );
@@ -145,8 +154,48 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     "setup" | "recurring" | "addon"
   >("recurring");
   const [editGroupPrice, setEditGroupPrice] = useState("");
-  const [editGroupBillingCycle, setEditGroupBillingCycle] =
-    useState<BillingCycle>("MONTHLY");
+  const [editGroupBillingCycles, setEditGroupBillingCycles] = useState<
+    BillingCycle[]
+  >(["MONTHLY"]);
+  const [editGroupPricingMode, setEditGroupPricingMode] = useState<
+    "STANDALONE" | "TIER_DEPENDENT" | null
+  >(null);
+  const [editGroupSetupCost, setEditGroupSetupCost] = useState("");
+  const [editGroupBasePrice, setEditGroupBasePrice] = useState("");
+  const [editGroupDiscounts, setEditGroupDiscounts] = useState<
+    Record<BillingCycle, string>
+  >({
+    MONTHLY: "",
+    QUARTERLY: "",
+    SEMI_ANNUAL: "",
+    ANNUAL: "",
+    ONE_TIME: "",
+  });
+
+  // Per-tier pricing state for edit modal
+  const [editTierTab, setEditTierTab] = useState<string | null>(null);
+  const [editTierPrices, setEditTierPrices] = useState<Record<string, string>>(
+    {},
+  );
+  const [editTierSetupCosts, setEditTierSetupCosts] = useState<
+    Record<string, string>
+  >({});
+  const [editTierDiscounts, setEditTierDiscounts] = useState<
+    Record<string, Record<BillingCycle, string>>
+  >({});
+  const [editGroupDiscountMode, setEditGroupDiscountMode] =
+    useState<DiscountMode | null>(null);
+
+  // Per-tier setup fee discounts: tierId → billingCycle → { discountType, discountValue }
+  const [editSetupTierDiscounts, setEditSetupTierDiscounts] = useState<
+    Record<
+      string,
+      Record<
+        BillingCycle,
+        { discountType: DiscountType; discountValue: string }
+      >
+    >
+  >({});
 
   // Service templates quick-add state
   const [showServiceTemplates, setShowServiceTemplates] = useState(false);
@@ -190,12 +239,57 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         isAddOn,
         defaultSelected: !isAddOn,
         costType,
-        billingCycle: isSetup ? "ONE_TIME" : newGroupBillingCycle,
+        availableBillingCycles: [isSetup ? "ONE_TIME" : newGroupBillingCycle],
         price: price ?? undefined,
         currency: price ? "USD" : undefined,
         lastModified: new Date().toISOString(),
       }),
     );
+
+    // If a recurring/add-on price is set, set as standalone monthly recurring + per-tier pricing
+    if (!isSetup && price && price > 0) {
+      const billingCycle = isAddOn ? newGroupBillingCycle : newGroupBillingCycle;
+      dispatch(
+        setOptionGroupStandalonePricing({
+          optionGroupId: groupId,
+          setupCost: null,
+          recurringPricing: [
+            {
+              id: generateId(),
+              billingCycle,
+              amount: price,
+              currency: "USD",
+              discount: null,
+            },
+          ],
+          lastModified: new Date().toISOString(),
+        }),
+      );
+      // Pre-populate per-tier pricing for each existing tier
+      if (!isAddOn) {
+        for (const tier of tiers) {
+          dispatch(
+            addOptionGroupTierPricing({
+              optionGroupId: groupId,
+              tierPricingId: generateId(),
+              tierId: tier.id,
+              setupCost: null,
+              setupCostDiscounts: [],
+              recurringPricing: [
+                {
+                  id: generateId(),
+                  billingCycle,
+                  amount: price,
+                  currency: "USD",
+                  discount: null,
+                },
+              ],
+              lastModified: new Date().toISOString(),
+            }),
+          );
+        }
+      }
+    }
 
     setNewGroupName("");
     setNewGroupType("recurring");
@@ -226,15 +320,147 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
   const handleOpenEditGroup = (group: OptionGroup) => {
     setEditingGroup(group);
     setEditGroupName(group.name);
-    setEditGroupType(
+    const groupType =
       group.costType === "SETUP"
         ? "setup"
         : group.isAddOn
           ? "addon"
-          : "recurring",
-    );
+          : "recurring";
+    setEditGroupType(groupType);
     setEditGroupPrice(group.price?.toString() || "");
-    setEditGroupBillingCycle(group.billingCycle || "MONTHLY");
+
+    // Initialize per-tier setup fee discounts from tier-dependent pricing
+    const SUBSCRIPTION_CYCLES: BillingCycle[] = [
+      "MONTHLY",
+      "QUARTERLY",
+      "SEMI_ANNUAL",
+      "ANNUAL",
+    ];
+    const setupTierDiscounts: Record<
+      string,
+      Record<
+        BillingCycle,
+        { discountType: DiscountType; discountValue: string }
+      >
+    > = {};
+    for (const tier of tiers) {
+      const emptyDiscounts = Object.fromEntries(
+        SUBSCRIPTION_CYCLES.map((c) => [
+          c,
+          { discountType: "FLAT_AMOUNT" as DiscountType, discountValue: "" },
+        ]),
+      ) as Record<
+        BillingCycle,
+        { discountType: DiscountType; discountValue: string }
+      >;
+      const tierPricingEntry = group.tierDependentPricing?.find(
+        (tp) => tp.tierId === tier.id,
+      );
+      if (tierPricingEntry?.setupCostDiscounts) {
+        tierPricingEntry.setupCostDiscounts.forEach((d) => {
+          if (d.billingCycle && d.discountRule) {
+            emptyDiscounts[d.billingCycle] = {
+              discountType: d.discountRule.discountType,
+              discountValue: d.discountRule.discountValue?.toString() || "",
+            };
+          }
+        });
+      }
+      setupTierDiscounts[tier.id] = emptyDiscounts;
+    }
+    setEditSetupTierDiscounts(setupTierDiscounts);
+
+    setEditGroupBillingCycles(
+      group.availableBillingCycles?.length > 0
+        ? group.availableBillingCycles
+        : ["MONTHLY"],
+    );
+
+    // Determine pricing mode: regular groups always per-tier, add-ons use their mode
+    const isRegular = groupType === "recurring";
+    if (isRegular && tiers.length > 0) {
+      setEditGroupPricingMode("TIER_DEPENDENT");
+    } else if (group.isAddOn) {
+      setEditGroupPricingMode(group.pricingMode || "STANDALONE");
+    } else {
+      setEditGroupPricingMode("STANDALONE");
+    }
+
+    // Initialize standalone pricing (for add-ons in STANDALONE mode or fallback)
+    setEditGroupSetupCost(
+      group.standalonePricing?.setupCost?.amount?.toString() || "",
+    );
+    const monthlyPricing = group.standalonePricing?.recurringPricing?.find(
+      (p) => p.billingCycle === "MONTHLY",
+    );
+    setEditGroupBasePrice(monthlyPricing?.amount?.toString() || "");
+
+    // Initialize per-group billing cycle discounts (flat amount only)
+    const discounts: Record<BillingCycle, string> = {
+      MONTHLY: "",
+      QUARTERLY: "",
+      SEMI_ANNUAL: "",
+      ANNUAL: "",
+      ONE_TIME: "",
+    };
+    group.billingCycleDiscounts?.forEach((d) => {
+      if (d.billingCycle && d.discountRule?.discountValue) {
+        discounts[d.billingCycle] = d.discountRule.discountValue.toString();
+      }
+    });
+    setEditGroupDiscounts(discounts);
+
+    // Initialize per-tier pricing state
+    const tierPrices: Record<string, string> = {};
+    const tierSetupCosts: Record<string, string> = {};
+    const tierDiscounts: Record<string, Record<BillingCycle, string>> = {};
+
+    for (const tier of tiers) {
+      const tierPricingEntry = group.tierDependentPricing?.find(
+        (tp) => tp.tierId === tier.id,
+      );
+      const tierMonthlyPricing = tierPricingEntry?.recurringPricing?.find(
+        (p) => p.billingCycle === "MONTHLY",
+      );
+      // If no tier pricing exists but group has standalone pricing, use standalone as starting point
+      if (tierPricingEntry) {
+        tierPrices[tier.id] = tierMonthlyPricing?.amount?.toString() || "";
+        tierSetupCosts[tier.id] =
+          tierPricingEntry.setupCost?.amount?.toString() || "";
+      } else if (monthlyPricing) {
+        // Pre-fill from standalone as migration aid
+        tierPrices[tier.id] = monthlyPricing.amount?.toString() || "";
+        tierSetupCosts[tier.id] =
+          group.standalonePricing?.setupCost?.amount?.toString() || "";
+      } else {
+        tierPrices[tier.id] = "";
+        tierSetupCosts[tier.id] = "";
+      }
+
+      // Per-tier discounts: populate from tierDependentPricing[].recurringPricing[].discount
+      const tierDiscountValues: Record<BillingCycle, string> = {
+        MONTHLY: "",
+        QUARTERLY: "",
+        SEMI_ANNUAL: "",
+        ANNUAL: "",
+        ONE_TIME: "",
+      };
+      if (tierPricingEntry) {
+        tierPricingEntry.recurringPricing?.forEach((rp) => {
+          if (rp.discount && rp.discount.discountValue > 0) {
+            tierDiscountValues[rp.billingCycle] =
+              rp.discount.discountValue.toString();
+          }
+        });
+      }
+      tierDiscounts[tier.id] = tierDiscountValues;
+    }
+
+    setEditTierPrices(tierPrices);
+    setEditTierSetupCosts(tierSetupCosts);
+    setEditTierDiscounts(tierDiscounts);
+    setEditGroupDiscountMode(group.discountMode || null);
+    setEditTierTab(tiers.length > 0 ? tiers[0].id : null);
   };
 
   const handleSaveGroupEdit = () => {
@@ -253,12 +479,188 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         isAddOn,
         defaultSelected: !isAddOn,
         costType,
-        billingCycle: isSetup ? "ONE_TIME" : editGroupBillingCycle,
+        availableBillingCycles: isSetup ? ["ONE_TIME"] : editGroupBillingCycles,
         price: price ?? undefined,
         currency: price ? "USD" : undefined,
         lastModified: new Date().toISOString(),
       }),
     );
+
+    // Save setup pricing: base cost via standalone, per-tier discounts via tier pricing
+    if (isSetup && price && price > 0) {
+      const now = new Date().toISOString();
+      // Store base setup cost via standalone pricing
+      dispatch(
+        setOptionGroupStandalonePricing({
+          optionGroupId: editingGroup.id,
+          setupCost: { amount: price, currency: "USD" },
+          recurringPricing: [],
+          lastModified: now,
+        }),
+      );
+
+      // Store per-tier setup fee discounts
+      for (const tier of tiers) {
+        if (tier.isCustomPricing) continue;
+        const tierDiscountEntries = editSetupTierDiscounts[tier.id];
+        const setupCostDiscounts = Object.entries(tierDiscountEntries || {})
+          .filter(([, d]) => parseFloat(d.discountValue) > 0)
+          .map(([cycle, d]) => ({
+            billingCycle: cycle as BillingCycle,
+            discountRule: {
+              discountType: d.discountType,
+              discountValue: parseFloat(d.discountValue),
+            },
+          }));
+
+        const existingTierPricing = editingGroup.tierDependentPricing?.find(
+          (tp) => tp.tierId === tier.id,
+        );
+        if (existingTierPricing) {
+          dispatch(
+            updateOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierId: tier.id,
+              setupCost: { amount: price, currency: "USD" },
+              setupCostDiscounts,
+              recurringPricing: [],
+              lastModified: now,
+            }),
+          );
+        } else {
+          dispatch(
+            addOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierPricingId: generateId(),
+              tierId: tier.id,
+              setupCost: { amount: price, currency: "USD" },
+              setupCostDiscounts,
+              recurringPricing: [],
+              lastModified: now,
+            }),
+          );
+        }
+      }
+    }
+
+    // Save pricing based on mode
+    if (!isSetup && editGroupPricingMode === "TIER_DEPENDENT") {
+      // Per-tier pricing: dispatch addOptionGroupTierPricing or updateOptionGroupTierPricing per tier
+      const now = new Date().toISOString();
+      for (const tier of tiers) {
+        if (tier.isCustomPricing) continue; // Skip custom tiers
+
+        const baseMonthly = parseFloat(editTierPrices[tier.id]) || 0;
+        const setupCostVal = parseFloat(editTierSetupCosts[tier.id]) || 0;
+        const setupCost =
+          setupCostVal > 0
+            ? { amount: setupCostVal, currency: "USD" as const }
+            : undefined;
+
+        const isIndependent = editGroupDiscountMode === "INDEPENDENT";
+        const recurringPricing = editGroupBillingCycles
+          .filter(() => baseMonthly > 0)
+          .map((cycle) => {
+            const discountVal = isIndependent
+              ? parseFloat(editTierDiscounts[tier.id]?.[cycle] || "0") || 0
+              : 0;
+            return {
+              id: generateId(),
+              billingCycle: cycle,
+              amount: baseMonthly,
+              currency: "USD" as const,
+              discount:
+                discountVal > 0
+                  ? {
+                      discountType: "FLAT_AMOUNT" as const,
+                      discountValue: discountVal,
+                    }
+                  : undefined,
+            };
+          });
+
+        const existingTierPricing = editingGroup.tierDependentPricing?.find(
+          (tp) => tp.tierId === tier.id,
+        );
+
+        if (existingTierPricing) {
+          dispatch(
+            updateOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierId: tier.id,
+              setupCost,
+              recurringPricing,
+              lastModified: now,
+            }),
+          );
+        } else {
+          dispatch(
+            addOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierPricingId: generateId(),
+              tierId: tier.id,
+              setupCost,
+              recurringPricing,
+              lastModified: now,
+            }),
+          );
+        }
+      }
+
+      // Dispatch discount mode change if needed
+      const currentMode = editingGroup.discountMode || null;
+      if (editGroupDiscountMode !== currentMode) {
+        dispatch(
+          setOptionGroupDiscountMode({
+            optionGroupId: editingGroup.id,
+            discountMode: editGroupDiscountMode || "INHERIT_TIER",
+            lastModified: new Date().toISOString(),
+          }),
+        );
+      }
+    } else if (!isSetup && editGroupPricingMode === "STANDALONE") {
+      // Standalone pricing (add-ons or groups with no tiers)
+      const setupCost =
+        editGroupSetupCost && parseFloat(editGroupSetupCost) > 0
+          ? {
+              amount: parseFloat(editGroupSetupCost),
+              currency: "USD" as const,
+            }
+          : undefined;
+
+      const baseMonthly = parseFloat(editGroupBasePrice) || 0;
+      const recurringPricing = editGroupBillingCycles
+        .filter(() => baseMonthly > 0)
+        .map((cycle) => ({
+          id: generateId(),
+          billingCycle: cycle,
+          amount: baseMonthly,
+          currency: "USD" as const,
+        }));
+
+      const billingCycleDiscounts = editGroupBillingCycles
+        .map((cycle) => {
+          const discountVal = parseFloat(editGroupDiscounts[cycle]) || 0;
+          return {
+            billingCycle: cycle,
+            discountRule: {
+              discountType: "FLAT_AMOUNT" as const,
+              discountValue: discountVal,
+            },
+          };
+        })
+        .filter((d) => d.discountRule.discountValue > 0);
+
+      dispatch(
+        setOptionGroupStandalonePricing({
+          optionGroupId: editingGroup.id,
+          setupCost,
+          recurringPricing,
+          billingCycleDiscounts,
+          lastModified: new Date().toISOString(),
+        } as any),
+      );
+    }
 
     // Update all services in this group to reflect the new setup status
     const groupServices = getServicesForGroup(editingGroup.id);
@@ -284,13 +686,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     const now = new Date().toISOString();
 
     // Determine if this is a setup service based on the selected group's costType
-    // or the per-service costType toggle (for add-on groups)
-    const isAddonGroup = selectedGroup?.isAddOn;
-    const isSetupFormation =
-      selectedGroup?.costType === "SETUP" ||
-      (isAddonGroup && newServiceCostType === "SETUP");
-    const servicePrice =
-      isAddonGroup && newServicePrice ? parseFloat(newServicePrice) : undefined;
+    const isSetupFormation = selectedGroup?.costType === "SETUP";
 
     // Add the service with optionGroupId directly on the service
     dispatch(
@@ -299,9 +695,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         title: newService.title.trim(),
         description: newService.description.trim() || undefined,
         isSetupFormation,
-        costType: isAddonGroup ? newServiceCostType : undefined,
-        price: servicePrice,
-        currency: servicePrice ? "USD" : undefined,
         optionGroupId: selectedGroupId || undefined,
         lastModified: now,
       }),
@@ -322,8 +715,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     });
 
     setNewService({ title: "", description: "" });
-    setNewServiceCostType("RECURRING");
-    setNewServicePrice("");
     setSelectedTierIds(new Set());
     setIsAddingService(false);
   };
@@ -370,13 +761,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     updates: Partial<
       Pick<
         Service,
-        | "title"
-        | "description"
-        | "isSetupFormation"
-        | "optionGroupId"
-        | "costType"
-        | "price"
-        | "currency"
+        "title" | "description" | "isSetupFormation" | "optionGroupId"
       >
     >,
   ) => {
@@ -527,47 +912,834 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
               {editGroupType !== "setup" && (
                 <div className="catalog__field">
-                  <label className="catalog__label">Billing Cycle</label>
-                  <select
-                    value={editGroupBillingCycle}
-                    onChange={(e) =>
-                      setEditGroupBillingCycle(e.target.value as BillingCycle)
-                    }
-                    className="catalog__select"
-                  >
+                  <label className="catalog__label">
+                    Available Billing Cycles
+                  </label>
+                  <div className="catalog__checkbox-group">
                     {(
                       Object.entries(BILLING_CYCLE_SHORT_LABELS) as [
                         BillingCycle,
                         string,
                       ][]
-                    ).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                    )
+                      .filter(([value]) => value !== "ONE_TIME")
+                      .map(([value, label]) => (
+                        <label key={value} className="catalog__checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={editGroupBillingCycles.includes(value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditGroupBillingCycles([
+                                  ...editGroupBillingCycles,
+                                  value,
+                                ]);
+                              } else {
+                                setEditGroupBillingCycles(
+                                  editGroupBillingCycles.filter(
+                                    (c) => c !== value,
+                                  ),
+                                );
+                              }
+                            }}
+                            className="catalog__checkbox"
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
+                  </div>
                 </div>
               )}
 
-              {(editGroupType === "addon" || editGroupType === "setup") && (
-                <div className="catalog__fee-field">
-                  <span className="catalog__fee-label">
-                    {editGroupType === "setup"
-                      ? "One-time Fee"
-                      : "Add-on Price"}
-                  </span>
-                  <div className="catalog__fee-input-wrapper">
-                    <span className="catalog__fee-prefix">$</span>
-                    <input
-                      type="number"
-                      value={editGroupPrice}
-                      onChange={(e) => setEditGroupPrice(e.target.value)}
-                      placeholder="0"
-                      className="catalog__fee-input"
-                      step="0.01"
-                    />
+              {/* Per-Tier Pricing (regular groups with tiers) */}
+              {editGroupType === "recurring" &&
+                editGroupPricingMode === "TIER_DEPENDENT" &&
+                tiers.length > 0 && (
+                  <>
+                    {/* Tier Tab Bar */}
+                    <div className="catalog__tier-tabs">
+                      {tiers.map((tier) => (
+                        <button
+                          key={tier.id}
+                          onClick={() => setEditTierTab(tier.id)}
+                          className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
+                        >
+                          {tier.name}
+                          {tier.isCustomPricing && (
+                            <span className="catalog__tier-tab-badge">
+                              Custom
+                            </span>
+                          )}
+                          {!tier.isCustomPricing &&
+                            editTierPrices[tier.id] &&
+                            parseFloat(editTierPrices[tier.id]) > 0 && (
+                              <span className="catalog__tier-tab-price">
+                                {formatPrice(
+                                  parseFloat(editTierPrices[tier.id]),
+                                )}
+                              </span>
+                            )}
+                          {!tier.isCustomPricing &&
+                            (!editTierPrices[tier.id] ||
+                              parseFloat(editTierPrices[tier.id]) <= 0) && (
+                              <span className="catalog__tier-tab-warning">
+                                $0
+                              </span>
+                            )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Active Tier Tab Content */}
+                    {editTierTab &&
+                      (() => {
+                        const activeTier = tiers.find(
+                          (t) => t.id === editTierTab,
+                        );
+                        if (!activeTier) return null;
+
+                        // Custom tier: no price input
+                        if (activeTier.isCustomPricing) {
+                          return (
+                            <div className="catalog__tier-custom-note">
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                width="16"
+                                height="16"
+                              >
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span>
+                                Price negotiated per customer. No group-level
+                                price input for custom tiers.
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        const tierBase =
+                          parseFloat(editTierPrices[activeTier.id]) || 0;
+                        const tierAmount = activeTier.pricing.amount ?? 0;
+                        // Sum of all regular groups' monthly prices for this tier (for flat→% conversion)
+                        const tierMonthlyBase = calculateTierRecurringPrice(
+                          regularGroups,
+                          "MONTHLY",
+                          activeTier.id,
+                        ).monthlyTotal;
+
+                        // Budget: sum of other groups' prices for this tier
+                        const otherGroupsTotal = regularGroups
+                          .filter(
+                            (g) => editingGroup && g.id !== editingGroup.id,
+                          )
+                          .reduce((sum, g) => {
+                            const tp = g.tierDependentPricing?.find(
+                              (p) => p.tierId === activeTier.id,
+                            );
+                            const mp = tp?.recurringPricing?.find(
+                              (p) => p.billingCycle === "MONTHLY",
+                            );
+                            if (mp) return sum + (mp.amount ?? 0);
+                            // Fallback to standalone
+                            const sp =
+                              g.standalonePricing?.recurringPricing?.find(
+                                (p) => p.billingCycle === "MONTHLY",
+                              );
+                            return sum + (sp?.amount ?? 0);
+                          }, 0);
+                        const projectedTotal = otherGroupsTotal + tierBase;
+
+                        return (
+                          <div className="catalog__tier-panel">
+                            {/* Recurring Price for this tier */}
+                            <div className="catalog__field">
+                              <label className="catalog__label">
+                                Recurring Price ({activeTier.name})
+                              </label>
+                              <div className="catalog__fee-input-wrapper">
+                                <span className="catalog__fee-prefix">$</span>
+                                <input
+                                  type="number"
+                                  value={editTierPrices[activeTier.id] || ""}
+                                  onChange={(e) =>
+                                    setEditTierPrices({
+                                      ...editTierPrices,
+                                      [activeTier.id]: e.target.value,
+                                    })
+                                  }
+                                  placeholder="0.00"
+                                  className="catalog__fee-input"
+                                  step="0.01"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Budget indicator — only in MANUAL_OVERRIDE mode (CALCULATED tier has no fixed budget) */}
+                            {tierAmount > 0 &&
+                              activeTier.pricingMode !== "CALCULATED" && (
+                                <div className="catalog__tier-budget">
+                                  <span className="catalog__tier-budget-title">
+                                    {activeTier.name} budget:{" "}
+                                    {formatPrice(projectedTotal)}/mo of{" "}
+                                    {formatPrice(tierAmount)}/mo
+                                  </span>
+                                  <div className="catalog__tier-budget-row">
+                                    <div className="catalog__tier-budget-bar">
+                                      <div
+                                        className={`catalog__tier-budget-fill ${projectedTotal > tierAmount ? "catalog__tier-budget-fill--over" : ""}`}
+                                        style={{
+                                          width: `${Math.min((projectedTotal / tierAmount) * 100, 100)}%`,
+                                        }}
+                                      />
+                                    </div>
+                                    <span
+                                      className={`catalog__tier-budget-amount ${projectedTotal > tierAmount ? "catalog__tier-budget-amount--over" : ""}`}
+                                    >
+                                      {formatPrice(projectedTotal)} /{" "}
+                                      {formatPrice(tierAmount)}
+                                      {projectedTotal > tierAmount && (
+                                        <span className="catalog__tier-budget-warn">
+                                          {" "}
+                                          +
+                                          {formatPrice(
+                                            projectedTotal - tierAmount,
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                            {/* Setup Cost for this tier */}
+                            <div className="catalog__field">
+                              <label className="catalog__label">
+                                Setup Cost (one-time)
+                              </label>
+                              <div className="catalog__fee-input-wrapper">
+                                <span className="catalog__fee-prefix">$</span>
+                                <input
+                                  type="number"
+                                  value={
+                                    editTierSetupCosts[activeTier.id] || ""
+                                  }
+                                  onChange={(e) =>
+                                    setEditTierSetupCosts({
+                                      ...editTierSetupCosts,
+                                      [activeTier.id]: e.target.value,
+                                    })
+                                  }
+                                  placeholder="0.00"
+                                  className="catalog__fee-input"
+                                  step="0.01"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Billing Cycles & Discounts for this tier */}
+                            {editGroupBillingCycles.length > 0 &&
+                              tierBase > 0 && (
+                                <div className="catalog__field">
+                                  <label className="catalog__label">
+                                    Billing Cycles & Discounts
+                                  </label>
+                                  {/* Discount mode toggle */}
+                                  <div className="catalog__discount-mode-toggle">
+                                    <button
+                                      type="button"
+                                      className={`catalog__discount-mode-btn ${editGroupDiscountMode !== "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
+                                      onClick={() =>
+                                        setEditGroupDiscountMode(null)
+                                      }
+                                    >
+                                      Inherit tier discounts
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`catalog__discount-mode-btn ${editGroupDiscountMode === "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
+                                      onClick={() =>
+                                        setEditGroupDiscountMode("INDEPENDENT")
+                                      }
+                                    >
+                                      Set independent discounts
+                                    </button>
+                                  </div>
+                                  <div className="catalog__addon-cycles">
+                                    {editGroupBillingCycles.map((cycle) => {
+                                      const months =
+                                        BILLING_CYCLE_MONTHS[cycle];
+                                      const total = tierBase * months;
+                                      const isMonthly = cycle === "MONTHLY";
+                                      const cycleLabel = {
+                                        MONTHLY: "Monthly",
+                                        QUARTERLY: "Quarterly",
+                                        SEMI_ANNUAL: "Semi-Annual",
+                                        ANNUAL: "Annual",
+                                        ONE_TIME: "One-Time",
+                                      }[cycle];
+
+                                      // Independent mode: editable discounts
+                                      const isIndependent =
+                                        editGroupDiscountMode === "INDEPENDENT";
+                                      const independentDiscountVal =
+                                        isIndependent
+                                          ? parseFloat(
+                                              editTierDiscounts[
+                                                activeTier.id
+                                              ]?.[cycle] || "0",
+                                            ) || 0
+                                          : 0;
+
+                                      // Inherit mode: read-only tier discounts
+                                      const tierDiscount =
+                                        activeTier.billingCycleDiscounts?.find(
+                                          (d) => d.billingCycle === cycle,
+                                        );
+                                      const inheritedDiscountType =
+                                        tierDiscount?.discountRule
+                                          ?.discountType;
+                                      const inheritedDiscountValue =
+                                        tierDiscount?.discountRule
+                                          ?.discountValue ?? 0;
+
+                                      // Compute effective price based on discount type
+                                      let effective: number | null = null;
+                                      let savingsPct = 0;
+                                      let originalTierFlat: number | undefined;
+
+                                      if (isIndependent) {
+                                        // Independent: flat discount from user input
+                                        if (independentDiscountVal > 0) {
+                                          effective = Math.max(
+                                            0,
+                                            total - independentDiscountVal,
+                                          );
+                                          savingsPct =
+                                            total > 0
+                                              ? Math.round(
+                                                  (independentDiscountVal /
+                                                    total) *
+                                                    100,
+                                                )
+                                              : 0;
+                                        }
+                                      } else if (inheritedDiscountValue > 0) {
+                                        if (
+                                          inheritedDiscountType === "PERCENTAGE"
+                                        ) {
+                                          effective =
+                                            total *
+                                            (1 - inheritedDiscountValue / 100);
+                                          savingsPct = Math.round(
+                                            inheritedDiscountValue,
+                                          );
+                                        } else if (tierMonthlyBase > 0) {
+                                          // FLAT_AMOUNT: convert to equivalent percentage
+                                          const tierCycleBase =
+                                            tierMonthlyBase * months;
+                                          const equivalentPct =
+                                            (inheritedDiscountValue /
+                                              tierCycleBase) *
+                                            100;
+                                          effective =
+                                            total * (1 - equivalentPct / 100);
+                                          savingsPct =
+                                            Math.round(equivalentPct * 10) / 10;
+                                          originalTierFlat =
+                                            inheritedDiscountValue;
+                                        } else {
+                                          effective = Math.max(
+                                            0,
+                                            total - inheritedDiscountValue,
+                                          );
+                                          savingsPct =
+                                            total > 0
+                                              ? Math.round(
+                                                  (inheritedDiscountValue /
+                                                    total) *
+                                                    100,
+                                                )
+                                              : 0;
+                                        }
+                                      }
+
+                                      return (
+                                        <div
+                                          key={cycle}
+                                          className="catalog__addon-cycle-row catalog__addon-cycle-row--active"
+                                        >
+                                          <div className="catalog__addon-cycle-top">
+                                            <span className="catalog__addon-cycle-label">
+                                              {cycleLabel}
+                                            </span>
+                                            <span className="catalog__addon-cycle-total">
+                                              {formatPrice(total, "USD")}
+                                            </span>
+                                          </div>
+                                          {!isMonthly && (
+                                            <div className="catalog__addon-cycle-detail">
+                                              <div className="catalog__addon-cycle-calc">
+                                                <span className="catalog__addon-cycle-calc-label">
+                                                  Standard Price
+                                                </span>
+                                                <span className="catalog__addon-cycle-calc-formula">
+                                                  ${tierBase} &times; {months}mo
+                                                  <span className="catalog__addon-cycle-calc-result">
+                                                    {formatPrice(total, "USD")}
+                                                  </span>
+                                                </span>
+                                              </div>
+                                              {isIndependent && (
+                                                <div className="catalog__addon-cycle-discount-col">
+                                                  <span className="catalog__addon-cycle-calc-label">
+                                                    Flat Discount
+                                                  </span>
+                                                  <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                                    <span className="catalog__discount-prefix">
+                                                      - $
+                                                    </span>
+                                                    <input
+                                                      type="number"
+                                                      value={
+                                                        editTierDiscounts[
+                                                          activeTier.id
+                                                        ]?.[cycle] || ""
+                                                      }
+                                                      onChange={(e) => {
+                                                        const updated = {
+                                                          ...editTierDiscounts,
+                                                        };
+                                                        updated[activeTier.id] =
+                                                          {
+                                                            ...updated[
+                                                              activeTier.id
+                                                            ],
+                                                            [cycle]:
+                                                              e.target.value,
+                                                          };
+                                                        setEditTierDiscounts(
+                                                          updated,
+                                                        );
+                                                      }}
+                                                      placeholder="0"
+                                                      step="0.01"
+                                                      min="0"
+                                                      className="catalog__discount-input"
+                                                    />
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                          {effective !== null && (
+                                            <div className="catalog__addon-cycle-effective">
+                                              <span className="catalog__addon-cycle-effective-arrow">
+                                                &rarr;
+                                              </span>
+                                              <span className="catalog__addon-cycle-effective-price">
+                                                {formatPrice(effective, "USD")}
+                                              </span>
+                                              {savingsPct > 0 && (
+                                                <span className="catalog__addon-cycle-effective-savings">
+                                                  {formatPrice(
+                                                    total - effective,
+                                                    "USD",
+                                                  )}{" "}
+                                                  off
+                                                  {!isIndependent &&
+                                                    (originalTierFlat
+                                                      ? ` (from ${formatPrice(originalTierFlat, "USD")} tier discount)`
+                                                      : " (tier discount)")}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        );
+                      })()}
+                  </>
+                )}
+
+              {/* Standalone Pricing (add-ons or groups without tiers) */}
+              {editGroupType !== "setup" &&
+                editGroupPricingMode === "STANDALONE" && (
+                  <>
+                    {/* Recurring Price (base monthly) */}
+                    <div className="catalog__field">
+                      <label className="catalog__label">Recurring Price</label>
+                      <div className="catalog__fee-input-wrapper">
+                        <span className="catalog__fee-prefix">$</span>
+                        <input
+                          type="number"
+                          value={editGroupBasePrice}
+                          onChange={(e) =>
+                            setEditGroupBasePrice(e.target.value)
+                          }
+                          placeholder="0.00"
+                          className="catalog__fee-input"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Setup Cost */}
+                    <div className="catalog__field">
+                      <label className="catalog__label">
+                        Setup Cost (one-time)
+                      </label>
+                      <div className="catalog__fee-input-wrapper">
+                        <span className="catalog__fee-prefix">$</span>
+                        <input
+                          type="number"
+                          value={editGroupSetupCost}
+                          onChange={(e) =>
+                            setEditGroupSetupCost(e.target.value)
+                          }
+                          placeholder="0.00"
+                          className="catalog__fee-input"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Billing Cycles & Discounts */}
+                    {editGroupBillingCycles.length > 0 && (
+                      <div className="catalog__field">
+                        <label className="catalog__label">
+                          Billing Cycles & Discounts
+                        </label>
+                        <div className="catalog__addon-cycles">
+                          {editGroupBillingCycles.map((cycle) => {
+                            const base = parseFloat(editGroupBasePrice) || 0;
+                            const months = BILLING_CYCLE_MONTHS[cycle];
+                            const total = base > 0 ? base * months : null;
+                            const discountVal =
+                              parseFloat(editGroupDiscounts[cycle]) || 0;
+                            const effective =
+                              total !== null && discountVal > 0
+                                ? Math.max(0, total - discountVal)
+                                : null;
+                            const savingsPct =
+                              total !== null && total > 0 && discountVal > 0
+                                ? Math.round((discountVal / total) * 100)
+                                : 0;
+                            const isMonthly = cycle === "MONTHLY";
+                            const cycleLabel = {
+                              MONTHLY: "Monthly",
+                              QUARTERLY: "Quarterly",
+                              SEMI_ANNUAL: "Semi-Annual",
+                              ANNUAL: "Annual",
+                              ONE_TIME: "One-Time",
+                            }[cycle];
+                            const shortLabel = `${months}mo`;
+
+                            return (
+                              <div
+                                key={cycle}
+                                className={`catalog__addon-cycle-row ${base > 0 ? "catalog__addon-cycle-row--active" : ""}`}
+                              >
+                                <div className="catalog__addon-cycle-top">
+                                  <span className="catalog__addon-cycle-label">
+                                    {cycleLabel}
+                                  </span>
+                                  {total !== null ? (
+                                    <span className="catalog__addon-cycle-total">
+                                      {formatPrice(total, "USD")}
+                                    </span>
+                                  ) : (
+                                    <span className="catalog__addon-cycle-dash">
+                                      --
+                                    </span>
+                                  )}
+                                </div>
+                                {base > 0 && (
+                                  <div className="catalog__addon-cycle-detail">
+                                    {!isMonthly && (
+                                      <div className="catalog__addon-cycle-calc">
+                                        <span className="catalog__addon-cycle-calc-label">
+                                          Standard Price
+                                        </span>
+                                        <span className="catalog__addon-cycle-calc-formula">
+                                          ${base} &times; {shortLabel}
+                                          <span className="catalog__addon-cycle-calc-result">
+                                            {formatPrice(total ?? 0, "USD")}
+                                          </span>
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div className="catalog__addon-cycle-discount-col">
+                                      <span className="catalog__addon-cycle-calc-label">
+                                        Flat Discount
+                                      </span>
+                                      <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                        <span className="catalog__discount-prefix">
+                                          - $
+                                        </span>
+                                        <input
+                                          type="number"
+                                          value={editGroupDiscounts[cycle]}
+                                          onChange={(e) =>
+                                            setEditGroupDiscounts({
+                                              ...editGroupDiscounts,
+                                              [cycle]: e.target.value,
+                                            })
+                                          }
+                                          placeholder="0"
+                                          step="0.01"
+                                          min="0"
+                                          className="catalog__discount-input"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                {effective !== null && discountVal > 0 && (
+                                  <div className="catalog__addon-cycle-effective">
+                                    <span className="catalog__addon-cycle-effective-arrow">
+                                      &rarr;
+                                    </span>
+                                    <span className="catalog__addon-cycle-effective-price">
+                                      {formatPrice(effective, "USD")}
+                                    </span>
+                                    {savingsPct > 0 && (
+                                      <span className="catalog__addon-cycle-effective-savings">
+                                        {savingsPct}% off
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+              {editGroupType === "setup" && (
+                <>
+                  <div className="catalog__fee-field">
+                    <span className="catalog__fee-label">One-time Fee</span>
+                    <div className="catalog__fee-input-wrapper">
+                      <span className="catalog__fee-prefix">$</span>
+                      <input
+                        type="number"
+                        value={editGroupPrice}
+                        onChange={(e) => setEditGroupPrice(e.target.value)}
+                        placeholder="0"
+                        className="catalog__fee-input"
+                        step="0.01"
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  {/* Per-tier setup fee discounts */}
+                  {tiers.length > 0 && parseFloat(editGroupPrice) > 0 && (
+                    <div className="catalog__setup-tier-discounts">
+                      <span className="catalog__fee-label">
+                        Setup Fee Discounts by Tier & Billing Cycle
+                      </span>
+                      <div className="catalog__tier-tabs">
+                        {tiers.map((tier) => (
+                          <button
+                            key={tier.id}
+                            onClick={() => setEditTierTab(tier.id)}
+                            className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
+                          >
+                            {tier.name}
+                            {tier.isCustomPricing && (
+                              <span className="catalog__tier-tab-badge">
+                                Custom
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {editTierTab &&
+                        (() => {
+                          const activeTier = tiers.find(
+                            (t) => t.id === editTierTab,
+                          );
+                          if (!activeTier) return null;
+
+                          if (activeTier.isCustomPricing) {
+                            return (
+                              <div className="catalog__tier-custom-note">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  width="16"
+                                  height="16"
+                                >
+                                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>
+                                  Custom pricing tier — discounts negotiated per
+                                  customer.
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          const baseAmount = parseFloat(editGroupPrice) || 0;
+                          const SETUP_CYCLES: BillingCycle[] = [
+                            "MONTHLY",
+                            "QUARTERLY",
+                            "SEMI_ANNUAL",
+                            "ANNUAL",
+                          ];
+                          const cycleLabels: Record<string, string> = {
+                            MONTHLY: "Monthly",
+                            QUARTERLY: "Quarterly",
+                            SEMI_ANNUAL: "Semi-Annual",
+                            ANNUAL: "Annual",
+                          };
+
+                          return (
+                            <div className="catalog__setup-cycle-grid">
+                              {SETUP_CYCLES.map((cycle) => {
+                                const entry =
+                                  editSetupTierDiscounts[activeTier.id]?.[
+                                    cycle
+                                  ];
+                                const dType =
+                                  entry?.discountType || "FLAT_AMOUNT";
+                                const dValue = entry?.discountValue || "";
+                                const parsedValue = parseFloat(dValue) || 0;
+
+                                // Compute effective price
+                                let effectiveAmount = baseAmount;
+                                let savings = 0;
+                                let savingsPct = 0;
+                                if (parsedValue > 0 && baseAmount > 0) {
+                                  const result = calculateEffectiveSetupPrice({
+                                    amount: baseAmount,
+                                    discount: {
+                                      discountType: dType,
+                                      discountValue: parsedValue,
+                                    },
+                                  });
+                                  effectiveAmount = result.effectiveAmount;
+                                  savings = result.savings;
+                                  savingsPct = result.savingsPercent;
+                                }
+
+                                return (
+                                  <div
+                                    key={cycle}
+                                    className="catalog__setup-cycle-row"
+                                  >
+                                    <div className="catalog__setup-cycle-header">
+                                      <span className="catalog__setup-cycle-label">
+                                        {cycleLabels[cycle]} subscription
+                                      </span>
+                                      <span className="catalog__setup-cycle-base">
+                                        {formatPrice(baseAmount, "USD")}
+                                      </span>
+                                    </div>
+                                    <div className="catalog__setup-cycle-controls">
+                                      <select
+                                        value={dType}
+                                        onChange={(e) => {
+                                          const updated = {
+                                            ...editSetupTierDiscounts,
+                                          };
+                                          updated[activeTier.id] = {
+                                            ...updated[activeTier.id],
+                                            [cycle]: {
+                                              ...updated[activeTier.id]?.[
+                                                cycle
+                                              ],
+                                              discountType: e.target
+                                                .value as DiscountType,
+                                            },
+                                          };
+                                          setEditSetupTierDiscounts(updated);
+                                        }}
+                                        className="catalog__setup-discount-select"
+                                      >
+                                        <option value="FLAT_AMOUNT">
+                                          Flat ($)
+                                        </option>
+                                        <option value="PERCENTAGE">
+                                          Percent (%)
+                                        </option>
+                                      </select>
+                                      <div className="catalog__fee-input-wrapper catalog__fee-input-wrapper--discount">
+                                        <span className="catalog__fee-prefix">
+                                          {dType === "PERCENTAGE" ? "%" : "- $"}
+                                        </span>
+                                        <input
+                                          type="number"
+                                          value={dValue}
+                                          onChange={(e) => {
+                                            const updated = {
+                                              ...editSetupTierDiscounts,
+                                            };
+                                            updated[activeTier.id] = {
+                                              ...updated[activeTier.id],
+                                              [cycle]: {
+                                                ...updated[activeTier.id]?.[
+                                                  cycle
+                                                ],
+                                                discountValue: e.target.value,
+                                              },
+                                            };
+                                            setEditSetupTierDiscounts(updated);
+                                          }}
+                                          placeholder="0"
+                                          className="catalog__fee-input"
+                                          step="0.01"
+                                          min="0"
+                                          max={
+                                            dType === "PERCENTAGE"
+                                              ? "100"
+                                              : undefined
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                    {parsedValue > 0 && baseAmount > 0 && (
+                                      <div className="catalog__setup-effective">
+                                        <span className="catalog__setup-effective-arrow">
+                                          &rarr;
+                                        </span>
+                                        <span className="catalog__setup-effective-base">
+                                          {formatPrice(baseAmount, "USD")}
+                                        </span>
+                                        <span className="catalog__setup-effective-price">
+                                          {formatPrice(effectiveAmount, "USD")}
+                                        </span>
+                                        {savingsPct > 0 && (
+                                          <span className="catalog__setup-effective-savings">
+                                            save {formatPrice(savings, "USD")} (
+                                            {savingsPct}% off)
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="catalog__modal-footer">
@@ -671,24 +1843,24 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 </div>
               )}
 
-              {(newGroupType === "addon" || newGroupType === "setup") && (
-                <div className="catalog__fee-field">
-                  <span className="catalog__fee-label">
-                    {newGroupType === "setup" ? "One-time Fee" : "Add-on Price"}
-                  </span>
-                  <div className="catalog__fee-input-wrapper">
-                    <span className="catalog__fee-prefix">$</span>
-                    <input
-                      type="number"
-                      value={newGroupPrice}
-                      onChange={(e) => setNewGroupPrice(e.target.value)}
-                      placeholder="0"
-                      className="catalog__fee-input"
-                      step="0.01"
-                    />
-                  </div>
+              <div className="catalog__fee-field">
+                <span className="catalog__fee-label">
+                  {newGroupType === "setup"
+                    ? "One-time Fee"
+                    : "Base Monthly Price"}
+                </span>
+                <div className="catalog__fee-input-wrapper">
+                  <span className="catalog__fee-prefix">$</span>
+                  <input
+                    type="number"
+                    value={newGroupPrice}
+                    onChange={(e) => setNewGroupPrice(e.target.value)}
+                    placeholder="0"
+                    className="catalog__fee-input"
+                    step="0.01"
+                  />
                 </div>
-              )}
+              </div>
 
               <div className="catalog__form-actions">
                 <button
@@ -803,14 +1975,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 ) : selectedGroup?.isAddOn ? (
                   <span className="catalog__main-meta">
                     Optional add-on group
-                    {selectedGroup.billingCycle && (
+                    {selectedGroup.availableBillingCycles.map((cycle) => (
                       <span
+                        key={cycle}
                         className="catalog__badge catalog__badge--violet"
                         style={{ marginLeft: 8 }}
                       >
-                        {BILLING_CYCLE_SHORT_LABELS[selectedGroup.billingCycle]}
+                        {BILLING_CYCLE_SHORT_LABELS[cycle]}
                       </span>
-                    )}
+                    ))}
                     {selectedGroup.price != null && (
                       <span className="catalog__fee-display">
                         ${selectedGroup.price}
@@ -820,14 +1993,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 ) : selectedGroup ? (
                   <span className="catalog__main-meta">
                     Included in subscription
-                    {selectedGroup.billingCycle && (
+                    {selectedGroup.availableBillingCycles.map((cycle) => (
                       <span
+                        key={cycle}
                         className="catalog__badge catalog__badge--emerald"
                         style={{ marginLeft: 8 }}
                       >
-                        {BILLING_CYCLE_SHORT_LABELS[selectedGroup.billingCycle]}
+                        {BILLING_CYCLE_SHORT_LABELS[cycle]}
                       </span>
-                    )}
+                    ))}
                   </span>
                 ) : (
                   "Services not assigned to any group"
@@ -995,57 +2169,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 />
               </div>
 
-              {/* Per-service cost type for add-on groups */}
-              {selectedGroup?.isAddOn && (
-                <div className="catalog__field">
-                  <label className="catalog__label">Service Type</label>
-                  <div className="catalog__type-options">
-                    {(
-                      [
-                        {
-                          type: "RECURRING",
-                          label: "Recurring",
-                          color: "emerald",
-                        },
-                        {
-                          type: "SETUP",
-                          label: "One-time Setup",
-                          color: "amber",
-                        },
-                      ] as const
-                    ).map(({ type, label, color }) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setNewServiceCostType(type)}
-                        className={`catalog__type-btn catalog__type-btn--${color} ${newServiceCostType === type ? "catalog__type-btn--active" : ""}`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  {newServiceCostType === "SETUP" && (
-                    <div
-                      className="catalog__fee-field"
-                      style={{ marginTop: 8 }}
-                    >
-                      <span className="catalog__fee-label">One-time Fee</span>
-                      <div className="catalog__fee-input-wrapper">
-                        <span className="catalog__fee-prefix">$</span>
-                        <input
-                          type="number"
-                          value={newServicePrice}
-                          onChange={(e) => setNewServicePrice(e.target.value)}
-                          placeholder="0"
-                          className="catalog__fee-input"
-                          step="0.01"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Tier Selection */}
               {tiers.length > 0 && (
                 <div className="catalog__field">
@@ -1121,8 +2244,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                   onClick={() => {
                     setIsAddingService(false);
                     setNewService({ title: "", description: "" });
-                    setNewServiceCostType("RECURRING");
-                    setNewServicePrice("");
                     setSelectedTierIds(new Set());
                   }}
                   className="catalog__btn catalog__btn--secondary"
@@ -1266,18 +2387,40 @@ function GroupButton({
               OPTIONAL
             </span>
           )}
-          {group.billingCycle && !isSetup && (
+          {group.availableBillingCycles.length > 0 && !isSetup && (
             <span className="catalog__group-tag catalog__group-tag--emerald">
-              {BILLING_CYCLE_SHORT_LABELS[group.billingCycle]}
+              {group.availableBillingCycles
+                .map((c) => BILLING_CYCLE_SHORT_LABELS[c])
+                .join(", ")}
             </span>
           )}
         </div>
         <div className="catalog__group-meta">
           <span>{serviceCount} services</span>
-          {(group.isAddOn || group.costType === "SETUP") &&
-            group.price != null && (
-              <span className="catalog__group-fee">${group.price}</span>
-            )}
+          {group.costType === "SETUP" && group.price != null && (
+            <span className="catalog__group-fee">
+              {formatPrice(group.price, "USD")}
+            </span>
+          )}
+          {group.isAddOn && group.price != null && (
+            <span className="catalog__group-fee">
+              {formatPrice(group.price, "USD")}
+            </span>
+          )}
+          {!isSetup && !group.isAddOn && (() => {
+            const monthlyPrice =
+              group.tierDependentPricing?.[0]?.recurringPricing?.find(
+                (p) => p.billingCycle === "MONTHLY",
+              )?.amount ??
+              group.standalonePricing?.recurringPricing?.find(
+                (p) => p.billingCycle === "MONTHLY",
+              )?.amount;
+            return monthlyPrice != null && monthlyPrice > 0 ? (
+              <span className="catalog__group-fee">
+                {formatPrice(monthlyPrice, "USD")}/mo
+              </span>
+            ) : null;
+          })()}
         </div>
       </button>
       {isHovered && (
@@ -1335,13 +2478,7 @@ interface ServiceCardProps {
     updates: Partial<
       Pick<
         Service,
-        | "title"
-        | "description"
-        | "isSetupFormation"
-        | "optionGroupId"
-        | "costType"
-        | "price"
-        | "currency"
+        "title" | "description" | "isSetupFormation" | "optionGroupId"
       >
     >,
   ) => void;
@@ -1408,11 +2545,6 @@ function ServiceCard({
             {service.isSetupFormation && (
               <span className="catalog__badge catalog__badge--amber">
                 Setup Service
-              </span>
-            )}
-            {service.costType === "SETUP" && service.price != null && (
-              <span className="catalog__badge catalog__badge--slate">
-                ${service.price}
               </span>
             )}
           </div>
@@ -1514,71 +2646,6 @@ function ServiceCard({
               })}
             </select>
           </div>
-
-          {/* Per-service cost type for add-on group services */}
-          {(() => {
-            const serviceGroup = service.optionGroupId
-              ? optionGroups.find((g) => g.id === service.optionGroupId)
-              : null;
-            if (!serviceGroup?.isAddOn) return null;
-            return (
-              <div className="catalog__service-section">
-                <label className="catalog__label">Service Type</label>
-                <div className="catalog__type-options">
-                  {[
-                    {
-                      type: "RECURRING" as ServiceCostType,
-                      label: "Recurring",
-                      color: "emerald",
-                    },
-                    {
-                      type: "SETUP" as ServiceCostType,
-                      label: "One-time Setup",
-                      color: "amber",
-                    },
-                  ].map(({ type, label, color }) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() =>
-                        onUpdate(service, {
-                          costType: type,
-                          isSetupFormation: type === "SETUP",
-                        })
-                      }
-                      className={`catalog__type-btn catalog__type-btn--${color} ${(service.costType || "RECURRING") === type ? "catalog__type-btn--active" : ""}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {service.costType === "SETUP" && (
-                  <div className="catalog__fee-field" style={{ marginTop: 8 }}>
-                    <span className="catalog__fee-label">One-time Fee</span>
-                    <div className="catalog__fee-input-wrapper">
-                      <span className="catalog__fee-prefix">$</span>
-                      <input
-                        type="number"
-                        defaultValue={service.price?.toString() || ""}
-                        onBlur={(e) => {
-                          const val = e.target.value
-                            ? parseFloat(e.target.value)
-                            : null;
-                          onUpdate(service, {
-                            price: val,
-                            currency: val ? "USD" : null,
-                          });
-                        }}
-                        placeholder="0"
-                        className="catalog__fee-input"
-                        step="0.01"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
 
           {/* Tier inclusion */}
           {tiers.length > 0 && (
@@ -1795,6 +2862,260 @@ const styles = `
     border-color: var(--so-violet-500);
     box-shadow: 0 0 0 2px var(--so-violet-100);
   }
+
+  .catalog__setup-tier-discounts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .catalog__setup-discount-select {
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    color: var(--so-slate-600);
+    background: white;
+    border: 1.5px solid var(--so-slate-200);
+    border-radius: var(--so-radius-sm);
+    padding: 6px 8px;
+    cursor: pointer;
+    outline: none;
+    min-width: 90px;
+  }
+
+  .catalog__setup-discount-select:focus {
+    border-color: var(--so-violet-500);
+  }
+
+  .catalog__fee-input-wrapper--discount {
+    flex: 1;
+  }
+
+  .catalog__setup-cycle-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .catalog__setup-cycle-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--so-slate-50);
+    border: 1px solid var(--so-slate-150, var(--so-slate-200));
+    border-radius: var(--so-radius-sm);
+  }
+
+  .catalog__setup-cycle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .catalog__setup-cycle-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__setup-cycle-base {
+    font-family: var(--so-font-mono);
+    font-size: 0.75rem;
+    color: var(--so-slate-400);
+  }
+
+  .catalog__setup-cycle-controls {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .catalog__setup-effective {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--so-emerald-50);
+    border: 1px solid var(--so-emerald-100);
+    border-radius: var(--so-radius-sm);
+    flex-wrap: wrap;
+  }
+
+  .catalog__setup-effective-arrow {
+    font-size: 0.75rem;
+    color: var(--so-emerald-500);
+  }
+
+  .catalog__setup-effective-base {
+    font-family: var(--so-font-mono);
+    font-size: 0.8125rem;
+    color: var(--so-slate-400);
+    text-decoration: line-through;
+  }
+
+  .catalog__setup-effective-price {
+    font-family: var(--so-font-mono);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--so-emerald-700);
+  }
+
+  .catalog__setup-effective-savings {
+    font-family: var(--so-font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--so-emerald-600);
+    background: var(--so-emerald-100);
+    padding: 2px 6px;
+    border-radius: var(--so-radius-sm);
+    margin-left: auto;
+  }
+
+  .catalog__pricing-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .catalog__pricing-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .catalog__pricing-mode-option {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border: 1.5px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    cursor: pointer;
+    transition: all var(--so-transition-fast);
+  }
+
+  .catalog__pricing-mode-option:hover {
+    border-color: var(--so-violet-300);
+    background: var(--so-violet-50);
+  }
+
+  .catalog__pricing-mode-option:has(input:checked) {
+    border-color: var(--so-violet-500);
+    background: var(--so-violet-50);
+  }
+
+  .catalog__radio {
+    margin-top: 2px;
+    cursor: pointer;
+  }
+
+  .catalog__pricing-mode-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .catalog__pricing-mode-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--so-slate-800);
+  }
+
+  .catalog__pricing-mode-desc {
+    font-size: 0.8125rem;
+    color: var(--so-slate-500);
+  }
+
+  .catalog__pricing-mode-note {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    background: var(--so-blue-50);
+    border: 1px solid var(--so-blue-200);
+    border-radius: var(--so-radius-sm);
+    font-size: 0.8125rem;
+    color: var(--so-blue-700);
+  }
+
+  .catalog__pricing-mode-note svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .catalog__pricing-config {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--so-slate-50);
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+  }
+
+  .catalog__pricing-config-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .catalog__pricing-config-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--so-slate-800);
+  }
+
+  .catalog__pricing-config-desc {
+    font-size: 0.8125rem;
+    color: var(--so-slate-500);
+  }
+
+  .catalog__pricing-config-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .catalog__pricing-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .catalog__pricing-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__recurring-price-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-sm);
+  }
+
+  .catalog__cycle-label {
+    font-size: 0.8125rem;
+    color: var(--so-slate-700);
+    min-width: 100px;
+  }
+
+  .catalog__discount-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-sm);
+  }
+
+  /* old discount-inputs/type/value styles removed - now using catalog__discount-flat */
 
   .catalog__form-actions {
     display: flex;
@@ -2161,6 +3482,30 @@ const styles = `
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--so-slate-500);
+  }
+
+  .catalog__checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: var(--so-slate-50);
+    border-radius: var(--so-radius-md);
+  }
+
+  .catalog__checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__checkbox {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
   }
 
   .catalog__textarea {
@@ -2814,5 +4159,511 @@ const styles = `
     .catalog__templates-grid {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* Compact Pricing Table */
+  .catalog__pricing-table {
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    overflow: hidden;
+  }
+
+  .catalog__pricing-table-header {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr;
+    gap: 0;
+    padding: 8px 12px;
+    background: var(--so-slate-50);
+    border-bottom: 1px solid var(--so-slate-200);
+  }
+
+  .catalog__pricing-table-th {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--so-slate-500);
+  }
+
+  .catalog__pricing-table-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr;
+    gap: 8px;
+    padding: 8px 12px;
+    align-items: center;
+    border-bottom: 1px solid var(--so-slate-100);
+  }
+
+  .catalog__pricing-table-row:last-child {
+    border-bottom: none;
+  }
+
+  .catalog__pricing-table-cycle {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__fee-input-wrapper--compact {
+    height: 34px;
+  }
+
+  .catalog__fee-input-wrapper--compact .catalog__fee-prefix {
+    padding: 6px 6px 6px 10px;
+    font-size: 0.8125rem;
+  }
+
+  .catalog__fee-input-wrapper--compact .catalog__fee-input {
+    padding: 6px 8px 6px 2px;
+    font-size: 0.8125rem;
+  }
+
+  .catalog__discount-flat--compact {
+    height: 34px;
+  }
+
+  .catalog__discount-flat--compact .catalog__discount-prefix {
+    padding: 6px 4px 6px 10px;
+    font-size: 0.8125rem;
+  }
+
+  .catalog__discount-flat--compact .catalog__discount-input {
+    padding: 6px 8px 6px 2px;
+    font-size: 0.8125rem;
+  }
+
+  .catalog__discount-flat {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    overflow: hidden;
+    transition: all var(--so-transition-fast);
+  }
+
+  .catalog__discount-flat:focus-within {
+    border-color: var(--so-violet-400);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+  }
+
+  .catalog__discount-prefix {
+    padding: 10px 8px 10px 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--so-slate-400);
+    background: var(--so-slate-50);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .catalog__discount-input {
+    flex: 1;
+    padding: 10px 12px 10px 4px;
+    border: none;
+    font-family: var(--so-font-mono);
+    font-size: 0.875rem;
+    color: var(--so-slate-700);
+    background: transparent;
+    outline: none;
+    min-width: 0;
+  }
+
+  .catalog__discount-input::placeholder {
+    color: var(--so-slate-400);
+  }
+
+  .catalog__pricing-config-header {
+    margin-bottom: 20px;
+  }
+
+  .catalog__pricing-config-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--so-slate-700);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .catalog__pricing-config-desc {
+    font-size: 0.8125rem;
+    color: var(--so-slate-500);
+    display: block;
+  }
+
+  .catalog__setup-cost-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--so-slate-200);
+  }
+
+  .catalog__setup-cost-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--so-slate-200);
+  }
+
+  .catalog__setup-cost-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--so-slate-600);
+    white-space: nowrap;
+  }
+
+  .catalog__pricing-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--so-slate-600);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .catalog__pricing-config-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .catalog__pricing-mode-note {
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--so-blue-50);
+    border-radius: var(--so-radius-md);
+    border: 1px solid var(--so-blue-200);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .catalog__pricing-mode-note svg {
+    width: 18px;
+    height: 18px;
+    color: var(--so-blue-500);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .catalog__pricing-mode-note span {
+    font-size: 0.8125rem;
+    color: var(--so-slate-600);
+    line-height: 1.5;
+  }
+
+  /* Add-on Billing Cycle Rows (mirrors tier BCP pattern) */
+  .catalog__addon-cycles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .catalog__addon-cycle-row {
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    padding: 10px 14px;
+    background: var(--so-slate-50);
+    transition: var(--so-transition-fast);
+  }
+
+  .catalog__addon-cycle-row--active {
+    background: var(--so-white);
+    border-color: var(--so-slate-200);
+  }
+
+  .catalog__addon-cycle-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .catalog__addon-cycle-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__addon-cycle-total {
+    font-family: var(--so-font-mono);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--so-slate-800);
+  }
+
+  .catalog__addon-cycle-dash {
+    font-size: 0.875rem;
+    color: var(--so-slate-400);
+  }
+
+  .catalog__addon-cycle-detail {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--so-slate-200);
+  }
+
+  .catalog__addon-cycle-calc {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .catalog__addon-cycle-calc-label {
+    font-family: var(--so-font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--so-violet-500);
+  }
+
+  .catalog__addon-cycle-calc-formula {
+    font-size: 0.8125rem;
+    color: var(--so-slate-600);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .catalog__addon-cycle-calc-result {
+    font-weight: 600;
+    color: var(--so-slate-700);
+  }
+
+  .catalog__addon-cycle-discount-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .catalog__addon-cycle-effective {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: var(--so-emerald-50);
+    border-radius: var(--so-radius-sm);
+  }
+
+  .catalog__addon-cycle-effective-arrow {
+    font-size: 0.8125rem;
+    color: var(--so-emerald-600);
+  }
+
+  .catalog__addon-cycle-effective-price {
+    font-family: var(--so-font-mono);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--so-emerald-700);
+  }
+
+  .catalog__addon-cycle-effective-savings {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--so-emerald-600);
+    background: var(--so-emerald-100);
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+
+  /* Tier Budget Impact Indicator */
+  .catalog__tier-budget {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    background: var(--so-slate-50);
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-sm);
+  }
+
+  .catalog__tier-budget-title {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--so-slate-700);
+    margin-bottom: 0.375rem;
+  }
+
+  .catalog__tier-budget-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0;
+  }
+
+  .catalog__tier-budget-name {
+    flex-shrink: 0;
+    width: 4.5rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .catalog__tier-budget-bar {
+    flex: 1;
+    height: 0.3125rem;
+    background: var(--so-slate-200);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .catalog__tier-budget-fill {
+    height: 100%;
+    background: var(--so-emerald-500);
+    border-radius: 9999px;
+    transition: width 0.2s ease;
+  }
+
+  .catalog__tier-budget-fill--over {
+    background: var(--so-rose-500);
+  }
+
+  .catalog__tier-budget-amount {
+    flex-shrink: 0;
+    font-family: var(--so-font-mono);
+    font-size: 0.625rem;
+    color: var(--so-slate-600);
+  }
+
+  .catalog__tier-budget-amount--over {
+    color: var(--so-rose-600);
+    font-weight: 600;
+  }
+
+  .catalog__tier-budget-warn {
+    color: var(--so-rose-500);
+    font-weight: 700;
+  }
+
+  /* Tier Tabs */
+  .catalog__tier-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--so-slate-200);
+    margin-bottom: 0.75rem;
+    overflow-x: auto;
+  }
+
+  .catalog__tier-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    font-family: var(--so-font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--so-transition-fast);
+  }
+
+  .catalog__tier-tab:hover {
+    color: var(--so-slate-700);
+    background: var(--so-slate-50);
+  }
+
+  .catalog__tier-tab--active {
+    color: var(--so-violet-700);
+    border-bottom-color: var(--so-violet-600);
+    font-weight: 600;
+  }
+
+  .catalog__tier-tab--custom {
+    font-style: italic;
+  }
+
+  .catalog__tier-tab-badge {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--so-amber-600);
+    background: var(--so-amber-50);
+    padding: 1px 5px;
+    border-radius: 99px;
+  }
+
+  .catalog__tier-tab-price {
+    font-family: var(--so-font-mono);
+    font-size: 0.6875rem;
+    color: var(--so-emerald-600);
+    font-weight: 600;
+  }
+
+  .catalog__tier-tab-warning {
+    font-family: var(--so-font-mono);
+    font-size: 0.6875rem;
+    color: var(--so-amber-500);
+    font-weight: 500;
+  }
+
+  .catalog__tier-panel {
+    animation: catalog__fade-in 0.15s ease;
+  }
+
+  .catalog__discount-mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    overflow: hidden;
+    margin-bottom: 0.625rem;
+  }
+
+  .catalog__discount-mode-btn {
+    flex: 1;
+    padding: 0.375rem 0.5rem;
+    font-family: var(--so-font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    background: var(--so-white);
+    border: none;
+    cursor: pointer;
+    transition: all var(--so-transition-fast);
+  }
+
+  .catalog__discount-mode-btn:first-child {
+    border-right: 1px solid var(--so-slate-200);
+  }
+
+  .catalog__discount-mode-btn--active {
+    background: var(--so-violet-50);
+    color: var(--so-violet-700);
+    font-weight: 600;
+  }
+
+  .catalog__discount-mode-btn:hover:not(.catalog__discount-mode-btn--active) {
+    background: var(--so-slate-50);
+  }
+
+  @keyframes catalog__fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .catalog__tier-custom-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--so-slate-50);
+    border: 1px dashed var(--so-slate-300);
+    border-radius: var(--so-radius-sm);
+    font-size: 0.75rem;
+    color: var(--so-slate-500);
+    font-style: italic;
   }
 `;

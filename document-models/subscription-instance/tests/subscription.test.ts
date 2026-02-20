@@ -40,8 +40,6 @@ import {
   UpdateBillingProjectionInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
-// Note: setOperatorInfo has been removed from the document model
-
 describe("SubscriptionOperations", () => {
   it("should handle initializeSubscription operation", () => {
     const document = utils.createDocument();
@@ -314,8 +312,6 @@ describe("SubscriptionOperations", () => {
     );
     expect(updatedDocument.operations.global[0].index).toEqual(0);
   });
-
-  // Note: setOperatorInfo test removed - operation no longer exists
 
   it("should handle updateBillingProjection operation", () => {
     const document = utils.createDocument();

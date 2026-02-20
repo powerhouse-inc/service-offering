@@ -7,10 +7,11 @@ import type {
 import {
   selectResourceTemplate,
   changeResourceTemplate,
+  setOperator,
   addFacetOption,
   removeFacetOption,
   setFacetTarget,
-} from "../../../document-models/service-offering/gen/offering-management/creators.js";
+} from "../../../document-models/service-offering/gen/offering/creators.js";
 import { generateId } from "document-model/core";
 import { useResourceTemplateDocumentsInSelectedDrive } from "../../../document-models/resource-template/hooks.js";
 import type {
@@ -18,6 +19,73 @@ import type {
   ResourceTemplateGlobalState,
 } from "@powerhousedao/service-offering/document-models/resource-template";
 import { MarkdownPreview } from "./MarkdownPreview.js";
+import { useRemoteResourceTemplates } from "../hooks/useRemoteResourceTemplates.js";
+import type { RemoteResourceTemplate } from "../utils/graphql-client.js";
+
+/**
+ * Normalized template shape used by all UI components.
+ * Both local ResourceTemplateDocument and remote templates are mapped to this.
+ */
+interface NormalizedTemplate {
+  id: string;
+  isRemote: boolean;
+  /** Resolved operator/builder name for remote templates */
+  operatorName: string | null;
+  state: {
+    global: ResourceTemplateGlobalState;
+  };
+}
+
+function normalizeLocalTemplate(
+  doc: ResourceTemplateDocument,
+): NormalizedTemplate {
+  return {
+    id: doc.header.id,
+    isRemote: false,
+    operatorName: null,
+    state: { global: doc.state.global },
+  };
+}
+
+function normalizeRemoteTemplate(
+  remote: RemoteResourceTemplate,
+): NormalizedTemplate {
+  return {
+    id: remote.id,
+    isRemote: true,
+    operatorName: remote.operatorName ?? null,
+    state: {
+      global: {
+        id: remote.state.id ?? remote.id,
+        operatorId: remote.state.operatorId ?? "",
+        title: remote.state.title || remote.name || "Untitled",
+        summary: remote.state.summary || "",
+        description: remote.state.description || null,
+        thumbnailUrl: remote.state.thumbnailUrl || null,
+        infoLink: remote.state.infoLink || null,
+        status:
+          (remote.state.status as ResourceTemplateGlobalState["status"]) ||
+          "DRAFT",
+        lastModified: remote.state.lastModified || new Date().toISOString(),
+        targetAudiences: remote.state.targetAudiences ?? [],
+        setupServices: remote.state.setupServices ?? [],
+        recurringServices: remote.state.recurringServices ?? [],
+        facetTargets: remote.state.facetTargets ?? [],
+        services: (remote.state.services ?? []).map((s) => ({
+          ...s,
+          description: s.description || null,
+          displayOrder: s.displayOrder || null,
+          parentServiceId: null,
+          optionGroupId: s.optionGroupId || null,
+          facetBindings: [],
+        })),
+        optionGroups: [],
+        faqFields: [],
+        contentSections: [],
+      },
+    },
+  };
+}
 
 interface ResourceTemplateSelectorProps {
   document: ServiceOfferingDocument;
@@ -28,52 +96,78 @@ export function ResourceTemplateSelector({
   document,
   dispatch,
 }: ResourceTemplateSelectorProps) {
-  const templates = useResourceTemplateDocumentsInSelectedDrive();
+  const localTemplates = useResourceTemplateDocumentsInSelectedDrive();
   const [searchQuery, setSearchQuery] = useState("");
   const [showingSelector, setShowingSelector] = useState(false);
+
+  // Build set of local template IDs for deduplication
+  const localTemplateIds = useMemo(
+    () => new Set((localTemplates ?? []).map((t) => t.header.id)),
+    [localTemplates],
+  );
+
+  // Fetch remote templates (filtered to exclude locals)
+  const { templates: remoteTemplates, isLoading: isLoadingRemote } =
+    useRemoteResourceTemplates(localTemplateIds);
+
+  // Normalize and merge local + remote templates
+  const allTemplates = useMemo(() => {
+    const normalized: NormalizedTemplate[] = (localTemplates ?? []).map(
+      normalizeLocalTemplate,
+    );
+    for (const remote of remoteTemplates) {
+      normalized.push(normalizeRemoteTemplate(remote));
+    }
+    return normalized;
+  }, [localTemplates, remoteTemplates]);
 
   // Get the currently selected template ID from document state
   const currentTemplateId = document.state.global.resourceTemplateId;
 
   const filteredTemplates = useMemo(() => {
-    if (!templates) return [];
-    if (!searchQuery.trim()) return templates;
+    if (!allTemplates.length) return [];
+    if (!searchQuery.trim()) return allTemplates;
 
     const query = searchQuery.toLowerCase();
-    return templates.filter(
+    return allTemplates.filter(
       (t) =>
         t.state.global.title.toLowerCase().includes(query) ||
         t.state.global.summary.toLowerCase().includes(query),
     );
-  }, [templates, searchQuery]);
+  }, [allTemplates, searchQuery]);
 
   const selectedTemplate = useMemo(() => {
-    if (!currentTemplateId || !templates) return null;
-    return templates.find((t) => t.header.id === currentTemplateId) || null;
-  }, [currentTemplateId, templates]);
+    if (!currentTemplateId || !allTemplates.length) return null;
+    return allTemplates.find((t) => t.id === currentTemplateId) || null;
+  }, [currentTemplateId, allTemplates]);
 
   const handleSelectTemplate = useCallback(
-    (template: ResourceTemplateDocument) => {
+    (template: NormalizedTemplate) => {
       const now = new Date().toISOString();
 
       if (currentTemplateId) {
-        // If a template is already selected, use change operation
         dispatch(
           changeResourceTemplate({
             previousTemplateId: currentTemplateId,
-            newTemplateId: template.header.id,
+            newTemplateId: template.id,
             lastModified: now,
           }),
         );
       } else {
-        // First time selection
         dispatch(
           selectResourceTemplate({
-            resourceTemplateId: template.header.id,
+            resourceTemplateId: template.id,
             lastModified: now,
           }),
         );
       }
+
+      dispatch(
+        setOperator({
+          operatorId: template.state.global.operatorId ?? "",
+          lastModified: now,
+        }),
+      );
       setShowingSelector(false);
     },
     [currentTemplateId, dispatch],
@@ -97,7 +191,7 @@ export function ResourceTemplateSelector({
 
     // Score templates by completeness (more services, facets, audiences = better)
     const scored = activeTemplates.map((t) => ({
-      id: t.header.id,
+      id: t.id,
       score:
         t.state.global.services.length * 3 + // Services weighted highest
         t.state.global.facetTargets.length * 2 +
@@ -181,7 +275,12 @@ export function ResourceTemplateSelector({
 
         {/* Templates List */}
         <div className="rts-templates">
-          {!templates || templates.length === 0 ? (
+          {isLoadingRemote && allTemplates.length === 0 ? (
+            <div className="rts-empty">
+              <div className="rts-loading-spinner" />
+              <p className="rts-empty__desc">Loading products...</p>
+            </div>
+          ) : allTemplates.length === 0 ? (
             <div className="rts-empty">
               <div className="rts-empty__icon">
                 <svg
@@ -217,12 +316,10 @@ export function ResourceTemplateSelector({
                   <div className="rts-grid">
                     {activeTemplates.map((template) => (
                       <TemplateCard
-                        key={template.header.id}
+                        key={template.id}
                         template={template}
-                        isSelected={currentTemplateId === template.header.id}
-                        isRecommended={
-                          template.header.id === recommendedTemplateId
-                        }
+                        isSelected={currentTemplateId === template.id}
+                        isRecommended={template.id === recommendedTemplateId}
                         onSelect={() => handleSelectTemplate(template)}
                       />
                     ))}
@@ -240,13 +337,21 @@ export function ResourceTemplateSelector({
                   <div className="rts-grid">
                     {otherTemplates.map((template) => (
                       <TemplateCard
-                        key={template.header.id}
+                        key={template.id}
                         template={template}
-                        isSelected={currentTemplateId === template.header.id}
+                        isSelected={currentTemplateId === template.id}
                         onSelect={() => handleSelectTemplate(template)}
                       />
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Remote loading indicator */}
+              {isLoadingRemote && (
+                <div className="rts-remote-loading">
+                  <div className="rts-loading-spinner rts-loading-spinner--small" />
+                  <span>Loading remote products...</span>
                 </div>
               )}
             </>
@@ -258,7 +363,7 @@ export function ResourceTemplateSelector({
 }
 
 interface TemplateCardProps {
-  template: ResourceTemplateDocument;
+  template: NormalizedTemplate;
   isSelected: boolean;
   isRecommended?: boolean;
   onSelect: () => void;
@@ -270,8 +375,7 @@ function TemplateCard({
   isRecommended,
   onSelect,
 }: TemplateCardProps) {
-  const { state } = template;
-  const globalState = state.global;
+  const globalState = template.state.global;
 
   const statusStyle = getStatusStyle(globalState.status);
 
@@ -292,6 +396,30 @@ function TemplateCard({
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
           Recommended
+        </div>
+      )}
+      {template.isRemote && (
+        <div className={`rts-card__remote-badge ${template.operatorName ? "rts-card__remote-badge--operator" : ""}`}>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            {template.operatorName ? (
+              <>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </>
+            ) : (
+              <>
+                <path d="M2 15c6.667-6 13.333 0 20-6" />
+                <path d="M9 22c1.798-1.998 2.54-3.995 2.807-5.993" />
+                <path d="M15 2c-1.798 1.998-2.54 3.995-2.807 5.993" />
+              </>
+            )}
+          </svg>
+          {template.operatorName ?? "Remote"}
         </div>
       )}
       <div className="rts-card__header">
@@ -380,7 +508,7 @@ function TemplateCard({
 }
 
 interface TemplateDetailViewProps {
-  template: ResourceTemplateDocument;
+  template: NormalizedTemplate;
   offeringDocument: ServiceOfferingDocument;
   dispatch: DocumentDispatch<ServiceOfferingAction>;
   onChangeTemplate: () => void;
@@ -1228,6 +1356,74 @@ const styles = `
     height: 12px;
     fill: currentColor;
     stroke: currentColor;
+  }
+
+  /* Remote Badge */
+  .rts-card__remote-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--rts-violet);
+    background: var(--rts-violet-light);
+    border-radius: 100px;
+    backdrop-filter: blur(8px);
+    z-index: 4;
+  }
+
+  .rts-card__remote-badge--operator {
+    text-transform: none;
+    font-weight: 600;
+    color: var(--rts-teal);
+    background: var(--rts-teal-light);
+  }
+
+  .rts-card__remote-badge svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Loading Spinner */
+  .rts-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--rts-border);
+    border-top-color: var(--rts-teal);
+    border-radius: 50%;
+    animation: rts-spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  .rts-loading-spinner--small {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+    margin: 0;
+  }
+
+  @keyframes rts-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Remote Loading Indicator */
+  .rts-remote-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    font-size: 0.8125rem;
+    color: var(--rts-ink-muted);
+    background: var(--rts-surface-raised);
+    border-radius: 8px;
+    border: 1px solid var(--rts-border-light);
   }
 
   /* Empty State */

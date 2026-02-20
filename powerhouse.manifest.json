@@ -29,10 +29,33 @@
         },
         {
             "id": "powerhouse/subscription-instance",
-            "name": "Subscription Instance"
+            "name": "SubscriptionInstance"
+        },
+        {
+            "id": "powerhouse/business-analysis",
+            "name": "BusinessAnalysis"
+        },
+        {
+            "id": "powerhouse/work-breakdown",
+            "name": "WorkBreakdown"
         }
     ],
-    "editors": [],
+    "editors": [
+        {
+            "id": "business-analysis-editor",
+            "name": "BusinessAnalysisEditor",
+            "documentTypes": [
+                "powerhouse/business-analysis"
+            ]
+        },
+        {
+            "id": "work-breakdown-editor",
+            "name": "WorkBreakdownEditor",
+            "documentTypes": [
+                "powerhouse/work-breakdown"
+            ]
+        }
+    ],
     "apps": [],
     "subgraphs": [],
     "importScripts": []

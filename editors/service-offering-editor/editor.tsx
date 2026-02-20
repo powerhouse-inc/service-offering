@@ -64,10 +64,10 @@ export default function ServiceOfferingEditor() {
       <style>{editorStyles}</style>
       <DocumentToolbar />
       <div className="so-editor__container">
-        {/* Global Progress Component - Goal-Gradient Effect */}
-        {/* Global Progress Component - Goal-Gradient Effect with integrated navigation */}
+        {/* Global Progress Component with integrated navigation */}
         <OfferingProgress
           document={document}
+          dispatch={dispatch}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />

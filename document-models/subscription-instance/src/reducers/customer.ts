@@ -3,16 +3,9 @@ import type { SubscriptionInstanceCustomerOperations } from "@powerhousedao/serv
 export const subscriptionInstanceCustomerOperations: SubscriptionInstanceCustomerOperations =
   {
     setCustomerTypeOperation(state, action) {
-      const { input } = action;
-      state.customerType = input.customerType;
-      if (
-        input.teamMemberCount !== undefined &&
-        input.teamMemberCount !== null
-      ) {
-        state.teamMemberCount = input.teamMemberCount;
-      }
+      state.customerType = action.input.customerType;
+      state.teamMemberCount = action.input.teamMemberCount || null;
     },
-
     updateTeamMemberCountOperation(state, action) {
       state.teamMemberCount = action.input.teamMemberCount;
     },

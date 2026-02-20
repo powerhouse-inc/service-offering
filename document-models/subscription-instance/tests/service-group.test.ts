@@ -8,10 +8,12 @@ import {
   removeServiceGroup,
   addServiceToGroup,
   removeServiceFromGroup,
+  updateServiceGroupCost,
   AddServiceGroupInputSchema,
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
   RemoveServiceFromGroupInputSchema,
+  UpdateServiceGroupCostInputSchema,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
 describe("ServiceGroupOperations", () => {
@@ -76,6 +78,23 @@ describe("ServiceGroupOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "REMOVE_SERVICE_FROM_GROUP",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle updateServiceGroupCost operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(UpdateServiceGroupCostInputSchema());
+
+    const updatedDocument = reducer(document, updateServiceGroupCost(input));
+
+    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "UPDATE_SERVICE_GROUP_COST",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

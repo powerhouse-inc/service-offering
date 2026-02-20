@@ -30,18 +30,19 @@ export const initialGlobalState: ServiceOfferingGlobalState = {
   thumbnailUrl: null,
   infoLink: null,
   status: "DRAFT",
-  lastModified: "1970-01-01T00:00:00.000Z",
+  lastModified: "2024-01-01T00:00:00Z",
   targetAudiences: [],
   facetTargets: [],
   serviceGroups: [],
   services: [],
   tiers: [],
   optionGroups: [],
+  finalConfiguration: null,
 };
 export const initialLocalState: ServiceOfferingLocalState = {};
 
 export const utils: DocumentModelUtils<ServiceOfferingPHState> = {
-  fileExtension: "",
+  fileExtension: "phso",
   createState(state) {
     return {
       ...defaultBaseState(),

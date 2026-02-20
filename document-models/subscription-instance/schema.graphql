@@ -29,6 +29,11 @@ type SubscriptionInstanceState {
     serviceOfferingId: PHID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
+    tierPricingMode: TierPricingMode
+    selectedBillingCycle: BillingCycle
+    globalCurrency: Currency
     resource: ResourceDocument
     status: SubscriptionStatus!
     createdAt: DateTime
@@ -48,22 +53,19 @@ type SubscriptionInstanceState {
     serviceGroups: [ServiceGroup!]!
 }
 
+enum TierPricingMode {
+    CALCULATED
+    MANUAL_OVERRIDE
+}
+
 enum CustomerType {
     INDIVIDUAL
     TEAM
 }
 
-type ServiceGroup {
-    id: OID!
-    optional: Boolean!
-    name: String!
-    services: [Service!]!
-}
-
-type ResourceDocument {
-    id: PHID!
-    label: String
-    thumbnailUrl: URL
+enum GroupCostType {
+    RECURRING
+    SETUP
 }
 
 enum SubscriptionStatus {
@@ -74,19 +76,15 @@ enum SubscriptionStatus {
     CANCELLED
 }
 
-type RecurringCost {
-    amount: Amount_Money!
-    currency: Currency!
-    billingCycle: BillingCycle!
-    nextBillingDate: DateTime
-    lastPaymentDate: DateTime
+enum DiscountType {
+    PERCENTAGE
+    FLAT_AMOUNT
 }
 
-type SetupCost {
-    amount: Amount_Money!
-    currency: Currency!
-    billingDate: DateTime
-    paymentDate: DateTime
+enum DiscountSource {
+    TIER_INHERITED
+    GROUP_INDEPENDENT
+    BUNDLE
 }
 
 enum BillingCycle {
@@ -95,31 +93,6 @@ enum BillingCycle {
     SEMI_ANNUAL
     ANNUAL
     ONE_TIME
-}
-
-type BudgetCategory {
-    id: OID!
-    label: String!
-}
-
-type Service {
-    id: OID!
-    name: String
-    description: String
-    setupCost: SetupCost
-    recurringCost: RecurringCost
-    metrics: [ServiceMetric!]!
-}
-
-type ServiceMetric {
-    id: OID!
-    name: String!
-    unitName: String!
-    limit: Int
-    unitCost: RecurringCost
-    currentUsage: Int!
-    usageResetPeriod: ResetPeriod
-    nextUsageReset: DateTime
 }
 
 enum ResetPeriod {
@@ -132,7 +105,140 @@ enum ResetPeriod {
     ANNUAL
 }
 
-# Subscription
+type DiscountInfo {
+    originalAmount: Amount_Money!
+    discountType: DiscountType!
+    discountValue: Float!
+    source: DiscountSource!
+}
+
+type SetupCost {
+    amount: Amount_Money!
+    currency: Currency!
+    billingDate: DateTime
+    paymentDate: DateTime
+}
+
+type RecurringCost {
+    amount: Amount_Money!
+    currency: Currency!
+    billingCycle: BillingCycle!
+    nextBillingDate: DateTime
+    lastPaymentDate: DateTime
+    discount: DiscountInfo
+}
+
+type ResourceDocument {
+    id: PHID!
+    label: String
+    thumbnailUrl: URL
+}
+
+type BudgetCategory {
+    id: OID!
+    label: String!
+}
+
+type ServiceFacetSelection {
+    id: OID!
+    facetName: String!
+    selectedOption: String!
+}
+
+type ServiceMetric {
+    id: OID!
+    name: String!
+    unitName: String!
+    limit: Int
+    freeLimit: Int
+    paidLimit: Int
+    unitCost: RecurringCost
+    currentUsage: Int!
+    usageResetPeriod: ResetPeriod
+    nextUsageReset: DateTime
+}
+
+type Service {
+    id: OID!
+    name: String
+    description: String
+    customValue: String
+    facetSelections: [ServiceFacetSelection!]!
+    setupCost: SetupCost
+    recurringCost: RecurringCost
+    metrics: [ServiceMetric!]!
+}
+
+type ServiceGroup {
+    id: OID!
+    optional: Boolean!
+    name: String!
+    costType: GroupCostType
+    setupCost: SetupCost
+    recurringCost: RecurringCost
+    services: [Service!]!
+}
+
+
+
+# subscription
+
+input InitializeFacetSelectionInput {
+    id: OID!
+    facetName: String!
+    selectedOption: String!
+}
+
+input DiscountInfoInitInput {
+    originalAmount: Amount_Money!
+    discountType: DiscountType!
+    discountValue: Float!
+    source: DiscountSource!
+}
+
+input InitializeMetricInput {
+    id: OID!
+    name: String!
+    unitName: String!
+    limit: Int
+    freeLimit: Int
+    paidLimit: Int
+    currentUsage: Int!
+    usageResetPeriod: ResetPeriod
+    unitCostAmount: Amount_Money
+    unitCostCurrency: Currency
+    unitCostBillingCycle: BillingCycle
+}
+
+input InitializeServiceInput {
+    id: OID!
+    name: String
+    description: String
+    customValue: String
+    facetSelections: [InitializeFacetSelectionInput!]
+    setupAmount: Amount_Money
+    setupCurrency: Currency
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
+    recurringDiscount: DiscountInfoInitInput
+    metrics: [InitializeMetricInput!]
+}
+
+input InitializeServiceGroupInput {
+    id: OID!
+    name: String!
+    optional: Boolean!
+    costType: GroupCostType
+    setupAmount: Amount_Money
+    setupCurrency: Currency
+    setupBillingDate: DateTime
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
+    recurringDiscount: DiscountInfoInitInput
+    services: [InitializeServiceInput!]
+}
 
 input InitializeSubscriptionInput {
     customerId: PHID
@@ -141,11 +247,18 @@ input InitializeSubscriptionInput {
     serviceOfferingId: PHID
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
+    tierPricingMode: TierPricingMode
+    selectedBillingCycle: BillingCycle
+    globalCurrency: Currency
     resourceId: PHID
     resourceLabel: String
     resourceThumbnailUrl: URL
     autoRenew: Boolean
     createdAt: DateTime!
+    services: [InitializeServiceInput!]
+    serviceGroups: [InitializeServiceGroupInput!]
 }
 
 input SetResourceDocumentInput {
@@ -202,6 +315,9 @@ input UpdateCustomerInfoInput {
 input UpdateTierInfoInput {
     tierName: String
     tierPricingOptionId: OID
+    tierPrice: Amount_Money
+    tierCurrency: Currency
+    tierPricingMode: TierPricingMode
 }
 
 input SetOperatorNotesInput {
@@ -222,12 +338,13 @@ input UpdateBillingProjectionInput {
     projectedBillCurrency: Currency
 }
 
-# Service
+# service
 
 input AddServiceInput {
     serviceId: OID!
     name: String
     description: String
+    customValue: String
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
@@ -237,6 +354,7 @@ input AddServiceInput {
     recurringBillingCycle: BillingCycle
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
+    recurringDiscount: DiscountServiceInfoInput
 }
 
 input RemoveServiceInput {
@@ -274,14 +392,42 @@ input UpdateServiceInfoInput {
     serviceId: OID!
     name: String
     description: String
+    customValue: String
 }
 
-# Service Group
+input AddServiceFacetSelectionInput {
+    serviceId: OID!
+    facetSelectionId: OID!
+    facetName: String!
+    selectedOption: String!
+}
+
+input RemoveServiceFacetSelectionInput {
+    serviceId: OID!
+    facetSelectionId: OID!
+}
+
+# service-group
+
+input DiscountServiceInfoInput {
+    originalAmount: Amount_Money!
+    discountType: DiscountType!
+    discountValue: Float!
+    source: DiscountSource!
+}
 
 input AddServiceGroupInput {
     groupId: OID!
     name: String!
     optional: Boolean!
+    costType: GroupCostType
+    setupAmount: Amount_Money
+    setupCurrency: Currency
+    setupBillingDate: DateTime
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
+    recurringDiscount: DiscountServiceInfoInput
 }
 
 input RemoveServiceGroupInput {
@@ -293,6 +439,7 @@ input AddServiceToGroupInput {
     serviceId: OID!
     name: String
     description: String
+    customValue: String
     setupAmount: Amount_Money
     setupCurrency: Currency
     setupBillingDate: DateTime
@@ -309,7 +456,17 @@ input RemoveServiceFromGroupInput {
     serviceId: OID!
 }
 
-# Metrics
+input UpdateServiceGroupCostInput {
+    groupId: OID!
+    setupAmount: Amount_Money
+    setupCurrency: Currency
+    setupBillingDate: DateTime
+    recurringAmount: Amount_Money
+    recurringCurrency: Currency
+    recurringBillingCycle: BillingCycle
+}
+
+# metrics
 
 input AddServiceMetricInput {
     serviceId: OID!
@@ -317,6 +474,8 @@ input AddServiceMetricInput {
     name: String!
     unitName: String!
     limit: Int
+    freeLimit: Int
+    paidLimit: Int
     currentUsage: Int!
     usageResetPeriod: ResetPeriod
     nextUsageReset: DateTime
@@ -363,7 +522,7 @@ input DecrementMetricUsageInput {
     decrementBy: Int!
 }
 
-# Customer
+# customer
 
 input SetCustomerTypeInput {
     customerType: CustomerType!
