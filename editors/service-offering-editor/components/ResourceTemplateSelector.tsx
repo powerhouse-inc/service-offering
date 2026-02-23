@@ -399,7 +399,9 @@ function TemplateCard({
         </div>
       )}
       {template.isRemote && (
-        <div className={`rts-card__remote-badge ${template.operatorName ? "rts-card__remote-badge--operator" : ""}`}>
+        <div
+          className={`rts-card__remote-badge ${template.operatorName ? "rts-card__remote-badge--operator" : ""}`}
+        >
           <svg
             viewBox="0 0 24 24"
             fill="none"

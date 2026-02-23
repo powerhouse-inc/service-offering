@@ -581,6 +581,7 @@ input SetOptionGroupStandalonePricingInput {
     optionGroupId: OID!
     setupCost: SetupCostInput
     recurringPricing: [RecurringPriceOptionInput!]!
+    billingCycleDiscounts: [BillingCycleDiscountInput!]
     lastModified: DateTime!
 }
 
