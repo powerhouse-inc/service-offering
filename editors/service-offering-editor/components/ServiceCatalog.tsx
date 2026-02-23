@@ -248,7 +248,9 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
     // If a recurring/add-on price is set, set as standalone monthly recurring + per-tier pricing
     if (!isSetup && price && price > 0) {
-      const billingCycle = isAddOn ? newGroupBillingCycle : newGroupBillingCycle;
+      const billingCycle = isAddOn
+        ? newGroupBillingCycle
+        : newGroupBillingCycle;
       dispatch(
         setOptionGroupStandalonePricing({
           optionGroupId: groupId,
@@ -658,7 +660,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           recurringPricing,
           billingCycleDiscounts,
           lastModified: new Date().toISOString(),
-        } as any),
+        }),
       );
     }
 
@@ -2407,20 +2409,22 @@ function GroupButton({
               {formatPrice(group.price, "USD")}
             </span>
           )}
-          {!isSetup && !group.isAddOn && (() => {
-            const monthlyPrice =
-              group.tierDependentPricing?.[0]?.recurringPricing?.find(
-                (p) => p.billingCycle === "MONTHLY",
-              )?.amount ??
-              group.standalonePricing?.recurringPricing?.find(
-                (p) => p.billingCycle === "MONTHLY",
-              )?.amount;
-            return monthlyPrice != null && monthlyPrice > 0 ? (
-              <span className="catalog__group-fee">
-                {formatPrice(monthlyPrice, "USD")}/mo
-              </span>
-            ) : null;
-          })()}
+          {!isSetup &&
+            !group.isAddOn &&
+            (() => {
+              const monthlyPrice =
+                group.tierDependentPricing?.[0]?.recurringPricing?.find(
+                  (p) => p.billingCycle === "MONTHLY",
+                )?.amount ??
+                group.standalonePricing?.recurringPricing?.find(
+                  (p) => p.billingCycle === "MONTHLY",
+                )?.amount;
+              return monthlyPrice != null && monthlyPrice > 0 ? (
+                <span className="catalog__group-fee">
+                  {formatPrice(monthlyPrice, "USD")}/mo
+                </span>
+              ) : null;
+            })()}
         </div>
       </button>
       {isHovered && (

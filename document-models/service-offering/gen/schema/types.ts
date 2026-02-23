@@ -576,6 +576,7 @@ export type SetOptionGroupDiscountModeInput = {
 };
 
 export type SetOptionGroupStandalonePricingInput = {
+  billingCycleDiscounts?: InputMaybe<Array<BillingCycleDiscountInput>>;
   lastModified: Scalars["DateTime"]["input"];
   optionGroupId: Scalars["OID"]["input"];
   recurringPricing: Array<RecurringPriceOptionInput>;

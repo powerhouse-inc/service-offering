@@ -898,6 +898,9 @@ export function SetOptionGroupStandalonePricingInputSchema(): z.ZodObject<
   Properties<SetOptionGroupStandalonePricingInput>
 > {
   return z.object({
+    billingCycleDiscounts: z
+      .array(z.lazy(() => BillingCycleDiscountInputSchema()))
+      .nullish(),
     lastModified: z.string().datetime(),
     optionGroupId: z.string(),
     recurringPricing: z.array(z.lazy(() => RecurringPriceOptionInputSchema())),

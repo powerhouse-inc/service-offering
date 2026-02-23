@@ -106,6 +106,17 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
             : null,
         })),
       };
+      if (action.input.billingCycleDiscounts) {
+        og.billingCycleDiscounts = action.input.billingCycleDiscounts.map(
+          (d) => ({
+            billingCycle: d.billingCycle,
+            discountRule: {
+              discountType: d.discountRule.discountType,
+              discountValue: d.discountRule.discountValue,
+            },
+          }),
+        );
+      }
       state.lastModified = action.input.lastModified;
     },
     addOptionGroupTierPricingOperation(state, action) {
