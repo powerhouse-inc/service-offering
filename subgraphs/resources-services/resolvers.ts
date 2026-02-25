@@ -14,6 +14,7 @@ import {
   ResourceInstance,
   SubscriptionInstance,
 } from "@powerhousedao/service-offering/document-models";
+import { mapOfferingToSubscription } from "../../editors/subscription-instance-editor/components/mapOfferingToSubscription.js";
 
 // Filter types
 interface ResourceTemplatesFilter {
@@ -401,28 +402,22 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
 
           const now = new Date().toISOString();
 
-          // find the selected tier to get its name and pricing details
-          const selectedTier = serviceOfferingState.tiers.find(
-            (t) => t.id === finalConfiguration.selectedTierId,
-          );
+          const subscriptionInput = mapOfferingToSubscription({
+            offering: serviceOfferingState,
+            tierId: finalConfiguration.selectedTierId,
+            selectedBillingCycle: finalConfiguration.selectedBillingCycle,
+            customerId: builderProfileDoc.header.id,
+            customerName: name,
+            createdAt: now,
+          });
 
           await reactor.addAction(
             subscriptionInstanceDoc.header.id,
             SubscriptionInstance.actions.initializeSubscription({
-              customerId: builderProfileDoc.header.id,
-              customerName: name,
-              serviceOfferingId,
+              ...subscriptionInput,
               resourceId: resourceInstanceDoc.header.id,
               resourceLabel: name,
               resourceThumbnailUrl: serviceOfferingState.thumbnailUrl,
-              tierName: selectedTier?.name || null,
-              tierPrice: selectedTier?.pricing?.amount ?? null,
-              tierCurrency: selectedTier?.pricing?.currency || null,
-              tierPricingMode: selectedTier?.pricingMode || null,
-              selectedBillingCycle:
-                finalConfiguration.selectedBillingCycle || null,
-              globalCurrency: finalConfiguration.tierCurrency || null,
-              createdAt: now,
             }),
           );
 
