@@ -10,6 +10,8 @@ import type {
   AddUsageLimitInput,
   UpdateUsageLimitInput,
   RemoveUsageLimitInput,
+  SetTierDefaultBillingCycleInput,
+  SetTierBillingCycleDiscountsInput,
   SetTierPricingModeInput,
 } from "../types.js";
 
@@ -50,6 +52,14 @@ export type RemoveUsageLimitAction = Action & {
   type: "REMOVE_USAGE_LIMIT";
   input: RemoveUsageLimitInput;
 };
+export type SetTierDefaultBillingCycleAction = Action & {
+  type: "SET_TIER_DEFAULT_BILLING_CYCLE";
+  input: SetTierDefaultBillingCycleInput;
+};
+export type SetTierBillingCycleDiscountsAction = Action & {
+  type: "SET_TIER_BILLING_CYCLE_DISCOUNTS";
+  input: SetTierBillingCycleDiscountsInput;
+};
 export type SetTierPricingModeAction = Action & {
   type: "SET_TIER_PRICING_MODE";
   input: SetTierPricingModeInput;
@@ -66,4 +76,6 @@ export type ServiceOfferingTiersAction =
   | AddUsageLimitAction
   | UpdateUsageLimitAction
   | RemoveUsageLimitAction
+  | SetTierDefaultBillingCycleAction
+  | SetTierBillingCycleDiscountsAction
   | SetTierPricingModeAction;

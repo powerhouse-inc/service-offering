@@ -10,6 +10,8 @@ import type {
   AddUsageLimitAction,
   UpdateUsageLimitAction,
   RemoveUsageLimitAction,
+  SetTierDefaultBillingCycleAction,
+  SetTierBillingCycleDiscountsAction,
   SetTierPricingModeAction,
 } from "./actions.js";
 import type { ServiceOfferingState } from "../types.js";
@@ -63,6 +65,16 @@ export interface ServiceOfferingTiersOperations {
   removeUsageLimitOperation: (
     state: ServiceOfferingState,
     action: RemoveUsageLimitAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  setTierDefaultBillingCycleOperation: (
+    state: ServiceOfferingState,
+    action: SetTierDefaultBillingCycleAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  setTierBillingCycleDiscountsOperation: (
+    state: ServiceOfferingState,
+    action: SetTierBillingCycleDiscountsAction,
     dispatch?: SignalDispatch,
   ) => void;
   setTierPricingModeOperation: (

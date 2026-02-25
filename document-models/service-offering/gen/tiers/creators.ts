@@ -10,6 +10,8 @@ import {
   AddUsageLimitInputSchema,
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
+  SetTierDefaultBillingCycleInputSchema,
+  SetTierBillingCycleDiscountsInputSchema,
   SetTierPricingModeInputSchema,
 } from "../schema/zod.js";
 import type {
@@ -23,6 +25,8 @@ import type {
   AddUsageLimitInput,
   UpdateUsageLimitInput,
   RemoveUsageLimitInput,
+  SetTierDefaultBillingCycleInput,
+  SetTierBillingCycleDiscountsInput,
   SetTierPricingModeInput,
 } from "../types.js";
 import type {
@@ -36,6 +40,8 @@ import type {
   AddUsageLimitAction,
   UpdateUsageLimitAction,
   RemoveUsageLimitAction,
+  SetTierDefaultBillingCycleAction,
+  SetTierBillingCycleDiscountsAction,
   SetTierPricingModeAction,
 } from "./actions.js";
 
@@ -126,6 +132,28 @@ export const removeUsageLimit = (input: RemoveUsageLimitInput) =>
     { ...input },
     undefined,
     RemoveUsageLimitInputSchema,
+    "global",
+  );
+
+export const setTierDefaultBillingCycle = (
+  input: SetTierDefaultBillingCycleInput,
+) =>
+  createAction<SetTierDefaultBillingCycleAction>(
+    "SET_TIER_DEFAULT_BILLING_CYCLE",
+    { ...input },
+    undefined,
+    SetTierDefaultBillingCycleInputSchema,
+    "global",
+  );
+
+export const setTierBillingCycleDiscounts = (
+  input: SetTierBillingCycleDiscountsInput,
+) =>
+  createAction<SetTierBillingCycleDiscountsAction>(
+    "SET_TIER_BILLING_CYCLE_DISCOUNTS",
+    { ...input },
+    undefined,
+    SetTierBillingCycleDiscountsInputSchema,
     "global",
   );
 

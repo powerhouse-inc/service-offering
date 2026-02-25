@@ -7,6 +7,7 @@ import type {
   AddOptionGroupTierPricingInput,
   UpdateOptionGroupTierPricingInput,
   RemoveOptionGroupTierPricingInput,
+  SetOptionGroupDiscountModeInput,
 } from "../types.js";
 
 export type AddOptionGroupAction = Action & {
@@ -37,6 +38,10 @@ export type RemoveOptionGroupTierPricingAction = Action & {
   type: "REMOVE_OPTION_GROUP_TIER_PRICING";
   input: RemoveOptionGroupTierPricingInput;
 };
+export type SetOptionGroupDiscountModeAction = Action & {
+  type: "SET_OPTION_GROUP_DISCOUNT_MODE";
+  input: SetOptionGroupDiscountModeInput;
+};
 
 export type ServiceOfferingOptionGroupsAction =
   | AddOptionGroupAction
@@ -45,4 +50,5 @@ export type ServiceOfferingOptionGroupsAction =
   | SetOptionGroupStandalonePricingAction
   | AddOptionGroupTierPricingAction
   | UpdateOptionGroupTierPricingAction
-  | RemoveOptionGroupTierPricingAction;
+  | RemoveOptionGroupTierPricingAction
+  | SetOptionGroupDiscountModeAction;

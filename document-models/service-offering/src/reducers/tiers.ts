@@ -11,6 +11,8 @@ import {
   UpdateUsageLimitNotFoundError,
   RemoveUsageLimitTierNotFoundError,
   SetTierPricingModeTierNotFoundError,
+  SetTierDefaultBillingCycleTierNotFoundError,
+  SetTierBillingCycleDiscountsTierNotFoundError,
 } from "../../gen/tiers/error.js";
 import type { ServiceOfferingTiersOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -26,6 +28,8 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
         amount: action.input.amount || null,
         currency: action.input.currency,
       },
+      defaultBillingCycle: null,
+      billingCycleDiscounts: [],
       serviceLevels: [],
       usageLimits: [],
     });
@@ -196,6 +200,32 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       );
     }
     tier.pricingMode = action.input.pricingMode;
+    state.lastModified = action.input.lastModified;
+  },
+  setTierDefaultBillingCycleOperation(state, action) {
+    const tier = state.tiers.find((t) => t.id === action.input.tierId);
+    if (!tier) {
+      throw new SetTierDefaultBillingCycleTierNotFoundError(
+        `Tier with ID ${action.input.tierId} not found`,
+      );
+    }
+    tier.defaultBillingCycle = action.input.defaultBillingCycle;
+    state.lastModified = action.input.lastModified;
+  },
+  setTierBillingCycleDiscountsOperation(state, action) {
+    const tier = state.tiers.find((t) => t.id === action.input.tierId);
+    if (!tier) {
+      throw new SetTierBillingCycleDiscountsTierNotFoundError(
+        `Tier with ID ${action.input.tierId} not found`,
+      );
+    }
+    tier.billingCycleDiscounts = action.input.discounts.map((d) => ({
+      billingCycle: d.billingCycle,
+      discountRule: {
+        discountType: d.discountRule.discountType,
+        discountValue: d.discountRule.discountValue,
+      },
+    }));
     state.lastModified = action.input.lastModified;
   },
 };

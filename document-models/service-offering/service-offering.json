@@ -189,34 +189,34 @@
               "template": "Change the resource template"
             },
             {
+              "id": "op-set-available-billing-cycles",
+              "name": "SET_AVAILABLE_BILLING_CYCLES",
               "description": "Set the available billing cycles for the offering. These cycles apply globally to all service groups and option groups.",
+              "schema": "input SetAvailableBillingCyclesInput {\n    billingCycles: [BillingCycle!]!\n    lastModified: DateTime!\n}",
+              "template": "Set the available billing cycles for the offering. These cycles apply globally to all service groups and option groups.",
+              "reducer": "if (action.input.billingCycles.length === 0) {\n    throw new NoBillingCyclesSelectedError(\"At least one billing cycle must be selected\");\n}\nstate.availableBillingCycles = action.input.billingCycles;\nstate.lastModified = action.input.lastModified;",
               "errors": [
                 {
-                  "code": "NO_BILLING_CYCLES_SELECTED",
-                  "description": "At least one billing cycle must be selected",
                   "id": "err-no-billing-cycles",
                   "name": "NoBillingCyclesSelectedError",
+                  "code": "NO_BILLING_CYCLES_SELECTED",
+                  "description": "At least one billing cycle must be selected",
                   "template": ""
                 }
               ],
               "examples": [],
-              "id": "op-set-available-billing-cycles",
-              "name": "SET_AVAILABLE_BILLING_CYCLES",
-              "reducer": "if (action.input.billingCycles.length === 0) {\n    throw new NoBillingCyclesSelectedError(\"At least one billing cycle must be selected\");\n}\nstate.availableBillingCycles = action.input.billingCycles;\nstate.lastModified = action.input.lastModified;",
-              "schema": "input SetAvailableBillingCyclesInput {\n    billingCycles: [BillingCycle!]!\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Set the available billing cycles for the offering. These cycles apply globally to all service groups and option groups."
+              "scope": "global"
             },
             {
-              "description": "Set facet bindings at the offering level (moved from per-service)",
-              "errors": [],
-              "examples": [],
               "id": "op-set-facet-bindings",
               "name": "SET_FACET_BINDINGS",
-              "reducer": "state.facetBindings = action.input.facetBindings.map((fb) => ({\n    id: fb.id,\n    facetName: fb.facetName,\n    facetType: fb.facetType,\n    supportedOptions: fb.supportedOptions || [],\n}));\nstate.lastModified = action.input.lastModified;",
+              "description": "Set facet bindings at the offering level (moved from per-service)",
               "schema": "input SetFacetBindingsInput {\n    facetBindings: [FacetBindingInput!]!\n    lastModified: DateTime!\n}\n\ninput FacetBindingInput {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}",
-              "scope": "global",
-              "template": "Set facet bindings at the offering level (moved from per-service)"
+              "template": "Set facet bindings at the offering level (moved from per-service)",
+              "reducer": "state.facetBindings = action.input.facetBindings.map((fb) => ({\n    id: fb.id,\n    facetName: fb.facetName,\n    facetType: fb.facetType,\n    supportedOptions: fb.supportedOptions || [],\n}));\nstate.lastModified = action.input.lastModified;",
+              "errors": [],
+              "examples": [],
+              "scope": "global"
             }
           ]
         },
@@ -325,7 +325,7 @@
               "examples": [],
               "id": "op-add-tier",
               "name": "ADD_TIER",
-              "reducer": "state.tiers.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  isCustomPricing: action.input.isCustomPricing || false,\n  pricingMode: null,\n  pricing: {\n    amount: action.input.amount || null,\n    currency: action.input.currency,\n  },\n  serviceLevels: [],\n  usageLimits: [],\n});\nstate.lastModified = action.input.lastModified;",
+              "reducer": "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isCustomPricing: action.input.isCustomPricing || false,\n    pricingMode: null,\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency,\n    },\n    defaultBillingCycle: null,\n    billingCycleDiscounts: [],\n    serviceLevels: [],\n    usageLimits: [],\n});\nstate.lastModified = action.input.lastModified;",
               "schema": "input AddTierInput {\n    id: OID!\n    name: String!\n    description: String\n    amount: Amount_Money\n    currency: Currency!\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Add a subscription tier"
@@ -516,6 +516,44 @@
               "template": "Remove a usage limit from a tier"
             },
             {
+              "description": "Set the default billing cycle for a tier",
+              "errors": [
+                {
+                  "code": "TIER_NOT_FOUND",
+                  "description": "Tier with given ID not found",
+                  "id": "err-set-tbc-tier-not-found",
+                  "name": "SetTierDefaultBillingCycleTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-set-tier-default-billing-cycle",
+              "name": "SET_TIER_DEFAULT_BILLING_CYCLE",
+              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetTierDefaultBillingCycleTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.defaultBillingCycle = action.input.defaultBillingCycle;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetTierDefaultBillingCycleInput {\n    tierId: OID!\n    defaultBillingCycle: BillingCycle!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Set the default billing cycle for a tier"
+            },
+            {
+              "description": "Set billing cycle discounts for a tier",
+              "errors": [
+                {
+                  "code": "TIER_NOT_FOUND",
+                  "description": "Tier with given ID not found",
+                  "id": "err-set-tbcd-tier-not-found",
+                  "name": "SetTierBillingCycleDiscountsTierNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-set-tier-billing-cycle-discounts",
+              "name": "SET_TIER_BILLING_CYCLE_DISCOUNTS",
+              "reducer": "const tier = state.tiers.find(t => t.id === action.input.tierId);\nif (!tier) {\n    throw new SetTierBillingCycleDiscountsTierNotFoundError(`Tier with ID ${action.input.tierId} not found`);\n}\ntier.billingCycleDiscounts = action.input.discounts.map(d => ({\n    billingCycle: d.billingCycle,\n    discountRule: {\n        discountType: d.discountRule.discountType,\n        discountValue: d.discountRule.discountValue,\n    },\n}));\nstate.lastModified = action.input.lastModified;",
+              "schema": "input DiscountRuleInput {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\ninput BillingCycleDiscountInput {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRuleInput!\n}\n\ninput SetTierBillingCycleDiscountsInput {\n    tierId: OID!\n    discounts: [BillingCycleDiscountInput!]!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Set billing cycle discounts for a tier"
+            },
+            {
               "description": "Set the pricing mode for a tier",
               "errors": [
                 {
@@ -665,6 +703,25 @@
               "schema": "input RemoveOptionGroupTierPricingInput {\n    optionGroupId: OID!\n    tierId: OID!\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Remove tier-dependent pricing from an option group"
+            },
+            {
+              "description": "Set the discount mode for an option group",
+              "errors": [
+                {
+                  "code": "OPTION_GROUP_NOT_FOUND",
+                  "description": "Option group with given ID not found",
+                  "id": "err-set-ogdm-not-found",
+                  "name": "SetOptionGroupDiscountModeNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-set-option-group-discount-mode",
+              "name": "SET_OPTION_GROUP_DISCOUNT_MODE",
+              "reducer": "const og = state.optionGroups.find(g => g.id === action.input.optionGroupId);\nif (!og) {\n    throw new SetOptionGroupDiscountModeNotFoundError(`Option group with ID ${action.input.optionGroupId} not found`);\n}\nog.discountMode = action.input.discountMode;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetOptionGroupDiscountModeInput {\n    optionGroupId: OID!\n    discountMode: DiscountMode!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Set the discount mode for an option group"
             }
           ]
         },
@@ -679,8 +736,8 @@
               "examples": [],
               "id": "op-add-service-group",
               "name": "ADD_SERVICE_GROUP",
-              "reducer": "state.serviceGroups.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  billingCycle: action.input.billingCycle,\n  displayOrder: action.input.displayOrder || null,\n  tierPricing: [],\n});\nstate.lastModified = action.input.lastModified;",
-              "schema": "input AddServiceGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    lastModified: DateTime!\n}",
+              "reducer": "state.serviceGroups.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    billingCycle: action.input.billingCycle,\n    displayOrder: action.input.displayOrder || null,\n    discountMode: action.input.discountMode || null,\n    tierPricing: [],\n});\nstate.lastModified = action.input.lastModified;",
+              "schema": "input AddServiceGroupInput {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    discountMode: DiscountMode\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Add a service group"
             },
@@ -698,8 +755,8 @@
               "examples": [],
               "id": "op-update-service-group",
               "name": "UPDATE_SERVICE_GROUP",
-              "reducer": "const sg = state.serviceGroups.find((g) => g.id === action.input.id);\nif (!sg) {\n  throw new UpdateServiceGroupNotFoundError(`ServiceGroup with ID ${action.input.id} not found`);\n}\nif (action.input.name) sg.name = action.input.name;\nif (action.input.description !== undefined) sg.description = action.input.description || null;\nif (action.input.billingCycle) sg.billingCycle = action.input.billingCycle;\nif (action.input.displayOrder !== undefined) sg.displayOrder = action.input.displayOrder || null;\nstate.lastModified = action.input.lastModified;",
-              "schema": "input UpdateServiceGroupInput {\n    id: OID!\n    name: String\n    description: String\n    billingCycle: BillingCycle\n    displayOrder: Int\n    lastModified: DateTime!\n}",
+              "reducer": "const sg = state.serviceGroups.find(g => g.id === action.input.id);\nif (!sg) {\n    throw new UpdateServiceGroupNotFoundError(`Service group with ID ${action.input.id} not found`);\n}\nif (action.input.name) sg.name = action.input.name;\nif (action.input.description !== undefined) sg.description = action.input.description || null;\nif (action.input.billingCycle) sg.billingCycle = action.input.billingCycle;\nif (action.input.displayOrder !== undefined) sg.displayOrder = action.input.displayOrder || null;\nif (action.input.discountMode !== undefined) sg.discountMode = action.input.discountMode || null;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input UpdateServiceGroupInput {\n    id: OID!\n    name: String\n    description: String\n    billingCycle: BillingCycle\n    displayOrder: Int\n    discountMode: DiscountMode\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Update service group fields"
             },
@@ -957,8 +1014,8 @@
               "examples": [],
               "id": "op-set-final-configuration",
               "name": "SET_FINAL_CONFIGURATION",
-              "reducer": "state.finalConfiguration = {\n  selectedTierId: action.input.selectedTierId,\n  selectedBillingCycle: action.input.selectedBillingCycle,\n  tierBasePrice: action.input.tierBasePrice || null,\n  tierCurrency: action.input.tierCurrency,\n  optionGroupConfigs: action.input.optionGroupConfigs.map((og) => ({\n    id: og.id,\n    optionGroupId: og.optionGroupId,\n    effectiveBillingCycle: og.effectiveBillingCycle,\n    billingCycleOverridden: og.billingCycleOverridden,\n    discountStripped: og.discountStripped,\n    recurringAmount: og.recurringAmount || null,\n    currency: og.currency || null,\n    discount: og.discount ? {\n      discountType: og.discount.discountType,\n      discountValue: og.discount.discountValue,\n      originalAmount: og.discount.originalAmount,\n      discountedAmount: og.discount.discountedAmount,\n    } : null,\n    setupCost: og.setupCost || null,\n    setupCostCurrency: og.setupCostCurrency || null,\n    setupCostDiscount: og.setupCostDiscount ? {\n      discountType: og.setupCostDiscount.discountType,\n      discountValue: og.setupCostDiscount.discountValue,\n      originalAmount: og.setupCostDiscount.originalAmount,\n      discountedAmount: og.setupCostDiscount.discountedAmount,\n    } : null,\n  })),\n  addOnConfigs: action.input.addOnConfigs.map((ao) => ({\n    id: ao.id,\n    optionGroupId: ao.optionGroupId,\n    selectedBillingCycle: ao.selectedBillingCycle,\n    recurringAmount: ao.recurringAmount || null,\n    currency: ao.currency || null,\n    discount: ao.discount ? {\n      discountType: ao.discount.discountType,\n      discountValue: ao.discount.discountValue,\n      originalAmount: ao.discount.originalAmount,\n      discountedAmount: ao.discount.discountedAmount,\n    } : null,\n    setupCost: ao.setupCost || null,\n    setupCostCurrency: ao.setupCostCurrency || null,\n    setupCostDiscount: ao.setupCostDiscount ? {\n      discountType: ao.setupCostDiscount.discountType,\n      discountValue: ao.setupCostDiscount.discountValue,\n      originalAmount: ao.setupCostDiscount.originalAmount,\n      discountedAmount: ao.setupCostDiscount.discountedAmount,\n    } : null,\n  })),\n  lastModified: action.input.lastModified,\n};",
-              "schema": "input ResolvedDiscountInput {\n    discountType: DiscountType!\n    discountValue: Float!\n    originalAmount: Amount_Money!\n    discountedAmount: Amount_Money!\n}\n\ninput FinalOptionGroupConfigInput {\n    id: OID!\n    optionGroupId: OID!\n    effectiveBillingCycle: BillingCycle!\n    billingCycleOverridden: Boolean!\n    discountStripped: Boolean!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscountInput\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscountInput\n}\n\ninput FinalAddOnConfigInput {\n    id: OID!\n    optionGroupId: OID!\n    selectedBillingCycle: BillingCycle!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscountInput\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscountInput\n}\n\ninput SetFinalConfigurationInput {\n    selectedTierId: OID!\n    selectedBillingCycle: BillingCycle!\n    tierBasePrice: Amount_Money\n    tierCurrency: Currency!\n    optionGroupConfigs: [FinalOptionGroupConfigInput!]!\n    addOnConfigs: [FinalAddOnConfigInput!]!\n    lastModified: DateTime!\n}",
+              "reducer": "const tier = state.tiers.find(t => t.id === action.input.selectedTierId);\nif (!tier) {\n    throw new SetConfigTierNotFoundError(`Tier with ID ${action.input.selectedTierId} not found`);\n}\nfor (const ogConfig of action.input.optionGroupConfigs) {\n    const og = state.optionGroups.find(g => g.id === ogConfig.optionGroupId);\n    if (!og) {\n        throw new SetConfigOptionGroupNotFoundError(`Option group with ID ${ogConfig.optionGroupId} not found`);\n    }\n}\nfor (const addonConfig of action.input.addOnConfigs) {\n    const og = state.optionGroups.find(g => g.id === addonConfig.optionGroupId);\n    if (!og) {\n        throw new SetConfigAddOnGroupNotFoundError(`Option group (add-on) with ID ${addonConfig.optionGroupId} not found`);\n    }\n}\nconst mapDiscount = (d) => d ? {\n    discountType: d.discountType,\n    discountValue: d.discountValue,\n    originalAmount: d.originalAmount,\n    discountedAmount: d.discountedAmount,\n} : null;\nstate.finalConfiguration = {\n    selectedTierId: action.input.selectedTierId,\n    selectedBillingCycle: action.input.selectedBillingCycle,\n    tierBasePrice: action.input.tierBasePrice || null,\n    tierCurrency: action.input.tierCurrency,\n    tierDiscount: mapDiscount(action.input.tierDiscount),\n    optionGroupConfigs: action.input.optionGroupConfigs.map(ogc => ({\n        id: ogc.id,\n        optionGroupId: ogc.optionGroupId,\n        effectiveBillingCycle: ogc.effectiveBillingCycle,\n        billingCycleOverridden: ogc.billingCycleOverridden,\n        discountStripped: ogc.discountStripped,\n        recurringAmount: ogc.recurringAmount || null,\n        currency: ogc.currency || null,\n        discount: mapDiscount(ogc.discount),\n        setupCost: ogc.setupCost || null,\n        setupCostCurrency: ogc.setupCostCurrency || null,\n        setupCostDiscount: mapDiscount(ogc.setupCostDiscount),\n    })),\n    addOnConfigs: action.input.addOnConfigs.map(ac => ({\n        id: ac.id,\n        optionGroupId: ac.optionGroupId,\n        selectedBillingCycle: ac.selectedBillingCycle,\n        recurringAmount: ac.recurringAmount || null,\n        currency: ac.currency || null,\n        discount: mapDiscount(ac.discount),\n        setupCost: ac.setupCost || null,\n        setupCostCurrency: ac.setupCostCurrency || null,\n        setupCostDiscount: mapDiscount(ac.setupCostDiscount),\n    })),\n    lastModified: action.input.lastModified,\n};",
+              "schema": "input ResolvedDiscountInput {\n    discountType: DiscountType!\n    discountValue: Float!\n    originalAmount: Amount_Money!\n    discountedAmount: Amount_Money!\n}\n\ninput FinalOptionGroupConfigInput {\n    id: OID!\n    optionGroupId: OID!\n    effectiveBillingCycle: BillingCycle!\n    billingCycleOverridden: Boolean!\n    discountStripped: Boolean!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscountInput\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscountInput\n}\n\ninput FinalAddOnConfigInput {\n    id: OID!\n    optionGroupId: OID!\n    selectedBillingCycle: BillingCycle!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscountInput\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscountInput\n}\n\ninput SetFinalConfigurationInput {\n    selectedTierId: OID!\n    selectedBillingCycle: BillingCycle!\n    tierBasePrice: Amount_Money\n    tierCurrency: Currency!\n    tierDiscount: ResolvedDiscountInput\n    optionGroupConfigs: [FinalOptionGroupConfigInput!]!\n    addOnConfigs: [FinalAddOnConfigInput!]!\n    lastModified: DateTime!\n}",
               "scope": "global",
               "template": "Write the entire resolved configuration for a selected tier"
             },
@@ -980,7 +1037,7 @@
         "global": {
           "examples": [],
           "initialValue": "{\n    \"id\": \"\",\n    \"operatorId\": \"\",\n    \"resourceTemplateId\": null,\n    \"title\": \"\",\n    \"summary\": \"\",\n    \"description\": null,\n    \"thumbnailUrl\": null,\n    \"infoLink\": null,\n    \"status\": \"DRAFT\",\n    \"lastModified\": \"2024-01-01T00:00:00.000Z\",\n    \"availableBillingCycles\": [],\n    \"targetAudiences\": [],\n    \"facetTargets\": [],\n    \"facetBindings\": [],\n    \"serviceGroups\": [],\n    \"services\": [],\n    \"tiers\": [],\n    \"optionGroups\": [],\n    \"finalConfiguration\": null\n}",
-          "schema": "type ServiceOfferingState {\n    id: PHID!\n    operatorId: PHID!\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime!\n    availableBillingCycles: [BillingCycle!]!\n    targetAudiences: [TargetAudience!]!\n    facetTargets: [FacetTarget!]!\n    facetBindings: [ResourceFacetBinding!]!\n    serviceGroups: [ServiceGroup!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n    finalConfiguration: FinalConfiguration\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype TargetAudience {\n    id: OID!\n    label: String!\n    color: String\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype DiscountRule {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\ntype BillingCycleDiscount {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRule!\n}\n\ntype ServiceGroup {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    tierPricing: [ServiceGroupTierPricing!]!\n}\n\ntype ServiceGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCostsPerCycle: [SetupCostPerCycle!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype SetupCostPerCycle {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype RecurringPriceOption {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    serviceGroupId: OID\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n}\n\ntype ResourceFacetBinding {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricingMode: TierPricingMode\n    pricing: ServicePricing!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    pricingMode: AddOnPricingMode\n    standalonePricing: StandalonePricing\n    tierDependentPricing: [OptionGroupTierPricing!]\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    price: Amount_Money\n    currency: Currency\n}\n\nenum AddOnPricingMode {\n    TIER_DEPENDENT\n    STANDALONE\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\ntype StandalonePricing {\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype OptionGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCost: SetupCost\n    setupCostDiscounts: [BillingCycleDiscount!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}\n\ntype ResolvedDiscount {\n    discountType: DiscountType!\n    discountValue: Float!\n    originalAmount: Amount_Money!\n    discountedAmount: Amount_Money!\n}\n\ntype FinalOptionGroupConfig {\n    id: OID!\n    optionGroupId: OID!\n    effectiveBillingCycle: BillingCycle!\n    billingCycleOverridden: Boolean!\n    discountStripped: Boolean!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscount\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscount\n}\n\ntype FinalAddOnConfig {\n    id: OID!\n    optionGroupId: OID!\n    selectedBillingCycle: BillingCycle!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscount\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscount\n}\n\ntype FinalConfiguration {\n    selectedTierId: OID!\n    selectedBillingCycle: BillingCycle!\n    tierBasePrice: Amount_Money\n    tierCurrency: Currency!\n    optionGroupConfigs: [FinalOptionGroupConfig!]!\n    addOnConfigs: [FinalAddOnConfig!]!\n    lastModified: DateTime!\n}"
+          "schema": "type ServiceOfferingState {\n    id: PHID!\n    operatorId: PHID!\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime!\n    availableBillingCycles: [BillingCycle!]!\n    targetAudiences: [TargetAudience!]!\n    facetTargets: [FacetTarget!]!\n    facetBindings: [ResourceFacetBinding!]!\n    serviceGroups: [ServiceGroup!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n    finalConfiguration: FinalConfiguration\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype TargetAudience {\n    id: OID!\n    label: String!\n    color: String\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype DiscountRule {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\ntype BillingCycleDiscount {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRule!\n}\n\ntype ServiceGroup {\n    id: OID!\n    name: String!\n    description: String\n    billingCycle: BillingCycle!\n    displayOrder: Int\n    discountMode: DiscountMode\n    tierPricing: [ServiceGroupTierPricing!]!\n}\n\ntype ServiceGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCostsPerCycle: [SetupCostPerCycle!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype SetupCostPerCycle {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype RecurringPriceOption {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    serviceGroupId: OID\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n}\n\ntype ResourceFacetBinding {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricingMode: TierPricingMode\n    pricing: ServicePricing!\n    defaultBillingCycle: BillingCycle\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    pricingMode: AddOnPricingMode\n    standalonePricing: StandalonePricing\n    tierDependentPricing: [OptionGroupTierPricing!]\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    discountMode: DiscountMode\n    price: Amount_Money\n    currency: Currency\n}\n\nenum AddOnPricingMode {\n    TIER_DEPENDENT\n    STANDALONE\n}\n\nenum DiscountMode {\n    INHERIT_TIER\n    INDEPENDENT\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\ntype StandalonePricing {\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype OptionGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCost: SetupCost\n    setupCostDiscounts: [BillingCycleDiscount!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}\n\ntype ResolvedDiscount {\n    discountType: DiscountType!\n    discountValue: Float!\n    originalAmount: Amount_Money!\n    discountedAmount: Amount_Money!\n}\n\ntype FinalOptionGroupConfig {\n    id: OID!\n    optionGroupId: OID!\n    effectiveBillingCycle: BillingCycle!\n    billingCycleOverridden: Boolean!\n    discountStripped: Boolean!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscount\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscount\n}\n\ntype FinalAddOnConfig {\n    id: OID!\n    optionGroupId: OID!\n    selectedBillingCycle: BillingCycle!\n    recurringAmount: Amount_Money\n    currency: Currency\n    discount: ResolvedDiscount\n    setupCost: Amount_Money\n    setupCostCurrency: Currency\n    setupCostDiscount: ResolvedDiscount\n}\n\ntype FinalConfiguration {\n    selectedTierId: OID!\n    selectedBillingCycle: BillingCycle!\n    tierBasePrice: Amount_Money\n    tierCurrency: Currency!\n    tierDiscount: ResolvedDiscount\n    optionGroupConfigs: [FinalOptionGroupConfig!]!\n    addOnConfigs: [FinalAddOnConfig!]!\n    lastModified: DateTime!\n}"
         },
         "local": {
           "examples": [],

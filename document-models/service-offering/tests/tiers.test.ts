@@ -26,6 +26,10 @@ import {
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
   SetTierPricingModeInputSchema,
+  setTierDefaultBillingCycle,
+  setTierBillingCycleDiscounts,
+  SetTierDefaultBillingCycleInputSchema,
+  SetTierBillingCycleDiscountsInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("TiersOperations", () => {
@@ -207,6 +211,46 @@ describe("TiersOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_TIER_PRICING_MODE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setTierDefaultBillingCycle operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetTierDefaultBillingCycleInputSchema());
+
+    const updatedDocument = reducer(
+      document,
+      setTierDefaultBillingCycle(input),
+    );
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_TIER_DEFAULT_BILLING_CYCLE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setTierBillingCycleDiscounts operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetTierBillingCycleDiscountsInputSchema());
+
+    const updatedDocument = reducer(
+      document,
+      setTierBillingCycleDiscounts(input),
+    );
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_TIER_BILLING_CYCLE_DISCOUNTS",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

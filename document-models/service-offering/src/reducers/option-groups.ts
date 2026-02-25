@@ -247,4 +247,10 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
       }
       state.lastModified = action.input.lastModified;
     },
+    setOptionGroupDiscountModeOperation(state, action) {
+      // TODO: implement setOptionGroupDiscountModeOperation reducer
+      throw new Error(
+        "Reducer for 'setOptionGroupDiscountModeOperation' not implemented.",
+      );
+    },
   };

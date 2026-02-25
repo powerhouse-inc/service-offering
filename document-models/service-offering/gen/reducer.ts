@@ -42,6 +42,8 @@ import {
   AddUsageLimitInputSchema,
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
+  SetTierDefaultBillingCycleInputSchema,
+  SetTierBillingCycleDiscountsInputSchema,
   SetTierPricingModeInputSchema,
   AddOptionGroupInputSchema,
   UpdateOptionGroupInputSchema,
@@ -50,6 +52,7 @@ import {
   AddOptionGroupTierPricingInputSchema,
   UpdateOptionGroupTierPricingInputSchema,
   RemoveOptionGroupTierPricingInputSchema,
+  SetOptionGroupDiscountModeInputSchema,
   AddServiceGroupInputSchema,
   UpdateServiceGroupInputSchema,
   DeleteServiceGroupInputSchema,
@@ -422,6 +425,30 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       break;
     }
 
+    case "SET_TIER_DEFAULT_BILLING_CYCLE": {
+      SetTierDefaultBillingCycleInputSchema().parse(action.input);
+
+      serviceOfferingTiersOperations.setTierDefaultBillingCycleOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_TIER_BILLING_CYCLE_DISCOUNTS": {
+      SetTierBillingCycleDiscountsInputSchema().parse(action.input);
+
+      serviceOfferingTiersOperations.setTierBillingCycleDiscountsOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
     case "SET_TIER_PRICING_MODE": {
       SetTierPricingModeInputSchema().parse(action.input);
 
@@ -510,6 +537,18 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       RemoveOptionGroupTierPricingInputSchema().parse(action.input);
 
       serviceOfferingOptionGroupsOperations.removeOptionGroupTierPricingOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_OPTION_GROUP_DISCOUNT_MODE": {
+      SetOptionGroupDiscountModeInputSchema().parse(action.input);
+
+      serviceOfferingOptionGroupsOperations.setOptionGroupDiscountModeOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

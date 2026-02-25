@@ -4,7 +4,8 @@ export type ErrorCode =
   | "SetOptionGroupStandalonePricingNotFoundError"
   | "AddOptionGroupTierPricingNotFoundError"
   | "UpdateOptionGroupTierPricingNotFoundError"
-  | "RemoveOptionGroupTierPricingNotFoundError";
+  | "RemoveOptionGroupTierPricingNotFoundError"
+  | "SetOptionGroupDiscountModeNotFoundError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -70,6 +71,16 @@ export class RemoveOptionGroupTierPricingNotFoundError
   }
 }
 
+export class SetOptionGroupDiscountModeNotFoundError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SetOptionGroupDiscountModeNotFoundError" as ErrorCode;
+  constructor(message = "SetOptionGroupDiscountModeNotFoundError") {
+    super(message);
+  }
+}
+
 export const errors = {
   UpdateOptionGroup: { UpdateOptionGroupNotFoundError },
   DeleteOptionGroup: { DeleteOptionGroupNotFoundError },
@@ -79,4 +90,5 @@ export const errors = {
   AddOptionGroupTierPricing: { AddOptionGroupTierPricingNotFoundError },
   UpdateOptionGroupTierPricing: { UpdateOptionGroupTierPricingNotFoundError },
   RemoveOptionGroupTierPricing: { RemoveOptionGroupTierPricingNotFoundError },
+  SetOptionGroupDiscountMode: { SetOptionGroupDiscountModeNotFoundError },
 };

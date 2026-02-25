@@ -18,6 +18,8 @@ import {
   AddOptionGroupTierPricingInputSchema,
   UpdateOptionGroupTierPricingInputSchema,
   RemoveOptionGroupTierPricingInputSchema,
+  setOptionGroupDiscountMode,
+  SetOptionGroupDiscountModeInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("OptionGroupsOperations", () => {
@@ -142,6 +144,26 @@ describe("OptionGroupsOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "REMOVE_OPTION_GROUP_TIER_PRICING",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setOptionGroupDiscountMode operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetOptionGroupDiscountModeInputSchema());
+
+    const updatedDocument = reducer(
+      document,
+      setOptionGroupDiscountMode(input),
+    );
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_OPTION_GROUP_DISCOUNT_MODE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,
