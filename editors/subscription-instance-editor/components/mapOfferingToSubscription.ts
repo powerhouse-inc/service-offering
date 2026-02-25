@@ -2,11 +2,10 @@ import { generateId } from "document-model/core";
 import type {
   ServiceOfferingState,
   ServiceSubscriptionTier,
-  ServiceGroup as SOServiceGroup,
   Service as SOService,
   ServiceUsageLimit,
-  RecurringPriceOption,
-  BillingCycle as SOBillingCycle,
+  FinalConfiguration,
+  ResolvedDiscount,
 } from "../../../document-models/service-offering/gen/schema/types.js";
 import type {
   InitializeSubscriptionInput,
@@ -37,12 +36,12 @@ export interface MapOfferingOptions {
  * This is a one-time snapshot — the SI lives independently after creation.
  *
  * Logic:
- * 1. Find the selected tier
- * 2. For each service group, find the tier-specific pricing for the selected billing cycle
- * 3. Apply billing cycle discounts if any
- * 4. Map services based on service level bindings (INCLUDED, OPTIONAL, CUSTOM, VARIABLE)
- * 5. Map usage limits to metrics with freeLimit/paidLimit
- * 6. Calculate tier price from service group sums (CALCULATED mode) or use manual price
+ * 1. Find the selected tier and resolve pricing from finalConfiguration
+ * 2. Map offering service groups with tier-specific pricing
+ * 3. Map option group configs from finalConfiguration as additional service groups
+ * 4. Map add-on configs from finalConfiguration as optional service groups
+ * 5. Map remaining standalone services with tier service levels and usage limits
+ * 6. Calculate tier price from finalConfig or service group sums (CALCULATED) or manual price
  */
 export function mapOfferingToSubscription(
   options: MapOfferingOptions,
@@ -62,32 +61,56 @@ export function mapOfferingToSubscription(
     throw new Error(`Tier ${tierId} not found in offering`);
   }
 
-  const currency = tier.pricing.currency;
+  const finalConfig = offering.finalConfiguration;
+  const currency = finalConfig?.tierCurrency ?? tier.pricing.currency;
   const pricingMode = tier.pricingMode || "MANUAL_OVERRIDE";
 
-  // Map service groups with their tier-specific pricing
-  const serviceGroups = mapServiceGroups(
-    offering.serviceGroups,
+  // Track which services are accounted for in groups
+  const groupedServiceIds = new Set<string>();
+
+  // 1. Map offering service groups with tier-specific pricing
+  const serviceGroups: InitializeServiceGroupInput[] = mapOfferingServiceGroups(
+    offering,
     tier,
     selectedBillingCycle,
     currency,
+    groupedServiceIds,
   );
 
-  // Map standalone services (not in any group) based on tier service levels
-  const standaloneServices = mapStandaloneServices(
-    offering.services,
-    tier,
-    currency,
-  );
+  // 2. Map option group configs from finalConfiguration as service groups
+  if (finalConfig) {
+    mapFinalConfigGroups(
+      offering,
+      tier,
+      finalConfig,
+      currency,
+      groupedServiceIds,
+      serviceGroups,
+    );
+  }
+
+  // 3. Map remaining standalone services (not in any group or option group)
+  const standaloneServices = offering.services
+    .filter((s) => !groupedServiceIds.has(s.id))
+    .filter((svc) => {
+      const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
+      return (
+        level &&
+        level.level !== "NOT_INCLUDED" &&
+        level.level !== "NOT_APPLICABLE"
+      );
+    })
+    .map((svc) => mapServiceToInput(svc, tier, currency, selectedBillingCycle));
 
   // Calculate tier price
   let tierPrice: number | undefined;
   if (pricingMode === "CALCULATED") {
-    tierPrice = serviceGroups.reduce((sum, grp) => {
-      return sum + (grp.recurringAmount ?? 0);
-    }, 0);
+    tierPrice = serviceGroups.reduce(
+      (sum, grp) => sum + (grp.recurringAmount ?? 0),
+      0,
+    );
   } else {
-    tierPrice = tier.pricing.amount ?? undefined;
+    tierPrice = finalConfig?.tierBasePrice ?? tier.pricing.amount ?? undefined;
   }
 
   return {
@@ -109,28 +132,35 @@ export function mapOfferingToSubscription(
   };
 }
 
-function mapServiceGroups(
-  soGroups: SOServiceGroup[],
+/**
+ * Maps offering service groups to subscription service groups.
+ * Finds services by their serviceGroupId and applies tier-specific pricing.
+ */
+function mapOfferingServiceGroups(
+  offering: ServiceOfferingState,
   tier: ServiceSubscriptionTier,
   selectedBillingCycle: SIBillingCycle,
   globalCurrency: string,
+  groupedServiceIds: Set<string>,
 ): InitializeServiceGroupInput[] {
-  return soGroups.map((group) => {
+  return offering.serviceGroups.map((group) => {
+    // Find services that belong to this service group
+    const groupServices = offering.services.filter(
+      (s) => s.serviceGroupId === group.id,
+    );
+    groupServices.forEach((s) => groupedServiceIds.add(s.id));
+
     // Find tier-specific pricing for this group
     const tierPricing = group.tierPricing.find((tp) => tp.tierId === tier.id);
 
     // Find the recurring price option matching the selected billing cycle
-    let recurringOption: RecurringPriceOption | undefined;
-    if (tierPricing) {
-      recurringOption = tierPricing.recurringPricing.find(
-        (rp) => rp.billingCycle === selectedBillingCycle,
+    let recurringOption = tierPricing?.recurringPricing.find(
+      (rp) => rp.billingCycle === selectedBillingCycle,
+    );
+    if (!recurringOption) {
+      recurringOption = tierPricing?.recurringPricing.find(
+        (rp) => rp.billingCycle === (group.billingCycle as string),
       );
-      // Fallback to group's own billing cycle if no match
-      if (!recurringOption) {
-        recurringOption = tierPricing.recurringPricing.find(
-          (rp) => rp.billingCycle === (group.billingCycle as string),
-        );
-      }
     }
 
     // Apply billing cycle discount from tier if applicable
@@ -144,11 +174,10 @@ function mapServiceGroups(
       if (cycleDiscount) {
         const originalAmount = recurringOption.amount;
         const rule = cycleDiscount.discountRule;
-        if (rule.discountType === "PERCENTAGE") {
-          discountedAmount = originalAmount * (1 - rule.discountValue / 100);
-        } else {
-          discountedAmount = originalAmount - rule.discountValue;
-        }
+        discountedAmount =
+          rule.discountType === "PERCENTAGE"
+            ? originalAmount * (1 - rule.discountValue / 100)
+            : originalAmount - rule.discountValue;
         discountInput = {
           originalAmount,
           discountType: rule.discountType,
@@ -158,15 +187,14 @@ function mapServiceGroups(
       }
     }
 
-    // Also check if the recurring option itself has a discount
+    // Fallback to the recurring option's own discount
     if (recurringOption?.discount && !discountInput) {
       const originalAmount = recurringOption.amount;
       const d = recurringOption.discount;
-      if (d.discountType === "PERCENTAGE") {
-        discountedAmount = originalAmount * (1 - d.discountValue / 100);
-      } else {
-        discountedAmount = originalAmount - d.discountValue;
-      }
+      discountedAmount =
+        d.discountType === "PERCENTAGE"
+          ? originalAmount * (1 - d.discountValue / 100)
+          : originalAmount - d.discountValue;
       discountInput = {
         originalAmount,
         discountType: d.discountType,
@@ -188,8 +216,24 @@ function mapServiceGroups(
       }
     }
 
-    // Map services in this group based on tier service levels
-    const groupServices = mapGroupServices(group.id, tier, globalCurrency);
+    // Map services in this group
+    const mappedServices = groupServices
+      .filter((svc) => {
+        const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
+        return (
+          !level ||
+          (level.level !== "NOT_INCLUDED" && level.level !== "NOT_APPLICABLE")
+        );
+      })
+      .map((svc) =>
+        mapServiceToInput(
+          svc,
+          tier,
+          globalCurrency,
+          (recurringOption?.billingCycle ??
+            group.billingCycle) as SIBillingCycle,
+        ),
+      );
 
     return {
       id: generateId(),
@@ -203,77 +247,144 @@ function mapServiceGroups(
       recurringBillingCycle: (recurringOption?.billingCycle ??
         group.billingCycle) as SIBillingCycle,
       recurringDiscount: discountInput,
-      services: groupServices,
+      services: mappedServices,
     };
   });
 }
 
-function mapGroupServices(
-  groupId: string,
+/**
+ * Maps finalConfiguration option group configs and add-on configs
+ * into subscription service groups.
+ */
+function mapFinalConfigGroups(
+  offering: ServiceOfferingState,
   tier: ServiceSubscriptionTier,
+  finalConfig: FinalConfiguration,
   globalCurrency: string,
-): InitializeServiceInput[] {
-  // Find services that belong to this group via tier service levels
-  const relevantLevels = tier.serviceLevels.filter((sl) => {
-    // Include services that are INCLUDED, OPTIONAL, CUSTOM, or VARIABLE for this tier
-    return (
-      sl.level === "INCLUDED" ||
-      sl.level === "OPTIONAL" ||
-      sl.level === "CUSTOM" ||
-      sl.level === "VARIABLE"
+  groupedServiceIds: Set<string>,
+  serviceGroups: InitializeServiceGroupInput[],
+): void {
+  // Non-add-on option groups
+  for (const ogConfig of finalConfig.optionGroupConfigs) {
+    const og = offering.optionGroups.find(
+      (g) => g.id === ogConfig.optionGroupId,
     );
-  });
+    if (!og || og.isAddOn) continue;
 
-  return relevantLevels.map((sl) => {
-    // Map usage limits for this service
-    const metrics = mapUsageLimits(
-      sl.serviceId,
-      tier.usageLimits,
-      globalCurrency,
-    );
+    const services = offering.services.filter((s) => s.optionGroupId === og.id);
+    if (services.length === 0) continue;
+    services.forEach((s) => groupedServiceIds.add(s.id));
 
-    return {
+    serviceGroups.push({
       id: generateId(),
-      name: null,
-      description: null,
-      customValue: sl.customValue ?? null,
-      metrics,
-    };
-  });
+      name: og.name,
+      optional: false,
+      costType: og.costType ?? undefined,
+      recurringAmount: ogConfig.recurringAmount ?? undefined,
+      recurringCurrency: ogConfig.currency ?? globalCurrency,
+      recurringBillingCycle: ogConfig.effectiveBillingCycle as SIBillingCycle,
+      recurringDiscount: mapResolvedDiscount(
+        ogConfig.discount,
+        og.discountMode === "INHERIT_TIER"
+          ? "TIER_INHERITED"
+          : "GROUP_INDEPENDENT",
+      ),
+      setupAmount: ogConfig.setupCost ?? undefined,
+      setupCurrency: ogConfig.setupCostCurrency ?? undefined,
+      services: services.map((svc) =>
+        mapServiceToInput(
+          svc,
+          tier,
+          globalCurrency,
+          ogConfig.effectiveBillingCycle as SIBillingCycle,
+        ),
+      ),
+    });
+  }
+
+  // Add-on option groups
+  for (const aoConfig of finalConfig.addOnConfigs) {
+    const og = offering.optionGroups.find(
+      (g) => g.id === aoConfig.optionGroupId,
+    );
+    if (!og) continue;
+
+    const services = offering.services.filter((s) => s.optionGroupId === og.id);
+    if (services.length === 0) continue;
+    services.forEach((s) => groupedServiceIds.add(s.id));
+
+    serviceGroups.push({
+      id: generateId(),
+      name: og.name,
+      optional: true,
+      costType: og.costType ?? undefined,
+      recurringAmount: aoConfig.recurringAmount ?? undefined,
+      recurringCurrency: aoConfig.currency ?? globalCurrency,
+      recurringBillingCycle: aoConfig.selectedBillingCycle as SIBillingCycle,
+      recurringDiscount: mapResolvedDiscount(
+        aoConfig.discount,
+        og.discountMode === "INHERIT_TIER"
+          ? "TIER_INHERITED"
+          : "GROUP_INDEPENDENT",
+      ),
+      setupAmount: aoConfig.setupCost ?? undefined,
+      setupCurrency: aoConfig.setupCostCurrency ?? undefined,
+      services: services.map((svc) =>
+        mapServiceToInput(
+          svc,
+          tier,
+          globalCurrency,
+          aoConfig.selectedBillingCycle as SIBillingCycle,
+        ),
+      ),
+    });
+  }
 }
 
-function mapStandaloneServices(
-  soServices: SOService[],
+/**
+ * Maps a single service from the offering to an InitializeServiceInput.
+ * Includes name, description, customValue from tier service levels,
+ * billing cycle, and usage metrics.
+ */
+function mapServiceToInput(
+  svc: SOService,
   tier: ServiceSubscriptionTier,
   globalCurrency: string,
-): InitializeServiceInput[] {
-  // Find services that are NOT in any service group
-  const standaloneServices = soServices.filter((s) => !s.serviceGroupId);
+  billingCycle: SIBillingCycle,
+): InitializeServiceInput {
+  const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
+  const metrics = mapUsageLimits(svc.id, tier.usageLimits, globalCurrency);
 
-  return standaloneServices
-    .filter((svc) => {
-      // Only include services that have a service level for this tier
-      const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
-      return (
-        level &&
-        level.level !== "NOT_INCLUDED" &&
-        level.level !== "NOT_APPLICABLE"
-      );
-    })
-    .map((svc) => {
-      const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
-      const metrics = mapUsageLimits(svc.id, tier.usageLimits, globalCurrency);
-
-      return {
-        id: generateId(),
-        name: svc.title,
-        description: svc.description ?? null,
-        customValue: level?.customValue ?? null,
-        metrics,
-      };
-    });
+  return {
+    id: generateId(),
+    name: svc.title,
+    description: svc.description ?? null,
+    customValue: level?.customValue ?? null,
+    recurringBillingCycle: billingCycle,
+    metrics,
+  };
 }
 
+/**
+ * Maps a ResolvedDiscount from the offering to a DiscountInfoInitInput,
+ * or returns undefined if no discount.
+ */
+function mapResolvedDiscount(
+  discount: ResolvedDiscount | null | undefined,
+  source: "TIER_INHERITED" | "GROUP_INDEPENDENT",
+): DiscountInfoInitInput | undefined {
+  if (!discount) return undefined;
+  return {
+    originalAmount: discount.originalAmount,
+    discountType: discount.discountType,
+    discountValue: discount.discountValue,
+    source,
+  };
+}
+
+/**
+ * Maps usage limits from the tier to InitializeMetricInput for a given service.
+ */
 function mapUsageLimits(
   serviceId: string,
   usageLimits: ServiceUsageLimit[],

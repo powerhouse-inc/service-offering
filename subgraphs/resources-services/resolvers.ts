@@ -421,6 +421,19 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             }),
           );
 
+          // Set billing projection from tier price
+          const projectedAmount =
+            subscriptionInput.tierPrice ?? finalConfiguration.tierBasePrice;
+          if (projectedAmount != null) {
+            await reactor.addAction(
+              subscriptionInstanceDoc.header.id,
+              SubscriptionInstance.actions.updateBillingProjection({
+                projectedBillAmount: projectedAmount,
+                projectedBillCurrency: finalConfiguration.tierCurrency || "USD",
+              }),
+            );
+          }
+
           return {
             success: true,
             data: {
