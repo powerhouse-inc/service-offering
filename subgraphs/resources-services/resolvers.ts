@@ -12,7 +12,7 @@ import { createAction } from "document-model/core";
 import { addFile } from "document-drive";
 import {
   ResourceInstance,
-  ServiceSubscription,
+  SubscriptionInstance,
 } from "@powerhousedao/service-offering/document-models";
 
 // Filter types
@@ -330,63 +330,20 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             ),
           );
 
-          // create resource-instance doc inside the team-builder-admin drive
+          // create resource-instance and subscription-instance docs
           const resourceInstanceDoc = await reactor.addDocument(
             "powerhouse/resource-instance",
           );
-          await reactor.addAction(
-            teamBuilderAdminDrive.header.id,
-            addFile({
-              documentType: "powerhouse/resource-instance",
-              id: resourceInstanceDoc.header.id,
-              name: `${parsedName} Resource Instance`,
-              parentFolder: teamBuilderAdminDrive.state.global.nodes?.find(
-                (node) => node.kind === "folder",
-              )?.parentFolder,
-            }),
+          const subscriptionInstanceDoc = await reactor.addDocument(
+            "powerhouse/subscription-instance",
           );
 
-          await populateResourceInstance(
-            reactor,
-            resourceInstanceDoc.header.id,
-            resourceTemplateId,
-            builderProfileDoc.header.id,
-            name,
-          );
+          // resolve parent folders for both drives
+          const teamParentFolder =
+            teamBuilderAdminDrive.state.global.nodes?.find(
+              (node) => node.kind === "folder",
+            )?.parentFolder;
 
-          // create service-subscription doc inside the team-builder-admin drive
-          const subscriptionDoc = await reactor.addDocument(
-            "powerhouse/service-subscription",
-          );
-          await reactor.addAction(
-            teamBuilderAdminDrive.header.id,
-            addFile({
-              documentType: "powerhouse/service-subscription",
-              id: subscriptionDoc.header.id,
-              name: `${parsedName} Service Subscription`,
-              parentFolder: teamBuilderAdminDrive.state.global.nodes?.find(
-                (node) => node.kind === "folder",
-              )?.parentFolder,
-            }),
-          );
-
-          const now = new Date().toISOString();
-          await reactor.addAction(
-            subscriptionDoc.header.id,
-            ServiceSubscription.actions.initializeSubscription({
-              id: subscriptionDoc.header.id,
-              customerId: builderProfileDoc.header.id,
-              customerName: name,
-              serviceOfferingId,
-              serviceOfferingTitle: serviceOfferingState.title,
-              resourceTemplateId,
-              selectedTierId: finalConfiguration.selectedTierId,
-              createdAt: now,
-              lastModified: now,
-            }),
-          );
-
-          // add resource-instance and subscription to operator's drive
           const operatorDrive = await getOperatorDrive(
             reactor,
             resourceTemplateId,
@@ -401,23 +358,71 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             (node) => node.kind === "folder",
           )?.parentFolder;
 
-          await reactor.addAction(
-            operatorDrive.header.id,
+          // batch add resource-instance and subscription-instance to team-builder-admin drive
+          await reactor.addActions(teamBuilderAdminDrive.header.id, [
+            addFile({
+              documentType: "powerhouse/resource-instance",
+              id: resourceInstanceDoc.header.id,
+              name: `${parsedName} Resource Instance`,
+              parentFolder: teamParentFolder,
+            }),
+            addFile({
+              documentType: "powerhouse/subscription-instance",
+              id: subscriptionInstanceDoc.header.id,
+              name: `${parsedName} Subscription Instance`,
+              parentFolder: teamParentFolder,
+            }),
+          ]);
+
+          // batch add resource-instance and subscription-instance to operator drive
+          await reactor.addActions(operatorDrive.header.id, [
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
               name: `${parsedName} Resource Instance`,
               parentFolder: operatorParentFolder,
             }),
+            addFile({
+              documentType: "powerhouse/subscription-instance",
+              id: subscriptionInstanceDoc.header.id,
+              name: `${parsedName} Subscription Instance`,
+              parentFolder: operatorParentFolder,
+            }),
+          ]);
+
+          // populate documents after all files are added to both drives
+          await populateResourceInstance(
+            reactor,
+            resourceInstanceDoc.header.id,
+            resourceTemplateId,
+            builderProfileDoc.header.id,
+            name,
+          );
+
+          const now = new Date().toISOString();
+
+          // find the selected tier to get its name and pricing details
+          const selectedTier = serviceOfferingState.tiers.find(
+            (t) => t.id === finalConfiguration.selectedTierId,
           );
 
           await reactor.addAction(
-            operatorDrive.header.id,
-            addFile({
-              documentType: "powerhouse/service-subscription",
-              id: subscriptionDoc.header.id,
-              name: `${parsedName} Service Subscription`,
-              parentFolder: operatorParentFolder,
+            subscriptionInstanceDoc.header.id,
+            SubscriptionInstance.actions.initializeSubscription({
+              customerId: builderProfileDoc.header.id,
+              customerName: name,
+              serviceOfferingId,
+              resourceId: resourceInstanceDoc.header.id,
+              resourceLabel: name,
+              resourceThumbnailUrl: serviceOfferingState.thumbnailUrl,
+              tierName: selectedTier?.name || null,
+              tierPrice: selectedTier?.pricing?.amount ?? null,
+              tierCurrency: selectedTier?.pricing?.currency || null,
+              tierPricingMode: selectedTier?.pricingMode || null,
+              selectedBillingCycle:
+                finalConfiguration.selectedBillingCycle || null,
+              globalCurrency: finalConfiguration.tierCurrency || null,
+              createdAt: now,
             }),
           );
 
