@@ -25,6 +25,7 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
         billingCycleDiscounts: [],
         price: action.input.price || null,
         currency: action.input.currency || null,
+        discountMode: null,
       });
       state.lastModified = action.input.lastModified;
     },

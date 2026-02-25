@@ -3609,6 +3609,9 @@ const styles = `
     box-shadow: var(--so-shadow-xl);
     width: 100%;
     max-width: 420px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
     animation: so-scale-in var(--so-transition-base) ease-out;
   }
 
@@ -3657,6 +3660,9 @@ const styles = `
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
   }
 
   .catalog__modal-footer {

@@ -3671,6 +3671,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     pricingMode: null,
                     standalonePricing: null,
                     tierDependentPricing: null,
+                    discountMode: null,
                   }}
                   services={ungroupedSetupServices}
                   tiers={tiers}
@@ -3774,6 +3775,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     pricingMode: null,
                     standalonePricing: null,
                     tierDependentPricing: null,
+                    discountMode: null,
                   }}
                   services={ungroupedRegularServices}
                   tiers={tiers}

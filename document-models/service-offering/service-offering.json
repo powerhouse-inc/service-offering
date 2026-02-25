@@ -189,34 +189,34 @@
               "template": "Change the resource template"
             },
             {
-              "id": "op-set-available-billing-cycles",
-              "name": "SET_AVAILABLE_BILLING_CYCLES",
               "description": "Set the available billing cycles for the offering. These cycles apply globally to all service groups and option groups.",
-              "schema": "input SetAvailableBillingCyclesInput {\n    billingCycles: [BillingCycle!]!\n    lastModified: DateTime!\n}",
-              "template": "Set the available billing cycles for the offering. These cycles apply globally to all service groups and option groups.",
-              "reducer": "if (action.input.billingCycles.length === 0) {\n    throw new NoBillingCyclesSelectedError(\"At least one billing cycle must be selected\");\n}\nstate.availableBillingCycles = action.input.billingCycles;\nstate.lastModified = action.input.lastModified;",
               "errors": [
                 {
-                  "id": "err-no-billing-cycles",
-                  "name": "NoBillingCyclesSelectedError",
                   "code": "NO_BILLING_CYCLES_SELECTED",
                   "description": "At least one billing cycle must be selected",
+                  "id": "err-no-billing-cycles",
+                  "name": "NoBillingCyclesSelectedError",
                   "template": ""
                 }
               ],
               "examples": [],
-              "scope": "global"
+              "id": "op-set-available-billing-cycles",
+              "name": "SET_AVAILABLE_BILLING_CYCLES",
+              "reducer": "if (action.input.billingCycles.length === 0) {\n    throw new NoBillingCyclesSelectedError(\"At least one billing cycle must be selected\");\n}\nstate.availableBillingCycles = action.input.billingCycles;\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetAvailableBillingCyclesInput {\n    billingCycles: [BillingCycle!]!\n    lastModified: DateTime!\n}",
+              "scope": "global",
+              "template": "Set the available billing cycles for the offering. These cycles apply globally to all service groups and option groups."
             },
             {
-              "id": "op-set-facet-bindings",
-              "name": "SET_FACET_BINDINGS",
               "description": "Set facet bindings at the offering level (moved from per-service)",
-              "schema": "input SetFacetBindingsInput {\n    facetBindings: [FacetBindingInput!]!\n    lastModified: DateTime!\n}\n\ninput FacetBindingInput {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}",
-              "template": "Set facet bindings at the offering level (moved from per-service)",
-              "reducer": "state.facetBindings = action.input.facetBindings.map((fb) => ({\n    id: fb.id,\n    facetName: fb.facetName,\n    facetType: fb.facetType,\n    supportedOptions: fb.supportedOptions || [],\n}));\nstate.lastModified = action.input.lastModified;",
               "errors": [],
               "examples": [],
-              "scope": "global"
+              "id": "op-set-facet-bindings",
+              "name": "SET_FACET_BINDINGS",
+              "reducer": "state.facetBindings = action.input.facetBindings.map((fb) => ({\n    id: fb.id,\n    facetName: fb.facetName,\n    facetType: fb.facetType,\n    supportedOptions: fb.supportedOptions || [],\n}));\nstate.lastModified = action.input.lastModified;",
+              "schema": "input SetFacetBindingsInput {\n    facetBindings: [FacetBindingInput!]!\n    lastModified: DateTime!\n}\n\ninput FacetBindingInput {\n    id: OID!\n    facetName: String!\n    facetType: PHID!\n    supportedOptions: [OID!]!\n}",
+              "scope": "global",
+              "template": "Set facet bindings at the offering level (moved from per-service)"
             }
           ]
         },

@@ -29,6 +29,7 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
         billingCycle: action.input.billingCycle,
         displayOrder: action.input.displayOrder || null,
         tierPricing: [],
+        discountMode: null,
       });
       state.lastModified = action.input.lastModified;
     },
