@@ -11,18 +11,18 @@ export const schema: DocumentNode = gql`
   }
 
   type Mutation {
-    createResourceInstances(
-      input: CreateResourceInstancesInput!
-    ): CreateResourceInstancesOutput
+    createProductInstances(
+      input: CreateProductInstancesInput!
+    ): CreateProductInstancesOutput
   }
 
-  input CreateResourceInstancesInput {
-    resourceTemplateId: PHID!
+  input CreateProductInstancesInput {
+    serviceOfferingId: PHID!
     name: String!
     teamName: String!
   }
 
-  type CreateResourceInstancesOutput {
+  type CreateProductInstancesOutput {
     success: Boolean!
     data: JSONObject
     errors: [String!]!

@@ -10,7 +10,10 @@ import type {
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import { createAction } from "document-model/core";
 import { addFile } from "document-drive";
-import { ResourceInstance } from "@powerhousedao/service-offering/document-models";
+import {
+  ResourceInstance,
+  ServiceSubscription,
+} from "@powerhousedao/service-offering/document-models";
 
 // Filter types
 interface ResourceTemplatesFilter {
@@ -26,8 +29,8 @@ interface ServiceOfferingsFilter {
   resourceTemplateId?: string;
 }
 
-interface CreateResourceInstancesInput {
-  resourceTemplateId: string;
+interface CreateProductInstancesInput {
+  serviceOfferingId: string;
   name: string;
   teamName: string;
 }
@@ -226,19 +229,19 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
       },
     },
     Mutation: {
-      createResourceInstances: async (
+      createProductInstances: async (
         _: unknown,
-        args: { input: CreateResourceInstancesInput },
+        args: { input: CreateProductInstancesInput },
       ) => {
         const { input } = args;
-        const { resourceTemplateId, name, teamName } = input;
+        const { serviceOfferingId, name, teamName } = input;
 
         // Validate input
-        if (!resourceTemplateId) {
+        if (!serviceOfferingId) {
           return {
             success: false,
             data: null,
-            errors: ["Resource template ID is required"],
+            errors: ["Service offering ID is required"],
           };
         }
 
@@ -251,6 +254,36 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             success: false,
             data: null,
             errors: ["Team name is required"],
+          };
+        }
+
+        // Fetch the service offering to get resourceTemplateId and finalConfiguration
+        const serviceOfferingDoc =
+          await reactor.getDocument<ServiceOfferingDocument>(serviceOfferingId);
+        if (!serviceOfferingDoc) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Service offering not found"],
+          };
+        }
+
+        const serviceOfferingState = serviceOfferingDoc.state.global;
+        const resourceTemplateId = serviceOfferingState.resourceTemplateId;
+        if (!resourceTemplateId) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Service offering has no associated resource template"],
+          };
+        }
+
+        const finalConfiguration = serviceOfferingState.finalConfiguration;
+        if (!finalConfiguration) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Service offering has no final configuration"],
           };
         }
 
@@ -268,7 +301,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             slug: parsedTeamName,
             preferredEditor: "builder-team-admin",
           });
-          teamBuilderAdminDrive.header.id;
+
           // create builder-profile doc inside the team-builder-admin drive
           const builderProfileDoc = await reactor.addDocument(
             "powerhouse/builder-profile",
@@ -321,7 +354,39 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             name,
           );
 
-          // create copy of resource-instance doc inside the operator's drive
+          // create service-subscription doc inside the team-builder-admin drive
+          const subscriptionDoc = await reactor.addDocument(
+            "powerhouse/service-subscription",
+          );
+          await reactor.addAction(
+            teamBuilderAdminDrive.header.id,
+            addFile({
+              documentType: "powerhouse/service-subscription",
+              id: subscriptionDoc.header.id,
+              name: `${parsedName} Service Subscription`,
+              parentFolder: teamBuilderAdminDrive.state.global.nodes?.find(
+                (node) => node.kind === "folder",
+              )?.parentFolder,
+            }),
+          );
+
+          const now = new Date().toISOString();
+          await reactor.addAction(
+            subscriptionDoc.header.id,
+            ServiceSubscription.actions.initializeSubscription({
+              id: subscriptionDoc.header.id,
+              customerId: builderProfileDoc.header.id,
+              customerName: name,
+              serviceOfferingId,
+              serviceOfferingTitle: serviceOfferingState.title,
+              resourceTemplateId,
+              selectedTierId: finalConfiguration.selectedTierId,
+              createdAt: now,
+              lastModified: now,
+            }),
+          );
+
+          // add resource-instance and subscription to operator's drive
           const operatorDrive = await getOperatorDrive(
             reactor,
             resourceTemplateId,
@@ -331,15 +396,28 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
               `Operator drive not found for resource template ${resourceTemplateId}`,
             );
           }
+
+          const operatorParentFolder = operatorDrive.state.global.nodes?.find(
+            (node) => node.kind === "folder",
+          )?.parentFolder;
+
           await reactor.addAction(
             operatorDrive.header.id,
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
               name: `${parsedName} Resource Instance`,
-              parentFolder: operatorDrive.state.global.nodes?.find(
-                (node) => node.kind === "folder",
-              )?.parentFolder,
+              parentFolder: operatorParentFolder,
+            }),
+          );
+
+          await reactor.addAction(
+            operatorDrive.header.id,
+            addFile({
+              documentType: "powerhouse/service-subscription",
+              id: subscriptionDoc.header.id,
+              name: `${parsedName} Service Subscription`,
+              parentFolder: operatorParentFolder,
             }),
           );
 
@@ -351,7 +429,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             errors: [],
           };
         } catch (error) {
-          console.error("Failed to create resource instance:", error);
+          console.error("Failed to create product instances:", error);
           return {
             success: false,
             data: null,
