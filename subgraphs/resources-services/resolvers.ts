@@ -10,6 +10,7 @@ import type {
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import { createAction } from "document-model/core";
 import { addFile } from "document-drive";
+import type { FileNode } from "document-drive";
 import {
   ResourceInstance,
   SubscriptionInstance,
@@ -355,7 +356,20 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             );
           }
 
-          const operatorParentFolder = operatorDrive.state.global.nodes?.find(
+          // get operator profile id from operator drive
+          const operatorProfileId = operatorDrive.state.global.nodes
+            .filter((node): node is FileNode => node.kind === "file")
+            .find(
+              (node) => node.documentType === "powerhouse/builder-profile",
+            )?.id;
+
+          if (!operatorProfileId) {
+            throw new Error(
+              `Operator profile not found for drive ${operatorDrive.header.id}`,
+            );
+          }
+
+          const operatorParentFolder = operatorDrive.state.global.nodes.find(
             (node) => node.kind === "folder",
           )?.parentFolder;
 
@@ -396,8 +410,8 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             reactor,
             resourceInstanceDoc.header.id,
             resourceTemplateId,
-            builderProfileDoc.header.id,
-            name,
+            operatorProfileId, // operator profile id
+            builderProfileDoc.header.id, // customer id
           );
 
           const now = new Date().toISOString();
@@ -555,8 +569,8 @@ async function populateResourceInstance(
   reactor: ISubgraph["reactor"],
   resourceInstanceDocId: string,
   resourceTemplateId: string,
-  profileId: string,
-  name: string,
+  operatorProfileId: string,
+  customerId: string,
 ) {
   const resourceTemplateDoc =
     await reactor.getDocument<ResourceTemplateDocument>(resourceTemplateId);
@@ -568,11 +582,11 @@ async function populateResourceInstance(
   await reactor.addAction(
     resourceInstanceDocId,
     ResourceInstance.actions.initializeInstance({
-      profileId,
+      profileId: operatorProfileId,
       profileDocumentType: "powerhouse/builder-profile",
       resourceTemplateId,
-      customerId: null,
-      name,
+      customerId,
+      name: templateState.title,
       thumbnailUrl: templateState.thumbnailUrl,
       infoLink: templateState.infoLink,
       description: templateState.description,
