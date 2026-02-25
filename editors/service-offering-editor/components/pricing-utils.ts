@@ -1,20 +1,13 @@
-import type {
-  BillingCycle,
-  BillingCycleDiscount,
-  DiscountMode,
-  DiscountRule,
-  OptionGroup,
-  ServiceSubscriptionTier,
+import {
+  BILLING_CYCLE_MONTHS,
+  type BillingCycle,
+  type BillingCycleDiscount,
+  type DiscountRule,
+  type OptionGroup,
+  type ServiceSubscriptionTier,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
-// Billing cycle months for monthly-equivalent calculation
-export const BILLING_CYCLE_MONTHS: Record<BillingCycle, number> = {
-  MONTHLY: 1,
-  QUARTERLY: 3,
-  SEMI_ANNUAL: 6,
-  ANNUAL: 12,
-  ONE_TIME: 1,
-};
+export { BILLING_CYCLE_MONTHS };
 
 // Human-readable billing cycle labels
 export const BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
@@ -357,6 +350,61 @@ export function calculateEffectiveSetupPrice(setupCost: {
     savingsPercent,
     hasDiscount: true,
   };
+}
+
+// Compute tier billing cycle discounts by weighted-average percentage from regular groups.
+// Each group's percentage discount is weighted by its monthly price contribution to the tier.
+// Returns BillingCycleDiscount[] suitable for SET_TIER_BILLING_CYCLE_DISCOUNTS.
+export function computeTierDiscountsFromGroups(
+  regularGroups: OptionGroup[],
+  tierId: string,
+  billingCycles: BillingCycle[],
+): { billingCycle: BillingCycle; discountRule: DiscountRule }[] {
+  const result: { billingCycle: BillingCycle; discountRule: DiscountRule }[] =
+    [];
+
+  for (const cycle of billingCycles) {
+    if (cycle === "MONTHLY") continue; // No discount on monthly
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const group of regularGroups) {
+      const tierPricing = group.tierDependentPricing?.find(
+        (tp) => tp.tierId === tierId,
+      );
+      if (!tierPricing) continue;
+      const monthlyRp = tierPricing.recurringPricing?.find(
+        (p) => p.billingCycle === "MONTHLY",
+      );
+      const groupBase = monthlyRp?.amount ?? 0;
+      if (groupBase <= 0) continue;
+
+      const rp = tierPricing.recurringPricing?.find(
+        (p) => p.billingCycle === cycle,
+      );
+      const pct =
+        rp?.discount?.discountType === "PERCENTAGE"
+          ? (rp.discount.discountValue ?? 0)
+          : 0;
+      weightedSum += pct * groupBase;
+      totalWeight += groupBase;
+    }
+
+    const avgPct =
+      totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : 0;
+
+    if (avgPct > 0) {
+      result.push({
+        billingCycle: cycle,
+        discountRule: {
+          discountType: "PERCENTAGE",
+          discountValue: avgPct,
+        },
+      });
+    }
+  }
+
+  return result;
 }
 
 // Detect billing cycle majority among regular groups

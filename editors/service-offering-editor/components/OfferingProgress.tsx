@@ -186,11 +186,11 @@ export function OfferingProgress({
     () => [
       {
         id: "scope-facets" as TabId,
-        label: "Template",
+        label: "Product",
         isComplete: !!state.resourceTemplateId,
         details: state.resourceTemplateId
           ? `${state.facetTargets.length} facets configured`
-          : "Select a template",
+          : "Select a product",
       },
       {
         id: "tier-definition" as TabId,

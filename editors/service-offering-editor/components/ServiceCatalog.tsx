@@ -18,6 +18,7 @@ import {
   resolveGroupDiscountForTier,
   calculateTierRecurringPrice,
   calculateEffectiveSetupPrice,
+  computeTierDiscountsFromGroups,
 } from "./pricing-utils.js";
 import {
   addService,
@@ -32,6 +33,7 @@ import {
   addOptionGroupTierPricing,
   updateOptionGroupTierPricing,
   setOptionGroupDiscountMode,
+  setTierBillingCycleDiscounts,
 } from "../../../document-models/service-offering/gen/creators.js";
 
 // Service Templates - Common services to reduce friction (Default Effect + Reduced Activation Energy)
@@ -349,7 +351,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       const emptyDiscounts = Object.fromEntries(
         SUBSCRIPTION_CYCLES.map((c) => [
           c,
-          { discountType: "FLAT_AMOUNT" as DiscountType, discountValue: "" },
+          { discountType: "PERCENTAGE" as DiscountType, discountValue: "" },
         ]),
       ) as Record<
         BillingCycle,
@@ -510,7 +512,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           .map(([cycle, d]) => ({
             billingCycle: cycle as BillingCycle,
             discountRule: {
-              discountType: d.discountType,
+              discountType: "PERCENTAGE" as const,
               discountValue: parseFloat(d.discountValue),
             },
           }));
@@ -559,23 +561,21 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
             ? { amount: setupCostVal, currency: "USD" as const }
             : undefined;
 
-        const isIndependent = editGroupDiscountMode === "INDEPENDENT";
         const recurringPricing = editGroupBillingCycles
           .filter(() => baseMonthly > 0)
           .map((cycle) => {
-            const discountVal = isIndependent
-              ? parseFloat(editTierDiscounts[tier.id]?.[cycle] || "0") || 0
-              : 0;
+            const discountPct =
+              parseFloat(editTierDiscounts[tier.id]?.[cycle] || "0") || 0;
             return {
               id: generateId(),
               billingCycle: cycle,
               amount: baseMonthly,
               currency: "USD" as const,
               discount:
-                discountVal > 0
+                discountPct > 0
                   ? {
-                      discountType: "FLAT_AMOUNT" as const,
-                      discountValue: discountVal,
+                      discountType: "PERCENTAGE" as const,
+                      discountValue: discountPct,
                     }
                   : undefined,
             };
@@ -609,13 +609,13 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         }
       }
 
-      // Dispatch discount mode change if needed
+      // Always save as INDEPENDENT — discount values are snapshot copies
       const currentMode = editingGroup.discountMode || null;
-      if (editGroupDiscountMode !== currentMode) {
+      if (currentMode !== "INDEPENDENT") {
         dispatch(
           setOptionGroupDiscountMode({
             optionGroupId: editingGroup.id,
-            discountMode: editGroupDiscountMode || "INHERIT_TIER",
+            discountMode: "INDEPENDENT",
             lastModified: new Date().toISOString(),
           }),
         );
@@ -642,12 +642,12 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
       const billingCycleDiscounts = editGroupBillingCycles
         .map((cycle) => {
-          const discountVal = parseFloat(editGroupDiscounts[cycle]) || 0;
+          const discountPct = parseFloat(editGroupDiscounts[cycle]) || 0;
           return {
             billingCycle: cycle,
             discountRule: {
-              discountType: "FLAT_AMOUNT" as const,
-              discountValue: discountVal,
+              discountType: "PERCENTAGE" as const,
+              discountValue: discountPct,
             },
           };
         })
@@ -677,6 +677,98 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         );
       }
     });
+
+    // Sync tier billing cycle discounts when saving a regular group
+    // (add-ons don't contribute to tier discounts — they inherit them)
+    if (!editingGroup.isAddOn && !isSetup) {
+      const regularGroups = optionGroups.filter(
+        (g) => g.costType !== "SETUP" && !g.isAddOn,
+      );
+      // Build snapshot replacing the edited group with current edit values
+      const updatedRegularGroups = regularGroups.map((g) => {
+        if (g.id !== editingGroup.id) return g;
+        if (editGroupPricingMode === "TIER_DEPENDENT") {
+          const updatedTierPricing = tiers
+            .filter((t) => !t.isCustomPricing)
+            .map((tier) => {
+              const baseMonthly = parseFloat(editTierPrices[tier.id]) || 0;
+              return {
+                ...((g.tierDependentPricing ?? []).find(
+                  (tp) => tp.tierId === tier.id,
+                ) ?? {
+                  id: generateId(),
+                  tierId: tier.id,
+                  setupCost: null,
+                  setupCostDiscounts: [],
+                  recurringPricing: [],
+                }),
+                recurringPricing: editGroupBillingCycles
+                  .filter(() => baseMonthly > 0)
+                  .map((cycle) => {
+                    const discountPct =
+                      parseFloat(editTierDiscounts[tier.id]?.[cycle] || "0") ||
+                      0;
+                    return {
+                      id: generateId(),
+                      billingCycle: cycle,
+                      amount: baseMonthly,
+                      currency: "USD" as const,
+                      discount:
+                        discountPct > 0
+                          ? {
+                              discountType: "PERCENTAGE" as const,
+                              discountValue: discountPct,
+                            }
+                          : null,
+                    };
+                  }),
+              };
+            });
+          return { ...g, tierDependentPricing: updatedTierPricing };
+        }
+        if (editGroupPricingMode === "STANDALONE") {
+          const updatedDiscounts = editGroupBillingCycles
+            .map((cycle) => ({
+              billingCycle: cycle,
+              discountRule: {
+                discountType: "PERCENTAGE" as const,
+                discountValue: parseFloat(editGroupDiscounts[cycle]) || 0,
+              },
+            }))
+            .filter((d) => d.discountRule.discountValue > 0);
+          return { ...g, billingCycleDiscounts: updatedDiscounts };
+        }
+        return g;
+      });
+
+      // Collect all billing cycles from all regular groups
+      const allCycles = new Set<BillingCycle>();
+      for (const g of updatedRegularGroups) {
+        for (const bc of g.availableBillingCycles ?? []) {
+          allCycles.add(bc);
+        }
+        // Also include cycles from edit state for the current group
+        if (g.id === editingGroup.id) {
+          for (const c of editGroupBillingCycles) allCycles.add(c);
+        }
+      }
+
+      for (const tier of tiers) {
+        if (tier.isCustomPricing) continue;
+        const tierDiscounts = computeTierDiscountsFromGroups(
+          updatedRegularGroups,
+          tier.id,
+          Array.from(allCycles),
+        );
+        dispatch(
+          setTierBillingCycleDiscounts({
+            tierId: tier.id,
+            discounts: tierDiscounts,
+            lastModified: new Date().toISOString(),
+          }),
+        );
+      }
+    }
 
     setEditingGroup(null);
   };
@@ -1148,27 +1240,70 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                   <label className="catalog__label">
                                     Billing Cycles & Discounts
                                   </label>
-                                  {/* Discount mode toggle */}
-                                  <div className="catalog__discount-mode-toggle">
-                                    <button
-                                      type="button"
-                                      className={`catalog__discount-mode-btn ${editGroupDiscountMode !== "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
-                                      onClick={() =>
-                                        setEditGroupDiscountMode(null)
-                                      }
-                                    >
-                                      Inherit tier discounts
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={`catalog__discount-mode-btn ${editGroupDiscountMode === "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
-                                      onClick={() =>
-                                        setEditGroupDiscountMode("INDEPENDENT")
-                                      }
-                                    >
-                                      Set independent discounts
-                                    </button>
-                                  </div>
+                                  {/* Inherit from master toggle — hidden for master group itself */}
+                                  {(() => {
+                                    const masterGroup =
+                                      regularGroups[0] ?? null;
+                                    const isMaster =
+                                      masterGroup?.id === editingGroup.id;
+                                    if (!masterGroup || isMaster) return null;
+                                    return (
+                                      <div className="catalog__discount-mode-toggle">
+                                        <button
+                                          type="button"
+                                          className={`catalog__discount-mode-btn ${editGroupDiscountMode !== "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
+                                          onClick={() => {
+                                            setEditGroupDiscountMode(null);
+                                            // Pre-fill from master's tier discounts
+                                            const masterTp =
+                                              masterGroup.tierDependentPricing?.find(
+                                                (tp) =>
+                                                  tp.tierId === activeTier.id,
+                                              );
+                                            if (masterTp) {
+                                              const updated = {
+                                                ...editTierDiscounts,
+                                              };
+                                              updated[activeTier.id] = {
+                                                ...updated[activeTier.id],
+                                              };
+                                              for (const rp of masterTp.recurringPricing ??
+                                                []) {
+                                                if (
+                                                  rp.discount &&
+                                                  rp.discount.discountValue > 0
+                                                ) {
+                                                  updated[activeTier.id][
+                                                    rp.billingCycle
+                                                  ] = String(
+                                                    rp.discount.discountValue,
+                                                  );
+                                                } else {
+                                                  updated[activeTier.id][
+                                                    rp.billingCycle
+                                                  ] = "";
+                                                }
+                                              }
+                                              setEditTierDiscounts(updated);
+                                            }
+                                          }}
+                                        >
+                                          Inherit from {masterGroup.name}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={`catalog__discount-mode-btn ${editGroupDiscountMode === "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
+                                          onClick={() =>
+                                            setEditGroupDiscountMode(
+                                              "INDEPENDENT",
+                                            )
+                                          }
+                                        >
+                                          Set independent discounts
+                                        </button>
+                                      </div>
+                                    );
+                                  })()}
                                   <div className="catalog__addon-cycles">
                                     {editGroupBillingCycles.map((cycle) => {
                                       const months =
@@ -1183,89 +1318,21 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                         ONE_TIME: "One-Time",
                                       }[cycle];
 
-                                      // Independent mode: editable discounts
-                                      const isIndependent =
-                                        editGroupDiscountMode === "INDEPENDENT";
-                                      const independentDiscountVal =
-                                        isIndependent
-                                          ? parseFloat(
-                                              editTierDiscounts[
-                                                activeTier.id
-                                              ]?.[cycle] || "0",
-                                            ) || 0
-                                          : 0;
+                                      // Percentage discount from user input (always editable)
+                                      const discountPct =
+                                        parseFloat(
+                                          editTierDiscounts[activeTier.id]?.[
+                                            cycle
+                                          ] || "0",
+                                        ) || 0;
 
-                                      // Inherit mode: read-only tier discounts
-                                      const tierDiscount =
-                                        activeTier.billingCycleDiscounts?.find(
-                                          (d) => d.billingCycle === cycle,
-                                        );
-                                      const inheritedDiscountType =
-                                        tierDiscount?.discountRule
-                                          ?.discountType;
-                                      const inheritedDiscountValue =
-                                        tierDiscount?.discountRule
-                                          ?.discountValue ?? 0;
-
-                                      // Compute effective price based on discount type
                                       let effective: number | null = null;
                                       let savingsPct = 0;
-                                      let originalTierFlat: number | undefined;
 
-                                      if (isIndependent) {
-                                        // Independent: flat discount from user input
-                                        if (independentDiscountVal > 0) {
-                                          effective = Math.max(
-                                            0,
-                                            total - independentDiscountVal,
-                                          );
-                                          savingsPct =
-                                            total > 0
-                                              ? Math.round(
-                                                  (independentDiscountVal /
-                                                    total) *
-                                                    100,
-                                                )
-                                              : 0;
-                                        }
-                                      } else if (inheritedDiscountValue > 0) {
-                                        if (
-                                          inheritedDiscountType === "PERCENTAGE"
-                                        ) {
-                                          effective =
-                                            total *
-                                            (1 - inheritedDiscountValue / 100);
-                                          savingsPct = Math.round(
-                                            inheritedDiscountValue,
-                                          );
-                                        } else if (tierMonthlyBase > 0) {
-                                          // FLAT_AMOUNT: convert to equivalent percentage
-                                          const tierCycleBase =
-                                            tierMonthlyBase * months;
-                                          const equivalentPct =
-                                            (inheritedDiscountValue /
-                                              tierCycleBase) *
-                                            100;
-                                          effective =
-                                            total * (1 - equivalentPct / 100);
-                                          savingsPct =
-                                            Math.round(equivalentPct * 10) / 10;
-                                          originalTierFlat =
-                                            inheritedDiscountValue;
-                                        } else {
-                                          effective = Math.max(
-                                            0,
-                                            total - inheritedDiscountValue,
-                                          );
-                                          savingsPct =
-                                            total > 0
-                                              ? Math.round(
-                                                  (inheritedDiscountValue /
-                                                    total) *
-                                                    100,
-                                                )
-                                              : 0;
-                                        }
+                                      if (discountPct > 0) {
+                                        effective =
+                                          total * (1 - discountPct / 100);
+                                        savingsPct = Math.round(discountPct);
                                       }
 
                                       return (
@@ -1294,46 +1361,43 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                                   </span>
                                                 </span>
                                               </div>
-                                              {isIndependent && (
-                                                <div className="catalog__addon-cycle-discount-col">
-                                                  <span className="catalog__addon-cycle-calc-label">
-                                                    Flat Discount
-                                                  </span>
-                                                  <div className="catalog__discount-flat catalog__discount-flat--compact">
-                                                    <span className="catalog__discount-prefix">
-                                                      - $
-                                                    </span>
-                                                    <input
-                                                      type="number"
-                                                      value={
-                                                        editTierDiscounts[
+                                              <div className="catalog__addon-cycle-discount-col">
+                                                <span className="catalog__addon-cycle-calc-label">
+                                                  Discount
+                                                </span>
+                                                <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                                  <input
+                                                    type="number"
+                                                    value={
+                                                      editTierDiscounts[
+                                                        activeTier.id
+                                                      ]?.[cycle] || ""
+                                                    }
+                                                    onChange={(e) => {
+                                                      const updated = {
+                                                        ...editTierDiscounts,
+                                                      };
+                                                      updated[activeTier.id] = {
+                                                        ...updated[
                                                           activeTier.id
-                                                        ]?.[cycle] || ""
-                                                      }
-                                                      onChange={(e) => {
-                                                        const updated = {
-                                                          ...editTierDiscounts,
-                                                        };
-                                                        updated[activeTier.id] =
-                                                          {
-                                                            ...updated[
-                                                              activeTier.id
-                                                            ],
-                                                            [cycle]:
-                                                              e.target.value,
-                                                          };
-                                                        setEditTierDiscounts(
-                                                          updated,
-                                                        );
-                                                      }}
-                                                      placeholder="0"
-                                                      step="0.01"
-                                                      min="0"
-                                                      className="catalog__discount-input"
-                                                    />
-                                                  </div>
+                                                        ],
+                                                        [cycle]: e.target.value,
+                                                      };
+                                                      setEditTierDiscounts(
+                                                        updated,
+                                                      );
+                                                    }}
+                                                    placeholder="0"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="100"
+                                                    className="catalog__discount-input"
+                                                  />
+                                                  <span className="catalog__discount-suffix">
+                                                    %
+                                                  </span>
                                                 </div>
-                                              )}
+                                              </div>
                                             </div>
                                           )}
                                           {effective !== null && (
@@ -1350,11 +1414,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                                     total - effective,
                                                     "USD",
                                                   )}{" "}
-                                                  off
-                                                  {!isIndependent &&
-                                                    (originalTierFlat
-                                                      ? ` (from ${formatPrice(originalTierFlat, "USD")} tier discount)`
-                                                      : " (tier discount)")}
+                                                  off ({savingsPct}%)
                                                 </span>
                                               )}
                                             </div>
@@ -1424,16 +1484,13 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             const base = parseFloat(editGroupBasePrice) || 0;
                             const months = BILLING_CYCLE_MONTHS[cycle];
                             const total = base > 0 ? base * months : null;
-                            const discountVal =
+                            const discountPct =
                               parseFloat(editGroupDiscounts[cycle]) || 0;
                             const effective =
-                              total !== null && discountVal > 0
-                                ? Math.max(0, total - discountVal)
+                              total !== null && discountPct > 0
+                                ? total * (1 - discountPct / 100)
                                 : null;
-                            const savingsPct =
-                              total !== null && total > 0 && discountVal > 0
-                                ? Math.round((discountVal / total) * 100)
-                                : 0;
+                            const savingsPct = Math.round(discountPct);
                             const isMonthly = cycle === "MONTHLY";
                             const cycleLabel = {
                               MONTHLY: "Monthly",
@@ -1480,12 +1537,9 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                     )}
                                     <div className="catalog__addon-cycle-discount-col">
                                       <span className="catalog__addon-cycle-calc-label">
-                                        Flat Discount
+                                        Discount
                                       </span>
                                       <div className="catalog__discount-flat catalog__discount-flat--compact">
-                                        <span className="catalog__discount-prefix">
-                                          - $
-                                        </span>
                                         <input
                                           type="number"
                                           value={editGroupDiscounts[cycle]}
@@ -1496,15 +1550,19 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                             })
                                           }
                                           placeholder="0"
-                                          step="0.01"
+                                          step="0.1"
                                           min="0"
+                                          max="100"
                                           className="catalog__discount-input"
                                         />
+                                        <span className="catalog__discount-suffix">
+                                          %
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
                                 )}
-                                {effective !== null && discountVal > 0 && (
+                                {effective !== null && discountPct > 0 && (
                                   <div className="catalog__addon-cycle-effective">
                                     <span className="catalog__addon-cycle-effective-arrow">
                                       &rarr;
@@ -1617,8 +1675,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                   editSetupTierDiscounts[activeTier.id]?.[
                                     cycle
                                   ];
-                                const dType =
-                                  entry?.discountType || "FLAT_AMOUNT";
+                                const dType = "PERCENTAGE" as const;
                                 const dValue = entry?.discountValue || "";
                                 const parsedValue = parseFloat(dValue) || 0;
 
@@ -1653,37 +1710,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                       </span>
                                     </div>
                                     <div className="catalog__setup-cycle-controls">
-                                      <select
-                                        value={dType}
-                                        onChange={(e) => {
-                                          const updated = {
-                                            ...editSetupTierDiscounts,
-                                          };
-                                          updated[activeTier.id] = {
-                                            ...updated[activeTier.id],
-                                            [cycle]: {
-                                              ...updated[activeTier.id]?.[
-                                                cycle
-                                              ],
-                                              discountType: e.target
-                                                .value as DiscountType,
-                                            },
-                                          };
-                                          setEditSetupTierDiscounts(updated);
-                                        }}
-                                        className="catalog__setup-discount-select"
-                                      >
-                                        <option value="FLAT_AMOUNT">
-                                          Flat ($)
-                                        </option>
-                                        <option value="PERCENTAGE">
-                                          Percent (%)
-                                        </option>
-                                      </select>
+                                      <span className="catalog__discount-label">
+                                        Discount
+                                      </span>
                                       <div className="catalog__fee-input-wrapper catalog__fee-input-wrapper--discount">
-                                        <span className="catalog__fee-prefix">
-                                          {dType === "PERCENTAGE" ? "%" : "- $"}
-                                        </span>
                                         <input
                                           type="number"
                                           value={dValue}
@@ -1706,12 +1736,11 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                           className="catalog__fee-input"
                                           step="0.01"
                                           min="0"
-                                          max={
-                                            dType === "PERCENTAGE"
-                                              ? "100"
-                                              : undefined
-                                          }
+                                          max="100"
                                         />
+                                        <span className="catalog__discount-suffix">
+                                          %
+                                        </span>
                                       </div>
                                     </div>
                                     {parsedValue > 0 && baseAmount > 0 && (
@@ -2871,23 +2900,6 @@ const styles = `
     display: flex;
     flex-direction: column;
     gap: 10px;
-  }
-
-  .catalog__setup-discount-select {
-    font-family: var(--so-font-mono);
-    font-size: 0.75rem;
-    color: var(--so-slate-600);
-    background: white;
-    border: 1.5px solid var(--so-slate-200);
-    border-radius: var(--so-radius-sm);
-    padding: 6px 8px;
-    cursor: pointer;
-    outline: none;
-    min-width: 90px;
-  }
-
-  .catalog__setup-discount-select:focus {
-    border-color: var(--so-violet-500);
   }
 
   .catalog__fee-input-wrapper--discount {
@@ -4253,6 +4265,23 @@ const styles = `
 
   .catalog__discount-prefix {
     padding: 10px 8px 10px 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--so-slate-400);
+    background: var(--so-slate-50);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .catalog__discount-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    white-space: nowrap;
+  }
+
+  .catalog__discount-suffix {
+    padding: 10px 12px 10px 8px;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--so-slate-400);

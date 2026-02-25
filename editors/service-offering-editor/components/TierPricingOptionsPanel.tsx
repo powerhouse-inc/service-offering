@@ -1,11 +1,7 @@
-import { useState } from "react";
-import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
-  ServiceOfferingAction,
   BillingCycle,
   BillingCycleDiscount,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import { setTierBillingCycleDiscounts } from "../../../document-models/service-offering/gen/creators.js";
 import { formatPrice, BILLING_CYCLE_MONTHS } from "./pricing-utils.js";
 
 interface BillingCycleConfigPanelProps {
@@ -14,7 +10,6 @@ interface BillingCycleConfigPanelProps {
   currency: string;
   billingCycleDiscounts: BillingCycleDiscount[];
   isCustomPricing: boolean;
-  dispatch: DocumentDispatch<ServiceOfferingAction>;
 }
 
 const CYCLE_ORDER: BillingCycle[] = [
@@ -70,6 +65,17 @@ const panelStyles = `
     color: var(--so-violet-500);
   }
 
+  .bcp__computed-label {
+    font-family: var(--so-font-mono);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    color: var(--so-slate-400);
+    background: var(--so-slate-100);
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--so-radius-sm);
+    margin-left: auto;
+  }
+
   .bcp__no-price {
     display: flex;
     align-items: center;
@@ -110,7 +116,7 @@ const panelStyles = `
     opacity: 0.5;
   }
 
-  /* Top part: checkbox + label + total */
+  /* Top part: label + total */
   .bcp-row__top {
     display: flex;
     align-items: center;
@@ -124,16 +130,19 @@ const panelStyles = `
     background: var(--so-violet-50);
   }
 
-  .bcp-row__checkbox {
-    width: 1.125rem;
-    height: 1.125rem;
-    accent-color: var(--so-violet-500);
-    cursor: pointer;
+  .bcp-row__cycle-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .bcp-row__checkbox:disabled {
-    cursor: default;
+  .bcp-row__cycle-dot--active {
+    background: var(--so-violet-500);
+  }
+
+  .bcp-row__cycle-dot--inactive {
+    background: var(--so-slate-300);
   }
 
   .bcp-row__label {
@@ -221,41 +230,19 @@ const panelStyles = `
     color: var(--so-slate-700);
   }
 
-  .bcp-row__discount-input-wrap {
+  .bcp-row__discount-display {
     display: flex;
     align-items: center;
-    gap: 0.125rem;
-    background: var(--so-white);
-    border: 1px solid var(--so-slate-200);
-    border-radius: var(--so-radius-sm);
-    padding: 0.25rem 0.5rem;
-    min-height: 1.75rem;
-  }
-
-  .bcp-row--active .bcp-row__discount-input-wrap {
-    border-color: var(--so-violet-200);
-  }
-
-  .bcp-row__discount-prefix {
-    font-family: var(--so-font-mono);
-    font-size: 0.8125rem;
-    color: var(--so-slate-400);
-    user-select: none;
-  }
-
-  .bcp-row__discount-input {
-    width: 4.5rem;
+    gap: 0.25rem;
     font-family: var(--so-font-mono);
     font-size: 0.8125rem;
     font-weight: 500;
-    color: var(--so-slate-800);
-    background: transparent;
-    border: none;
-    outline: none;
-    padding: 0;
+    color: var(--so-slate-600);
+    padding: 0.25rem 0;
+    min-height: 1.75rem;
   }
 
-  .bcp-row__discount-input::placeholder {
+  .bcp-row__discount-display--zero {
     color: var(--so-slate-300);
   }
 
@@ -294,12 +281,10 @@ const panelStyles = `
 `;
 
 export function BillingCycleConfigPanel({
-  tierId,
   basePrice,
   currency,
   billingCycleDiscounts,
   isCustomPricing,
-  dispatch,
 }: BillingCycleConfigPanelProps) {
   if (isCustomPricing) return null;
 
@@ -320,73 +305,6 @@ export function BillingCycleConfigPanel({
     return basePrice * BILLING_CYCLE_MONTHS[cycle];
   };
 
-  const dispatchDiscounts = (updated: BillingCycleDiscount[]) => {
-    dispatch(
-      setTierBillingCycleDiscounts({
-        tierId,
-        discounts: updated,
-        lastModified: new Date().toISOString(),
-      }) as ServiceOfferingAction,
-    );
-  };
-
-  const handleToggleCycle = (cycle: BillingCycle, enabled: boolean) => {
-    if (cycle === "MONTHLY") return;
-
-    if (enabled) {
-      dispatchDiscounts([
-        ...billingCycleDiscounts,
-        {
-          billingCycle: cycle,
-          discountRule: {
-            discountType: "FLAT_AMOUNT" as const,
-            discountValue: 0,
-          },
-        },
-      ]);
-    } else {
-      dispatchDiscounts(
-        billingCycleDiscounts.filter((d) => d.billingCycle !== cycle),
-      );
-    }
-  };
-
-  const handleDiscountChange = (cycle: BillingCycle, value: number) => {
-    const rounded = Math.round(Math.max(0, value) * 100) / 100;
-
-    const existing = billingCycleDiscounts.find(
-      (d) => d.billingCycle === cycle,
-    );
-
-    if (existing) {
-      dispatchDiscounts(
-        billingCycleDiscounts.map((d) =>
-          d.billingCycle === cycle
-            ? {
-                billingCycle: cycle,
-                discountRule: {
-                  discountType: "FLAT_AMOUNT" as const,
-                  discountValue: rounded,
-                },
-              }
-            : d,
-        ),
-      );
-    } else {
-      // Monthly case: create entry
-      dispatchDiscounts([
-        ...billingCycleDiscounts,
-        {
-          billingCycle: cycle,
-          discountRule: {
-            discountType: "FLAT_AMOUNT" as const,
-            discountValue: rounded,
-          },
-        },
-      ]);
-    }
-  };
-
   return (
     <>
       <style>{panelStyles}</style>
@@ -403,6 +321,9 @@ export function BillingCycleConfigPanel({
             </svg>
             Billing Cycles & Discounts
           </span>
+          <span className="bcp__computed-label">
+            Computed from service groups
+          </span>
         </div>
 
         {!hasBasePrice && (
@@ -415,7 +336,8 @@ export function BillingCycleConfigPanel({
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            Set a base price above to configure billing cycles.
+            Discounts will appear here once service groups set pricing for this
+            tier.
           </div>
         )}
 
@@ -429,7 +351,6 @@ export function BillingCycleConfigPanel({
             return (
               <BillingCycleRow
                 key={cycle}
-                cycle={cycle}
                 label={CYCLE_LABELS[cycle]}
                 shortLabel={CYCLE_SHORT[cycle]}
                 enabled={enabled}
@@ -439,8 +360,6 @@ export function BillingCycleConfigPanel({
                 discount={discount}
                 currency={currency}
                 hasBasePrice={hasBasePrice}
-                onToggleCycle={(checked) => handleToggleCycle(cycle, checked)}
-                onDiscountChange={(val) => handleDiscountChange(cycle, val)}
               />
             );
           })}
@@ -451,7 +370,6 @@ export function BillingCycleConfigPanel({
 }
 
 interface BillingCycleRowProps {
-  cycle: BillingCycle;
   label: string;
   shortLabel: string;
   enabled: boolean;
@@ -461,8 +379,6 @@ interface BillingCycleRowProps {
   discount: number;
   currency: string;
   hasBasePrice: boolean;
-  onToggleCycle: (checked: boolean) => void;
-  onDiscountChange: (value: number) => void;
 }
 
 function BillingCycleRow({
@@ -475,30 +391,7 @@ function BillingCycleRow({
   discount,
   currency,
   hasBasePrice,
-  onToggleCycle,
-  onDiscountChange,
 }: BillingCycleRowProps) {
-  const [localDiscount, setLocalDiscount] = useState(discount.toString());
-
-  // Sync local state when discount changes externally
-  const discountStr = discount.toString();
-  if (
-    discountStr !== localDiscount &&
-    document.activeElement?.tagName !== "INPUT"
-  ) {
-    setLocalDiscount(discountStr);
-  }
-
-  const handleDiscountBlur = () => {
-    const parsed = parseFloat(localDiscount);
-    if (!isNaN(parsed) && parsed >= 0 && parsed !== discount) {
-      onDiscountChange(parsed);
-    } else if (localDiscount === "" || isNaN(parseFloat(localDiscount))) {
-      setLocalDiscount("0");
-      if (discount !== 0) onDiscountChange(0);
-    }
-  };
-
   const effectivePrice =
     total !== null && discount > 0 ? Math.max(0, total - discount) : null;
 
@@ -519,15 +412,10 @@ function BillingCycleRow({
 
   return (
     <div className={rowClass}>
-      {/* Top: checkbox + label + total */}
+      {/* Top: dot + label + total */}
       <div className="bcp-row__top">
-        <input
-          type="checkbox"
-          checked={enabled}
-          disabled={isMonthly}
-          onChange={(e) => onToggleCycle(e.target.checked)}
-          className="bcp-row__checkbox"
-          title={isMonthly ? "Monthly is always enabled" : `Toggle ${label}`}
+        <span
+          className={`bcp-row__cycle-dot ${enabled ? "bcp-row__cycle-dot--active" : "bcp-row__cycle-dot--inactive"}`}
         />
         <span className="bcp-row__label">{label}</span>
         {enabled && total !== null ? (
@@ -537,7 +425,7 @@ function BillingCycleRow({
         )}
       </div>
 
-      {/* Detail: standard price calc + flat discount input */}
+      {/* Detail: standard price calc + discount display (read-only) */}
       {enabled && hasBasePrice && (
         <div className="bcp-row__detail">
           <div className="bcp-row__detail-col bcp-row__detail-col--price">
@@ -564,20 +452,11 @@ function BillingCycleRow({
                 />
               </svg>
             </span>
-            <div className="bcp-row__discount-input-wrap">
-              <span className="bcp-row__discount-prefix">
-                - {currencySymbol}
-              </span>
-              <input
-                type="number"
-                value={localDiscount}
-                onChange={(e) => setLocalDiscount(e.target.value)}
-                onBlur={handleDiscountBlur}
-                placeholder="0"
-                step="0.01"
-                min="0"
-                className="bcp-row__discount-input"
-              />
+            <div
+              className={`bcp-row__discount-display ${discount === 0 ? "bcp-row__discount-display--zero" : ""}`}
+            >
+              - {currencySymbol}
+              {discount > 0 ? discount.toLocaleString() : "0"}
             </div>
           </div>
         </div>
