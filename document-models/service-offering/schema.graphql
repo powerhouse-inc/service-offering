@@ -30,8 +30,10 @@ type ServiceOfferingState {
     infoLink: URL
     status: ServiceStatus!
     lastModified: DateTime!
+    availableBillingCycles: [BillingCycle!]!
     targetAudiences: [TargetAudience!]!
     facetTargets: [FacetTarget!]!
+    facetBindings: [ResourceFacetBinding!]!
     serviceGroups: [ServiceGroup!]!
     services: [Service!]!
     tiers: [ServiceSubscriptionTier!]!
@@ -80,7 +82,6 @@ type ServiceGroup {
     description: String
     billingCycle: BillingCycle!
     displayOrder: Int
-    discountMode: DiscountMode
     tierPricing: [ServiceGroupTierPricing!]!
 }
 
@@ -121,8 +122,6 @@ type Service {
     serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-    facetBindings: [ResourceFacetBinding!]!
-    
 }
 
 type ResourceFacetBinding {
@@ -139,8 +138,6 @@ type ServiceSubscriptionTier {
     isCustomPricing: Boolean!
     pricingMode: TierPricingMode
     pricing: ServicePricing!
-    defaultBillingCycle: BillingCycle
-    billingCycleDiscounts: [BillingCycleDiscount!]!
     serviceLevels: [ServiceLevelBinding!]!
     usageLimits: [ServiceUsageLimit!]!
 }
@@ -211,7 +208,6 @@ type OptionGroup {
     costType: GroupCostType
     availableBillingCycles: [BillingCycle!]!
     billingCycleDiscounts: [BillingCycleDiscount!]!
-    discountMode: DiscountMode
     price: Amount_Money
     currency: Currency
 }
@@ -219,11 +215,6 @@ type OptionGroup {
 enum AddOnPricingMode {
     TIER_DEPENDENT
     STANDALONE
-}
-
-enum DiscountMode {
-    INHERIT_TIER
-    INDEPENDENT
 }
 
 enum TierPricingMode {
@@ -287,7 +278,6 @@ type FinalConfiguration {
     selectedBillingCycle: BillingCycle!
     tierBasePrice: Amount_Money
     tierCurrency: Currency!
-    tierDiscount: ResolvedDiscount
     optionGroupConfigs: [FinalOptionGroupConfig!]!
     addOnConfigs: [FinalAddOnConfig!]!
     lastModified: DateTime!
@@ -365,6 +355,23 @@ input ChangeResourceTemplateInput {
     previousTemplateId: PHID!
     newTemplateId: PHID!
     lastModified: DateTime!
+}
+
+input SetAvailableBillingCyclesInput {
+    billingCycles: [BillingCycle!]!
+    lastModified: DateTime!
+}
+
+input SetFacetBindingsInput {
+    facetBindings: [FacetBindingInput!]!
+    lastModified: DateTime!
+}
+
+input FacetBindingInput {
+    id: OID!
+    facetName: String!
+    facetType: PHID!
+    supportedOptions: [OID!]!
 }
 
 # services
@@ -503,28 +510,6 @@ input RemoveUsageLimitInput {
     lastModified: DateTime!
 }
 
-input SetTierDefaultBillingCycleInput {
-    tierId: OID!
-    defaultBillingCycle: BillingCycle!
-    lastModified: DateTime!
-}
-
-input DiscountRuleInput {
-    discountType: DiscountType!
-    discountValue: Float!
-}
-
-input BillingCycleDiscountInput {
-    billingCycle: BillingCycle!
-    discountRule: DiscountRuleInput!
-}
-
-input SetTierBillingCycleDiscountsInput {
-    tierId: OID!
-    discounts: [BillingCycleDiscountInput!]!
-    lastModified: DateTime!
-}
-
 input SetTierPricingModeInput {
     tierId: OID!
     pricingMode: TierPricingMode!
@@ -562,6 +547,16 @@ input UpdateOptionGroupInput {
 input DeleteOptionGroupInput {
     id: OID!
     lastModified: DateTime!
+}
+
+input DiscountRuleInput {
+    discountType: DiscountType!
+    discountValue: Float!
+}
+
+input BillingCycleDiscountInput {
+    billingCycle: BillingCycle!
+    discountRule: DiscountRuleInput!
 }
 
 input RecurringPriceOptionInput {
@@ -611,12 +606,6 @@ input RemoveOptionGroupTierPricingInput {
     lastModified: DateTime!
 }
 
-input SetOptionGroupDiscountModeInput {
-    optionGroupId: OID!
-    discountMode: DiscountMode!
-    lastModified: DateTime!
-}
-
 # service-groups
 
 input AddServiceGroupInput {
@@ -625,7 +614,6 @@ input AddServiceGroupInput {
     description: String
     billingCycle: BillingCycle!
     displayOrder: Int
-    discountMode: DiscountMode
     lastModified: DateTime!
 }
 
@@ -635,7 +623,6 @@ input UpdateServiceGroupInput {
     description: String
     billingCycle: BillingCycle
     displayOrder: Int
-    discountMode: DiscountMode
     lastModified: DateTime!
 }
 
@@ -746,7 +733,6 @@ input SetFinalConfigurationInput {
     selectedBillingCycle: BillingCycle!
     tierBasePrice: Amount_Money
     tierCurrency: Currency!
-    tierDiscount: ResolvedDiscountInput
     optionGroupConfigs: [FinalOptionGroupConfigInput!]!
     addOnConfigs: [FinalAddOnConfigInput!]!
     lastModified: DateTime!

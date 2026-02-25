@@ -10,8 +10,6 @@ export type ErrorCode =
   | "UpdateUsageLimitTierNotFoundError"
   | "UpdateUsageLimitNotFoundError"
   | "RemoveUsageLimitTierNotFoundError"
-  | "SetTierDefaultBillingCycleTierNotFoundError"
-  | "SetTierBillingCycleDiscountsTierNotFoundError"
   | "SetTierPricingModeTierNotFoundError";
 
 export interface ReducerError {
@@ -122,26 +120,6 @@ export class RemoveUsageLimitTierNotFoundError
   }
 }
 
-export class SetTierDefaultBillingCycleTierNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "SetTierDefaultBillingCycleTierNotFoundError" as ErrorCode;
-  constructor(message = "SetTierDefaultBillingCycleTierNotFoundError") {
-    super(message);
-  }
-}
-
-export class SetTierBillingCycleDiscountsTierNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "SetTierBillingCycleDiscountsTierNotFoundError" as ErrorCode;
-  constructor(message = "SetTierBillingCycleDiscountsTierNotFoundError") {
-    super(message);
-  }
-}
-
 export class SetTierPricingModeTierNotFoundError
   extends Error
   implements ReducerError
@@ -168,9 +146,5 @@ export const errors = {
     UpdateUsageLimitNotFoundError,
   },
   RemoveUsageLimit: { RemoveUsageLimitTierNotFoundError },
-  SetTierDefaultBillingCycle: { SetTierDefaultBillingCycleTierNotFoundError },
-  SetTierBillingCycleDiscounts: {
-    SetTierBillingCycleDiscountsTierNotFoundError,
-  },
   SetTierPricingMode: { SetTierPricingModeTierNotFoundError },
 };

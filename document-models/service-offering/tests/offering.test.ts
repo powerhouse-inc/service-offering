@@ -28,6 +28,10 @@ import {
   RemoveFacetOptionInputSchema,
   SelectResourceTemplateInputSchema,
   ChangeResourceTemplateInputSchema,
+  setAvailableBillingCycles,
+  SetAvailableBillingCyclesInputSchema,
+  setFacetBindings,
+  SetFacetBindingsInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("OfferingOperations", () => {
@@ -228,6 +232,40 @@ describe("OfferingOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "CHANGE_RESOURCE_TEMPLATE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setAvailableBillingCycles operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetAvailableBillingCyclesInputSchema());
+
+    const updatedDocument = reducer(document, setAvailableBillingCycles(input));
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_AVAILABLE_BILLING_CYCLES",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setFacetBindings operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetFacetBindingsInputSchema());
+
+    const updatedDocument = reducer(document, setFacetBindings(input));
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_FACET_BINDINGS",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

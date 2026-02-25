@@ -7,7 +7,6 @@ import type {
   AddOptionGroupTierPricingAction,
   UpdateOptionGroupTierPricingAction,
   RemoveOptionGroupTierPricingAction,
-  SetOptionGroupDiscountModeAction,
 } from "./actions.js";
 import type { ServiceOfferingState } from "../types.js";
 
@@ -45,11 +44,6 @@ export interface ServiceOfferingOptionGroupsOperations {
   removeOptionGroupTierPricingOperation: (
     state: ServiceOfferingState,
     action: RemoveOptionGroupTierPricingAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  setOptionGroupDiscountModeOperation: (
-    state: ServiceOfferingState,
-    action: SetOptionGroupDiscountModeAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

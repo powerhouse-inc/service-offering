@@ -6,11 +6,13 @@ import type {
   ServiceOfferingAction,
   ServiceSubscriptionTier,
   OptionGroup,
+  BillingCycle,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
   addTier,
   updateTier,
   deleteTier,
+  setAvailableBillingCycles,
 } from "../../../document-models/service-offering/gen/creators.js";
 import { calculateTierRecurringPrice, formatPrice } from "./pricing-utils.js";
 
@@ -93,11 +95,72 @@ const TIER_PRESETS: TierPreset[] = [
   },
 ];
 
+const BILLING_CYCLE_OPTIONS: { value: BillingCycle; label: string }[] = [
+  { value: "MONTHLY", label: "Monthly" },
+  { value: "QUARTERLY", label: "Quarterly" },
+  { value: "SEMI_ANNUAL", label: "Semi-Annual" },
+  { value: "ANNUAL", label: "Annual" },
+];
+
 const tierStyles = `
   .tier-def {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+  }
+
+  .tier-billing-cycles {
+    background: white;
+    border: 1px solid var(--so-slate-200);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .tier-billing-cycles__label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--so-slate-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .tier-billing-cycles__options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tier-billing-cycles__btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--so-slate-200);
+    background: white;
+    color: var(--so-slate-500);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .tier-billing-cycles__btn:hover {
+    border-color: var(--so-violet-300);
+    color: var(--so-violet-600);
+  }
+
+  .tier-billing-cycles__btn--active {
+    background: var(--so-violet-500);
+    border-color: var(--so-violet-500);
+    color: white;
+  }
+
+  .tier-billing-cycles__btn--active:hover {
+    background: var(--so-violet-600);
+    border-color: var(--so-violet-600);
+    color: white;
   }
 
   .tier-def__grid {
@@ -953,6 +1016,42 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
             </div>
           </div>
         )}
+
+        {/* Billing Cycle Selector */}
+        <div className="tier-billing-cycles">
+          <span className="tier-billing-cycles__label">Billing Cycles:</span>
+          <div className="tier-billing-cycles__options">
+            {BILLING_CYCLE_OPTIONS.map((opt) => {
+              const isActive = (
+                state.global.availableBillingCycles ?? []
+              ).includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  className={`tier-billing-cycles__btn ${isActive ? "tier-billing-cycles__btn--active" : ""}`}
+                  onClick={() => {
+                    const current = state.global.availableBillingCycles ?? [];
+                    let updated: BillingCycle[];
+                    if (isActive) {
+                      updated = current.filter((c) => c !== opt.value);
+                      if (updated.length === 0) return;
+                    } else {
+                      updated = [...current, opt.value];
+                    }
+                    dispatch(
+                      setAvailableBillingCycles({
+                        billingCycles: updated,
+                        lastModified: new Date().toISOString(),
+                      }),
+                    );
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="tier-def__grid">
           {tiers.map((tier, index) => (

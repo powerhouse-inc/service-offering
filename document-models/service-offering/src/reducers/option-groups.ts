@@ -5,7 +5,6 @@ import {
   AddOptionGroupTierPricingNotFoundError,
   UpdateOptionGroupTierPricingNotFoundError,
   RemoveOptionGroupTierPricingNotFoundError,
-  SetOptionGroupDiscountModeNotFoundError,
 } from "../../gen/option-groups/error.js";
 import type { ServiceOfferingOptionGroupsOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -24,7 +23,6 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
         costType: action.input.costType || null,
         availableBillingCycles: action.input.availableBillingCycles || [],
         billingCycleDiscounts: [],
-        discountMode: null,
         price: action.input.price || null,
         currency: action.input.currency || null,
       });
@@ -247,18 +245,6 @@ export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsO
           og.tierDependentPricing.splice(index, 1);
         }
       }
-      state.lastModified = action.input.lastModified;
-    },
-    setOptionGroupDiscountModeOperation(state, action) {
-      const og = state.optionGroups.find(
-        (g) => g.id === action.input.optionGroupId,
-      );
-      if (!og) {
-        throw new SetOptionGroupDiscountModeNotFoundError(
-          `Option group with ID ${action.input.optionGroupId} not found`,
-        );
-      }
-      og.discountMode = action.input.discountMode;
       state.lastModified = action.input.lastModified;
     },
   };

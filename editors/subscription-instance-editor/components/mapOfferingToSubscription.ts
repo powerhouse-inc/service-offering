@@ -133,33 +133,11 @@ function mapServiceGroups(
       }
     }
 
-    // Apply billing cycle discount from tier if applicable
+    // Apply group-level discount from the recurring option itself
     let discountedAmount = recurringOption?.amount;
     let discountInput: DiscountInfoInitInput | undefined;
 
-    if (recurringOption && tier.billingCycleDiscounts.length > 0) {
-      const cycleDiscount = tier.billingCycleDiscounts.find(
-        (d) => d.billingCycle === selectedBillingCycle,
-      );
-      if (cycleDiscount) {
-        const originalAmount = recurringOption.amount;
-        const rule = cycleDiscount.discountRule;
-        if (rule.discountType === "PERCENTAGE") {
-          discountedAmount = originalAmount * (1 - rule.discountValue / 100);
-        } else {
-          discountedAmount = originalAmount - rule.discountValue;
-        }
-        discountInput = {
-          originalAmount,
-          discountType: rule.discountType,
-          discountValue: rule.discountValue,
-          source: "TIER_INHERITED",
-        };
-      }
-    }
-
-    // Also check if the recurring option itself has a discount
-    if (recurringOption?.discount && !discountInput) {
+    if (recurringOption?.discount) {
       const originalAmount = recurringOption.amount;
       const d = recurringOption.discount;
       if (d.discountType === "PERCENTAGE") {

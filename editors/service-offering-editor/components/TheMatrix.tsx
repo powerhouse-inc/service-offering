@@ -2751,19 +2751,14 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     [regularGroups, activeBillingCycle, groupBillingCycles],
   );
 
-  // Global billing cycle bar: driven by the selected tier's billingCycleDiscounts
-  // MONTHLY is always available; other cycles appear when the tier has them configured
+  // Global billing cycle bar: driven by the offering's availableBillingCycles
   const availableCyclesForSelectedTier = useMemo(() => {
-    const tier = tiers[selectedTierIdx];
-    if (!tier || tier.billingCycleDiscounts.length === 0) {
+    const globalCycles = state.global.availableBillingCycles ?? [];
+    if (globalCycles.length === 0) {
       return RECURRING_BILLING_CYCLES;
     }
-    const tierCycleSet = new Set<BillingCycle>(
-      tier.billingCycleDiscounts.map((d) => d.billingCycle),
-    );
-    tierCycleSet.add("MONTHLY");
-    return RECURRING_BILLING_CYCLES.filter((c) => tierCycleSet.has(c));
-  }, [tiers, selectedTierIdx]);
+    return RECURRING_BILLING_CYCLES.filter((c) => globalCycles.includes(c));
+  }, [state.global.availableBillingCycles]);
 
   const addonGroups = useMemo(() => {
     return optionGroups.filter((g) => g.isAddOn);
@@ -3676,7 +3671,6 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     pricingMode: null,
                     standalonePricing: null,
                     tierDependentPricing: null,
-                    discountMode: null,
                   }}
                   services={ungroupedSetupServices}
                   tiers={tiers}
@@ -3780,7 +3774,6 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     pricingMode: null,
                     standalonePricing: null,
                     tierDependentPricing: null,
-                    discountMode: null,
                   }}
                   services={ungroupedRegularServices}
                   tiers={tiers}

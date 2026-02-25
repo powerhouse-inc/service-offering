@@ -70,7 +70,6 @@ export function resolveConfiguration(
     selectedBillingCycle: activeBillingCycle,
     tierBasePrice: breakdown.tierCycleTotal,
     tierCurrency: breakdown.tierCurrency,
-    tierDiscount: toResolvedDiscountInput(breakdown.tierDiscount),
     optionGroupConfigs: [
       ...breakdown.optionGroupBreakdowns.map(mapOptionGroup),
       ...breakdown.setupGroupBreakdowns.map(mapOptionGroup),

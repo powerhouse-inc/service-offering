@@ -4,6 +4,7 @@ import {
   AddFacetOptionTargetNotFoundError,
   RemoveFacetOptionTargetNotFoundError,
   ChangeResourceTemplateMismatchError,
+  NoBillingCyclesSelectedError,
 } from "../../gen/offering/error.js";
 import type { ServiceOfferingOfferingOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -121,6 +122,24 @@ export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperation
         );
       }
       state.resourceTemplateId = action.input.newTemplateId;
+      state.lastModified = action.input.lastModified;
+    },
+    setAvailableBillingCyclesOperation(state, action) {
+      if (action.input.billingCycles.length === 0) {
+        throw new NoBillingCyclesSelectedError(
+          "At least one billing cycle must be selected",
+        );
+      }
+      state.availableBillingCycles = action.input.billingCycles;
+      state.lastModified = action.input.lastModified;
+    },
+    setFacetBindingsOperation(state, action) {
+      state.facetBindings = action.input.facetBindings.map((fb) => ({
+        id: fb.id,
+        facetName: fb.facetName,
+        facetType: fb.facetType,
+        supportedOptions: fb.supportedOptions || [],
+      }));
       state.lastModified = action.input.lastModified;
     },
   };

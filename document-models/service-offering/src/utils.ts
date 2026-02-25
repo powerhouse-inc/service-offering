@@ -73,7 +73,6 @@ export interface PriceBreakdown {
   tierMonthlyBase: number;
   tierCycleTotal: number;
   tierCurrency: string;
-  tierDiscount: ResolvedDiscountResult | null;
   optionGroupBreakdowns: OptionGroupBreakdown[];
   setupGroupBreakdowns: OptionGroupBreakdown[];
   addOnBreakdowns: AddOnBreakdown[];
@@ -165,73 +164,28 @@ function getGroupIndependentDiscount(
 }
 
 /**
- * Mode-aware discount resolution.
- * INDEPENDENT: reads from group's billingCycleDiscounts then tierDependentPricing discounts.
- * INHERIT_TIER (or default for regular groups): uses tier's billingCycleDiscounts.
- * Add-ons with unset discountMode default to own discounts (don't inherit tier).
- * tierMonthlyBase is needed for flat→percentage conversion when inheriting tier discounts.
+ * Resolve the group-level discount for the given billing cycle.
+ * Checks group's billingCycleDiscounts first, then tier-dependent pricing discounts.
  */
 function resolveGroupDiscountForTier(
   group: OptionGroup,
   tierId: string,
   effectiveCycle: BillingCycle,
-  tier: ServiceSubscriptionTier | null,
-  tierMonthlyBase?: number,
-): { discountRule: DiscountRule; source: "group" | "tier" } | null {
-  const useOwnDiscounts =
-    group.discountMode === "INDEPENDENT" ||
-    (group.isAddOn && group.discountMode !== "INHERIT_TIER");
-
-  if (useOwnDiscounts) {
-    const groupDiscount = group.billingCycleDiscounts?.find(
-      (d) => d.billingCycle === effectiveCycle,
-    );
-    if (groupDiscount && groupDiscount.discountRule.discountValue > 0) {
-      return { discountRule: groupDiscount.discountRule, source: "group" };
-    }
-    const independentDiscount = getGroupIndependentDiscount(
-      group,
-      tierId,
-      effectiveCycle,
-    );
-    if (independentDiscount) {
-      return { discountRule: independentDiscount, source: "group" };
-    }
-    return null;
+): { discountRule: DiscountRule; source: "group" } | null {
+  const groupDiscount = group.billingCycleDiscounts?.find(
+    (d) => d.billingCycle === effectiveCycle,
+  );
+  if (groupDiscount && groupDiscount.discountRule.discountValue > 0) {
+    return { discountRule: groupDiscount.discountRule, source: "group" };
   }
-
-  // INHERIT_TIER (or null = default for regular groups)
-  if (tier) {
-    const tierDiscount = tier.billingCycleDiscounts.find(
-      (d) => d.billingCycle === effectiveCycle,
-    );
-    if (tierDiscount && tierDiscount.discountRule.discountValue > 0) {
-      const { discountRule } = tierDiscount;
-
-      // Convert FLAT_AMOUNT to equivalent PERCENTAGE so each group applies
-      // the same rate and group prices sum to the tier's discounted price
-      if (
-        discountRule.discountType === "FLAT_AMOUNT" &&
-        tierMonthlyBase &&
-        tierMonthlyBase > 0
-      ) {
-        const cycleMonths = BILLING_CYCLE_MONTHS[effectiveCycle];
-        const tierCycleBase = tierMonthlyBase * cycleMonths;
-        const equivalentPercentage =
-          (discountRule.discountValue / tierCycleBase) * 100;
-        return {
-          discountRule: {
-            discountType: "PERCENTAGE",
-            discountValue: equivalentPercentage,
-          },
-          source: "tier",
-        };
-      }
-
-      return { discountRule, source: "tier" };
-    }
+  const independentDiscount = getGroupIndependentDiscount(
+    group,
+    tierId,
+    effectiveCycle,
+  );
+  if (independentDiscount) {
+    return { discountRule: independentDiscount, source: "group" };
   }
-
   return null;
 }
 
@@ -243,7 +197,6 @@ function computeRegularGroupBreakdown(
   tier: ServiceSubscriptionTier,
   effectiveBillingCycle: BillingCycle,
   globalBillingCycle: BillingCycle,
-  tierMonthlyBase: number,
   serviceGroups: ServiceOfferingPHState["global"]["serviceGroups"],
 ): OptionGroupBreakdown {
   const { amount: monthlyBase } = getGroupPriceForTier(group, tier.id);
@@ -252,13 +205,11 @@ function computeRegularGroupBreakdown(
   const currency = group.currency || "USD";
   const billingCycleOverridden = effectiveBillingCycle !== globalBillingCycle;
 
-  // Resolve discount with inheritance logic
+  // Resolve group-level discount
   const resolved = resolveGroupDiscountForTier(
     group,
     tier.id,
     effectiveBillingCycle,
-    tier,
-    tierMonthlyBase,
   );
 
   let recurringAmount = cycleAmount;
@@ -332,8 +283,7 @@ function computeRegularGroupBreakdown(
     }
   }
 
-  const discountStripped =
-    billingCycleOverridden && group.discountMode !== "INDEPENDENT" && !resolved;
+  const discountStripped = billingCycleOverridden && !resolved;
 
   return {
     optionGroupId: group.id,
@@ -425,7 +375,6 @@ function computeAddOnBreakdown(
   group: OptionGroup,
   tier: ServiceSubscriptionTier,
   billingCycle: BillingCycle,
-  tierMonthlyBase: number,
 ): AddOnBreakdown {
   const months = BILLING_CYCLE_MONTHS[billingCycle];
   const currency = group.currency || "USD";
@@ -433,14 +382,8 @@ function computeAddOnBreakdown(
   const { amount: monthlyBase } = getGroupPriceForTier(group, tier.id);
   const cycleAmount = monthlyBase * months;
 
-  // Resolve discount
-  const resolved = resolveGroupDiscountForTier(
-    group,
-    tier.id,
-    billingCycle,
-    tier,
-    tierMonthlyBase,
-  );
+  // Resolve group-level discount
+  const resolved = resolveGroupDiscountForTier(group, tier.id, billingCycle);
 
   let recurringAmount = cycleAmount;
   let discount: ResolvedDiscountResult | null = null;
@@ -540,24 +483,6 @@ export function getUserSelectionPriceBreakdown(
 
   const tierCurrency = tier.pricing.currency || "USD";
 
-  // Tier discount from billingCycleDiscounts
-  const tierDiscountEntry = tier.billingCycleDiscounts.find(
-    (d) => d.billingCycle === billingCycle,
-  );
-  let tierDiscount: ResolvedDiscountResult | null = null;
-
-  if (
-    tierDiscountEntry?.discountRule &&
-    tierDiscountEntry.discountRule.discountValue > 0
-  ) {
-    const { discountType, discountValue } = tierDiscountEntry.discountRule;
-    tierDiscount = buildResolvedDiscount(
-      tierCycleTotal,
-      discountType,
-      discountValue,
-    );
-  }
-
   // Regular group breakdowns (with per-group billing cycle overrides)
   const optionGroupBreakdowns = regularGroups.map((group) => {
     const effectiveCycle =
@@ -567,7 +492,6 @@ export function getUserSelectionPriceBreakdown(
       tier,
       effectiveCycle,
       billingCycle,
-      tierMonthlyBase,
       serviceGroups,
     );
   });
@@ -581,7 +505,7 @@ export function getUserSelectionPriceBreakdown(
   const addOnBreakdowns = enabledAddons.map((group) => {
     const addonCycle =
       selection.addonBillingCycleOverrides?.[group.id] ?? billingCycle;
-    return computeAddOnBreakdown(group, tier, addonCycle, tierMonthlyBase);
+    return computeAddOnBreakdown(group, tier, addonCycle);
   });
 
   // Totals
@@ -609,7 +533,6 @@ export function getUserSelectionPriceBreakdown(
     tierMonthlyBase,
     tierCycleTotal,
     tierCurrency,
-    tierDiscount,
     optionGroupBreakdowns,
     setupGroupBreakdowns,
     addOnBreakdowns,

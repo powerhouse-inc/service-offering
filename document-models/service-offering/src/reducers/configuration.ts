@@ -51,7 +51,6 @@ export const serviceOfferingConfigurationOperations: ServiceOfferingConfiguratio
         selectedBillingCycle: action.input.selectedBillingCycle,
         tierBasePrice: action.input.tierBasePrice || null,
         tierCurrency: action.input.tierCurrency,
-        tierDiscount: mapDiscount(action.input.tierDiscount),
         optionGroupConfigs: action.input.optionGroupConfigs.map((ogc) => ({
           id: ogc.id,
           optionGroupId: ogc.optionGroupId,

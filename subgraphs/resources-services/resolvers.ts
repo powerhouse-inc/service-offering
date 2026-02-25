@@ -427,12 +427,6 @@ function mapResourceTemplateState(
       parentServiceId: service.parentServiceId || null,
       isSetupFormation: service.isSetupFormation,
       optionGroupId: service.optionGroupId || null,
-      facetBindings: (service.facetBindings || []).map((binding) => ({
-        id: binding.id,
-        facetName: binding.facetName,
-        facetType: binding.facetType,
-        supportedOptions: binding.supportedOptions,
-      })),
     })),
     optionGroups: (state.optionGroups || []).map((group) => ({
       id: group.id,
@@ -575,7 +569,6 @@ function mapServiceOfferingState(
       description: group.description || null,
       billingCycle: group.billingCycle,
       displayOrder: group.displayOrder ?? null,
-      discountMode: group.discountMode || null,
       tierPricing: (group.tierPricing || []).map((tp) => ({
         id: tp.id,
         tierId: tp.tierId,
@@ -603,12 +596,6 @@ function mapServiceOfferingState(
       serviceGroupId: service.serviceGroupId || null,
       isSetupFormation: service.isSetupFormation,
       optionGroupId: service.optionGroupId || null,
-      facetBindings: (service.facetBindings || []).map((binding) => ({
-        id: binding.id,
-        facetName: binding.facetName,
-        facetType: binding.facetType,
-        supportedOptions: binding.supportedOptions,
-      })),
     })),
     tiers: state.tiers.map((tier) => ({
       id: tier.id,
@@ -620,14 +607,6 @@ function mapServiceOfferingState(
         amount: tier.pricing.amount ?? null,
         currency: tier.pricing.currency,
       },
-      defaultBillingCycle: tier.defaultBillingCycle || null,
-      billingCycleDiscounts: (tier.billingCycleDiscounts || []).map((d) => ({
-        billingCycle: d.billingCycle,
-        discountRule: {
-          discountType: d.discountRule.discountType,
-          discountValue: d.discountRule.discountValue,
-        },
-      })),
       serviceLevels: tier.serviceLevels.map((level) => ({
         id: level.id,
         serviceId: level.serviceId,
@@ -704,14 +683,6 @@ function mapServiceOfferingState(
       })),
       costType: group.costType || null,
       availableBillingCycles: group.availableBillingCycles || [],
-      billingCycleDiscounts: (group.billingCycleDiscounts || []).map((d) => ({
-        billingCycle: d.billingCycle,
-        discountRule: {
-          discountType: d.discountRule.discountType,
-          discountValue: d.discountRule.discountValue,
-        },
-      })),
-      discountMode: group.discountMode || null,
       price: group.price ?? null,
       currency: group.currency || null,
     })),
@@ -721,9 +692,6 @@ function mapServiceOfferingState(
           selectedBillingCycle: state.finalConfiguration.selectedBillingCycle,
           tierBasePrice: state.finalConfiguration.tierBasePrice ?? null,
           tierCurrency: state.finalConfiguration.tierCurrency,
-          tierDiscount: mapResolvedDiscount(
-            state.finalConfiguration.tierDiscount,
-          ),
           optionGroupConfigs: state.finalConfiguration.optionGroupConfigs.map(
             (ogc) => ({
               id: ogc.id,

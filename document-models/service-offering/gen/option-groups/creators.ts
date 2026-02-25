@@ -7,7 +7,6 @@ import {
   AddOptionGroupTierPricingInputSchema,
   UpdateOptionGroupTierPricingInputSchema,
   RemoveOptionGroupTierPricingInputSchema,
-  SetOptionGroupDiscountModeInputSchema,
 } from "../schema/zod.js";
 import type {
   AddOptionGroupInput,
@@ -17,7 +16,6 @@ import type {
   AddOptionGroupTierPricingInput,
   UpdateOptionGroupTierPricingInput,
   RemoveOptionGroupTierPricingInput,
-  SetOptionGroupDiscountModeInput,
 } from "../types.js";
 import type {
   AddOptionGroupAction,
@@ -27,7 +25,6 @@ import type {
   AddOptionGroupTierPricingAction,
   UpdateOptionGroupTierPricingAction,
   RemoveOptionGroupTierPricingAction,
-  SetOptionGroupDiscountModeAction,
 } from "./actions.js";
 
 export const addOptionGroup = (input: AddOptionGroupInput) =>
@@ -98,16 +95,5 @@ export const removeOptionGroupTierPricing = (
     { ...input },
     undefined,
     RemoveOptionGroupTierPricingInputSchema,
-    "global",
-  );
-
-export const setOptionGroupDiscountMode = (
-  input: SetOptionGroupDiscountModeInput,
-) =>
-  createAction<SetOptionGroupDiscountModeAction>(
-    "SET_OPTION_GROUP_DISCOUNT_MODE",
-    { ...input },
-    undefined,
-    SetOptionGroupDiscountModeInputSchema,
     "global",
   );

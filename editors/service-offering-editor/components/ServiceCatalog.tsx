@@ -8,17 +8,13 @@ import type {
   OptionGroup,
   BillingCycle,
   GroupCostType,
-  DiscountMode,
   DiscountType,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
   BILLING_CYCLE_MONTHS,
   formatPrice,
-  resolveGroupDiscountForTier,
-  calculateTierRecurringPrice,
   calculateEffectiveSetupPrice,
-  computeTierDiscountsFromGroups,
 } from "./pricing-utils.js";
 import {
   addService,
@@ -32,8 +28,6 @@ import {
   setOptionGroupStandalonePricing,
   addOptionGroupTierPricing,
   updateOptionGroupTierPricing,
-  setOptionGroupDiscountMode,
-  setTierBillingCycleDiscounts,
 } from "../../../document-models/service-offering/gen/creators.js";
 
 // Service Templates - Common services to reduce friction (Default Effect + Reduced Activation Energy)
@@ -185,8 +179,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
   const [editTierDiscounts, setEditTierDiscounts] = useState<
     Record<string, Record<BillingCycle, string>>
   >({});
-  const [editGroupDiscountMode, setEditGroupDiscountMode] =
-    useState<DiscountMode | null>(null);
 
   // Per-tier setup fee discounts: tierId → billingCycle → { discountType, discountValue }
   const [editSetupTierDiscounts, setEditSetupTierDiscounts] = useState<
@@ -463,7 +455,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     setEditTierPrices(tierPrices);
     setEditTierSetupCosts(tierSetupCosts);
     setEditTierDiscounts(tierDiscounts);
-    setEditGroupDiscountMode(group.discountMode || null);
     setEditTierTab(tiers.length > 0 ? tiers[0].id : null);
   };
 
@@ -608,18 +599,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           );
         }
       }
-
-      // Always save as INDEPENDENT — discount values are snapshot copies
-      const currentMode = editingGroup.discountMode || null;
-      if (currentMode !== "INDEPENDENT") {
-        dispatch(
-          setOptionGroupDiscountMode({
-            optionGroupId: editingGroup.id,
-            discountMode: "INDEPENDENT",
-            lastModified: new Date().toISOString(),
-          }),
-        );
-      }
     } else if (!isSetup && editGroupPricingMode === "STANDALONE") {
       // Standalone pricing (add-ons or groups with no tiers)
       const setupCost =
@@ -677,98 +656,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         );
       }
     });
-
-    // Sync tier billing cycle discounts when saving a regular group
-    // (add-ons don't contribute to tier discounts — they inherit them)
-    if (!editingGroup.isAddOn && !isSetup) {
-      const regularGroups = optionGroups.filter(
-        (g) => g.costType !== "SETUP" && !g.isAddOn,
-      );
-      // Build snapshot replacing the edited group with current edit values
-      const updatedRegularGroups = regularGroups.map((g) => {
-        if (g.id !== editingGroup.id) return g;
-        if (editGroupPricingMode === "TIER_DEPENDENT") {
-          const updatedTierPricing = tiers
-            .filter((t) => !t.isCustomPricing)
-            .map((tier) => {
-              const baseMonthly = parseFloat(editTierPrices[tier.id]) || 0;
-              return {
-                ...((g.tierDependentPricing ?? []).find(
-                  (tp) => tp.tierId === tier.id,
-                ) ?? {
-                  id: generateId(),
-                  tierId: tier.id,
-                  setupCost: null,
-                  setupCostDiscounts: [],
-                  recurringPricing: [],
-                }),
-                recurringPricing: editGroupBillingCycles
-                  .filter(() => baseMonthly > 0)
-                  .map((cycle) => {
-                    const discountPct =
-                      parseFloat(editTierDiscounts[tier.id]?.[cycle] || "0") ||
-                      0;
-                    return {
-                      id: generateId(),
-                      billingCycle: cycle,
-                      amount: baseMonthly,
-                      currency: "USD" as const,
-                      discount:
-                        discountPct > 0
-                          ? {
-                              discountType: "PERCENTAGE" as const,
-                              discountValue: discountPct,
-                            }
-                          : null,
-                    };
-                  }),
-              };
-            });
-          return { ...g, tierDependentPricing: updatedTierPricing };
-        }
-        if (editGroupPricingMode === "STANDALONE") {
-          const updatedDiscounts = editGroupBillingCycles
-            .map((cycle) => ({
-              billingCycle: cycle,
-              discountRule: {
-                discountType: "PERCENTAGE" as const,
-                discountValue: parseFloat(editGroupDiscounts[cycle]) || 0,
-              },
-            }))
-            .filter((d) => d.discountRule.discountValue > 0);
-          return { ...g, billingCycleDiscounts: updatedDiscounts };
-        }
-        return g;
-      });
-
-      // Collect all billing cycles from all regular groups
-      const allCycles = new Set<BillingCycle>();
-      for (const g of updatedRegularGroups) {
-        for (const bc of g.availableBillingCycles ?? []) {
-          allCycles.add(bc);
-        }
-        // Also include cycles from edit state for the current group
-        if (g.id === editingGroup.id) {
-          for (const c of editGroupBillingCycles) allCycles.add(c);
-        }
-      }
-
-      for (const tier of tiers) {
-        if (tier.isCustomPricing) continue;
-        const tierDiscounts = computeTierDiscountsFromGroups(
-          updatedRegularGroups,
-          tier.id,
-          Array.from(allCycles),
-        );
-        dispatch(
-          setTierBillingCycleDiscounts({
-            tierId: tier.id,
-            discounts: tierDiscounts,
-            lastModified: new Date().toISOString(),
-          }),
-        );
-      }
-    }
 
     setEditingGroup(null);
   };
@@ -1117,12 +1004,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                         const tierBase =
                           parseFloat(editTierPrices[activeTier.id]) || 0;
                         const tierAmount = activeTier.pricing.amount ?? 0;
-                        // Sum of all regular groups' monthly prices for this tier (for flat→% conversion)
-                        const tierMonthlyBase = calculateTierRecurringPrice(
-                          regularGroups,
-                          "MONTHLY",
-                          activeTier.id,
-                        ).monthlyTotal;
 
                         // Budget: sum of other groups' prices for this tier
                         const otherGroupsTotal = regularGroups
@@ -1240,70 +1121,6 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                   <label className="catalog__label">
                                     Billing Cycles & Discounts
                                   </label>
-                                  {/* Inherit from master toggle — hidden for master group itself */}
-                                  {(() => {
-                                    const masterGroup =
-                                      regularGroups[0] ?? null;
-                                    const isMaster =
-                                      masterGroup?.id === editingGroup.id;
-                                    if (!masterGroup || isMaster) return null;
-                                    return (
-                                      <div className="catalog__discount-mode-toggle">
-                                        <button
-                                          type="button"
-                                          className={`catalog__discount-mode-btn ${editGroupDiscountMode !== "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
-                                          onClick={() => {
-                                            setEditGroupDiscountMode(null);
-                                            // Pre-fill from master's tier discounts
-                                            const masterTp =
-                                              masterGroup.tierDependentPricing?.find(
-                                                (tp) =>
-                                                  tp.tierId === activeTier.id,
-                                              );
-                                            if (masterTp) {
-                                              const updated = {
-                                                ...editTierDiscounts,
-                                              };
-                                              updated[activeTier.id] = {
-                                                ...updated[activeTier.id],
-                                              };
-                                              for (const rp of masterTp.recurringPricing ??
-                                                []) {
-                                                if (
-                                                  rp.discount &&
-                                                  rp.discount.discountValue > 0
-                                                ) {
-                                                  updated[activeTier.id][
-                                                    rp.billingCycle
-                                                  ] = String(
-                                                    rp.discount.discountValue,
-                                                  );
-                                                } else {
-                                                  updated[activeTier.id][
-                                                    rp.billingCycle
-                                                  ] = "";
-                                                }
-                                              }
-                                              setEditTierDiscounts(updated);
-                                            }
-                                          }}
-                                        >
-                                          Inherit from {masterGroup.name}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className={`catalog__discount-mode-btn ${editGroupDiscountMode === "INDEPENDENT" ? "catalog__discount-mode-btn--active" : ""}`}
-                                          onClick={() =>
-                                            setEditGroupDiscountMode(
-                                              "INDEPENDENT",
-                                            )
-                                          }
-                                        >
-                                          Set independent discounts
-                                        </button>
-                                      </div>
-                                    );
-                                  })()}
                                   <div className="catalog__addon-cycles">
                                     {editGroupBillingCycles.map((cycle) => {
                                       const months =
@@ -4644,42 +4461,6 @@ const styles = `
 
   .catalog__tier-panel {
     animation: catalog__fade-in 0.15s ease;
-  }
-
-  .catalog__discount-mode-toggle {
-    display: flex;
-    gap: 0;
-    border: 1px solid var(--so-slate-200);
-    border-radius: var(--so-radius-md);
-    overflow: hidden;
-    margin-bottom: 0.625rem;
-  }
-
-  .catalog__discount-mode-btn {
-    flex: 1;
-    padding: 0.375rem 0.5rem;
-    font-family: var(--so-font-sans);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    color: var(--so-slate-500);
-    background: var(--so-white);
-    border: none;
-    cursor: pointer;
-    transition: all var(--so-transition-fast);
-  }
-
-  .catalog__discount-mode-btn:first-child {
-    border-right: 1px solid var(--so-slate-200);
-  }
-
-  .catalog__discount-mode-btn--active {
-    background: var(--so-violet-50);
-    color: var(--so-violet-700);
-    font-weight: 600;
-  }
-
-  .catalog__discount-mode-btn:hover:not(.catalog__discount-mode-btn--active) {
-    background: var(--so-slate-50);
   }
 
   @keyframes catalog__fade-in {
