@@ -259,6 +259,46 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
           };
         }
 
+        // Validate name lengths
+        if (name.length > 64) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Name must be 64 characters or less"],
+          };
+        }
+
+        if (teamName.length > 64) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Team name must be 64 characters or less"],
+          };
+        }
+
+        // Validate names contain only allowed characters (letters, numbers, spaces, hyphens, underscores)
+        const validNamePattern = /^[a-zA-Z0-9 _-]+$/;
+
+        if (!validNamePattern.test(name)) {
+          return {
+            success: false,
+            data: null,
+            errors: [
+              "Name can only contain letters, numbers, spaces, hyphens, and underscores",
+            ],
+          };
+        }
+
+        if (!validNamePattern.test(teamName)) {
+          return {
+            success: false,
+            data: null,
+            errors: [
+              "Team name can only contain letters, numbers, spaces, hyphens, and underscores",
+            ],
+          };
+        }
+
         // Fetch the service offering to get resourceTemplateId and finalConfiguration
         const serviceOfferingDoc =
           await reactor.getDocument<ServiceOfferingDocument>(serviceOfferingId);
@@ -289,8 +329,17 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
           };
         }
 
-        const parsedTeamName = teamName.toLowerCase().replace(/ /g, "-");
-        const parsedName = name.toLowerCase().replace(/ /g, "-");
+        // Sanitize names for use as drive id/slug: lowercase, trim, collapse whitespace, replace spaces with hyphens
+        const parsedTeamName = teamName
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/_/g, "-");
+        const parsedName = name
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/_/g, "-");
 
         try {
           // create team-builder-admin drive
