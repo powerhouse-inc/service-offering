@@ -412,6 +412,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             resourceTemplateId,
             operatorProfileId, // operator profile id
             builderProfileDoc.header.id, // customer id
+            name, // customer name from builder profile
           );
 
           const now = new Date().toISOString();
@@ -565,6 +566,7 @@ async function populateResourceInstance(
   resourceTemplateId: string,
   operatorId: string,
   customerId: string,
+  customerName: string,
 ) {
   const resourceTemplateDoc =
     await reactor.getDocument<ResourceTemplateDocument>(resourceTemplateId);
@@ -580,6 +582,7 @@ async function populateResourceInstance(
       operatorDocumentType: "powerhouse/builder-profile",
       resourceTemplateId,
       customerId,
+      customerName,
       templateName: templateState.title,
       thumbnailUrl: templateState.thumbnailUrl,
       infoLink: templateState.infoLink,
