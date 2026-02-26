@@ -242,16 +242,6 @@ export function ServicesList({ document, dispatch }: ServicesListProps) {
                           {service.id}
                         </span>
                       </div>
-                      {(service.facetBindings?.length ?? 0) > 0 && (
-                        <div className="mt-2">
-                          <span className="text-xs font-medium text-gray-500">
-                            Facet Bindings:{" "}
-                          </span>
-                          <span className="text-xs text-gray-600">
-                            {service.facetBindings?.length ?? 0} configured
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">

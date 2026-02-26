@@ -12,6 +12,8 @@ import {
   RemoveFacetOptionInputSchema,
   SelectResourceTemplateInputSchema,
   ChangeResourceTemplateInputSchema,
+  SetAvailableBillingCyclesInputSchema,
+  SetFacetBindingsInputSchema,
 } from "../schema/zod.js";
 import type {
   UpdateOfferingInfoInput,
@@ -26,6 +28,8 @@ import type {
   RemoveFacetOptionInput,
   SelectResourceTemplateInput,
   ChangeResourceTemplateInput,
+  SetAvailableBillingCyclesInput,
+  SetFacetBindingsInput,
 } from "../types.js";
 import type {
   UpdateOfferingInfoAction,
@@ -40,6 +44,8 @@ import type {
   RemoveFacetOptionAction,
   SelectResourceTemplateAction,
   ChangeResourceTemplateAction,
+  SetAvailableBillingCyclesAction,
+  SetFacetBindingsAction,
 } from "./actions.js";
 
 export const updateOfferingInfo = (input: UpdateOfferingInfoInput) =>
@@ -147,5 +153,25 @@ export const changeResourceTemplate = (input: ChangeResourceTemplateInput) =>
     { ...input },
     undefined,
     ChangeResourceTemplateInputSchema,
+    "global",
+  );
+
+export const setAvailableBillingCycles = (
+  input: SetAvailableBillingCyclesInput,
+) =>
+  createAction<SetAvailableBillingCyclesAction>(
+    "SET_AVAILABLE_BILLING_CYCLES",
+    { ...input },
+    undefined,
+    SetAvailableBillingCyclesInputSchema,
+    "global",
+  );
+
+export const setFacetBindings = (input: SetFacetBindingsInput) =>
+  createAction<SetFacetBindingsAction>(
+    "SET_FACET_BINDINGS",
+    { ...input },
+    undefined,
+    SetFacetBindingsInputSchema,
     "global",
   );

@@ -14,8 +14,6 @@ import {
   addUsageLimit,
   updateUsageLimit,
   removeUsageLimit,
-  setTierDefaultBillingCycle,
-  setTierBillingCycleDiscounts,
   setTierPricingMode,
   AddTierInputSchema,
   UpdateTierInputSchema,
@@ -27,9 +25,11 @@ import {
   AddUsageLimitInputSchema,
   UpdateUsageLimitInputSchema,
   RemoveUsageLimitInputSchema,
+  SetTierPricingModeInputSchema,
+  setTierDefaultBillingCycle,
+  setTierBillingCycleDiscounts,
   SetTierDefaultBillingCycleInputSchema,
   SetTierBillingCycleDiscountsInputSchema,
-  SetTierPricingModeInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("TiersOperations", () => {
@@ -201,6 +201,23 @@ describe("TiersOperations", () => {
     expect(updatedDocument.operations.global[0].index).toEqual(0);
   });
 
+  it("should handle setTierPricingMode operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetTierPricingModeInputSchema());
+
+    const updatedDocument = reducer(document, setTierPricingMode(input));
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_TIER_PRICING_MODE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
   it("should handle setTierDefaultBillingCycle operation", () => {
     const document = utils.createDocument();
     const input = generateMock(SetTierDefaultBillingCycleInputSchema());
@@ -234,23 +251,6 @@ describe("TiersOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_TIER_BILLING_CYCLE_DISCOUNTS",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle setTierPricingMode operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(SetTierPricingModeInputSchema());
-
-    const updatedDocument = reducer(document, setTierPricingMode(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SET_TIER_PRICING_MODE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

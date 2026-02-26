@@ -174,11 +174,6 @@ export const schema: DocumentNode = gql`
     FLAT_AMOUNT
   }
 
-  enum RSDiscountMode {
-    INHERIT_TIER
-    INDEPENDENT
-  }
-
   type RSDiscountRule {
     discountType: RSDiscountType!
     discountValue: Float!
@@ -219,7 +214,6 @@ export const schema: DocumentNode = gql`
     description: String
     billingCycle: RSBillingCycle!
     displayOrder: Int
-    discountMode: RSDiscountMode
     tierPricing: [RSServiceGroupTierPricing!]!
   }
 
@@ -264,8 +258,6 @@ export const schema: DocumentNode = gql`
     isCustomPricing: Boolean!
     pricingMode: RSTierPricingMode
     pricing: RSServicePricing!
-    defaultBillingCycle: RSBillingCycle
-    billingCycleDiscounts: [RSBillingCycleDiscount!]!
     serviceLevels: [RSServiceLevelBinding!]!
     usageLimits: [RSServiceUsageLimit!]!
   }
@@ -347,8 +339,6 @@ export const schema: DocumentNode = gql`
     tierDependentPricing: [RSOptionGroupTierPricing!]
     costType: RSGroupCostType
     availableBillingCycles: [RSBillingCycle!]!
-    billingCycleDiscounts: [RSBillingCycleDiscount!]!
-    discountMode: RSDiscountMode
     price: Amount_Money
     currency: Currency
   }
@@ -406,7 +396,6 @@ export const schema: DocumentNode = gql`
     selectedBillingCycle: RSBillingCycle!
     tierBasePrice: Amount_Money
     tierCurrency: Currency!
-    tierDiscount: RSResolvedDiscount
     optionGroupConfigs: [RSFinalOptionGroupConfig!]!
     addOnConfigs: [RSFinalAddOnConfig!]!
     lastModified: DateTime!

@@ -10,9 +10,9 @@ import {
   UpdateUsageLimitTierNotFoundError,
   UpdateUsageLimitNotFoundError,
   RemoveUsageLimitTierNotFoundError,
+  SetTierPricingModeTierNotFoundError,
   SetTierDefaultBillingCycleTierNotFoundError,
   SetTierBillingCycleDiscountsTierNotFoundError,
-  SetTierPricingModeTierNotFoundError,
 } from "../../gen/tiers/error.js";
 import type { ServiceOfferingTiersOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -192,6 +192,16 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
     }
     state.lastModified = action.input.lastModified;
   },
+  setTierPricingModeOperation(state, action) {
+    const tier = state.tiers.find((t) => t.id === action.input.tierId);
+    if (!tier) {
+      throw new SetTierPricingModeTierNotFoundError(
+        `Tier with ID ${action.input.tierId} not found`,
+      );
+    }
+    tier.pricingMode = action.input.pricingMode;
+    state.lastModified = action.input.lastModified;
+  },
   setTierDefaultBillingCycleOperation(state, action) {
     const tier = state.tiers.find((t) => t.id === action.input.tierId);
     if (!tier) {
@@ -216,16 +226,6 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
         discountValue: d.discountRule.discountValue,
       },
     }));
-    state.lastModified = action.input.lastModified;
-  },
-  setTierPricingModeOperation(state, action) {
-    const tier = state.tiers.find((t) => t.id === action.input.tierId);
-    if (!tier) {
-      throw new SetTierPricingModeTierNotFoundError(
-        `Tier with ID ${action.input.tierId} not found`,
-      );
-    }
-    tier.pricingMode = action.input.pricingMode;
     state.lastModified = action.input.lastModified;
   },
 };

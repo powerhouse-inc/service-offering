@@ -12,6 +12,8 @@ import type {
   RemoveFacetOptionAction,
   SelectResourceTemplateAction,
   ChangeResourceTemplateAction,
+  SetAvailableBillingCyclesAction,
+  SetFacetBindingsAction,
 } from "./actions.js";
 import type { ServiceOfferingState } from "../types.js";
 
@@ -74,6 +76,16 @@ export interface ServiceOfferingOfferingOperations {
   changeResourceTemplateOperation: (
     state: ServiceOfferingState,
     action: ChangeResourceTemplateAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  setAvailableBillingCyclesOperation: (
+    state: ServiceOfferingState,
+    action: SetAvailableBillingCyclesAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  setFacetBindingsOperation: (
+    state: ServiceOfferingState,
+    action: SetFacetBindingsAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

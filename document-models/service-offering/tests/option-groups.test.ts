@@ -11,7 +11,6 @@ import {
   addOptionGroupTierPricing,
   updateOptionGroupTierPricing,
   removeOptionGroupTierPricing,
-  setOptionGroupDiscountMode,
   AddOptionGroupInputSchema,
   UpdateOptionGroupInputSchema,
   DeleteOptionGroupInputSchema,
@@ -19,6 +18,7 @@ import {
   AddOptionGroupTierPricingInputSchema,
   UpdateOptionGroupTierPricingInputSchema,
   RemoveOptionGroupTierPricingInputSchema,
+  setOptionGroupDiscountMode,
   SetOptionGroupDiscountModeInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 

@@ -12,6 +12,8 @@ import type {
   RemoveFacetOptionInput,
   SelectResourceTemplateInput,
   ChangeResourceTemplateInput,
+  SetAvailableBillingCyclesInput,
+  SetFacetBindingsInput,
 } from "../types.js";
 
 export type UpdateOfferingInfoAction = Action & {
@@ -62,6 +64,14 @@ export type ChangeResourceTemplateAction = Action & {
   type: "CHANGE_RESOURCE_TEMPLATE";
   input: ChangeResourceTemplateInput;
 };
+export type SetAvailableBillingCyclesAction = Action & {
+  type: "SET_AVAILABLE_BILLING_CYCLES";
+  input: SetAvailableBillingCyclesInput;
+};
+export type SetFacetBindingsAction = Action & {
+  type: "SET_FACET_BINDINGS";
+  input: SetFacetBindingsInput;
+};
 
 export type ServiceOfferingOfferingAction =
   | UpdateOfferingInfoAction
@@ -75,4 +85,6 @@ export type ServiceOfferingOfferingAction =
   | AddFacetOptionAction
   | RemoveFacetOptionAction
   | SelectResourceTemplateAction
-  | ChangeResourceTemplateAction;
+  | ChangeResourceTemplateAction
+  | SetAvailableBillingCyclesAction
+  | SetFacetBindingsAction;

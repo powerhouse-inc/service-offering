@@ -240,6 +240,13 @@ export type DiscountRuleInput = {
 
 export type DiscountType = "FLAT_AMOUNT" | "PERCENTAGE";
 
+export type FacetBindingInput = {
+  facetName: Scalars["String"]["input"];
+  facetType: Scalars["PHID"]["input"];
+  id: Scalars["OID"]["input"];
+  supportedOptions: Array<Scalars["OID"]["input"]>;
+};
+
 export type FacetTarget = {
   categoryKey: Scalars["String"]["output"];
   categoryLabel: Scalars["String"]["output"];
@@ -446,7 +453,6 @@ export type SelectResourceTemplateInput = {
 export type Service = {
   description: Maybe<Scalars["String"]["output"]>;
   displayOrder: Maybe<Scalars["Int"]["output"]>;
-  facetBindings: Array<ResourceFacetBinding>;
   id: Scalars["OID"]["output"];
   isSetupFormation: Scalars["Boolean"]["output"];
   optionGroupId: Maybe<Scalars["OID"]["output"]>;
@@ -488,7 +494,9 @@ export type ServiceLevelBinding = {
 };
 
 export type ServiceOfferingState = {
+  availableBillingCycles: Array<BillingCycle>;
   description: Maybe<Scalars["String"]["output"]>;
+  facetBindings: Array<ResourceFacetBinding>;
   facetTargets: Array<FacetTarget>;
   finalConfiguration: Maybe<FinalConfiguration>;
   id: Scalars["PHID"]["output"];
@@ -538,6 +546,16 @@ export type ServiceUsageLimit = {
   unitName: Maybe<Scalars["String"]["output"]>;
   unitPrice: Maybe<Scalars["Amount_Money"]["output"]>;
   unitPriceCurrency: Maybe<Scalars["Currency"]["output"]>;
+};
+
+export type SetAvailableBillingCyclesInput = {
+  billingCycles: Array<BillingCycle>;
+  lastModified: Scalars["DateTime"]["input"];
+};
+
+export type SetFacetBindingsInput = {
+  facetBindings: Array<FacetBindingInput>;
+  lastModified: Scalars["DateTime"]["input"];
 };
 
 export type SetFacetTargetInput = {

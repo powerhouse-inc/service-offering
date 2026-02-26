@@ -1,8 +1,6 @@
 import {
   UpdateServiceNotFoundError,
   DeleteServiceNotFoundError,
-  AddFacetBindingServiceNotFoundError,
-  RemoveFacetBindingServiceNotFoundError,
 } from "../../gen/services/error.js";
 import type { ServiceOfferingServicesOperations } from "@powerhousedao/service-offering/document-models/service-offering";
 
@@ -17,7 +15,6 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
         displayOrder: action.input.displayOrder || null,
         isSetupFormation: action.input.isSetupFormation || false,
         optionGroupId: action.input.optionGroupId || null,
-        facetBindings: [],
       });
       state.lastModified = action.input.lastModified;
     },
@@ -55,15 +52,9 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
       state.lastModified = action.input.lastModified;
     },
     addFacetBindingOperation(state, action) {
-      const service = state.services.find(
-        (s) => s.id === action.input.serviceId,
-      );
-      if (!service) {
-        throw new AddFacetBindingServiceNotFoundError(
-          `Service with ID ${action.input.serviceId} not found`,
-        );
-      }
-      service.facetBindings.push({
+      // facetBindings now live at state level, not per-service
+      // serviceId is kept in input for backward compatibility but not used for lookup
+      state.facetBindings.push({
         id: action.input.bindingId,
         facetName: action.input.facetName,
         facetType: action.input.facetType,
@@ -72,19 +63,11 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
       state.lastModified = action.input.lastModified;
     },
     removeFacetBindingOperation(state, action) {
-      const service = state.services.find(
-        (s) => s.id === action.input.serviceId,
-      );
-      if (!service) {
-        throw new RemoveFacetBindingServiceNotFoundError(
-          `Service with ID ${action.input.serviceId} not found`,
-        );
-      }
-      const bindingIndex = service.facetBindings.findIndex(
+      const bindingIndex = state.facetBindings.findIndex(
         (fb) => fb.id === action.input.bindingId,
       );
       if (bindingIndex !== -1) {
-        service.facetBindings.splice(bindingIndex, 1);
+        state.facetBindings.splice(bindingIndex, 1);
       }
       state.lastModified = action.input.lastModified;
     },

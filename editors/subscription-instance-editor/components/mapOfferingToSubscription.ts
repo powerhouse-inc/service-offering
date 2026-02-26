@@ -163,7 +163,7 @@ function mapOfferingServiceGroups(
       );
     }
 
-    // Apply billing cycle discount from tier if applicable
+    // Apply group-level discount from the recurring option itself
     let discountedAmount = recurringOption?.amount;
     let discountInput: DiscountInfoInitInput | undefined;
 

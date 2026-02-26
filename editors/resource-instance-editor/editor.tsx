@@ -31,6 +31,7 @@ import {
   updateInstanceFacet,
 } from "../../document-models/resource-instance/gen/configuration-management/creators.js";
 import type { ViewMode } from "./types.js";
+import { OperatorProfilePanel } from "./components/OperatorProfilePanel.js";
 
 export default function ResourceInstanceEditor() {
   const [document, dispatch] = useSelectedResourceInstanceDocument();
@@ -40,13 +41,15 @@ export default function ResourceInstanceEditor() {
     // Initialize instance with sample data
     dispatch(
       initializeInstance({
-        profileId: "phd:sample-profile-123",
-        profileDocumentType: "powerhouse/resource-profile",
-        name: "Sample Resource Instance",
+        operatorId: "phd:operator-profile-123",
+        operatorDocumentType: "powerhouse/builder-profile",
         description:
           "A sample resource instance populated with demo data for testing purposes.",
         customerId: "phd:customer-456",
+        customerName: "Acme Corporation",
         resourceTemplateId: "phd:template-789",
+        templateName: "Basic Hosting Plan",
+        operatorName: "Jane Smith (Operator)",
         thumbnailUrl: "https://via.placeholder.com/150",
         infoLink: "https://example.com/resource-info",
       }),
@@ -139,7 +142,11 @@ export default function ResourceInstanceEditor() {
 
           {/* Right Column */}
           <div className="ri-editor__sidebar">
-            <ProfileReferencePanel document={document} mode={mode} />
+            <OperatorProfilePanel
+              document={document}
+              dispatch={dispatch}
+              mode={mode}
+            />
             {document.state.global.status === "SUSPENDED" && (
               <SuspensionDetailsPanel document={document} />
             )}
@@ -325,7 +332,6 @@ interface InstanceHeaderProps {
 function InstanceHeader({ document, dispatch, mode }: InstanceHeaderProps) {
   const state = document.state.global;
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(state.name || "");
   const [editDescription, setEditDescription] = useState(
     state.description || "",
   );
@@ -333,12 +339,11 @@ function InstanceHeader({ document, dispatch, mode }: InstanceHeaderProps) {
   const handleSave = useCallback(() => {
     dispatch(
       updateInstanceInfo({
-        name: editName || undefined,
         description: editDescription || undefined,
       }),
     );
     setIsEditing(false);
-  }, [dispatch, editName, editDescription]);
+  }, [dispatch, editDescription]);
 
   return (
     <div className="ri-header">
@@ -353,19 +358,9 @@ function InstanceHeader({ document, dispatch, mode }: InstanceHeaderProps) {
               />
             )}
             <div>
-              {isEditing ? (
-                <input
-                  type="text"
-                  className="ri-input ri-input--title"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Instance name"
-                />
-              ) : (
-                <h1 className="ri-header__title">
-                  {state.name || "Unnamed Instance"}
-                </h1>
-              )}
+              <h1 className="ri-header__title">
+                {state.templateName || "Unnamed Instance"}
+              </h1>
               {isEditing ? (
                 <textarea
                   className="ri-input ri-input--textarea"
@@ -420,17 +415,25 @@ function InstanceHeader({ document, dispatch, mode }: InstanceHeaderProps) {
         <div className="ri-header__meta">
           {state.customerId && mode === "operator" && (
             <div className="ri-header__meta-item">
-              <span className="ri-header__meta-label">Customer ID</span>
-              <span className="ri-header__meta-value ri-header__meta-value--mono">
-                {state.customerId}
+              <span className="ri-header__meta-label">Customer</span>
+              <span className="ri-header__meta-value">
+                {state.customerName || (
+                  <span className="ri-header__meta-value--mono">
+                    {state.customerId}
+                  </span>
+                )}
               </span>
             </div>
           )}
           {state.resourceTemplateId && (
             <div className="ri-header__meta-item">
-              <span className="ri-header__meta-label">Template ID</span>
-              <span className="ri-header__meta-value ri-header__meta-value--mono">
-                {state.resourceTemplateId}
+              <span className="ri-header__meta-label">Template</span>
+              <span className="ri-header__meta-value">
+                {state.templateName || (
+                  <span className="ri-header__meta-value--mono">
+                    {state.resourceTemplateId}
+                  </span>
+                )}
               </span>
             </div>
           )}
@@ -912,49 +915,6 @@ function LifecycleActionsPanel({
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================================
-// Profile Reference Panel Component
-// ============================================================
-
-interface ProfileReferencePanelProps {
-  document: ResourceInstanceDocument;
-  mode: ViewMode;
-}
-
-function ProfileReferencePanel({
-  document,
-  mode: _mode,
-}: ProfileReferencePanelProps) {
-  const profile = document.state.global.profile;
-
-  return (
-    <div className="ri-panel ri-panel--compact">
-      <div className="ri-panel__header">
-        <h3 className="ri-panel__title">Resource Profile</h3>
-      </div>
-
-      {profile ? (
-        <div className="ri-profile">
-          <div className="ri-profile__item">
-            <span className="ri-profile__label">Profile ID</span>
-            <span className="ri-profile__value ri-profile__value--mono">
-              {profile.id}
-            </span>
-          </div>
-          <div className="ri-profile__item">
-            <span className="ri-profile__label">Document Type</span>
-            <span className="ri-profile__value">{profile.documentType}</span>
-          </div>
-        </div>
-      ) : (
-        <div className="ri-empty ri-empty--sm">
-          <p className="ri-empty__text">No profile linked</p>
         </div>
       )}
     </div>
@@ -1857,6 +1817,10 @@ const editorStyles = `
     font-size: 0.8125rem;
   }
 
+  .ri-profile__value--capitalize {
+    text-transform: capitalize;
+  }
+
   /* Suspension */
   .ri-suspension {
     display: flex;
@@ -1987,5 +1951,71 @@ const editorStyles = `
     justify-content: flex-end;
     gap: 12px;
     margin-top: 20px;
+  }
+
+  /* Profile Selector */
+  .ri-profile-selector {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--ri-slate-50);
+    border-radius: var(--ri-radius-md);
+    border: 1px solid var(--ri-slate-200);
+  }
+
+  .ri-profile-selector__loading,
+  .ri-profile-selector__empty {
+    font-size: 0.8125rem;
+    color: var(--ri-slate-500);
+    text-align: center;
+    margin: 0;
+    padding: 8px 0;
+  }
+
+  .ri-profile-selector__list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .ri-profile-selector__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 8px 12px;
+    font-family: var(--ri-font-sans);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--ri-radius-sm);
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--ri-transition-fast);
+  }
+
+  .ri-profile-selector__item:hover {
+    background: white;
+    border-color: var(--ri-slate-200);
+  }
+
+  .ri-profile-selector__item--active {
+    background: white;
+    border-color: var(--ri-sky-500);
+  }
+
+  .ri-profile-selector__name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ri-slate-800);
+  }
+
+  .ri-profile-selector__phid {
+    font-size: 0.6875rem;
+    font-family: var(--ri-font-mono);
+    color: var(--ri-slate-400);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 `;

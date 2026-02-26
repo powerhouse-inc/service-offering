@@ -2,7 +2,7 @@ import { createAction } from "document-model/core";
 import {
   InitializeInstanceInputSchema,
   UpdateInstanceInfoInputSchema,
-  SetResourceProfileInputSchema,
+  SetOperatorProfileInputSchema,
   UpdateInstanceStatusInputSchema,
   ConfirmInstanceInputSchema,
   ReportProvisioningStartedInputSchema,
@@ -19,7 +19,7 @@ import {
 import type {
   InitializeInstanceInput,
   UpdateInstanceInfoInput,
-  SetResourceProfileInput,
+  SetOperatorProfileInput,
   UpdateInstanceStatusInput,
   ConfirmInstanceInput,
   ReportProvisioningStartedInput,
@@ -36,7 +36,7 @@ import type {
 import type {
   InitializeInstanceAction,
   UpdateInstanceInfoAction,
-  SetResourceProfileAction,
+  SetOperatorProfileAction,
   UpdateInstanceStatusAction,
   ConfirmInstanceAction,
   ReportProvisioningStartedAction,
@@ -69,12 +69,12 @@ export const updateInstanceInfo = (input: UpdateInstanceInfoInput) =>
     "global",
   );
 
-export const setResourceProfile = (input: SetResourceProfileInput) =>
-  createAction<SetResourceProfileAction>(
-    "SET_RESOURCE_PROFILE",
+export const setOperatorProfile = (input: SetOperatorProfileInput) =>
+  createAction<SetOperatorProfileAction>(
+    "SET_OPERATOR_PROFILE",
     { ...input },
     undefined,
-    SetResourceProfileInputSchema,
+    SetOperatorProfileInputSchema,
     "global",
   );
 

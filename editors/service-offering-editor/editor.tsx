@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DocumentToolbar } from "@powerhousedao/design-system/connect";
-import { useSelectedServiceOfferingDocument } from "../../document-models/service-offering/hooks.js";
+import { useSelectedServiceOfferingDocument } from "./hooks/useServiceOfferingDocument.js";
 import { OfferingProgress } from "./components/OfferingProgress.js";
 import type { TabId } from "./components/TabNavigation.js";
 import { ResourceTemplateSelector } from "./components/ResourceTemplateSelector.js";

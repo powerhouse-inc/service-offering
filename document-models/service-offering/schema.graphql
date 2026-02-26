@@ -30,8 +30,10 @@ type ServiceOfferingState {
     infoLink: URL
     status: ServiceStatus!
     lastModified: DateTime!
+    availableBillingCycles: [BillingCycle!]!
     targetAudiences: [TargetAudience!]!
     facetTargets: [FacetTarget!]!
+    facetBindings: [ResourceFacetBinding!]!
     serviceGroups: [ServiceGroup!]!
     services: [Service!]!
     tiers: [ServiceSubscriptionTier!]!
@@ -121,7 +123,6 @@ type Service {
     serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-    facetBindings: [ResourceFacetBinding!]!
 }
 
 type ResourceFacetBinding {
@@ -364,6 +365,23 @@ input ChangeResourceTemplateInput {
     previousTemplateId: PHID!
     newTemplateId: PHID!
     lastModified: DateTime!
+}
+
+input SetAvailableBillingCyclesInput {
+    billingCycles: [BillingCycle!]!
+    lastModified: DateTime!
+}
+
+input SetFacetBindingsInput {
+    facetBindings: [FacetBindingInput!]!
+    lastModified: DateTime!
+}
+
+input FacetBindingInput {
+    id: OID!
+    facetName: String!
+    facetType: PHID!
+    supportedOptions: [OID!]!
 }
 
 # services

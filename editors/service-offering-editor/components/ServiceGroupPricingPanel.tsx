@@ -629,6 +629,8 @@ const styles = `
   .sgp__group-content {
     padding: 24px;
     border-top: 1px solid var(--so-slate-200);
+    max-height: min(70vh, 560px);
+    overflow-y: auto;
   }
 
   .sgp__notice {

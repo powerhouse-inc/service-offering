@@ -3,30 +3,30 @@ import type { ResourceInstanceInstanceManagementOperations } from "@powerhouseda
 export const resourceInstanceInstanceManagementOperations: ResourceInstanceInstanceManagementOperations =
   {
     initializeInstanceOperation(state, action) {
-      state.profile = {
-        id: action.input.profileId,
-        documentType: action.input.profileDocumentType,
+      state.operatorProfile = {
+        id: action.input.operatorId,
+        operatorName: action.input.operatorName || null,
       };
       state.resourceTemplateId = action.input.resourceTemplateId || null;
       state.customerId = action.input.customerId || null;
-      state.name = action.input.name || null;
+      state.customerName = action.input.customerName || null;
+      state.templateName = action.input.templateName || null;
       state.thumbnailUrl = action.input.thumbnailUrl || null;
       state.infoLink = action.input.infoLink || null;
       state.description = action.input.description || null;
       state.status = "DRAFT";
     },
     updateInstanceInfoOperation(state, action) {
-      if (action.input.name) state.name = action.input.name;
       if (action.input.thumbnailUrl)
         state.thumbnailUrl = action.input.thumbnailUrl;
       if (action.input.infoLink) state.infoLink = action.input.infoLink;
       if (action.input.description)
         state.description = action.input.description;
     },
-    setResourceProfileOperation(state, action) {
-      state.profile = {
-        id: action.input.profileId,
-        documentType: action.input.profileDocumentType,
+    setOperatorProfileOperation(state, action) {
+      state.operatorProfile = {
+        id: action.input.operatorId,
+        operatorName: action.input.operatorName || null,
       };
     },
     updateInstanceStatusOperation(state, action) {

@@ -6,16 +6,16 @@ import type {
   InitializeInstanceInput,
   InstanceFacet,
   InstanceStatus,
+  OperatorProfile,
   RemoveInstanceFacetInput,
   ReportProvisioningCompletedInput,
   ReportProvisioningFailedInput,
   ReportProvisioningStartedInput,
   ResourceInstanceState,
-  ResourceProfile,
   ResumeAfterMaintenanceInput,
   ResumeAfterPaymentInput,
   SetInstanceFacetInput,
-  SetResourceProfileInput,
+  SetOperatorProfileInput,
   SuspendForMaintenanceInput,
   SuspendForNonPaymentInput,
   SuspendInstanceInput,
@@ -88,12 +88,14 @@ export function InitializeInstanceInputSchema(): z.ZodObject<
 > {
   return z.object({
     customerId: z.string().nullish(),
+    customerName: z.string().nullish(),
     description: z.string().nullish(),
     infoLink: z.string().url().nullish(),
-    name: z.string().nullish(),
-    profileDocumentType: z.string(),
-    profileId: z.string(),
+    operatorDocumentType: z.string(),
+    operatorId: z.string(),
+    operatorName: z.string().nullish(),
     resourceTemplateId: z.string().nullish(),
+    templateName: z.string().nullish(),
     thumbnailUrl: z.string().url().nullish(),
   });
 }
@@ -105,6 +107,16 @@ export function InstanceFacetSchema(): z.ZodObject<Properties<InstanceFacet>> {
     categoryLabel: z.string(),
     id: z.string(),
     selectedOption: z.string(),
+  });
+}
+
+export function OperatorProfileSchema(): z.ZodObject<
+  Properties<OperatorProfile>
+> {
+  return z.object({
+    __typename: z.literal("OperatorProfile").optional(),
+    id: z.string(),
+    operatorName: z.string().nullish(),
   });
 }
 
@@ -150,10 +162,10 @@ export function ResourceInstanceStateSchema(): z.ZodObject<
     configuration: z.array(z.lazy(() => InstanceFacetSchema())),
     confirmedAt: z.string().datetime().nullish(),
     customerId: z.string().nullish(),
+    customerName: z.string().nullish(),
     description: z.string().nullish(),
     infoLink: z.string().url().nullish(),
-    name: z.string().nullish(),
-    profile: z.lazy(() => ResourceProfileSchema().nullish()),
+    operatorProfile: z.lazy(() => OperatorProfileSchema().nullish()),
     provisioningCompletedAt: z.string().datetime().nullish(),
     provisioningFailureReason: z.string().nullish(),
     provisioningStartedAt: z.string().datetime().nullish(),
@@ -164,19 +176,10 @@ export function ResourceInstanceStateSchema(): z.ZodObject<
     suspensionDetails: z.string().nullish(),
     suspensionReason: z.string().nullish(),
     suspensionType: SuspensionTypeSchema.nullish(),
+    templateName: z.string().nullish(),
     terminatedAt: z.string().datetime().nullish(),
     terminationReason: z.string().nullish(),
     thumbnailUrl: z.string().url().nullish(),
-  });
-}
-
-export function ResourceProfileSchema(): z.ZodObject<
-  Properties<ResourceProfile>
-> {
-  return z.object({
-    __typename: z.literal("ResourceProfile").optional(),
-    documentType: z.string(),
-    id: z.string(),
   });
 }
 
@@ -208,12 +211,12 @@ export function SetInstanceFacetInputSchema(): z.ZodObject<
   });
 }
 
-export function SetResourceProfileInputSchema(): z.ZodObject<
-  Properties<SetResourceProfileInput>
+export function SetOperatorProfileInputSchema(): z.ZodObject<
+  Properties<SetOperatorProfileInput>
 > {
   return z.object({
-    profileDocumentType: z.string(),
-    profileId: z.string(),
+    operatorId: z.string(),
+    operatorName: z.string().nullish(),
   });
 }
 

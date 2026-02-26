@@ -6,7 +6,6 @@ import {
   isResourceInstanceDocument,
   initializeInstance,
   updateInstanceInfo,
-  setResourceProfile,
   updateInstanceStatus,
   confirmInstance,
   reportProvisioningStarted,
@@ -21,7 +20,6 @@ import {
   terminateInstance,
   InitializeInstanceInputSchema,
   UpdateInstanceInfoInputSchema,
-  SetResourceProfileInputSchema,
   UpdateInstanceStatusInputSchema,
   ConfirmInstanceInputSchema,
   ReportProvisioningStartedInputSchema,
@@ -34,6 +32,8 @@ import {
   ResumeAfterMaintenanceInputSchema,
   SuspendInstanceInputSchema,
   TerminateInstanceInputSchema,
+  setOperatorProfile,
+  SetOperatorProfileInputSchema,
 } from "@powerhousedao/service-offering/document-models/resource-instance";
 
 describe("InstanceManagementOperations", () => {
@@ -132,23 +132,6 @@ describe("InstanceManagementOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "UPDATE_INSTANCE_INFO",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle setResourceProfile operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(SetResourceProfileInputSchema());
-
-    const updatedDocument = reducer(document, setResourceProfile(input));
-
-    expect(isResourceInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SET_RESOURCE_PROFILE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,
@@ -288,6 +271,23 @@ describe("InstanceManagementOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "RESUME_AFTER_MAINTENANCE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setOperatorProfile operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetOperatorProfileInputSchema());
+
+    const updatedDocument = reducer(document, setOperatorProfile(input));
+
+    expect(isResourceInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SET_OPERATOR_PROFILE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

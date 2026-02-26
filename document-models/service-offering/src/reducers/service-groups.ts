@@ -28,8 +28,8 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
         description: action.input.description || null,
         billingCycle: action.input.billingCycle,
         displayOrder: action.input.displayOrder || null,
-        discountMode: action.input.discountMode || null,
         tierPricing: [],
+        discountMode: null,
       });
       state.lastModified = action.input.lastModified;
     },
@@ -47,8 +47,6 @@ export const serviceOfferingServiceGroupsOperations: ServiceOfferingServiceGroup
         sg.billingCycle = action.input.billingCycle;
       if (action.input.displayOrder !== undefined)
         sg.displayOrder = action.input.displayOrder || null;
-      if (action.input.discountMode !== undefined)
-        sg.discountMode = action.input.discountMode || null;
       state.lastModified = action.input.lastModified;
     },
     deleteServiceGroupOperation(state, action) {

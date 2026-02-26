@@ -124,17 +124,118 @@ export function ResourceTemplateSelector({
   // Get the currently selected template ID from document state
   const currentTemplateId = document.state.global.resourceTemplateId;
 
-  const filteredTemplates = useMemo(() => {
-    if (!allTemplates.length) return [];
-    if (!searchQuery.trim()) return allTemplates;
+  // Aggregate all unique facets + options across every product (union)
+  const aggregatedFacets = useMemo(() => {
+    const facetMap = new Map<
+      string,
+      { categoryKey: string; categoryLabel: string; options: Set<string> }
+    >();
+    for (const t of allTemplates) {
+      for (const ft of t.state.global.facetTargets) {
+        const existing = facetMap.get(ft.categoryKey);
+        if (existing) {
+          for (const opt of ft.selectedOptions) existing.options.add(opt);
+        } else {
+          facetMap.set(ft.categoryKey, {
+            categoryKey: ft.categoryKey,
+            categoryLabel: ft.categoryLabel,
+            options: new Set(ft.selectedOptions),
+          });
+        }
+      }
+    }
+    return Array.from(facetMap.values()).map((f) => ({
+      categoryKey: f.categoryKey,
+      categoryLabel: f.categoryLabel,
+      options: Array.from(f.options).sort(),
+    }));
+  }, [allTemplates]);
 
-    const query = searchQuery.toLowerCase();
-    return allTemplates.filter(
-      (t) =>
-        t.state.global.title.toLowerCase().includes(query) ||
-        t.state.global.summary.toLowerCase().includes(query),
-    );
-  }, [allTemplates, searchQuery]);
+  // Facet filter state: which facets are active and which options are selected
+  const [activeFacets, setActiveFacets] = useState<Set<string>>(new Set());
+  const [selectedFacetOptions, setSelectedFacetOptions] = useState<
+    Record<string, Set<string>>
+  >({});
+
+  const toggleFacet = useCallback((categoryKey: string) => {
+    setActiveFacets((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryKey)) {
+        next.delete(categoryKey);
+        // Also clear options for this facet
+        setSelectedFacetOptions((opts) => {
+          const updated = { ...opts };
+          delete updated[categoryKey];
+          return updated;
+        });
+      } else {
+        next.add(categoryKey);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleFacetOption = useCallback(
+    (categoryKey: string, option: string) => {
+      setSelectedFacetOptions((prev) => {
+        const current = prev[categoryKey] ?? new Set<string>();
+        const next = new Set(current);
+        if (next.has(option)) {
+          next.delete(option);
+        } else {
+          next.add(option);
+        }
+        return { ...prev, [categoryKey]: next };
+      });
+    },
+    [],
+  );
+
+  const clearAllFacetFilters = useCallback(() => {
+    setActiveFacets(new Set());
+    setSelectedFacetOptions({});
+  }, []);
+
+  const hasAnyFacetFilter = activeFacets.size > 0;
+
+  const filteredTemplates = useMemo(() => {
+    let results = allTemplates;
+
+    // Apply text search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      results = results.filter(
+        (t) =>
+          t.state.global.title.toLowerCase().includes(query) ||
+          t.state.global.summary.toLowerCase().includes(query),
+      );
+    }
+
+    // Apply facet filters (AND across facets, OR within a facet's options)
+    if (activeFacets.size > 0) {
+      results = results.filter((t) => {
+        for (const facetKey of activeFacets) {
+          // Product must have this facet
+          const productFacet = t.state.global.facetTargets.find(
+            (ft) => ft.categoryKey === facetKey,
+          );
+          if (!productFacet) return false;
+
+          // If specific options are selected, product must have at least one
+          const selectedOpts = selectedFacetOptions[facetKey];
+          if (selectedOpts && selectedOpts.size > 0) {
+            const hasMatch = productFacet.selectedOptions.some((opt) =>
+              selectedOpts.has(opt),
+            );
+            if (!hasMatch) return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    return results;
+  }, [allTemplates, searchQuery, activeFacets, selectedFacetOptions]);
 
   const selectedTemplate = useMemo(() => {
     if (!currentTemplateId || !allTemplates.length) return null;
@@ -144,6 +245,24 @@ export function ResourceTemplateSelector({
   const handleSelectTemplate = useCallback(
     (template: NormalizedTemplate) => {
       const now = new Date().toISOString();
+
+      // Deselect if clicking the already-selected product
+      if (currentTemplateId === template.id) {
+        dispatch(
+          changeResourceTemplate({
+            previousTemplateId: currentTemplateId,
+            newTemplateId: "",
+            lastModified: now,
+          }),
+        );
+        dispatch(
+          setOperator({
+            operatorId: "",
+            lastModified: now,
+          }),
+        );
+        return;
+      }
 
       if (currentTemplateId) {
         dispatch(
@@ -273,6 +392,80 @@ export function ResourceTemplateSelector({
           )}
         </div>
 
+        {/* Facet Filters */}
+        {aggregatedFacets.length > 0 && (
+          <div className="rts-facets">
+            <div className="rts-facets__header">
+              <span className="rts-facets__label">Filter by facet</span>
+              {hasAnyFacetFilter && (
+                <button
+                  type="button"
+                  onClick={clearAllFacetFilters}
+                  className="rts-facets__clear"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <div className="rts-facets__chips">
+              {aggregatedFacets.map((facet) => {
+                const isActive = activeFacets.has(facet.categoryKey);
+                const selectedCount =
+                  selectedFacetOptions[facet.categoryKey]?.size ?? 0;
+                return (
+                  <button
+                    key={facet.categoryKey}
+                    type="button"
+                    onClick={() => toggleFacet(facet.categoryKey)}
+                    className={`rts-facets__chip ${isActive ? "rts-facets__chip--active" : ""}`}
+                  >
+                    {facet.categoryLabel}
+                    {selectedCount > 0 && (
+                      <span className="rts-facets__chip-count">
+                        {selectedCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Expanded options for active facets */}
+            {aggregatedFacets
+              .filter((f) => activeFacets.has(f.categoryKey))
+              .map((facet) => {
+                const selected =
+                  selectedFacetOptions[facet.categoryKey] ?? new Set<string>();
+                return (
+                  <div key={facet.categoryKey} className="rts-facets__options">
+                    <span className="rts-facets__options-label">
+                      {facet.categoryLabel}:
+                    </span>
+                    <div className="rts-facets__options-chips">
+                      {facet.options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() =>
+                            toggleFacetOption(facet.categoryKey, opt)
+                          }
+                          className={`rts-facets__option ${selected.has(opt) ? "rts-facets__option--selected" : ""}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            {hasAnyFacetFilter && (
+              <div className="rts-facets__result-count">
+                Showing {filteredTemplates.length} of {allTemplates.length}{" "}
+                product{allTemplates.length !== 1 ? "s" : ""}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Templates List */}
         <div className="rts-templates">
           {isLoadingRemote && allTemplates.length === 0 ? (
@@ -301,7 +494,8 @@ export function ResourceTemplateSelector({
           ) : filteredTemplates.length === 0 ? (
             <div className="rts-empty rts-empty--search">
               <p className="rts-empty__desc">
-                No templates match "{searchQuery}"
+                No products match
+                {searchQuery ? ` "${searchQuery}"` : " the selected filters"}
               </p>
             </div>
           ) : (
@@ -311,7 +505,7 @@ export function ResourceTemplateSelector({
                 <div className="rts-section">
                   <h3 className="rts-section__title">
                     <span className="rts-section__dot rts-section__dot--active" />
-                    Active Templates
+                    Active Products
                   </h3>
                   <div className="rts-grid">
                     {activeTemplates.map((template) => (
@@ -332,7 +526,7 @@ export function ResourceTemplateSelector({
                 <div className="rts-section">
                   <h3 className="rts-section__title">
                     <span className="rts-section__dot" />
-                    Other Templates
+                    Other Products
                   </h3>
                   <div className="rts-grid">
                     {otherTemplates.map((template) => (
@@ -610,7 +804,7 @@ function TemplateDetailView({
             >
               <path d="M5 12l5 5L20 7" />
             </svg>
-            Selected Template
+            Selected Product
           </span>
           <button
             type="button"
@@ -625,7 +819,7 @@ function TemplateDetailView({
             >
               <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Change Template
+            Change Product
           </button>
         </div>
       </div>
@@ -673,7 +867,7 @@ function TemplateDetailView({
 
         <div className="rtd-hero__identity">
           <h1 className="rtd-hero__title">
-            {globalState.title || "Untitled Template"}
+            {globalState.title || "Untitled Product"}
           </h1>
 
           {/* Target Audiences */}
@@ -1140,6 +1334,156 @@ const styles = `
   .rts-search__clear svg {
     width: 14px;
     height: 14px;
+  }
+
+  /* Facet Filters */
+  .rts-facets {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--so-slate-50, #f8fafc);
+    border: 1px solid var(--so-slate-200, #e2e8f0);
+    border-radius: var(--so-radius-lg, 12px);
+  }
+
+  .rts-facets__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .rts-facets__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--so-slate-500, #64748b);
+  }
+
+  .rts-facets__clear {
+    font-family: var(--so-font-sans, system-ui);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--so-violet-600, #7c3aed);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .rts-facets__clear:hover {
+    text-decoration: underline;
+  }
+
+  .rts-facets__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .rts-facets__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-family: var(--so-font-sans, system-ui);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--so-slate-600, #475569);
+    background: var(--so-white, #fff);
+    border: 1.5px solid var(--so-slate-200, #e2e8f0);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .rts-facets__chip:hover {
+    border-color: var(--so-violet-300, #c4b5fd);
+    color: var(--so-violet-700, #6d28d9);
+  }
+
+  .rts-facets__chip--active {
+    background: var(--so-violet-600, #7c3aed);
+    border-color: var(--so-violet-600, #7c3aed);
+    color: var(--so-white, #fff);
+  }
+
+  .rts-facets__chip--active:hover {
+    background: var(--so-violet-700, #6d28d9);
+    border-color: var(--so-violet-700, #6d28d9);
+    color: var(--so-white, #fff);
+  }
+
+  .rts-facets__chip-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+
+  .rts-facets__options {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--so-slate-200, #e2e8f0);
+  }
+
+  .rts-facets__options-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--so-slate-500, #64748b);
+    white-space: nowrap;
+    padding-top: 5px;
+    min-width: 80px;
+  }
+
+  .rts-facets__options-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .rts-facets__option {
+    padding: 4px 12px;
+    font-family: var(--so-font-sans, system-ui);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--so-slate-600, #475569);
+    background: var(--so-white, #fff);
+    border: 1px solid var(--so-slate-200, #e2e8f0);
+    border-radius: var(--so-radius-md, 8px);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .rts-facets__option:hover {
+    border-color: var(--so-emerald-400, #34d399);
+    color: var(--so-emerald-700, #047857);
+  }
+
+  .rts-facets__option--selected {
+    background: var(--so-emerald-50, #ecfdf5);
+    border-color: var(--so-emerald-500, #10b981);
+    color: var(--so-emerald-700, #047857);
+  }
+
+  .rts-facets__option--selected:hover {
+    background: var(--so-emerald-100, #d1fae5);
+  }
+
+  .rts-facets__result-count {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--so-slate-500, #64748b);
+    padding-top: 4px;
   }
 
   /* Templates */

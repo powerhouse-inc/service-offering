@@ -26,6 +26,7 @@ import type {
   DiscountRule,
   DiscountRuleInput,
   DiscountType,
+  FacetBindingInput,
   FacetTarget,
   FinalAddOnConfig,
   FinalAddOnConfigInput,
@@ -62,6 +63,8 @@ import type {
   ServiceStatus,
   ServiceSubscriptionTier,
   ServiceUsageLimit,
+  SetAvailableBillingCyclesInput,
+  SetFacetBindingsInput,
   SetFacetTargetInput,
   SetFinalConfigurationInput,
   SetOfferingIdInput,
@@ -406,6 +409,17 @@ export function DiscountRuleInputSchema(): z.ZodObject<
   });
 }
 
+export function FacetBindingInputSchema(): z.ZodObject<
+  Properties<FacetBindingInput>
+> {
+  return z.object({
+    facetName: z.string(),
+    facetType: z.string(),
+    id: z.string(),
+    supportedOptions: z.array(z.string()),
+  });
+}
+
 export function FacetTargetSchema(): z.ZodObject<Properties<FacetTarget>> {
   return z.object({
     __typename: z.literal("FacetTarget").optional(),
@@ -719,7 +733,6 @@ export function ServiceSchema(): z.ZodObject<Properties<Service>> {
     __typename: z.literal("Service").optional(),
     description: z.string().nullish(),
     displayOrder: z.number().nullish(),
-    facetBindings: z.array(z.lazy(() => ResourceFacetBindingSchema())),
     id: z.string(),
     isSetupFormation: z.boolean(),
     optionGroupId: z.string().nullish(),
@@ -771,7 +784,9 @@ export function ServiceOfferingStateSchema(): z.ZodObject<
 > {
   return z.object({
     __typename: z.literal("ServiceOfferingState").optional(),
+    availableBillingCycles: z.array(BillingCycleSchema),
     description: z.string().nullish(),
+    facetBindings: z.array(z.lazy(() => ResourceFacetBindingSchema())),
     facetTargets: z.array(z.lazy(() => FacetTargetSchema())),
     finalConfiguration: z.lazy(() => FinalConfigurationSchema().nullish()),
     id: z.string(),
@@ -834,6 +849,24 @@ export function ServiceUsageLimitSchema(): z.ZodObject<
     unitName: z.string().nullish(),
     unitPrice: z.number().nullish(),
     unitPriceCurrency: z.string().nullish(),
+  });
+}
+
+export function SetAvailableBillingCyclesInputSchema(): z.ZodObject<
+  Properties<SetAvailableBillingCyclesInput>
+> {
+  return z.object({
+    billingCycles: z.array(BillingCycleSchema),
+    lastModified: z.string().datetime(),
+  });
+}
+
+export function SetFacetBindingsInputSchema(): z.ZodObject<
+  Properties<SetFacetBindingsInput>
+> {
+  return z.object({
+    facetBindings: z.array(z.lazy(() => FacetBindingInputSchema())),
+    lastModified: z.string().datetime(),
   });
 }
 

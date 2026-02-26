@@ -3,7 +3,8 @@ export type ErrorCode =
   | "RemoveFacetTargetNotFoundError"
   | "AddFacetOptionTargetNotFoundError"
   | "RemoveFacetOptionTargetNotFoundError"
-  | "ChangeResourceTemplateMismatchError";
+  | "ChangeResourceTemplateMismatchError"
+  | "NoBillingCyclesSelectedError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -59,10 +60,21 @@ export class ChangeResourceTemplateMismatchError
   }
 }
 
+export class NoBillingCyclesSelectedError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "NoBillingCyclesSelectedError" as ErrorCode;
+  constructor(message = "NoBillingCyclesSelectedError") {
+    super(message);
+  }
+}
+
 export const errors = {
   RemoveTargetAudience: { RemoveTargetAudienceNotFoundError },
   RemoveFacetTarget: { RemoveFacetTargetNotFoundError },
   AddFacetOption: { AddFacetOptionTargetNotFoundError },
   RemoveFacetOption: { RemoveFacetOptionTargetNotFoundError },
   ChangeResourceTemplate: { ChangeResourceTemplateMismatchError },
+  SetAvailableBillingCycles: { NoBillingCyclesSelectedError },
 };

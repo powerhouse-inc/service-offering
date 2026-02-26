@@ -25,6 +25,8 @@ import {
   RemoveFacetOptionInputSchema,
   SelectResourceTemplateInputSchema,
   ChangeResourceTemplateInputSchema,
+  SetAvailableBillingCyclesInputSchema,
+  SetFacetBindingsInputSchema,
   AddServiceInputSchema,
   UpdateServiceInputSchema,
   DeleteServiceInputSchema,
@@ -211,6 +213,30 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       ChangeResourceTemplateInputSchema().parse(action.input);
 
       serviceOfferingOfferingOperations.changeResourceTemplateOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_AVAILABLE_BILLING_CYCLES": {
+      SetAvailableBillingCyclesInputSchema().parse(action.input);
+
+      serviceOfferingOfferingOperations.setAvailableBillingCyclesOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_FACET_BINDINGS": {
+      SetFacetBindingsInputSchema().parse(action.input);
+
+      serviceOfferingOfferingOperations.setFacetBindingsOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

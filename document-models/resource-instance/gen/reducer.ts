@@ -11,7 +11,7 @@ import { resourceInstanceConfigurationManagementOperations } from "../src/reduce
 import {
   InitializeInstanceInputSchema,
   UpdateInstanceInfoInputSchema,
-  SetResourceProfileInputSchema,
+  SetOperatorProfileInputSchema,
   UpdateInstanceStatusInputSchema,
   ConfirmInstanceInputSchema,
   ReportProvisioningStartedInputSchema,
@@ -63,10 +63,10 @@ const stateReducer: StateReducer<ResourceInstancePHState> = (
       break;
     }
 
-    case "SET_RESOURCE_PROFILE": {
-      SetResourceProfileInputSchema().parse(action.input);
+    case "SET_OPERATOR_PROFILE": {
+      SetOperatorProfileInputSchema().parse(action.input);
 
-      resourceInstanceInstanceManagementOperations.setResourceProfileOperation(
+      resourceInstanceInstanceManagementOperations.setOperatorProfileOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
