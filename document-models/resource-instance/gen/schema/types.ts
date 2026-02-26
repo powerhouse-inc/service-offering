@@ -77,12 +77,15 @@ export type ConfirmInstanceInput = {
 
 export type InitializeInstanceInput = {
   customerId?: InputMaybe<Scalars["PHID"]["input"]>;
+  customerName?: InputMaybe<Scalars["String"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
   infoLink?: InputMaybe<Scalars["URL"]["input"]>;
   name?: InputMaybe<Scalars["String"]["input"]>;
-  profileDocumentType: Scalars["String"]["input"];
-  profileId: Scalars["PHID"]["input"];
+  operatorDocumentType: Scalars["String"]["input"];
+  operatorId: Scalars["PHID"]["input"];
+  operatorName?: InputMaybe<Scalars["String"]["input"]>;
   resourceTemplateId?: InputMaybe<Scalars["PHID"]["input"]>;
+  templateName?: InputMaybe<Scalars["String"]["input"]>;
   thumbnailUrl?: InputMaybe<Scalars["URL"]["input"]>;
 };
 
@@ -99,6 +102,11 @@ export type InstanceStatus =
   | "PROVISIONING"
   | "SUSPENDED"
   | "TERMINATED";
+
+export type OperatorProfile = {
+  documentType: Scalars["String"]["output"];
+  id: Scalars["PHID"]["output"];
+};
 
 export type RemoveInstanceFacetInput = {
   categoryKey: Scalars["String"]["input"];
@@ -122,10 +130,12 @@ export type ResourceInstanceState = {
   configuration: Array<InstanceFacet>;
   confirmedAt: Maybe<Scalars["DateTime"]["output"]>;
   customerId: Maybe<Scalars["PHID"]["output"]>;
+  customerName: Maybe<Scalars["String"]["output"]>;
   description: Maybe<Scalars["String"]["output"]>;
   infoLink: Maybe<Scalars["URL"]["output"]>;
   name: Maybe<Scalars["String"]["output"]>;
-  profile: Maybe<ResourceProfile>;
+  operatorName: Maybe<Scalars["String"]["output"]>;
+  operatorProfile: Maybe<OperatorProfile>;
   provisioningCompletedAt: Maybe<Scalars["DateTime"]["output"]>;
   provisioningFailureReason: Maybe<Scalars["String"]["output"]>;
   provisioningStartedAt: Maybe<Scalars["DateTime"]["output"]>;
@@ -136,14 +146,10 @@ export type ResourceInstanceState = {
   suspensionDetails: Maybe<Scalars["String"]["output"]>;
   suspensionReason: Maybe<Scalars["String"]["output"]>;
   suspensionType: Maybe<SuspensionType>;
+  templateName: Maybe<Scalars["String"]["output"]>;
   terminatedAt: Maybe<Scalars["DateTime"]["output"]>;
   terminationReason: Maybe<Scalars["String"]["output"]>;
   thumbnailUrl: Maybe<Scalars["URL"]["output"]>;
-};
-
-export type ResourceProfile = {
-  documentType: Scalars["String"]["output"];
-  id: Scalars["PHID"]["output"];
 };
 
 export type ResumeAfterMaintenanceInput = {
@@ -162,9 +168,9 @@ export type SetInstanceFacetInput = {
   selectedOption: Scalars["String"]["input"];
 };
 
-export type SetResourceProfileInput = {
-  profileDocumentType: Scalars["String"]["input"];
-  profileId: Scalars["PHID"]["input"];
+export type SetOperatorProfileInput = {
+  operatorDocumentType: Scalars["String"]["input"];
+  operatorId: Scalars["PHID"]["input"];
 };
 
 export type SuspendForMaintenanceInput = {

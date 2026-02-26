@@ -423,15 +423,15 @@
               "template": ""
             },
             {
-              "description": "Reorders FAQ items by updating their display order",
-              "errors": [],
-              "examples": [],
               "id": "reorder-faqs",
               "name": "REORDER_FAQS",
-              "reducer": "action.input.faqIds.forEach((id, index) => {\n    const faq = state.faqFields?.find(f => f.id === id);\n    if (faq) {\n        faq.displayOrder = index;\n    }\n});\nstate.lastModified = action.input.lastModified;",
+              "description": "Reorders FAQ items by updating their display order",
               "schema": "input ReorderFaqsInput {\n    faqIds: [OID!]!\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Reorders FAQ items by updating their display order"
+              "template": "Reorders FAQ items by updating their display order",
+              "reducer": "action.input.faqIds.forEach((id, index) => {\n    const faq = state.faqFields?.find(f => f.id === id);\n    if (faq) {\n        faq.displayOrder = index;\n    }\n});\nstate.lastModified = action.input.lastModified;",
+              "errors": [],
+              "examples": [],
+              "scope": "global"
             }
           ]
         },
@@ -441,48 +441,48 @@
           "name": "Content Section Management",
           "operations": [
             {
-              "description": "Adds a new expandable content section",
-              "errors": [],
-              "examples": [],
               "id": "add-content-section",
               "name": "ADD_CONTENT_SECTION",
-              "reducer": "state.contentSections.push({\n    id: action.input.id,\n    title: action.input.title,\n    content: action.input.content,\n    displayOrder: action.input.displayOrder\n});\nstate.lastModified = action.input.lastModified;",
+              "description": "Adds a new expandable content section",
               "schema": "input AddContentSectionInput {\n    id: OID!\n    title: String!\n    content: String!\n    displayOrder: Int!\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Adds a new expandable content section"
-            },
-            {
-              "description": "Updates an existing content section",
+              "template": "Adds a new expandable content section",
+              "reducer": "state.contentSections.push({\n    id: action.input.id,\n    title: action.input.title,\n    content: action.input.content,\n    displayOrder: action.input.displayOrder\n});\nstate.lastModified = action.input.lastModified;",
               "errors": [],
               "examples": [],
+              "scope": "global"
+            },
+            {
               "id": "update-content-section",
               "name": "UPDATE_CONTENT_SECTION",
-              "reducer": "const section = state.contentSections.find(s => s.id === action.input.id);\nif (section) {\n    if (action.input.title) {\n        section.title = action.input.title;\n    }\n    if (action.input.content !== undefined && action.input.content !== null) {\n        section.content = action.input.content;\n    }\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n        section.displayOrder = action.input.displayOrder;\n    }\n}\nstate.lastModified = action.input.lastModified;",
+              "description": "Updates an existing content section",
               "schema": "input UpdateContentSectionInput {\n    id: OID!\n    title: String\n    content: String\n    displayOrder: Int\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Updates an existing content section"
-            },
-            {
-              "description": "Removes a content section",
+              "template": "Updates an existing content section",
+              "reducer": "const section = state.contentSections.find(s => s.id === action.input.id);\nif (section) {\n    if (action.input.title) {\n        section.title = action.input.title;\n    }\n    if (action.input.content !== undefined && action.input.content !== null) {\n        section.content = action.input.content;\n    }\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n        section.displayOrder = action.input.displayOrder;\n    }\n}\nstate.lastModified = action.input.lastModified;",
               "errors": [],
               "examples": [],
+              "scope": "global"
+            },
+            {
               "id": "delete-content-section",
               "name": "DELETE_CONTENT_SECTION",
-              "reducer": "const sectionIndex = state.contentSections.findIndex(s => s.id === action.input.id);\nif (sectionIndex !== -1) {\n    state.contentSections.splice(sectionIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
+              "description": "Removes a content section",
               "schema": "input DeleteContentSectionInput {\n    id: OID!\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Removes a content section"
-            },
-            {
-              "description": "Reorders content sections by updating their display order",
+              "template": "Removes a content section",
+              "reducer": "const sectionIndex = state.contentSections.findIndex(s => s.id === action.input.id);\nif (sectionIndex !== -1) {\n    state.contentSections.splice(sectionIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
               "errors": [],
               "examples": [],
+              "scope": "global"
+            },
+            {
               "id": "reorder-content-sections",
               "name": "REORDER_CONTENT_SECTIONS",
-              "reducer": "action.input.sectionIds.forEach((id, index) => {\n    const section = state.contentSections.find(s => s.id === id);\n    if (section) {\n        section.displayOrder = index;\n    }\n});\nstate.lastModified = action.input.lastModified;",
+              "description": "Reorders content sections by updating their display order",
               "schema": "input ReorderContentSectionsInput {\n    sectionIds: [OID!]!\n    lastModified: DateTime!\n}",
-              "scope": "global",
-              "template": "Reorders content sections by updating their display order"
+              "template": "Reorders content sections by updating their display order",
+              "reducer": "action.input.sectionIds.forEach((id, index) => {\n    const section = state.contentSections.find(s => s.id === id);\n    if (section) {\n        section.displayOrder = index;\n    }\n});\nstate.lastModified = action.input.lastModified;",
+              "errors": [],
+              "examples": [],
+              "scope": "global"
             }
           ]
         }

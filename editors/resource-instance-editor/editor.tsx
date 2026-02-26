@@ -40,13 +40,16 @@ export default function ResourceInstanceEditor() {
     // Initialize instance with sample data
     dispatch(
       initializeInstance({
-        profileId: "phd:sample-profile-123",
-        profileDocumentType: "powerhouse/resource-profile",
+        operatorId: "phd:operator-profile-123",
+        operatorDocumentType: "powerhouse/builder-profile",
         name: "Sample Resource Instance",
         description:
           "A sample resource instance populated with demo data for testing purposes.",
         customerId: "phd:customer-456",
+        customerName: "Acme Corporation",
         resourceTemplateId: "phd:template-789",
+        templateName: "Basic Hosting Plan",
+        operatorName: "Jane Smith (Operator)",
         thumbnailUrl: "https://via.placeholder.com/150",
         infoLink: "https://example.com/resource-info",
       }),
@@ -139,7 +142,9 @@ export default function ResourceInstanceEditor() {
 
           {/* Right Column */}
           <div className="ri-editor__sidebar">
-            <ProfileReferencePanel document={document} mode={mode} />
+            {mode === "client" && (
+              <OperatorProfilePanel document={document} mode={mode} />
+            )}
             {document.state.global.status === "SUSPENDED" && (
               <SuspensionDetailsPanel document={document} />
             )}
@@ -420,17 +425,25 @@ function InstanceHeader({ document, dispatch, mode }: InstanceHeaderProps) {
         <div className="ri-header__meta">
           {state.customerId && mode === "operator" && (
             <div className="ri-header__meta-item">
-              <span className="ri-header__meta-label">Customer ID</span>
-              <span className="ri-header__meta-value ri-header__meta-value--mono">
-                {state.customerId}
+              <span className="ri-header__meta-label">Customer</span>
+              <span className="ri-header__meta-value">
+                {state.customerName || (
+                  <span className="ri-header__meta-value--mono">
+                    {state.customerId}
+                  </span>
+                )}
               </span>
             </div>
           )}
           {state.resourceTemplateId && (
             <div className="ri-header__meta-item">
-              <span className="ri-header__meta-label">Template ID</span>
-              <span className="ri-header__meta-value ri-header__meta-value--mono">
-                {state.resourceTemplateId}
+              <span className="ri-header__meta-label">Template</span>
+              <span className="ri-header__meta-value">
+                {state.templateName || (
+                  <span className="ri-header__meta-value--mono">
+                    {state.resourceTemplateId}
+                  </span>
+                )}
               </span>
             </div>
           )}
@@ -919,42 +932,43 @@ function LifecycleActionsPanel({
 }
 
 // ============================================================
-// Profile Reference Panel Component
+// Operator Profile Panel Component
 // ============================================================
 
-interface ProfileReferencePanelProps {
+interface OperatorProfilePanelProps {
   document: ResourceInstanceDocument;
   mode: ViewMode;
 }
 
-function ProfileReferencePanel({
+function OperatorProfilePanel({
   document,
   mode: _mode,
-}: ProfileReferencePanelProps) {
-  const profile = document.state.global.profile;
+}: OperatorProfilePanelProps) {
+  const operatorProfile = document.state.global.operatorProfile;
+  const operatorName = document.state.global.operatorName;
 
   return (
     <div className="ri-panel ri-panel--compact">
       <div className="ri-panel__header">
-        <h3 className="ri-panel__title">Resource Profile</h3>
+        <h3 className="ri-panel__title">Operator</h3>
       </div>
 
-      {profile ? (
+      {operatorProfile ? (
         <div className="ri-profile">
           <div className="ri-profile__item">
-            <span className="ri-profile__label">Profile ID</span>
-            <span className="ri-profile__value ri-profile__value--mono">
-              {profile.id}
+            <span className="ri-profile__label">Operator</span>
+            <span className="ri-profile__value">
+              {operatorName || (
+                <span className="ri-profile__value--mono">
+                  {operatorProfile.id}
+                </span>
+              )}
             </span>
-          </div>
-          <div className="ri-profile__item">
-            <span className="ri-profile__label">Document Type</span>
-            <span className="ri-profile__value">{profile.documentType}</span>
           </div>
         </div>
       ) : (
         <div className="ri-empty ri-empty--sm">
-          <p className="ri-empty__text">No profile linked</p>
+          <p className="ri-empty__text">No operator linked</p>
         </div>
       )}
     </div>
@@ -1855,6 +1869,10 @@ const editorStyles = `
   .ri-profile__value--mono {
     font-family: var(--ri-font-mono);
     font-size: 0.8125rem;
+  }
+
+  .ri-profile__value--capitalize {
+    text-transform: capitalize;
   }
 
   /* Suspension */

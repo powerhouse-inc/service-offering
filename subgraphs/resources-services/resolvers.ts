@@ -458,7 +458,7 @@ async function populateResourceInstance(
   reactor: ISubgraph["reactor"],
   resourceInstanceDocId: string,
   resourceTemplateId: string,
-  profileId: string,
+  operatorId: string,
   name: string,
 ) {
   const resourceTemplateDoc =
@@ -471,8 +471,8 @@ async function populateResourceInstance(
   await reactor.addAction(
     resourceInstanceDocId,
     ResourceInstance.actions.initializeInstance({
-      profileId,
-      profileDocumentType: "powerhouse/builder-profile",
+      operatorId,
+      operatorDocumentType: "powerhouse/builder-profile",
       resourceTemplateId,
       customerId: null,
       name,

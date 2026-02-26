@@ -2,7 +2,7 @@ import { type SignalDispatch } from "document-model";
 import type {
   InitializeInstanceAction,
   UpdateInstanceInfoAction,
-  SetResourceProfileAction,
+  SetOperatorProfileAction,
   UpdateInstanceStatusAction,
   ConfirmInstanceAction,
   ReportProvisioningStartedAction,
@@ -29,9 +29,9 @@ export interface ResourceInstanceInstanceManagementOperations {
     action: UpdateInstanceInfoAction,
     dispatch?: SignalDispatch,
   ) => void;
-  setResourceProfileOperation: (
+  setOperatorProfileOperation: (
     state: ResourceInstanceState,
-    action: SetResourceProfileAction,
+    action: SetOperatorProfileAction,
     dispatch?: SignalDispatch,
   ) => void;
   updateInstanceStatusOperation: (

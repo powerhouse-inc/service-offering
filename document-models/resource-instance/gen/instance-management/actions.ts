@@ -2,7 +2,7 @@ import type { Action } from "document-model";
 import type {
   InitializeInstanceInput,
   UpdateInstanceInfoInput,
-  SetResourceProfileInput,
+  SetOperatorProfileInput,
   UpdateInstanceStatusInput,
   ConfirmInstanceInput,
   ReportProvisioningStartedInput,
@@ -25,9 +25,9 @@ export type UpdateInstanceInfoAction = Action & {
   type: "UPDATE_INSTANCE_INFO";
   input: UpdateInstanceInfoInput;
 };
-export type SetResourceProfileAction = Action & {
-  type: "SET_RESOURCE_PROFILE";
-  input: SetResourceProfileInput;
+export type SetOperatorProfileAction = Action & {
+  type: "SET_OPERATOR_PROFILE";
+  input: SetOperatorProfileInput;
 };
 export type UpdateInstanceStatusAction = Action & {
   type: "UPDATE_INSTANCE_STATUS";
@@ -81,7 +81,7 @@ export type TerminateInstanceAction = Action & {
 export type ResourceInstanceInstanceManagementAction =
   | InitializeInstanceAction
   | UpdateInstanceInfoAction
-  | SetResourceProfileAction
+  | SetOperatorProfileAction
   | UpdateInstanceStatusAction
   | ConfirmInstanceAction
   | ReportProvisioningStartedAction

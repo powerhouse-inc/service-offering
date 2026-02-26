@@ -3,12 +3,15 @@ import type { ResourceInstanceInstanceManagementOperations } from "@powerhouseda
 export const resourceInstanceInstanceManagementOperations: ResourceInstanceInstanceManagementOperations =
   {
     initializeInstanceOperation(state, action) {
-      state.profile = {
-        id: action.input.profileId,
-        documentType: action.input.profileDocumentType,
+      state.operatorProfile = {
+        id: action.input.operatorId,
+        documentType: action.input.operatorDocumentType,
       };
       state.resourceTemplateId = action.input.resourceTemplateId || null;
       state.customerId = action.input.customerId || null;
+      state.customerName = action.input.customerName || null;
+      state.templateName = action.input.templateName || null;
+      state.operatorName = action.input.operatorName || null;
       state.name = action.input.name || null;
       state.thumbnailUrl = action.input.thumbnailUrl || null;
       state.infoLink = action.input.infoLink || null;
@@ -23,10 +26,10 @@ export const resourceInstanceInstanceManagementOperations: ResourceInstanceInsta
       if (action.input.description)
         state.description = action.input.description;
     },
-    setResourceProfileOperation(state, action) {
-      state.profile = {
-        id: action.input.profileId,
-        documentType: action.input.profileDocumentType,
+    setOperatorProfileOperation(state, action) {
+      state.operatorProfile = {
+        id: action.input.operatorId,
+        documentType: action.input.operatorDocumentType,
       };
     },
     updateInstanceStatusOperation(state, action) {

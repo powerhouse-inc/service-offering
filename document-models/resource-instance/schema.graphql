@@ -22,11 +22,14 @@ scalar Upload
 type ResourceInstanceState {
     resourceTemplateId: PHID
     customerId: PHID
+    customerName: String
+    templateName: String
+    operatorName: String
     name: String
     thumbnailUrl: URL
     infoLink: URL
     description: String
-    profile: ResourceProfile
+    operatorProfile: OperatorProfile
     status: InstanceStatus!
     configuration: [InstanceFacet!]!
     confirmedAt: DateTime
@@ -43,7 +46,7 @@ type ResourceInstanceState {
     terminationReason: String
 }
 
-type ResourceProfile {
+type OperatorProfile {
     id: PHID!
     documentType: String!
 }
@@ -72,10 +75,13 @@ type InstanceFacet {
 # Instance Management
 
 input InitializeInstanceInput {
-    profileId: PHID!
-    profileDocumentType: String!
+    operatorId: PHID!
+    operatorDocumentType: String!
     resourceTemplateId: PHID
     customerId: PHID
+    customerName: String
+    templateName: String
+    operatorName: String
     name: String
     thumbnailUrl: URL
     infoLink: URL
@@ -89,9 +95,9 @@ input UpdateInstanceInfoInput {
     description: String
 }
 
-input SetResourceProfileInput {
-    profileId: PHID!
-    profileDocumentType: String!
+input SetOperatorProfileInput {
+    operatorId: PHID!
+    operatorDocumentType: String!
 }
 
 input UpdateInstanceStatusInput {
