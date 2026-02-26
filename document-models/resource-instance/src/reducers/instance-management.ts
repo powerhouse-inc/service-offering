@@ -5,21 +5,18 @@ export const resourceInstanceInstanceManagementOperations: ResourceInstanceInsta
     initializeInstanceOperation(state, action) {
       state.operatorProfile = {
         id: action.input.operatorId,
-        documentType: action.input.operatorDocumentType,
+        operatorName: action.input.operatorName || null,
       };
       state.resourceTemplateId = action.input.resourceTemplateId || null;
       state.customerId = action.input.customerId || null;
       state.customerName = action.input.customerName || null;
       state.templateName = action.input.templateName || null;
-      state.operatorName = action.input.operatorName || null;
-      state.name = action.input.name || null;
       state.thumbnailUrl = action.input.thumbnailUrl || null;
       state.infoLink = action.input.infoLink || null;
       state.description = action.input.description || null;
       state.status = "DRAFT";
     },
     updateInstanceInfoOperation(state, action) {
-      if (action.input.name) state.name = action.input.name;
       if (action.input.thumbnailUrl)
         state.thumbnailUrl = action.input.thumbnailUrl;
       if (action.input.infoLink) state.infoLink = action.input.infoLink;
@@ -29,7 +26,7 @@ export const resourceInstanceInstanceManagementOperations: ResourceInstanceInsta
     setOperatorProfileOperation(state, action) {
       state.operatorProfile = {
         id: action.input.operatorId,
-        documentType: action.input.operatorDocumentType,
+        operatorName: action.input.operatorName || null,
       };
     },
     updateInstanceStatusOperation(state, action) {

@@ -91,7 +91,6 @@ export function InitializeInstanceInputSchema(): z.ZodObject<
     customerName: z.string().nullish(),
     description: z.string().nullish(),
     infoLink: z.string().url().nullish(),
-    name: z.string().nullish(),
     operatorDocumentType: z.string(),
     operatorId: z.string(),
     operatorName: z.string().nullish(),
@@ -116,8 +115,8 @@ export function OperatorProfileSchema(): z.ZodObject<
 > {
   return z.object({
     __typename: z.literal("OperatorProfile").optional(),
-    documentType: z.string(),
     id: z.string(),
+    operatorName: z.string().nullish(),
   });
 }
 
@@ -166,8 +165,6 @@ export function ResourceInstanceStateSchema(): z.ZodObject<
     customerName: z.string().nullish(),
     description: z.string().nullish(),
     infoLink: z.string().url().nullish(),
-    name: z.string().nullish(),
-    operatorName: z.string().nullish(),
     operatorProfile: z.lazy(() => OperatorProfileSchema().nullish()),
     provisioningCompletedAt: z.string().datetime().nullish(),
     provisioningFailureReason: z.string().nullish(),
@@ -218,8 +215,8 @@ export function SetOperatorProfileInputSchema(): z.ZodObject<
   Properties<SetOperatorProfileInput>
 > {
   return z.object({
-    operatorDocumentType: z.string(),
     operatorId: z.string(),
+    operatorName: z.string().nullish(),
   });
 }
 
