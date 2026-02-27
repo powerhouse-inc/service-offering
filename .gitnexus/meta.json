@@ -1,0 +1,12 @@
+{
+  "repoPath": "/home/apeiron/2026/service-offering",
+  "lastCommit": "23705cfd3f70ba8ed992ab5f3e146fc842f714d7",
+  "indexedAt": "2026-02-26T19:17:56.572Z",
+  "stats": {
+    "files": 436,
+    "nodes": 1826,
+    "edges": 4393,
+    "communities": 134,
+    "processes": 56
+  }
+}

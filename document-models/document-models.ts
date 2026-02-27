@@ -4,6 +4,7 @@ import { ResourceInstance } from "./resource-instance/module.js";
 import { ResourceTemplate } from "./resource-template/module.js";
 import { ServiceOffering } from "./service-offering/module.js";
 import { SubscriptionInstance } from "./subscription-instance/module.js";
+import { WorkBreakdown } from "./work-breakdown/module.js";
 
 export const documentModels: DocumentModelModule<any>[] = [
   Facet,
@@ -11,4 +12,5 @@ export const documentModels: DocumentModelModule<any>[] = [
   ResourceTemplate,
   ServiceOffering,
   SubscriptionInstance,
+  WorkBreakdown,
 ];

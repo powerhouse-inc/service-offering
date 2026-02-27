@@ -7,6 +7,9 @@ import { ResourceTemplateSelector } from "./components/ResourceTemplateSelector.
 import { ServiceCatalog } from "./components/ServiceCatalog.js";
 import { TierDefinition } from "./components/TierDefinition.js";
 import { TheMatrix } from "./components/TheMatrix.js";
+import { SpecModeProvider } from "./spec-mode/SpecModeContext.js";
+import { SpecModeToggle } from "./spec-mode/SpecModeToggle.js";
+import { SpecOverlay } from "./spec-mode/SpecOverlay.js";
 
 export default function ServiceOfferingEditor() {
   const [document, dispatch] = useSelectedServiceOfferingDocument();
@@ -60,20 +63,24 @@ export default function ServiceOfferingEditor() {
   };
 
   return (
-    <div className="so-editor">
-      <style>{editorStyles}</style>
-      <DocumentToolbar />
-      <div className="so-editor__container">
-        {/* Global Progress Component with integrated navigation */}
-        <OfferingProgress
-          document={document}
-          dispatch={dispatch}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        <div className="so-editor__content">{renderTabContent()}</div>
+    <SpecModeProvider>
+      <div className="so-editor">
+        <style>{editorStyles}</style>
+        <DocumentToolbar />
+        <SpecModeToggle />
+        <div className="so-editor__container">
+          {/* Global Progress Component with integrated navigation */}
+          <OfferingProgress
+            document={document}
+            dispatch={dispatch}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+          <div className="so-editor__content">{renderTabContent()}</div>
+        </div>
+        <SpecOverlay />
       </div>
-    </div>
+    </SpecModeProvider>
   );
 }
 

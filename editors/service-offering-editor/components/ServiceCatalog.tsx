@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { SpecTarget } from "../spec-mode/SpecTarget.js";
+import { SERVICE_CATALOG_BINDINGS } from "../spec-mode/bindings.js";
 import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
@@ -826,7 +828,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     : null;
 
   return (
-    <>
+    <SpecTarget id="service-catalog" bindings={SERVICE_CATALOG_BINDINGS}>
       <style>{styles}</style>
 
       {/* Edit Group Modal */}
@@ -835,597 +837,123 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           className="catalog__modal-overlay"
           onClick={() => setEditingGroup(null)}
         >
-          <div className="catalog__modal" onClick={(e) => e.stopPropagation()}>
-            <div className="catalog__modal-header">
-              <h3 className="catalog__modal-title">Edit Group</h3>
-              <button
-                onClick={() => setEditingGroup(null)}
-                className="catalog__modal-close"
-                aria-label="Close"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
+          <SpecTarget
+            id="service-catalog-edit-group"
+            bindings={SERVICE_CATALOG_BINDINGS}
+          >
+            <div
+              className="catalog__modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="catalog__modal-header">
+                <h3 className="catalog__modal-title">Edit Group</h3>
+                <button
+                  onClick={() => setEditingGroup(null)}
+                  className="catalog__modal-close"
+                  aria-label="Close"
                 >
-                  <path d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="catalog__modal-body">
-              <div className="catalog__field">
-                <label className="catalog__label">Group Name</label>
-                <input
-                  type="text"
-                  value={editGroupName}
-                  onChange={(e) => setEditGroupName(e.target.value)}
-                  className="catalog__input"
-                  autoFocus
-                />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <div className="catalog__type-selector">
-                <span className="catalog__type-label">Category</span>
-                <div className="catalog__type-buttons">
-                  {[
-                    { type: "setup" as const, label: "Setup", color: "amber" },
-                    {
-                      type: "recurring" as const,
-                      label: "Recurring",
-                      color: "emerald",
-                    },
-                    {
-                      type: "addon" as const,
-                      label: "Add-on",
-                      color: "violet",
-                    },
-                  ].map(({ type, label, color }) => (
-                    <button
-                      key={type}
-                      onClick={() => setEditGroupType(type)}
-                      className={`catalog__type-btn catalog__type-btn--${color} ${editGroupType === type ? "catalog__type-btn--active" : ""}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {editGroupType !== "setup" && (
+              <div className="catalog__modal-body">
                 <div className="catalog__field">
-                  <label className="catalog__label">
-                    Available Billing Cycles
-                  </label>
-                  <div className="catalog__checkbox-group">
-                    {(
-                      Object.entries(BILLING_CYCLE_SHORT_LABELS) as [
-                        BillingCycle,
-                        string,
-                      ][]
-                    )
-                      .filter(([value]) => value !== "ONE_TIME")
-                      .map(([value, label]) => (
-                        <label key={value} className="catalog__checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={editGroupBillingCycles.includes(value)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setEditGroupBillingCycles([
-                                  ...editGroupBillingCycles,
-                                  value,
-                                ]);
-                              } else {
-                                setEditGroupBillingCycles(
-                                  editGroupBillingCycles.filter(
-                                    (c) => c !== value,
-                                  ),
-                                );
-                              }
-                            }}
-                            className="catalog__checkbox"
-                          />
-                          <span>{label}</span>
-                        </label>
-                      ))}
+                  <label className="catalog__label">Group Name</label>
+                  <input
+                    type="text"
+                    value={editGroupName}
+                    onChange={(e) => setEditGroupName(e.target.value)}
+                    className="catalog__input"
+                    autoFocus
+                  />
+                </div>
+                <div className="catalog__type-selector">
+                  <span className="catalog__type-label">Category</span>
+                  <div className="catalog__type-buttons">
+                    {[
+                      {
+                        type: "setup" as const,
+                        label: "Setup",
+                        color: "amber",
+                      },
+                      {
+                        type: "recurring" as const,
+                        label: "Recurring",
+                        color: "emerald",
+                      },
+                      {
+                        type: "addon" as const,
+                        label: "Add-on",
+                        color: "violet",
+                      },
+                    ].map(({ type, label, color }) => (
+                      <button
+                        key={type}
+                        onClick={() => setEditGroupType(type)}
+                        className={`catalog__type-btn catalog__type-btn--${color} ${editGroupType === type ? "catalog__type-btn--active" : ""}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              {/* Per-Tier Pricing (regular groups with tiers) */}
-              {editGroupType === "recurring" &&
-                editGroupPricingMode === "TIER_DEPENDENT" &&
-                tiers.length > 0 && (
-                  <>
-                    {/* Tier Tab Bar */}
-                    <div className="catalog__tier-tabs">
-                      {tiers.map((tier) => (
-                        <button
-                          key={tier.id}
-                          onClick={() => setEditTierTab(tier.id)}
-                          className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
-                        >
-                          {tier.name}
-                          {tier.isCustomPricing && (
-                            <span className="catalog__tier-tab-badge">
-                              Custom
-                            </span>
-                          )}
-                          {!tier.isCustomPricing &&
-                            editTierPrices[tier.id] &&
-                            parseFloat(editTierPrices[tier.id]) > 0 && (
-                              <span className="catalog__tier-tab-price">
-                                {formatPrice(
-                                  parseFloat(editTierPrices[tier.id]),
-                                )}
-                              </span>
-                            )}
-                          {!tier.isCustomPricing &&
-                            (!editTierPrices[tier.id] ||
-                              parseFloat(editTierPrices[tier.id]) <= 0) && (
-                              <span className="catalog__tier-tab-warning">
-                                $0
-                              </span>
-                            )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Active Tier Tab Content */}
-                    {editTierTab &&
-                      (() => {
-                        const activeTier = tiers.find(
-                          (t) => t.id === editTierTab,
-                        );
-                        if (!activeTier) return null;
-
-                        // Custom tier: no price input
-                        if (activeTier.isCustomPricing) {
-                          return (
-                            <div className="catalog__tier-custom-note">
-                              <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                width="16"
-                                height="16"
-                              >
-                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <span>
-                                Price negotiated per customer. No group-level
-                                price input for custom tiers.
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        const tierBase =
-                          parseFloat(editTierPrices[activeTier.id]) || 0;
-                        const tierAmount = activeTier.pricing.amount ?? 0;
-
-                        // Budget: sum of other groups' prices for this tier
-                        const otherGroupsTotal = regularGroups
-                          .filter(
-                            (g) => editingGroup && g.id !== editingGroup.id,
-                          )
-                          .reduce((sum, g) => {
-                            const tp = g.tierDependentPricing?.find(
-                              (p) => p.tierId === activeTier.id,
-                            );
-                            const mp = tp?.recurringPricing?.find(
-                              (p) => p.billingCycle === "MONTHLY",
-                            );
-                            if (mp) return sum + (mp.amount ?? 0);
-                            // Fallback to standalone
-                            const sp =
-                              g.standalonePricing?.recurringPricing?.find(
-                                (p) => p.billingCycle === "MONTHLY",
-                              );
-                            return sum + (sp?.amount ?? 0);
-                          }, 0);
-                        const projectedTotal = otherGroupsTotal + tierBase;
-
-                        return (
-                          <div className="catalog__tier-panel">
-                            {/* Recurring Price for this tier */}
-                            <div className="catalog__field">
-                              <label className="catalog__label">
-                                Recurring Price ({activeTier.name})
-                              </label>
-                              <div className="catalog__fee-input-wrapper">
-                                <span className="catalog__fee-prefix">$</span>
-                                <input
-                                  type="number"
-                                  value={editTierPrices[activeTier.id] || ""}
-                                  onChange={(e) =>
-                                    setEditTierPrices({
-                                      ...editTierPrices,
-                                      [activeTier.id]: e.target.value,
-                                    })
-                                  }
-                                  placeholder="0.00"
-                                  className="catalog__fee-input"
-                                  step="0.01"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Budget indicator — only in MANUAL_OVERRIDE mode (CALCULATED tier has no fixed budget) */}
-                            {tierAmount > 0 &&
-                              activeTier.pricingMode !== "CALCULATED" && (
-                                <div className="catalog__tier-budget">
-                                  <span className="catalog__tier-budget-title">
-                                    {activeTier.name} budget:{" "}
-                                    {formatPrice(projectedTotal)}/mo of{" "}
-                                    {formatPrice(tierAmount)}/mo
-                                  </span>
-                                  <div className="catalog__tier-budget-row">
-                                    <div className="catalog__tier-budget-bar">
-                                      <div
-                                        className={`catalog__tier-budget-fill ${projectedTotal > tierAmount ? "catalog__tier-budget-fill--over" : ""}`}
-                                        style={{
-                                          width: `${Math.min((projectedTotal / tierAmount) * 100, 100)}%`,
-                                        }}
-                                      />
-                                    </div>
-                                    <span
-                                      className={`catalog__tier-budget-amount ${projectedTotal > tierAmount ? "catalog__tier-budget-amount--over" : ""}`}
-                                    >
-                                      {formatPrice(projectedTotal)} /{" "}
-                                      {formatPrice(tierAmount)}
-                                      {projectedTotal > tierAmount && (
-                                        <span className="catalog__tier-budget-warn">
-                                          {" "}
-                                          +
-                                          {formatPrice(
-                                            projectedTotal - tierAmount,
-                                          )}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                            {/* Setup Cost for this tier */}
-                            <div className="catalog__field">
-                              <label className="catalog__label">
-                                Setup Cost (one-time)
-                              </label>
-                              <div className="catalog__fee-input-wrapper">
-                                <span className="catalog__fee-prefix">$</span>
-                                <input
-                                  type="number"
-                                  value={
-                                    editTierSetupCosts[activeTier.id] || ""
-                                  }
-                                  onChange={(e) =>
-                                    setEditTierSetupCosts({
-                                      ...editTierSetupCosts,
-                                      [activeTier.id]: e.target.value,
-                                    })
-                                  }
-                                  placeholder="0.00"
-                                  className="catalog__fee-input"
-                                  step="0.01"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Billing Cycles & Discounts for this tier */}
-                            {editGroupBillingCycles.length > 0 &&
-                              tierBase > 0 && (
-                                <div className="catalog__field">
-                                  <label className="catalog__label">
-                                    Billing Cycles & Discounts
-                                  </label>
-                                  <div className="catalog__addon-cycles">
-                                    {editGroupBillingCycles.map((cycle) => {
-                                      const months =
-                                        BILLING_CYCLE_MONTHS[cycle];
-                                      const total = tierBase * months;
-                                      const isMonthly = cycle === "MONTHLY";
-                                      const cycleLabel = {
-                                        MONTHLY: "Monthly",
-                                        QUARTERLY: "Quarterly",
-                                        SEMI_ANNUAL: "Semi-Annual",
-                                        ANNUAL: "Annual",
-                                        ONE_TIME: "One-Time",
-                                      }[cycle];
-
-                                      // Percentage discount from user input (always editable)
-                                      const discountPct =
-                                        parseFloat(
-                                          editTierDiscounts[activeTier.id]?.[
-                                            cycle
-                                          ] || "0",
-                                        ) || 0;
-
-                                      let effective: number | null = null;
-                                      let savingsPct = 0;
-
-                                      if (discountPct > 0) {
-                                        effective =
-                                          total * (1 - discountPct / 100);
-                                        savingsPct = Math.round(discountPct);
-                                      }
-
-                                      return (
-                                        <div
-                                          key={cycle}
-                                          className="catalog__addon-cycle-row catalog__addon-cycle-row--active"
-                                        >
-                                          <div className="catalog__addon-cycle-top">
-                                            <span className="catalog__addon-cycle-label">
-                                              {cycleLabel}
-                                            </span>
-                                            <span className="catalog__addon-cycle-total">
-                                              {formatPrice(total, "USD")}
-                                            </span>
-                                          </div>
-                                          {!isMonthly && (
-                                            <div className="catalog__addon-cycle-detail">
-                                              <div className="catalog__addon-cycle-calc">
-                                                <span className="catalog__addon-cycle-calc-label">
-                                                  Standard Price
-                                                </span>
-                                                <span className="catalog__addon-cycle-calc-formula">
-                                                  ${tierBase} &times; {months}mo
-                                                  <span className="catalog__addon-cycle-calc-result">
-                                                    {formatPrice(total, "USD")}
-                                                  </span>
-                                                </span>
-                                              </div>
-                                              <div className="catalog__addon-cycle-discount-col">
-                                                <span className="catalog__addon-cycle-calc-label">
-                                                  Discount
-                                                </span>
-                                                <div className="catalog__discount-flat catalog__discount-flat--compact">
-                                                  <input
-                                                    type="number"
-                                                    value={
-                                                      editTierDiscounts[
-                                                        activeTier.id
-                                                      ]?.[cycle] || ""
-                                                    }
-                                                    onChange={(e) => {
-                                                      const updated = {
-                                                        ...editTierDiscounts,
-                                                      };
-                                                      updated[activeTier.id] = {
-                                                        ...updated[
-                                                          activeTier.id
-                                                        ],
-                                                        [cycle]: e.target.value,
-                                                      };
-                                                      setEditTierDiscounts(
-                                                        updated,
-                                                      );
-                                                    }}
-                                                    placeholder="0"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="100"
-                                                    className="catalog__discount-input"
-                                                  />
-                                                  <span className="catalog__discount-suffix">
-                                                    %
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          )}
-                                          {effective !== null && (
-                                            <div className="catalog__addon-cycle-effective">
-                                              <span className="catalog__addon-cycle-effective-arrow">
-                                                &rarr;
-                                              </span>
-                                              <span className="catalog__addon-cycle-effective-price">
-                                                {formatPrice(effective, "USD")}
-                                              </span>
-                                              {savingsPct > 0 && (
-                                                <span className="catalog__addon-cycle-effective-savings">
-                                                  {formatPrice(
-                                                    total - effective,
-                                                    "USD",
-                                                  )}{" "}
-                                                  off ({savingsPct}%)
-                                                </span>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                          </div>
-                        );
-                      })()}
-                  </>
-                )}
-
-              {/* Standalone Pricing (add-ons or groups without tiers) */}
-              {editGroupType !== "setup" &&
-                editGroupPricingMode === "STANDALONE" && (
-                  <>
-                    {/* Recurring Price (base monthly) */}
-                    <div className="catalog__field">
-                      <label className="catalog__label">Recurring Price</label>
-                      <div className="catalog__fee-input-wrapper">
-                        <span className="catalog__fee-prefix">$</span>
-                        <input
-                          type="number"
-                          value={editGroupBasePrice}
-                          onChange={(e) =>
-                            setEditGroupBasePrice(e.target.value)
-                          }
-                          placeholder="0.00"
-                          className="catalog__fee-input"
-                          step="0.01"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Setup Cost */}
-                    <div className="catalog__field">
-                      <label className="catalog__label">
-                        Setup Cost (one-time)
-                      </label>
-                      <div className="catalog__fee-input-wrapper">
-                        <span className="catalog__fee-prefix">$</span>
-                        <input
-                          type="number"
-                          value={editGroupSetupCost}
-                          onChange={(e) =>
-                            setEditGroupSetupCost(e.target.value)
-                          }
-                          placeholder="0.00"
-                          className="catalog__fee-input"
-                          step="0.01"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Billing Cycles & Discounts */}
-                    {editGroupBillingCycles.length > 0 && (
-                      <div className="catalog__field">
-                        <label className="catalog__label">
-                          Billing Cycles & Discounts
-                        </label>
-                        <div className="catalog__addon-cycles">
-                          {editGroupBillingCycles.map((cycle) => {
-                            const base = parseFloat(editGroupBasePrice) || 0;
-                            const months = BILLING_CYCLE_MONTHS[cycle];
-                            const total = base > 0 ? base * months : null;
-                            const discountPct =
-                              parseFloat(editGroupDiscounts[cycle]) || 0;
-                            const effective =
-                              total !== null && discountPct > 0
-                                ? total * (1 - discountPct / 100)
-                                : null;
-                            const savingsPct = Math.round(discountPct);
-                            const isMonthly = cycle === "MONTHLY";
-                            const cycleLabel = {
-                              MONTHLY: "Monthly",
-                              QUARTERLY: "Quarterly",
-                              SEMI_ANNUAL: "Semi-Annual",
-                              ANNUAL: "Annual",
-                              ONE_TIME: "One-Time",
-                            }[cycle];
-                            const shortLabel = `${months}mo`;
-
-                            return (
-                              <div
-                                key={cycle}
-                                className={`catalog__addon-cycle-row ${base > 0 ? "catalog__addon-cycle-row--active" : ""}`}
-                              >
-                                <div className="catalog__addon-cycle-top">
-                                  <span className="catalog__addon-cycle-label">
-                                    {cycleLabel}
-                                  </span>
-                                  {total !== null ? (
-                                    <span className="catalog__addon-cycle-total">
-                                      {formatPrice(total, "USD")}
-                                    </span>
-                                  ) : (
-                                    <span className="catalog__addon-cycle-dash">
-                                      --
-                                    </span>
-                                  )}
-                                </div>
-                                {base > 0 && (
-                                  <div className="catalog__addon-cycle-detail">
-                                    {!isMonthly && (
-                                      <div className="catalog__addon-cycle-calc">
-                                        <span className="catalog__addon-cycle-calc-label">
-                                          Standard Price
-                                        </span>
-                                        <span className="catalog__addon-cycle-calc-formula">
-                                          ${base} &times; {shortLabel}
-                                          <span className="catalog__addon-cycle-calc-result">
-                                            {formatPrice(total ?? 0, "USD")}
-                                          </span>
-                                        </span>
-                                      </div>
-                                    )}
-                                    <div className="catalog__addon-cycle-discount-col">
-                                      <span className="catalog__addon-cycle-calc-label">
-                                        Discount
-                                      </span>
-                                      <div className="catalog__discount-flat catalog__discount-flat--compact">
-                                        <input
-                                          type="number"
-                                          value={editGroupDiscounts[cycle]}
-                                          onChange={(e) =>
-                                            setEditGroupDiscounts({
-                                              ...editGroupDiscounts,
-                                              [cycle]: e.target.value,
-                                            })
-                                          }
-                                          placeholder="0"
-                                          step="0.1"
-                                          min="0"
-                                          max="100"
-                                          className="catalog__discount-input"
-                                        />
-                                        <span className="catalog__discount-suffix">
-                                          %
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                {effective !== null && discountPct > 0 && (
-                                  <div className="catalog__addon-cycle-effective">
-                                    <span className="catalog__addon-cycle-effective-arrow">
-                                      &rarr;
-                                    </span>
-                                    <span className="catalog__addon-cycle-effective-price">
-                                      {formatPrice(effective, "USD")}
-                                    </span>
-                                    {savingsPct > 0 && (
-                                      <span className="catalog__addon-cycle-effective-savings">
-                                        {savingsPct}% off
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-              {editGroupType === "setup" && (
-                <>
-                  <div className="catalog__fee-field">
-                    <span className="catalog__fee-label">One-time Fee</span>
-                    <div className="catalog__fee-input-wrapper">
-                      <span className="catalog__fee-prefix">$</span>
-                      <input
-                        type="number"
-                        value={editGroupPrice}
-                        onChange={(e) => setEditGroupPrice(e.target.value)}
-                        placeholder="0"
-                        className="catalog__fee-input"
-                        step="0.01"
-                      />
+                {editGroupType !== "setup" && (
+                  <div className="catalog__field">
+                    <label className="catalog__label">
+                      Available Billing Cycles
+                    </label>
+                    <div className="catalog__checkbox-group">
+                      {(
+                        Object.entries(BILLING_CYCLE_SHORT_LABELS) as [
+                          BillingCycle,
+                          string,
+                        ][]
+                      )
+                        .filter(([value]) => value !== "ONE_TIME")
+                        .map(([value, label]) => (
+                          <label
+                            key={value}
+                            className="catalog__checkbox-label"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={editGroupBillingCycles.includes(value)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditGroupBillingCycles([
+                                    ...editGroupBillingCycles,
+                                    value,
+                                  ]);
+                                } else {
+                                  setEditGroupBillingCycles(
+                                    editGroupBillingCycles.filter(
+                                      (c) => c !== value,
+                                    ),
+                                  );
+                                }
+                              }}
+                              className="catalog__checkbox"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Per-tier setup fee discounts */}
-                  {tiers.length > 0 && parseFloat(editGroupPrice) > 0 && (
-                    <div className="catalog__setup-tier-discounts">
-                      <span className="catalog__fee-label">
-                        Setup Fee Discounts by Tier & Billing Cycle
-                      </span>
+                {/* Per-Tier Pricing (regular groups with tiers) */}
+                {editGroupType === "recurring" &&
+                  editGroupPricingMode === "TIER_DEPENDENT" &&
+                  tiers.length > 0 && (
+                    <>
+                      {/* Tier Tab Bar */}
                       <div className="catalog__tier-tabs">
                         {tiers.map((tier) => (
                           <button
@@ -1439,10 +967,27 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                 Custom
                               </span>
                             )}
+                            {!tier.isCustomPricing &&
+                              editTierPrices[tier.id] &&
+                              parseFloat(editTierPrices[tier.id]) > 0 && (
+                                <span className="catalog__tier-tab-price">
+                                  {formatPrice(
+                                    parseFloat(editTierPrices[tier.id]),
+                                  )}
+                                </span>
+                              )}
+                            {!tier.isCustomPricing &&
+                              (!editTierPrices[tier.id] ||
+                                parseFloat(editTierPrices[tier.id]) <= 0) && (
+                                <span className="catalog__tier-tab-warning">
+                                  $0
+                                </span>
+                              )}
                           </button>
                         ))}
                       </div>
 
+                      {/* Active Tier Tab Content */}
                       {editTierTab &&
                         (() => {
                           const activeTier = tiers.find(
@@ -1450,6 +995,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                           );
                           if (!activeTier) return null;
 
+                          // Custom tier: no price input
                           if (activeTier.isCustomPricing) {
                             return (
                               <div className="catalog__tier-custom-note">
@@ -1464,148 +1010,637 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                   <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span>
-                                  Custom pricing tier — discounts negotiated per
-                                  customer.
+                                  Price negotiated per customer. No group-level
+                                  price input for custom tiers.
                                 </span>
                               </div>
                             );
                           }
 
-                          const baseAmount = parseFloat(editGroupPrice) || 0;
-                          const SETUP_CYCLES: BillingCycle[] = [
-                            "MONTHLY",
-                            "QUARTERLY",
-                            "SEMI_ANNUAL",
-                            "ANNUAL",
-                          ];
-                          const cycleLabels: Record<string, string> = {
-                            MONTHLY: "Monthly",
-                            QUARTERLY: "Quarterly",
-                            SEMI_ANNUAL: "Semi-Annual",
-                            ANNUAL: "Annual",
-                          };
+                          const tierBase =
+                            parseFloat(editTierPrices[activeTier.id]) || 0;
+                          const tierAmount = activeTier.pricing.amount ?? 0;
+
+                          // Budget: sum of other groups' prices for this tier
+                          const otherGroupsTotal = regularGroups
+                            .filter(
+                              (g) => editingGroup && g.id !== editingGroup.id,
+                            )
+                            .reduce((sum, g) => {
+                              const tp = g.tierDependentPricing?.find(
+                                (p) => p.tierId === activeTier.id,
+                              );
+                              const mp = tp?.recurringPricing?.find(
+                                (p) => p.billingCycle === "MONTHLY",
+                              );
+                              if (mp) return sum + (mp.amount ?? 0);
+                              // Fallback to standalone
+                              const sp =
+                                g.standalonePricing?.recurringPricing?.find(
+                                  (p) => p.billingCycle === "MONTHLY",
+                                );
+                              return sum + (sp?.amount ?? 0);
+                            }, 0);
+                          const projectedTotal = otherGroupsTotal + tierBase;
 
                           return (
-                            <div className="catalog__setup-cycle-grid">
-                              {SETUP_CYCLES.map((cycle) => {
-                                const entry =
-                                  editSetupTierDiscounts[activeTier.id]?.[
-                                    cycle
-                                  ];
-                                const dType = "PERCENTAGE" as const;
-                                const dValue = entry?.discountValue || "";
-                                const parsedValue = parseFloat(dValue) || 0;
+                            <div className="catalog__tier-panel">
+                              {/* Recurring Price for this tier */}
+                              <div className="catalog__field">
+                                <label className="catalog__label">
+                                  Recurring Price ({activeTier.name})
+                                </label>
+                                <div className="catalog__fee-input-wrapper">
+                                  <span className="catalog__fee-prefix">$</span>
+                                  <input
+                                    type="number"
+                                    value={editTierPrices[activeTier.id] || ""}
+                                    onChange={(e) =>
+                                      setEditTierPrices({
+                                        ...editTierPrices,
+                                        [activeTier.id]: e.target.value,
+                                      })
+                                    }
+                                    placeholder="0.00"
+                                    className="catalog__fee-input"
+                                    step="0.01"
+                                  />
+                                </div>
+                              </div>
 
-                                // Compute effective price
-                                let effectiveAmount = baseAmount;
-                                let savings = 0;
-                                let savingsPct = 0;
-                                if (parsedValue > 0 && baseAmount > 0) {
-                                  const result = calculateEffectiveSetupPrice({
-                                    amount: baseAmount,
-                                    discount: {
-                                      discountType: dType,
-                                      discountValue: parsedValue,
-                                    },
-                                  });
-                                  effectiveAmount = result.effectiveAmount;
-                                  savings = result.savings;
-                                  savingsPct = result.savingsPercent;
-                                }
-
-                                return (
-                                  <div
-                                    key={cycle}
-                                    className="catalog__setup-cycle-row"
-                                  >
-                                    <div className="catalog__setup-cycle-header">
-                                      <span className="catalog__setup-cycle-label">
-                                        {cycleLabels[cycle]} subscription
-                                      </span>
-                                      <span className="catalog__setup-cycle-base">
-                                        {formatPrice(baseAmount, "USD")}
-                                      </span>
-                                    </div>
-                                    <div className="catalog__setup-cycle-controls">
-                                      <span className="catalog__discount-label">
-                                        Discount
-                                      </span>
-                                      <div className="catalog__fee-input-wrapper catalog__fee-input-wrapper--discount">
-                                        <input
-                                          type="number"
-                                          value={dValue}
-                                          onChange={(e) => {
-                                            const updated = {
-                                              ...editSetupTierDiscounts,
-                                            };
-                                            updated[activeTier.id] = {
-                                              ...updated[activeTier.id],
-                                              [cycle]: {
-                                                ...updated[activeTier.id]?.[
-                                                  cycle
-                                                ],
-                                                discountValue: e.target.value,
-                                              },
-                                            };
-                                            setEditSetupTierDiscounts(updated);
+                              {/* Budget indicator — only in MANUAL_OVERRIDE mode (CALCULATED tier has no fixed budget) */}
+                              {tierAmount > 0 &&
+                                activeTier.pricingMode !== "CALCULATED" && (
+                                  <div className="catalog__tier-budget">
+                                    <span className="catalog__tier-budget-title">
+                                      {activeTier.name} budget:{" "}
+                                      {formatPrice(projectedTotal)}/mo of{" "}
+                                      {formatPrice(tierAmount)}/mo
+                                    </span>
+                                    <div className="catalog__tier-budget-row">
+                                      <div className="catalog__tier-budget-bar">
+                                        <div
+                                          className={`catalog__tier-budget-fill ${projectedTotal > tierAmount ? "catalog__tier-budget-fill--over" : ""}`}
+                                          style={{
+                                            width: `${Math.min((projectedTotal / tierAmount) * 100, 100)}%`,
                                           }}
-                                          placeholder="0"
-                                          className="catalog__fee-input"
-                                          step="0.01"
-                                          min="0"
-                                          max="100"
                                         />
-                                        <span className="catalog__discount-suffix">
-                                          %
-                                        </span>
                                       </div>
-                                    </div>
-                                    {parsedValue > 0 && baseAmount > 0 && (
-                                      <div className="catalog__setup-effective">
-                                        <span className="catalog__setup-effective-arrow">
-                                          &rarr;
-                                        </span>
-                                        <span className="catalog__setup-effective-base">
-                                          {formatPrice(baseAmount, "USD")}
-                                        </span>
-                                        <span className="catalog__setup-effective-price">
-                                          {formatPrice(effectiveAmount, "USD")}
-                                        </span>
-                                        {savingsPct > 0 && (
-                                          <span className="catalog__setup-effective-savings">
-                                            save {formatPrice(savings, "USD")} (
-                                            {savingsPct}% off)
+                                      <span
+                                        className={`catalog__tier-budget-amount ${projectedTotal > tierAmount ? "catalog__tier-budget-amount--over" : ""}`}
+                                      >
+                                        {formatPrice(projectedTotal)} /{" "}
+                                        {formatPrice(tierAmount)}
+                                        {projectedTotal > tierAmount && (
+                                          <span className="catalog__tier-budget-warn">
+                                            {" "}
+                                            +
+                                            {formatPrice(
+                                              projectedTotal - tierAmount,
+                                            )}
                                           </span>
                                         )}
-                                      </div>
-                                    )}
+                                      </span>
+                                    </div>
                                   </div>
-                                );
-                              })}
+                                )}
+
+                              {/* Setup Cost for this tier */}
+                              <div className="catalog__field">
+                                <label className="catalog__label">
+                                  Setup Cost (one-time)
+                                </label>
+                                <div className="catalog__fee-input-wrapper">
+                                  <span className="catalog__fee-prefix">$</span>
+                                  <input
+                                    type="number"
+                                    value={
+                                      editTierSetupCosts[activeTier.id] || ""
+                                    }
+                                    onChange={(e) =>
+                                      setEditTierSetupCosts({
+                                        ...editTierSetupCosts,
+                                        [activeTier.id]: e.target.value,
+                                      })
+                                    }
+                                    placeholder="0.00"
+                                    className="catalog__fee-input"
+                                    step="0.01"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Billing Cycles & Discounts for this tier */}
+                              {editGroupBillingCycles.length > 0 &&
+                                tierBase > 0 && (
+                                  <div className="catalog__field">
+                                    <label className="catalog__label">
+                                      Billing Cycles & Discounts
+                                    </label>
+                                    <div className="catalog__addon-cycles">
+                                      {editGroupBillingCycles.map((cycle) => {
+                                        const months =
+                                          BILLING_CYCLE_MONTHS[cycle];
+                                        const total = tierBase * months;
+                                        const isMonthly = cycle === "MONTHLY";
+                                        const cycleLabel = {
+                                          MONTHLY: "Monthly",
+                                          QUARTERLY: "Quarterly",
+                                          SEMI_ANNUAL: "Semi-Annual",
+                                          ANNUAL: "Annual",
+                                          ONE_TIME: "One-Time",
+                                        }[cycle];
+
+                                        // Percentage discount from user input (always editable)
+                                        const discountPct =
+                                          parseFloat(
+                                            editTierDiscounts[activeTier.id]?.[
+                                              cycle
+                                            ] || "0",
+                                          ) || 0;
+
+                                        let effective: number | null = null;
+                                        let savingsPct = 0;
+
+                                        if (discountPct > 0) {
+                                          effective =
+                                            total * (1 - discountPct / 100);
+                                          savingsPct = Math.round(discountPct);
+                                        }
+
+                                        return (
+                                          <div
+                                            key={cycle}
+                                            className="catalog__addon-cycle-row catalog__addon-cycle-row--active"
+                                          >
+                                            <div className="catalog__addon-cycle-top">
+                                              <span className="catalog__addon-cycle-label">
+                                                {cycleLabel}
+                                              </span>
+                                              <span className="catalog__addon-cycle-total">
+                                                {formatPrice(total, "USD")}
+                                              </span>
+                                            </div>
+                                            {!isMonthly && (
+                                              <div className="catalog__addon-cycle-detail">
+                                                <div className="catalog__addon-cycle-calc">
+                                                  <span className="catalog__addon-cycle-calc-label">
+                                                    Standard Price
+                                                  </span>
+                                                  <span className="catalog__addon-cycle-calc-formula">
+                                                    ${tierBase} &times; {months}
+                                                    mo
+                                                    <span className="catalog__addon-cycle-calc-result">
+                                                      {formatPrice(
+                                                        total,
+                                                        "USD",
+                                                      )}
+                                                    </span>
+                                                  </span>
+                                                </div>
+                                                <div className="catalog__addon-cycle-discount-col">
+                                                  <span className="catalog__addon-cycle-calc-label">
+                                                    Discount
+                                                  </span>
+                                                  <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                                    <input
+                                                      type="number"
+                                                      value={
+                                                        editTierDiscounts[
+                                                          activeTier.id
+                                                        ]?.[cycle] || ""
+                                                      }
+                                                      onChange={(e) => {
+                                                        const updated = {
+                                                          ...editTierDiscounts,
+                                                        };
+                                                        updated[activeTier.id] =
+                                                          {
+                                                            ...updated[
+                                                              activeTier.id
+                                                            ],
+                                                            [cycle]:
+                                                              e.target.value,
+                                                          };
+                                                        setEditTierDiscounts(
+                                                          updated,
+                                                        );
+                                                      }}
+                                                      placeholder="0"
+                                                      step="0.1"
+                                                      min="0"
+                                                      max="100"
+                                                      className="catalog__discount-input"
+                                                    />
+                                                    <span className="catalog__discount-suffix">
+                                                      %
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
+                                            {effective !== null && (
+                                              <div className="catalog__addon-cycle-effective">
+                                                <span className="catalog__addon-cycle-effective-arrow">
+                                                  &rarr;
+                                                </span>
+                                                <span className="catalog__addon-cycle-effective-price">
+                                                  {formatPrice(
+                                                    effective,
+                                                    "USD",
+                                                  )}
+                                                </span>
+                                                {savingsPct > 0 && (
+                                                  <span className="catalog__addon-cycle-effective-savings">
+                                                    {formatPrice(
+                                                      total - effective,
+                                                      "USD",
+                                                    )}{" "}
+                                                    off ({savingsPct}%)
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                             </div>
                           );
                         })()}
-                    </div>
+                    </>
                   )}
-                </>
-              )}
+
+                {/* Standalone Pricing (add-ons or groups without tiers) */}
+                {editGroupType !== "setup" &&
+                  editGroupPricingMode === "STANDALONE" && (
+                    <>
+                      {/* Recurring Price (base monthly) */}
+                      <div className="catalog__field">
+                        <label className="catalog__label">
+                          Recurring Price
+                        </label>
+                        <div className="catalog__fee-input-wrapper">
+                          <span className="catalog__fee-prefix">$</span>
+                          <input
+                            type="number"
+                            value={editGroupBasePrice}
+                            onChange={(e) =>
+                              setEditGroupBasePrice(e.target.value)
+                            }
+                            placeholder="0.00"
+                            className="catalog__fee-input"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Setup Cost */}
+                      <div className="catalog__field">
+                        <label className="catalog__label">
+                          Setup Cost (one-time)
+                        </label>
+                        <div className="catalog__fee-input-wrapper">
+                          <span className="catalog__fee-prefix">$</span>
+                          <input
+                            type="number"
+                            value={editGroupSetupCost}
+                            onChange={(e) =>
+                              setEditGroupSetupCost(e.target.value)
+                            }
+                            placeholder="0.00"
+                            className="catalog__fee-input"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Billing Cycles & Discounts */}
+                      {editGroupBillingCycles.length > 0 && (
+                        <div className="catalog__field">
+                          <label className="catalog__label">
+                            Billing Cycles & Discounts
+                          </label>
+                          <div className="catalog__addon-cycles">
+                            {editGroupBillingCycles.map((cycle) => {
+                              const base = parseFloat(editGroupBasePrice) || 0;
+                              const months = BILLING_CYCLE_MONTHS[cycle];
+                              const total = base > 0 ? base * months : null;
+                              const discountPct =
+                                parseFloat(editGroupDiscounts[cycle]) || 0;
+                              const effective =
+                                total !== null && discountPct > 0
+                                  ? total * (1 - discountPct / 100)
+                                  : null;
+                              const savingsPct = Math.round(discountPct);
+                              const isMonthly = cycle === "MONTHLY";
+                              const cycleLabel = {
+                                MONTHLY: "Monthly",
+                                QUARTERLY: "Quarterly",
+                                SEMI_ANNUAL: "Semi-Annual",
+                                ANNUAL: "Annual",
+                                ONE_TIME: "One-Time",
+                              }[cycle];
+                              const shortLabel = `${months}mo`;
+
+                              return (
+                                <div
+                                  key={cycle}
+                                  className={`catalog__addon-cycle-row ${base > 0 ? "catalog__addon-cycle-row--active" : ""}`}
+                                >
+                                  <div className="catalog__addon-cycle-top">
+                                    <span className="catalog__addon-cycle-label">
+                                      {cycleLabel}
+                                    </span>
+                                    {total !== null ? (
+                                      <span className="catalog__addon-cycle-total">
+                                        {formatPrice(total, "USD")}
+                                      </span>
+                                    ) : (
+                                      <span className="catalog__addon-cycle-dash">
+                                        --
+                                      </span>
+                                    )}
+                                  </div>
+                                  {base > 0 && (
+                                    <div className="catalog__addon-cycle-detail">
+                                      {!isMonthly && (
+                                        <div className="catalog__addon-cycle-calc">
+                                          <span className="catalog__addon-cycle-calc-label">
+                                            Standard Price
+                                          </span>
+                                          <span className="catalog__addon-cycle-calc-formula">
+                                            ${base} &times; {shortLabel}
+                                            <span className="catalog__addon-cycle-calc-result">
+                                              {formatPrice(total ?? 0, "USD")}
+                                            </span>
+                                          </span>
+                                        </div>
+                                      )}
+                                      <div className="catalog__addon-cycle-discount-col">
+                                        <span className="catalog__addon-cycle-calc-label">
+                                          Discount
+                                        </span>
+                                        <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                          <input
+                                            type="number"
+                                            value={editGroupDiscounts[cycle]}
+                                            onChange={(e) =>
+                                              setEditGroupDiscounts({
+                                                ...editGroupDiscounts,
+                                                [cycle]: e.target.value,
+                                              })
+                                            }
+                                            placeholder="0"
+                                            step="0.1"
+                                            min="0"
+                                            max="100"
+                                            className="catalog__discount-input"
+                                          />
+                                          <span className="catalog__discount-suffix">
+                                            %
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {effective !== null && discountPct > 0 && (
+                                    <div className="catalog__addon-cycle-effective">
+                                      <span className="catalog__addon-cycle-effective-arrow">
+                                        &rarr;
+                                      </span>
+                                      <span className="catalog__addon-cycle-effective-price">
+                                        {formatPrice(effective, "USD")}
+                                      </span>
+                                      {savingsPct > 0 && (
+                                        <span className="catalog__addon-cycle-effective-savings">
+                                          {savingsPct}% off
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                {editGroupType === "setup" && (
+                  <>
+                    <div className="catalog__fee-field">
+                      <span className="catalog__fee-label">One-time Fee</span>
+                      <div className="catalog__fee-input-wrapper">
+                        <span className="catalog__fee-prefix">$</span>
+                        <input
+                          type="number"
+                          value={editGroupPrice}
+                          onChange={(e) => setEditGroupPrice(e.target.value)}
+                          placeholder="0"
+                          className="catalog__fee-input"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Per-tier setup fee discounts */}
+                    {tiers.length > 0 && parseFloat(editGroupPrice) > 0 && (
+                      <div className="catalog__setup-tier-discounts">
+                        <span className="catalog__fee-label">
+                          Setup Fee Discounts by Tier & Billing Cycle
+                        </span>
+                        <div className="catalog__tier-tabs">
+                          {tiers.map((tier) => (
+                            <button
+                              key={tier.id}
+                              onClick={() => setEditTierTab(tier.id)}
+                              className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
+                            >
+                              {tier.name}
+                              {tier.isCustomPricing && (
+                                <span className="catalog__tier-tab-badge">
+                                  Custom
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+
+                        {editTierTab &&
+                          (() => {
+                            const activeTier = tiers.find(
+                              (t) => t.id === editTierTab,
+                            );
+                            if (!activeTier) return null;
+
+                            if (activeTier.isCustomPricing) {
+                              return (
+                                <div className="catalog__tier-custom-note">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    width="16"
+                                    height="16"
+                                  >
+                                    <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>
+                                    Custom pricing tier — discounts negotiated
+                                    per customer.
+                                  </span>
+                                </div>
+                              );
+                            }
+
+                            const baseAmount = parseFloat(editGroupPrice) || 0;
+                            const SETUP_CYCLES: BillingCycle[] = [
+                              "MONTHLY",
+                              "QUARTERLY",
+                              "SEMI_ANNUAL",
+                              "ANNUAL",
+                            ];
+                            const cycleLabels: Record<string, string> = {
+                              MONTHLY: "Monthly",
+                              QUARTERLY: "Quarterly",
+                              SEMI_ANNUAL: "Semi-Annual",
+                              ANNUAL: "Annual",
+                            };
+
+                            return (
+                              <div className="catalog__setup-cycle-grid">
+                                {SETUP_CYCLES.map((cycle) => {
+                                  const entry =
+                                    editSetupTierDiscounts[activeTier.id]?.[
+                                      cycle
+                                    ];
+                                  const dType = "PERCENTAGE" as const;
+                                  const dValue = entry?.discountValue || "";
+                                  const parsedValue = parseFloat(dValue) || 0;
+
+                                  // Compute effective price
+                                  let effectiveAmount = baseAmount;
+                                  let savings = 0;
+                                  let savingsPct = 0;
+                                  if (parsedValue > 0 && baseAmount > 0) {
+                                    const result = calculateEffectiveSetupPrice(
+                                      {
+                                        amount: baseAmount,
+                                        discount: {
+                                          discountType: dType,
+                                          discountValue: parsedValue,
+                                        },
+                                      },
+                                    );
+                                    effectiveAmount = result.effectiveAmount;
+                                    savings = result.savings;
+                                    savingsPct = result.savingsPercent;
+                                  }
+
+                                  return (
+                                    <div
+                                      key={cycle}
+                                      className="catalog__setup-cycle-row"
+                                    >
+                                      <div className="catalog__setup-cycle-header">
+                                        <span className="catalog__setup-cycle-label">
+                                          {cycleLabels[cycle]} subscription
+                                        </span>
+                                        <span className="catalog__setup-cycle-base">
+                                          {formatPrice(baseAmount, "USD")}
+                                        </span>
+                                      </div>
+                                      <div className="catalog__setup-cycle-controls">
+                                        <span className="catalog__discount-label">
+                                          Discount
+                                        </span>
+                                        <div className="catalog__fee-input-wrapper catalog__fee-input-wrapper--discount">
+                                          <input
+                                            type="number"
+                                            value={dValue}
+                                            onChange={(e) => {
+                                              const updated = {
+                                                ...editSetupTierDiscounts,
+                                              };
+                                              updated[activeTier.id] = {
+                                                ...updated[activeTier.id],
+                                                [cycle]: {
+                                                  ...updated[activeTier.id]?.[
+                                                    cycle
+                                                  ],
+                                                  discountValue: e.target.value,
+                                                },
+                                              };
+                                              setEditSetupTierDiscounts(
+                                                updated,
+                                              );
+                                            }}
+                                            placeholder="0"
+                                            className="catalog__fee-input"
+                                            step="0.01"
+                                            min="0"
+                                            max="100"
+                                          />
+                                          <span className="catalog__discount-suffix">
+                                            %
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {parsedValue > 0 && baseAmount > 0 && (
+                                        <div className="catalog__setup-effective">
+                                          <span className="catalog__setup-effective-arrow">
+                                            &rarr;
+                                          </span>
+                                          <span className="catalog__setup-effective-base">
+                                            {formatPrice(baseAmount, "USD")}
+                                          </span>
+                                          <span className="catalog__setup-effective-price">
+                                            {formatPrice(
+                                              effectiveAmount,
+                                              "USD",
+                                            )}
+                                          </span>
+                                          {savingsPct > 0 && (
+                                            <span className="catalog__setup-effective-savings">
+                                              save {formatPrice(savings, "USD")}{" "}
+                                              ({savingsPct}% off)
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="catalog__modal-footer">
+                <button
+                  onClick={() => setEditingGroup(null)}
+                  className="catalog__btn catalog__btn--secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveGroupEdit}
+                  disabled={!editGroupName.trim()}
+                  className="catalog__btn catalog__btn--primary"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
-            <div className="catalog__modal-footer">
-              <button
-                onClick={() => setEditingGroup(null)}
-                className="catalog__btn catalog__btn--secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveGroupEdit}
-                disabled={!editGroupName.trim()}
-                className="catalog__btn catalog__btn--primary"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
+          </SpecTarget>
         </div>
       )}
 
@@ -2140,7 +2175,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           )}
         </main>
       </div>
-    </>
+    </SpecTarget>
   );
 }
 

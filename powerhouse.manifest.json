@@ -56,7 +56,13 @@
             ]
         }
     ],
-    "apps": [],
+    "apps": [
+        {
+            "id": "customer-portfolio",
+            "name": "Customer Portfolio",
+            "driveEditor": "customer-portfolio"
+        }
+    ],
     "subgraphs": [],
     "importScripts": []
 }

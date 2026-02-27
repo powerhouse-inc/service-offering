@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { generateId } from "document-model/core";
+import { SpecTarget } from "../spec-mode/SpecTarget.js";
+import { THE_MATRIX_BINDINGS } from "../spec-mode/bindings.js";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import {
   getUserSelectionPriceBreakdown,
@@ -3364,7 +3366,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   }
 
   return (
-    <>
+    <SpecTarget id="the-matrix" bindings={THE_MATRIX_BINDINGS}>
       <style>{matrixStyles}</style>
       <div className="matrix">
         {/* Facet Selector - Dynamic from Resource Template */}
@@ -4678,7 +4680,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
           </div>
         )}
       </div>
-    </>
+    </SpecTarget>
   );
 }
 

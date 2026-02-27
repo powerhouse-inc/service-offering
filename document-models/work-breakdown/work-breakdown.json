@@ -1,0 +1,638 @@
+{
+  "author": {
+    "name": "Apeiron",
+    "website": "https://apeiron.io"
+  },
+  "description": "Structured demo scenario decomposition with template support, prerequisite tracking, task extraction, and cross-entity dependency management for business analysis workflows.",
+  "extension": "phwb",
+  "id": "powerhouse/work-breakdown",
+  "name": "WorkBreakdown",
+  "specifications": [
+    {
+      "changeLog": [],
+      "modules": [
+        {
+          "description": "Project-level metadata and workflow phase management",
+          "id": "mod-project",
+          "name": "project",
+          "operations": [
+            {
+              "description": "Set project-level metadata (title, description)",
+              "errors": [],
+              "examples": [],
+              "id": "op-set-project-info",
+              "name": "SET_PROJECT_INFO",
+              "reducer": "if (action.input.title !== undefined && action.input.title !== null) state.title = action.input.title;\nif (action.input.description !== undefined && action.input.description !== null) state.description = action.input.description;",
+              "schema": "input SetProjectInfoInput {\n  title: String\n  description: String\n}",
+              "scope": "global",
+              "template": "Set project-level metadata (title, description)"
+            },
+            {
+              "description": "Advance workflow phase",
+              "errors": [],
+              "examples": [],
+              "id": "op-set-phase",
+              "name": "SET_PHASE",
+              "reducer": "state.phase = action.input.phase;",
+              "schema": "input SetPhaseInput {\n  phase: WorkBreakdownPhase!\n  timestamp: DateTime!\n}",
+              "scope": "global",
+              "template": "Advance workflow phase"
+            },
+            {
+              "description": "Set overall project status",
+              "errors": [],
+              "examples": [],
+              "id": "op-set-status",
+              "name": "SET_STATUS",
+              "reducer": "state.status = action.input.status;",
+              "schema": "input SetStatusInput {\n  status: WorkBreakdownStatus!\n}",
+              "scope": "global",
+              "template": "Set overall project status"
+            }
+          ]
+        },
+        {
+          "description": "Demo step template skeleton management and application",
+          "id": "mod-templates",
+          "name": "templates",
+          "operations": [
+            {
+              "description": "Add a demo template skeleton with step/substep structure",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-template",
+              "name": "ADD_TEMPLATE",
+              "reducer": "state.templates.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  domain: action.input.domain || null,\n  steps: (action.input.steps || []).map(s => ({\n    id: s.id,\n    order: s.order,\n    name: s.name,\n    description: s.description || null,\n    substeps: (s.substeps || []).map(ss => ({\n      id: ss.id,\n      order: ss.order,\n      name: ss.name,\n      description: ss.description || null,\n    })),\n  })),\n  createdAt: action.input.createdAt,\n});",
+              "schema": "input TemplateSubstepInput {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n}\n\ninput TemplateStepInput {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [TemplateSubstepInput!]\n}\n\ninput AddTemplateInput {\n  id: OID!\n  name: String!\n  description: String\n  domain: String\n  steps: [TemplateStepInput!]!\n  createdAt: DateTime!\n}",
+              "scope": "global",
+              "template": "Add a demo template skeleton with step/substep structure"
+            },
+            {
+              "description": "Update template metadata",
+              "errors": [
+                {
+                  "code": "TEMPLATE_NOT_FOUND",
+                  "description": "The specified template ID does not exist",
+                  "id": "err-update-template-not-found",
+                  "name": "UpdateTemplateNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-template",
+              "name": "UPDATE_TEMPLATE",
+              "reducer": "const tpl = state.templates.find(t => t.id === action.input.id);\nif (!tpl) throw new UpdateTemplateNotFoundError(`Template ${action.input.id} not found`);\nif (action.input.name) tpl.name = action.input.name;\nif (action.input.description !== undefined && action.input.description !== null) tpl.description = action.input.description;\nif (action.input.domain !== undefined && action.input.domain !== null) tpl.domain = action.input.domain;",
+              "schema": "input UpdateTemplateInput {\n  id: OID!\n  name: String\n  description: String\n  domain: String\n}",
+              "scope": "global",
+              "template": "Update template metadata"
+            },
+            {
+              "description": "Delete a template",
+              "errors": [
+                {
+                  "code": "TEMPLATE_NOT_FOUND",
+                  "description": "The specified template ID does not exist",
+                  "id": "err-remove-template-not-found",
+                  "name": "RemoveTemplateNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-template",
+              "name": "REMOVE_TEMPLATE",
+              "reducer": "const idx = state.templates.findIndex(t => t.id === action.input.id);\nif (idx === -1) throw new RemoveTemplateNotFoundError(`Template ${action.input.id} not found`);\nstate.templates.splice(idx, 1);",
+              "schema": "input RemoveTemplateInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Delete a template"
+            },
+            {
+              "description": "Set extraction mode (none, pre-selected, auto-detected)",
+              "errors": [],
+              "examples": [],
+              "id": "op-set-template-mode",
+              "name": "SET_TEMPLATE_MODE",
+              "reducer": "state.templateMode = action.input.mode;",
+              "schema": "input SetTemplateModeInput {\n  mode: TemplateMode!\n}",
+              "scope": "global",
+              "template": "Set extraction mode (none, pre-selected, auto-detected)"
+            },
+            {
+              "description": "Apply a template's step structure to the current scenario",
+              "errors": [
+                {
+                  "code": "TEMPLATE_NOT_FOUND",
+                  "description": "The specified template ID does not exist",
+                  "id": "err-apply-template-not-found",
+                  "name": "ApplyTemplateNotFoundError",
+                  "template": ""
+                },
+                {
+                  "code": "STEPS_ALREADY_EXIST",
+                  "description": "Steps already exist in the scenario and would be overwritten",
+                  "id": "err-apply-template-steps-exist",
+                  "name": "ApplyTemplateStepsExistError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-apply-template",
+              "name": "APPLY_TEMPLATE",
+              "reducer": "const template = state.templates.find(t => t.id === action.input.templateId);\nif (!template) throw new ApplyTemplateNotFoundError(`Template ${action.input.templateId} not found`);\nif (state.steps.length > 0) throw new ApplyTemplateStepsExistError('Steps already exist. Remove existing steps before applying a template.');\nfor (const ts of template.steps) {\n  state.steps.push({\n    id: ts.id,\n    order: ts.order,\n    name: ts.name,\n    description: ts.description || null,\n    substeps: (ts.substeps || []).map(ss => ({\n      id: ss.id,\n      stepId: ts.id,\n      order: ss.order,\n      name: ss.name,\n      description: ss.description || null,\n      acceptanceCriteria: null,\n    })),\n    templateStepId: ts.id,\n  });\n}\nstate.appliedTemplateId = action.input.templateId;",
+              "schema": "input ApplyTemplateInput {\n  templateId: OID!\n  timestamp: DateTime!\n}",
+              "scope": "global",
+              "template": "Apply a template's step structure to the current scenario"
+            }
+          ]
+        },
+        {
+          "description": "Stakeholder input capture and demo step/substep structuring",
+          "id": "mod-scenario",
+          "name": "scenario",
+          "operations": [
+            {
+              "description": "Capture raw stakeholder input",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-input",
+              "name": "ADD_INPUT",
+              "reducer": "state.inputs.push({\n  id: action.input.id,\n  rawContent: action.input.rawContent,\n  source: action.input.source || null,\n  submittedBy: action.input.submittedBy || null,\n  createdAt: action.input.createdAt,\n});",
+              "schema": "input AddInputInput {\n  id: OID!\n  rawContent: String!\n  source: String\n  submittedBy: String\n  createdAt: DateTime!\n}",
+              "scope": "global",
+              "template": "Capture raw stakeholder input"
+            },
+            {
+              "description": "Edit raw input content",
+              "errors": [
+                {
+                  "code": "INPUT_NOT_FOUND",
+                  "description": "The specified input ID does not exist",
+                  "id": "err-update-input-not-found",
+                  "name": "UpdateInputNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-input",
+              "name": "UPDATE_INPUT",
+              "reducer": "const inp = state.inputs.find(i => i.id === action.input.id);\nif (!inp) throw new UpdateInputNotFoundError(`Input ${action.input.id} not found`);\nif (action.input.rawContent) inp.rawContent = action.input.rawContent;\nif (action.input.source !== undefined && action.input.source !== null) inp.source = action.input.source;\nif (action.input.submittedBy !== undefined && action.input.submittedBy !== null) inp.submittedBy = action.input.submittedBy;",
+              "schema": "input UpdateInputInput {\n  id: OID!\n  rawContent: String\n  source: String\n  submittedBy: String\n}",
+              "scope": "global",
+              "template": "Edit raw input content"
+            },
+            {
+              "description": "Remove a stakeholder input",
+              "errors": [
+                {
+                  "code": "INPUT_NOT_FOUND",
+                  "description": "The specified input ID does not exist",
+                  "id": "err-remove-input-not-found",
+                  "name": "RemoveInputNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-input",
+              "name": "REMOVE_INPUT",
+              "reducer": "const idx = state.inputs.findIndex(i => i.id === action.input.id);\nif (idx === -1) throw new RemoveInputNotFoundError(`Input ${action.input.id} not found`);\nstate.inputs.splice(idx, 1);",
+              "schema": "input RemoveInputInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Remove a stakeholder input"
+            },
+            {
+              "description": "Add a demo step (from scratch or template-linked)",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-step",
+              "name": "ADD_STEP",
+              "reducer": "state.steps.push({\n  id: action.input.id,\n  order: action.input.order,\n  name: action.input.name,\n  description: action.input.description || null,\n  substeps: [],\n  templateStepId: action.input.templateStepId || null,\n});",
+              "schema": "input AddStepInput {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  templateStepId: OID\n}",
+              "scope": "global",
+              "template": "Add a demo step (from scratch or template-linked)"
+            },
+            {
+              "description": "Edit step details",
+              "errors": [
+                {
+                  "code": "STEP_NOT_FOUND",
+                  "description": "The specified step ID does not exist",
+                  "id": "err-update-step-not-found",
+                  "name": "UpdateStepNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-step",
+              "name": "UPDATE_STEP",
+              "reducer": "const step = state.steps.find(s => s.id === action.input.id);\nif (!step) throw new UpdateStepNotFoundError(`Step ${action.input.id} not found`);\nif (action.input.name) step.name = action.input.name;\nif (action.input.order !== undefined && action.input.order !== null) step.order = action.input.order;\nif (action.input.description !== undefined && action.input.description !== null) step.description = action.input.description;",
+              "schema": "input UpdateStepInput {\n  id: OID!\n  order: Int\n  name: String\n  description: String\n}",
+              "scope": "global",
+              "template": "Edit step details"
+            },
+            {
+              "description": "Remove a step and its substeps",
+              "errors": [
+                {
+                  "code": "STEP_NOT_FOUND",
+                  "description": "The specified step ID does not exist",
+                  "id": "err-remove-step-not-found",
+                  "name": "RemoveStepNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-step",
+              "name": "REMOVE_STEP",
+              "reducer": "const idx = state.steps.findIndex(s => s.id === action.input.id);\nif (idx === -1) throw new RemoveStepNotFoundError(`Step ${action.input.id} not found`);\nstate.steps.splice(idx, 1);\n// Also remove tasks and prerequisites linked to this step\nconst stepId = action.input.id;\nstate.tasks = state.tasks.filter(t => t.stepId !== stepId);\nstate.prerequisites = state.prerequisites.filter(p => p.stepId !== stepId);",
+              "schema": "input RemoveStepInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Remove a step and its substeps"
+            },
+            {
+              "description": "Add a substep under a step",
+              "errors": [
+                {
+                  "code": "STEP_NOT_FOUND",
+                  "description": "The parent step ID does not exist",
+                  "id": "err-add-substep-step-not-found",
+                  "name": "AddSubstepStepNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-add-substep",
+              "name": "ADD_SUBSTEP",
+              "reducer": "const step = state.steps.find(s => s.id === action.input.stepId);\nif (!step) throw new AddSubstepStepNotFoundError(`Step ${action.input.stepId} not found`);\nstep.substeps.push({\n  id: action.input.id,\n  stepId: action.input.stepId,\n  order: action.input.order,\n  name: action.input.name,\n  description: action.input.description || null,\n  acceptanceCriteria: action.input.acceptanceCriteria || null,\n});",
+              "schema": "input AddSubstepInput {\n  id: OID!\n  stepId: OID!\n  order: Int!\n  name: String!\n  description: String\n  acceptanceCriteria: String\n}",
+              "scope": "global",
+              "template": "Add a substep under a step"
+            },
+            {
+              "description": "Edit substep details",
+              "errors": [
+                {
+                  "code": "SUBSTEP_NOT_FOUND",
+                  "description": "The specified substep ID does not exist in the given step",
+                  "id": "err-update-substep-not-found",
+                  "name": "UpdateSubstepNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-substep",
+              "name": "UPDATE_SUBSTEP",
+              "reducer": "const step = state.steps.find(s => s.id === action.input.stepId);\nif (!step) throw new UpdateSubstepNotFoundError(`Step ${action.input.stepId} not found`);\nconst sub = step.substeps.find(ss => ss.id === action.input.id);\nif (!sub) throw new UpdateSubstepNotFoundError(`Substep ${action.input.id} not found in step ${action.input.stepId}`);\nif (action.input.name) sub.name = action.input.name;\nif (action.input.order !== undefined && action.input.order !== null) sub.order = action.input.order;\nif (action.input.description !== undefined && action.input.description !== null) sub.description = action.input.description;\nif (action.input.acceptanceCriteria !== undefined && action.input.acceptanceCriteria !== null) sub.acceptanceCriteria = action.input.acceptanceCriteria;",
+              "schema": "input UpdateSubstepInput {\n  id: OID!\n  stepId: OID!\n  order: Int\n  name: String\n  description: String\n  acceptanceCriteria: String\n}",
+              "scope": "global",
+              "template": "Edit substep details"
+            },
+            {
+              "description": "Remove a substep",
+              "errors": [
+                {
+                  "code": "SUBSTEP_NOT_FOUND",
+                  "description": "The specified substep ID does not exist in the given step",
+                  "id": "err-remove-substep-not-found",
+                  "name": "RemoveSubstepNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-substep",
+              "name": "REMOVE_SUBSTEP",
+              "reducer": "const step = state.steps.find(s => s.id === action.input.stepId);\nif (!step) throw new RemoveSubstepNotFoundError(`Step ${action.input.stepId} not found`);\nconst idx = step.substeps.findIndex(ss => ss.id === action.input.id);\nif (idx === -1) throw new RemoveSubstepNotFoundError(`Substep ${action.input.id} not found in step ${action.input.stepId}`);\nstep.substeps.splice(idx, 1);",
+              "schema": "input RemoveSubstepInput {\n  id: OID!\n  stepId: OID!\n}",
+              "scope": "global",
+              "template": "Remove a substep"
+            }
+          ]
+        },
+        {
+          "description": "Global and per-step prerequisite tracking",
+          "id": "mod-prerequisites",
+          "name": "prerequisites",
+          "operations": [
+            {
+              "description": "Add global or step-level prerequisite",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-prerequisite",
+              "name": "ADD_PREREQUISITE",
+              "reducer": "state.prerequisites.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  owner: action.input.owner,\n  scope: action.input.scope,\n  stepId: action.input.stepId || null,\n  status: null,\n  notes: action.input.notes || null,\n  createdAt: action.input.createdAt,\n});",
+              "schema": "input AddPrerequisiteInput {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  scope: PrerequisiteScope!\n  stepId: OID\n  notes: String\n  createdAt: DateTime!\n}",
+              "scope": "global",
+              "template": "Add global or step-level prerequisite"
+            },
+            {
+              "description": "Edit prerequisite details",
+              "errors": [
+                {
+                  "code": "PREREQUISITE_NOT_FOUND",
+                  "description": "The specified prerequisite ID does not exist",
+                  "id": "err-update-prerequisite-not-found",
+                  "name": "UpdatePrerequisiteNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-prerequisite",
+              "name": "UPDATE_PREREQUISITE",
+              "reducer": "const prereq = state.prerequisites.find(p => p.id === action.input.id);\nif (!prereq) throw new UpdatePrerequisiteNotFoundError(`Prerequisite ${action.input.id} not found`);\nif (action.input.name) prereq.name = action.input.name;\nif (action.input.description !== undefined && action.input.description !== null) prereq.description = action.input.description;\nif (action.input.owner) prereq.owner = action.input.owner;\nif (action.input.notes !== undefined && action.input.notes !== null) prereq.notes = action.input.notes;",
+              "schema": "input UpdatePrerequisiteInput {\n  id: OID!\n  name: String\n  description: String\n  owner: String\n  notes: String\n}",
+              "scope": "global",
+              "template": "Edit prerequisite details"
+            },
+            {
+              "description": "Remove a prerequisite",
+              "errors": [
+                {
+                  "code": "PREREQUISITE_NOT_FOUND",
+                  "description": "The specified prerequisite ID does not exist",
+                  "id": "err-remove-prerequisite-not-found",
+                  "name": "RemovePrerequisiteNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-prerequisite",
+              "name": "REMOVE_PREREQUISITE",
+              "reducer": "const idx = state.prerequisites.findIndex(p => p.id === action.input.id);\nif (idx === -1) throw new RemovePrerequisiteNotFoundError(`Prerequisite ${action.input.id} not found`);\nstate.prerequisites.splice(idx, 1);",
+              "schema": "input RemovePrerequisiteInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Remove a prerequisite"
+            },
+            {
+              "description": "Mark prerequisite as met/in-progress/not-met",
+              "errors": [
+                {
+                  "code": "PREREQUISITE_NOT_FOUND",
+                  "description": "The specified prerequisite ID does not exist",
+                  "id": "err-set-prerequisite-status-not-found",
+                  "name": "SetPrerequisiteStatusNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-set-prerequisite-status",
+              "name": "SET_PREREQUISITE_STATUS",
+              "reducer": "const prereq = state.prerequisites.find(p => p.id === action.input.id);\nif (!prereq) throw new SetPrerequisiteStatusNotFoundError(`Prerequisite ${action.input.id} not found`);\nprereq.status = action.input.status;",
+              "schema": "input SetPrerequisiteStatusInput {\n  id: OID!\n  status: PrerequisiteStatus!\n}",
+              "scope": "global",
+              "template": "Mark prerequisite as met/in-progress/not-met"
+            }
+          ]
+        },
+        {
+          "description": "Task extraction and manual task management",
+          "id": "mod-tasks",
+          "name": "tasks",
+          "operations": [
+            {
+              "description": "Manually add a single task",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-task",
+              "name": "ADD_TASK",
+              "reducer": "state.tasks.push({\n  id: action.input.id,\n  name: action.input.name,\n  description: action.input.description || null,\n  owner: action.input.owner,\n  status: null,\n  source: action.input.source,\n  extractionContext: action.input.extractionContext || null,\n  stepId: action.input.stepId,\n  substepId: action.input.substepId || null,\n  sequenceOrder: action.input.sequenceOrder,\n  notes: action.input.notes || null,\n  blockedReason: null,\n  blockedByItemId: null,\n  createdAt: action.input.createdAt,\n});",
+              "schema": "input AddTaskInput {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  source: TaskSource!\n  extractionContext: String\n  notes: String\n  createdAt: DateTime!\n}",
+              "scope": "global",
+              "template": "Manually add a single task"
+            },
+            {
+              "description": "Batch-add extracted tasks (AI-assisted or bulk import)",
+              "errors": [],
+              "examples": [],
+              "id": "op-bulk-add-tasks",
+              "name": "BULK_ADD_TASKS",
+              "reducer": "for (const t of action.input.tasks) {\n  state.tasks.push({\n    id: t.id,\n    name: t.name,\n    description: t.description || null,\n    owner: t.owner,\n    status: null,\n    source: t.source,\n    extractionContext: t.extractionContext || null,\n    stepId: t.stepId,\n    substepId: t.substepId || null,\n    sequenceOrder: t.sequenceOrder,\n    notes: t.notes || null,\n    blockedReason: null,\n    blockedByItemId: null,\n    createdAt: t.createdAt,\n  });\n}",
+              "schema": "input TaskInput {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  source: TaskSource!\n  extractionContext: String\n  notes: String\n  createdAt: DateTime!\n}\n\ninput BulkAddTasksInput {\n  tasks: [TaskInput!]!\n}",
+              "scope": "global",
+              "template": "Batch-add extracted tasks (AI-assisted or bulk import)"
+            },
+            {
+              "description": "Edit task details",
+              "errors": [
+                {
+                  "code": "TASK_NOT_FOUND",
+                  "description": "The specified task ID does not exist",
+                  "id": "err-update-task-not-found",
+                  "name": "UpdateTaskNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-task",
+              "name": "UPDATE_TASK",
+              "reducer": "const task = state.tasks.find(t => t.id === action.input.id);\nif (!task) throw new UpdateTaskNotFoundError(`Task ${action.input.id} not found`);\nif (action.input.name) task.name = action.input.name;\nif (action.input.description !== undefined && action.input.description !== null) task.description = action.input.description;\nif (action.input.owner) task.owner = action.input.owner;\nif (action.input.stepId) task.stepId = action.input.stepId;\nif (action.input.substepId !== undefined && action.input.substepId !== null) task.substepId = action.input.substepId;\nif (action.input.sequenceOrder !== undefined && action.input.sequenceOrder !== null) task.sequenceOrder = action.input.sequenceOrder;\nif (action.input.notes !== undefined && action.input.notes !== null) task.notes = action.input.notes;",
+              "schema": "input UpdateTaskInput {\n  id: OID!\n  name: String\n  description: String\n  owner: String\n  stepId: OID\n  substepId: OID\n  sequenceOrder: Int\n  notes: String\n}",
+              "scope": "global",
+              "template": "Edit task details"
+            },
+            {
+              "description": "Remove a task",
+              "errors": [
+                {
+                  "code": "TASK_NOT_FOUND",
+                  "description": "The specified task ID does not exist",
+                  "id": "err-remove-task-not-found",
+                  "name": "RemoveTaskNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-task",
+              "name": "REMOVE_TASK",
+              "reducer": "const idx = state.tasks.findIndex(t => t.id === action.input.id);\nif (idx === -1) throw new RemoveTaskNotFoundError(`Task ${action.input.id} not found`);\nstate.tasks.splice(idx, 1);",
+              "schema": "input RemoveTaskInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Remove a task"
+            },
+            {
+              "description": "Update task status",
+              "errors": [
+                {
+                  "code": "TASK_NOT_FOUND",
+                  "description": "The specified task ID does not exist",
+                  "id": "err-set-task-status-not-found",
+                  "name": "SetTaskStatusNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-set-task-status",
+              "name": "SET_TASK_STATUS",
+              "reducer": "const task = state.tasks.find(t => t.id === action.input.id);\nif (!task) throw new SetTaskStatusNotFoundError(`Task ${action.input.id} not found`);\ntask.status = action.input.status;\nif (action.input.status === 'BLOCKED') {\n  task.blockedReason = action.input.blockedReason || null;\n  task.blockedByItemId = action.input.blockedByItemId || null;\n  if (action.input.blockedReason) {\n    task.notes = `[BLOCKED] ${action.input.blockedReason}`;\n  }\n} else {\n  task.blockedReason = null;\n  task.blockedByItemId = null;\n}",
+              "schema": "input SetTaskStatusInput {\n  id: OID!\n  status: TaskStatus!\n  blockedReason: String\n  blockedByItemId: OID\n}",
+              "scope": "global",
+              "template": "Update task status"
+            }
+          ]
+        },
+        {
+          "description": "Cross-entity dependency graph management",
+          "id": "mod-dependencies",
+          "name": "dependencies",
+          "operations": [
+            {
+              "description": "Create a directed dependency edge between entities",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-dependency",
+              "name": "ADD_DEPENDENCY",
+              "reducer": "state.dependencies.push({\n  id: action.input.id,\n  sourceId: action.input.sourceId,\n  sourceType: action.input.sourceType,\n  targetId: action.input.targetId,\n  targetType: action.input.targetType,\n  description: action.input.description || null,\n});",
+              "schema": "input AddDependencyInput {\n  id: OID!\n  sourceId: OID!\n  sourceType: DependencySourceType!\n  targetId: OID!\n  targetType: DependencyTargetType!\n  description: String\n}",
+              "scope": "global",
+              "template": "Create a directed dependency edge between entities"
+            },
+            {
+              "description": "Edit dependency description",
+              "errors": [
+                {
+                  "code": "DEPENDENCY_NOT_FOUND",
+                  "description": "The specified dependency ID does not exist",
+                  "id": "err-update-dependency-not-found",
+                  "name": "UpdateDependencyNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-dependency",
+              "name": "UPDATE_DEPENDENCY",
+              "reducer": "const dep = state.dependencies.find(d => d.id === action.input.id);\nif (!dep) throw new UpdateDependencyNotFoundError(`Dependency ${action.input.id} not found`);\nif (action.input.description !== undefined && action.input.description !== null) dep.description = action.input.description;",
+              "schema": "input UpdateDependencyInput {\n  id: OID!\n  description: String\n}",
+              "scope": "global",
+              "template": "Edit dependency description"
+            },
+            {
+              "description": "Remove a dependency",
+              "errors": [
+                {
+                  "code": "DEPENDENCY_NOT_FOUND",
+                  "description": "The specified dependency ID does not exist",
+                  "id": "err-remove-dependency-not-found",
+                  "name": "RemoveDependencyNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-dependency",
+              "name": "REMOVE_DEPENDENCY",
+              "reducer": "const idx = state.dependencies.findIndex(d => d.id === action.input.id);\nif (idx === -1) throw new RemoveDependencyNotFoundError(`Dependency ${action.input.id} not found`);\nstate.dependencies.splice(idx, 1);",
+              "schema": "input RemoveDependencyInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Remove a dependency"
+            }
+          ]
+        },
+        {
+          "description": "Analyst observations tied to workflow phases",
+          "id": "mod-notes",
+          "name": "notes",
+          "operations": [
+            {
+              "description": "Record analyst observation tied to a phase",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-note",
+              "name": "ADD_NOTE",
+              "reducer": "state.notes.push({\n  id: action.input.id,\n  phase: action.input.phase,\n  content: action.input.content,\n  createdAt: action.input.createdAt,\n});",
+              "schema": "input AddNoteInput {\n  id: OID!\n  phase: WorkBreakdownPhase!\n  content: String!\n  createdAt: DateTime!\n}",
+              "scope": "global",
+              "template": "Record analyst observation tied to a phase"
+            },
+            {
+              "description": "Remove an analyst note",
+              "errors": [
+                {
+                  "code": "NOTE_NOT_FOUND",
+                  "description": "The specified note ID does not exist",
+                  "id": "err-remove-note-not-found",
+                  "name": "RemoveNoteNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-remove-note",
+              "name": "REMOVE_NOTE",
+              "reducer": "const idx = state.notes.findIndex(n => n.id === action.input.id);\nif (idx === -1) throw new RemoveNoteNotFoundError(`Note ${action.input.id} not found`);\nstate.notes.splice(idx, 1);",
+              "schema": "input RemoveNoteInput {\n  id: OID!\n}",
+              "scope": "global",
+              "template": "Remove an analyst note"
+            }
+          ]
+        },
+        {
+          "description": "AI extraction context persistence and audit trail",
+          "id": "mod-extraction",
+          "name": "extraction",
+          "operations": [
+            {
+              "description": "Persist user's AI context instructions in document state",
+              "errors": [],
+              "examples": [],
+              "id": "op-set-ai-context",
+              "name": "SET_AI_CONTEXT",
+              "reducer": "state.aiContext = action.input.context || null;",
+              "schema": "input SetAiContextInput {\n  context: String\n}",
+              "scope": "global",
+              "template": "Persist user's AI context instructions in document state"
+            },
+            {
+              "description": "Log the start of an AI extraction request",
+              "errors": [],
+              "examples": [],
+              "id": "op-add-extraction-record",
+              "name": "ADD_EXTRACTION_RECORD",
+              "reducer": "state.extractionHistory.push({\n  id: action.input.id,\n  type: action.input.type,\n  status: \"PENDING\",\n  requestedAt: action.input.requestedAt,\n  completedAt: null,\n  stepsGenerated: null,\n  tasksGenerated: null,\n  model: action.input.model || null,\n  error: null,\n  userContext: action.input.userContext || null,\n});",
+              "schema": "input AddExtractionRecordInput {\n  id: OID!\n  type: ExtractionType!\n  requestedAt: DateTime!\n  model: String\n  userContext: String\n}",
+              "scope": "global",
+              "template": "Log the start of an AI extraction request"
+            },
+            {
+              "description": "Update an extraction record with completion status and results",
+              "errors": [
+                {
+                  "code": "EXTRACTION_RECORD_NOT_FOUND",
+                  "description": "The specified extraction record ID does not exist",
+                  "id": "err-update-extraction-record-not-found",
+                  "name": "UpdateExtractionRecordNotFoundError",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "id": "op-update-extraction-record",
+              "name": "UPDATE_EXTRACTION_RECORD",
+              "reducer": "const record = state.extractionHistory.find(r => r.id === action.input.id);\nif (!record) throw new UpdateExtractionRecordNotFoundError(`Extraction record ${action.input.id} not found`);\nrecord.status = action.input.status;\nif (action.input.completedAt) record.completedAt = action.input.completedAt;\nif (action.input.stepsGenerated !== undefined && action.input.stepsGenerated !== null) record.stepsGenerated = action.input.stepsGenerated;\nif (action.input.tasksGenerated !== undefined && action.input.tasksGenerated !== null) record.tasksGenerated = action.input.tasksGenerated;\nif (action.input.error !== undefined && action.input.error !== null) record.error = action.input.error;",
+              "schema": "input UpdateExtractionRecordInput {\n  id: OID!\n  status: ExtractionStatus!\n  completedAt: DateTime\n  stepsGenerated: Int\n  tasksGenerated: Int\n  error: String\n}",
+              "scope": "global",
+              "template": "Update an extraction record with completion status and results"
+            },
+            {
+              "description": "Clear extraction history records, optionally before a given date",
+              "errors": [],
+              "examples": [],
+              "id": "op-clear-extraction-history",
+              "name": "CLEAR_EXTRACTION_HISTORY",
+              "reducer": "if (action.input.beforeDate) {\n  state.extractionHistory = state.extractionHistory.filter(r => r.requestedAt >= action.input.beforeDate);\n} else {\n  state.extractionHistory = [];\n}",
+              "schema": "input ClearExtractionHistoryInput {\n  beforeDate: DateTime\n}",
+              "scope": "global",
+              "template": "Clear extraction history records, optionally before a given date"
+            }
+          ]
+        }
+      ],
+      "state": {
+        "global": {
+          "examples": [],
+          "initialValue": "{\n  \"title\": null,\n  \"description\": null,\n  \"phase\": \"CAPTURE\",\n  \"status\": \"NOT_STARTED\",\n  \"templateMode\": \"NONE\",\n  \"appliedTemplateId\": null,\n  \"templates\": [],\n  \"inputs\": [],\n  \"steps\": [],\n  \"prerequisites\": [],\n  \"tasks\": [],\n  \"dependencies\": [],\n  \"notes\": [],\n  \"aiContext\": null,\n  \"extractionHistory\": []\n}",
+          "schema": "enum WorkBreakdownPhase { CAPTURE STRUCTURE EXECUTION REVIEW }\nenum WorkBreakdownStatus { NOT_STARTED IN_PROGRESS ON_HOLD COMPLETED }\nenum TemplateMode { NONE PRE_SELECTED AUTO_DETECTED }\nenum TaskStatus { PENDING IN_PROGRESS BLOCKED DONE }\nenum TaskSource { EXTRACTED MANUAL }\nenum PrerequisiteScope { GLOBAL STEP }\nenum PrerequisiteStatus { NOT_MET IN_PROGRESS MET }\nenum DependencySourceType { TASK PREREQUISITE }\nenum DependencyTargetType { TASK PREREQUISITE }\nenum ExtractionType { SCENARIO TASK }\nenum ExtractionStatus { PENDING COMPLETED FAILED }\n\ntype TemplateSubstep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n}\n\ntype TemplateStep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [TemplateSubstep!]!\n}\n\ntype DemoTemplate {\n  id: OID!\n  name: String!\n  description: String\n  domain: String\n  steps: [TemplateStep!]!\n  createdAt: DateTime\n}\n\ntype StakeholderInput {\n  id: OID!\n  rawContent: String!\n  source: String\n  submittedBy: String\n  createdAt: DateTime!\n}\n\ntype DemoSubstep {\n  id: OID!\n  stepId: OID!\n  order: Int!\n  name: String!\n  description: String\n  acceptanceCriteria: String\n}\n\ntype DemoStep {\n  id: OID!\n  order: Int!\n  name: String!\n  description: String\n  substeps: [DemoSubstep!]!\n  templateStepId: OID\n}\n\ntype Prerequisite {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  scope: PrerequisiteScope!\n  stepId: OID\n  status: PrerequisiteStatus\n  notes: String\n  createdAt: DateTime\n}\n\ntype Task {\n  id: OID!\n  name: String!\n  description: String\n  owner: String!\n  status: TaskStatus\n  source: TaskSource!\n  extractionContext: String\n  stepId: OID!\n  substepId: OID\n  sequenceOrder: Int!\n  notes: String\n  blockedReason: String\n  blockedByItemId: OID\n  createdAt: DateTime\n}\n\ntype Dependency {\n  id: OID!\n  sourceId: OID!\n  sourceType: DependencySourceType!\n  targetId: OID!\n  targetType: DependencyTargetType!\n  description: String\n}\n\ntype AnalystNote {\n  id: OID!\n  phase: WorkBreakdownPhase!\n  content: String!\n  createdAt: DateTime!\n}\n\ntype ExtractionRecord {\n  id: OID!\n  type: ExtractionType!\n  status: ExtractionStatus!\n  requestedAt: DateTime!\n  completedAt: DateTime\n  stepsGenerated: Int\n  tasksGenerated: Int\n  model: String\n  error: String\n  userContext: String\n}\n\ntype WorkBreakdownState {\n  title: String\n  description: String\n  phase: WorkBreakdownPhase\n  status: WorkBreakdownStatus\n  templateMode: TemplateMode\n  appliedTemplateId: OID\n  templates: [DemoTemplate!]!\n  inputs: [StakeholderInput!]!\n  steps: [DemoStep!]!\n  prerequisites: [Prerequisite!]!\n  tasks: [Task!]!\n  dependencies: [Dependency!]!\n  notes: [AnalystNote!]!\n  aiContext: String\n  extractionHistory: [ExtractionRecord!]!\n}"
+        },
+        "local": {
+          "examples": [],
+          "initialValue": "",
+          "schema": ""
+        }
+      },
+      "version": 1
+    }
+  ]
+}

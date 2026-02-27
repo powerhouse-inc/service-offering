@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
+import { SpecTarget } from "../spec-mode/SpecTarget.js";
+import { TIER_DEFINITION_BINDINGS } from "../spec-mode/bindings.js";
 import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
@@ -974,7 +976,7 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
   const recommendedTierIndex = getRecommendedTierIndex(tiers);
 
   return (
-    <>
+    <SpecTarget id="tier-definition" bindings={TIER_DEFINITION_BINDINGS}>
       <style>{tierStyles}</style>
       <div className="tier-def">
         {/* Tier Presets - Show when no tiers exist (Default Effect) */}
@@ -1175,7 +1177,7 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
           </div>
         </div>
       </div>
-    </>
+    </SpecTarget>
   );
 }
 

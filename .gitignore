@@ -7,6 +7,5 @@ node_modules
 .ph
 projects-import.js
 .keypair.json
-context
 docs
 queries

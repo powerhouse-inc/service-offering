@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
+import { SpecTarget } from "../spec-mode/SpecTarget.js";
+import { SCOPE_FACETS_BINDINGS } from "../spec-mode/bindings.js";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingDocument,
@@ -341,7 +343,7 @@ export function ResourceTemplateSelector({
   }
 
   return (
-    <>
+    <SpecTarget id="scope-facets" bindings={SCOPE_FACETS_BINDINGS}>
       <style>{styles}</style>
       <div className="rts-container">
         {/* Header */}
@@ -552,7 +554,7 @@ export function ResourceTemplateSelector({
           )}
         </div>
       </div>
-    </>
+    </SpecTarget>
   );
 }
 

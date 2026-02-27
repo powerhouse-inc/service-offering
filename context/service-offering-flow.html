@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Offering Flow — Powerhouse/Vetra Ecosystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,600;12..96,800&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  /* ============ WARM SIGNAL PRESET ============ */
+  :root {
+    --font-body: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+    --font-mono: 'Fragment Mono', 'Fira Mono', monospace;
+    --bg: #fdf6ed;
+    --surface: #ffffff;
+    --surface2: #f5ede0;
+    --surface-elevated: #fffaf4;
+    --border: rgba(100, 60, 20, 0.10);
+    --border-bright: rgba(100, 60, 20, 0.22);
+    --text: #1f1208;
+    --text-dim: #7a6245;
+    --teal: #0c7e75;
+    --teal-dim: rgba(12, 126, 117, 0.10);
+    --amber: #c97c14;
+    --amber-dim: rgba(201, 124, 20, 0.10);
+    --green: #2d8c4e;
+    --green-dim: rgba(45, 140, 78, 0.10);
+    --rose: #c0374a;
+    --rose-dim: rgba(192, 55, 74, 0.10);
+    --slate: #3a4a5c;
+    --slate-dim: rgba(58, 74, 92, 0.10);
+    --accent: var(--teal);
+    --accent-dim: var(--teal-dim);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1412;
+      --surface: #141e1c;
+      --surface2: #1a2826;
+      --surface-elevated: #1f302d;
+      --border: rgba(120, 200, 180, 0.08);
+      --border-bright: rgba(120, 200, 180, 0.18);
+      --text: #e8ede8;
+      --text-dim: #7a9488;
+      --teal: #2cc4b0;
+      --teal-dim: rgba(44, 196, 176, 0.12);
+      --amber: #e8a030;
+      --amber-dim: rgba(232, 160, 48, 0.12);
+      --green: #4ec878;
+      --green-dim: rgba(78, 200, 120, 0.12);
+      --rose: #f06a7a;
+      --rose-dim: rgba(240, 106, 122, 0.12);
+      --slate: #8aacc0;
+      --slate-dim: rgba(138, 172, 192, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  /* ============ DECK ENGINE ============ */
+  .deck {
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .slide {
+    height: 100dvh;
+    scroll-snap-align: start;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(36px, 5.5vh, 72px) clamp(40px, 8vw, 120px);
+    isolation: isolate;
+  }
+
+  /* ============ TYPOGRAPHY SCALE ============ */
+  .slide__display {
+    font-size: clamp(48px, 9vw, 112px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 0.95;
+    text-wrap: balance;
+  }
+
+  .slide__heading {
+    font-size: clamp(32px, 4.5vw, 60px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  .slide__subheading {
+    font-size: clamp(20px, 2.5vw, 34px);
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+
+  .slide__body {
+    font-size: clamp(15px, 1.6vw, 22px);
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .slide__label {
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1vw, 13px);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ============ BACKGROUNDS ============ */
+  .bg--teal { background: linear-gradient(135deg, #0a1f1d 0%, #0e2a26 40%, #112e2a 100%); }
+  .bg--teal .slide__label, .bg--teal .slide__body { color: rgba(220,255,250,0.6); }
+  .bg--teal .slide__display, .bg--teal .slide__heading, .bg--teal .slide__subheading { color: #d4f0ec; }
+
+  .bg--amber { background: linear-gradient(150deg, #1a1208 0%, #221808 50%, #1a1208 100%); }
+  .bg--amber .slide__label, .bg--amber .slide__body { color: rgba(255, 235, 180, 0.55); }
+  .bg--amber .slide__display, .bg--amber .slide__heading, .bg--amber .slide__subheading { color: #fde8b0; }
+
+  .bg--slate { background: linear-gradient(120deg, #0c1520 0%, #111c2a 100%); }
+  .bg--slate .slide__label, .bg--slate .slide__body { color: rgba(180, 210, 240, 0.55); }
+  .bg--slate .slide__display, .bg--slate .slide__heading, .bg--slate .slide__subheading { color: #c8ddf0; }
+
+  .bg--light { background: linear-gradient(160deg, #fdf6ed 0%, #f5ede0 100%); }
+
+  /* ============ SLIDE TYPES ============ */
+
+  /* --- TITLE --- */
+  .slide--title { justify-content: flex-end; padding-bottom: clamp(60px, 10vh, 120px); }
+
+  .title__eyebrow {
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1vw, 14px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    opacity: 0.6;
+  }
+
+  .title__main {
+    font-size: clamp(52px, 10vw, 128px);
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 0.9;
+    text-wrap: balance;
+    margin-bottom: 32px;
+  }
+
+  .title__sub {
+    font-size: clamp(18px, 2.2vw, 30px);
+    font-weight: 300;
+    opacity: 0.75;
+    max-width: 640px;
+    line-height: 1.4;
+  }
+
+  /* --- SECTION DIVIDER --- */
+  .slide--divider { justify-content: center; }
+
+  .divider__num {
+    font-family: var(--font-mono);
+    font-size: clamp(64px, 12vw, 160px);
+    font-weight: 700;
+    opacity: 0.08;
+    position: absolute;
+    top: 50%;
+    left: clamp(40px, 8vw, 120px);
+    transform: translateY(-50%);
+    user-select: none;
+    line-height: 1;
+  }
+
+  .divider__content { position: relative; z-index: 1; }
+
+  .divider__label {
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1vw, 13px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-bottom: 16px;
+  }
+
+  .divider__title {
+    font-size: clamp(36px, 6vw, 80px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1.0;
+    margin-bottom: 20px;
+    text-wrap: balance;
+  }
+
+  .divider__desc {
+    font-size: clamp(15px, 1.6vw, 22px);
+    opacity: 0.65;
+    max-width: 600px;
+    line-height: 1.5;
+  }
+
+  /* --- CONTENT --- */
+  .slide--content { justify-content: center; }
+
+  .content__header {
+    margin-bottom: clamp(24px, 3vh, 48px);
+  }
+
+  .content__label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 10px;
+  }
+
+  /* --- SPLIT --- */
+  .slide--split {
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(40px, 6vw, 80px);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .split__left, .split__right {
+    flex: 1;
+    padding: clamp(36px, 5.5vh, 72px) clamp(40px, 5vw, 80px);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .split__divider {
+    width: 1px;
+    height: 50%;
+    background: var(--border-bright);
+    flex-shrink: 0;
+  }
+
+  /* --- CARD GRID --- */
+  .card-grid {
+    display: grid;
+    gap: clamp(12px, 1.5vw, 20px);
+  }
+
+  .card-grid--2col { grid-template-columns: 1fr 1fr; }
+  .card-grid--3col { grid-template-columns: 1fr 1fr 1fr; }
+  .card-grid--4col { grid-template-columns: repeat(4, 1fr); }
+
+  .ve-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: clamp(16px, 1.8vw, 24px);
+    min-width: 0;
+  }
+
+  .ve-card--teal { border-left: 3px solid var(--teal); }
+  .ve-card--amber { border-left: 3px solid var(--amber); }
+  .ve-card--green { border-left: 3px solid var(--green); }
+  .ve-card--rose { border-left: 3px solid var(--rose); }
+  .ve-card--slate { border-left: 3px solid var(--slate); }
+
+  .ve-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .ve-card__title {
+    font-size: clamp(14px, 1.4vw, 18px);
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+
+  .ve-card__body {
+    font-size: clamp(12px, 1.1vw, 15px);
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .ve-card__tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .tag--teal { background: var(--teal-dim); color: var(--teal); }
+  .tag--amber { background: var(--amber-dim); color: var(--amber); }
+  .tag--green { background: var(--green-dim); color: var(--green); }
+  .tag--rose { background: var(--rose-dim); color: var(--rose); }
+  .tag--slate { background: var(--slate-dim); color: var(--slate); }
+
+  /* --- FLOW STEPS --- */
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 1.5vh, 20px);
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .flow-step__num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .flow-step__num--teal { background: var(--teal-dim); color: var(--teal); border: 1px solid var(--teal); }
+  .flow-step__num--amber { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .flow-step__num--green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+
+  .flow-step__content { flex: 1; min-width: 0; }
+
+  .flow-step__title {
+    font-size: clamp(14px, 1.4vw, 18px);
+    font-weight: 700;
+    margin-bottom: 3px;
+    line-height: 1.2;
+  }
+
+  .flow-step__body {
+    font-size: clamp(12px, 1.1vw, 15px);
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+
+  /* --- STATUS BADGES --- */
+  .status-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .status-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .status-badge--pending { background: var(--slate-dim); color: var(--slate); border: 1px solid var(--slate); }
+  .status-badge--active { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .status-badge--provisioning { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .status-badge--paused { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .status-badge--cancelled { background: var(--rose-dim); color: var(--rose); border: 1px solid var(--rose); }
+  .status-badge--draft { background: var(--border); color: var(--text-dim); border: 1px solid var(--border-bright); }
+  .status-badge--terminated { background: var(--rose-dim); color: var(--rose); border: 1px solid var(--rose); }
+
+  /* --- DIAGRAM SLIDE --- */
+  .slide--diagram {
+    padding: clamp(24px, 3.5vh, 48px) clamp(40px, 6vw, 80px);
+  }
+
+  .diagram__header {
+    margin-bottom: clamp(16px, 2vh, 28px);
+  }
+
+  .mermaid-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    min-height: 0;
+  }
+
+  .mermaid-wrap .mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .mermaid-wrap .mermaid:active { cursor: grabbing; }
+
+  .mermaid-wrap svg {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+  }
+
+  .zoom-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border-bright);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    transition: background 0.15s;
+  }
+  .zoom-btn:hover { background: var(--surface2); }
+
+  /* --- TABLE SLIDE --- */
+  .slide--table {
+    padding: clamp(24px, 3.5vh, 48px) clamp(40px, 6vw, 80px);
+    flex-direction: column;
+  }
+
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: clamp(12px, 1.1vw, 15px);
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border-bright);
+    font-weight: 500;
+  }
+
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.4;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+  tbody tr:hover td { background: var(--surface2); }
+
+  td code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--teal);
+  }
+
+  td .included { color: var(--green); font-weight: 600; font-size: 0.9em; }
+  td .not-included { color: var(--text-dim); }
+  td .optional { color: var(--amber); font-weight: 600; font-size: 0.9em; }
+
+  /* --- NAV CHROME --- */
+  .nav-chrome {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .nav-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    pointer-events: auto;
+  }
+
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .nav-dot.active {
+    width: 20px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.85);
+  }
+
+  .nav-counter {
+    position: fixed;
+    bottom: 14px;
+    right: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: var(--teal);
+    z-index: 100;
+    transition: width 0.3s ease;
+    pointer-events: none;
+  }
+
+  .nav-hint {
+    position: fixed;
+    bottom: 14px;
+    left: 20px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    z-index: 100;
+    pointer-events: none;
+    letter-spacing: 0.06em;
+  }
+
+  /* ============ SPECIFIC SLIDE LAYOUTS ============ */
+
+  .slide__gap-sm { margin-bottom: clamp(12px, 1.5vh, 20px); }
+  .slide__gap-md { margin-bottom: clamp(20px, 2.5vh, 36px); }
+  .slide__gap-lg { margin-bottom: clamp(32px, 4vh, 56px); }
+
+  /* Architecture diagram inline */
+  .arch-diagram {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-top: clamp(20px, 2.5vh, 36px);
+    flex: 1;
+    min-height: 0;
+  }
+
+  .arch-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+
+  .arch-box {
+    border-radius: 8px;
+    padding: 12px 14px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .arch-box__label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 4px;
+  }
+
+  .arch-box__title {
+    font-size: clamp(13px, 1.2vw, 16px);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .arch-box__body {
+    font-size: clamp(10px, 0.9vw, 13px);
+    opacity: 0.7;
+    line-height: 1.4;
+  }
+
+  /* Status linkage flow */
+  .linkage-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .linkage-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    min-width: 0;
+  }
+
+  .linkage-doc {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 3px;
+  }
+
+  .linkage-status {
+    font-size: clamp(13px, 1.2vw, 16px);
+    font-weight: 700;
+  }
+
+  .linkage-arrow {
+    font-size: 18px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .linkage-trigger {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+
+  /* Connection line between rows */
+  .linkage-connector {
+    width: 2px;
+    height: 16px;
+    background: var(--border-bright);
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ============ ANIMATIONS ============ */
+  @media (prefers-reduced-motion: no-preference) {
+    .slide__display,
+    .slide__heading,
+    .slide__subheading,
+    .slide__body,
+    .slide__label,
+    .ve-card,
+    .flow-step,
+    .linkage-row,
+    .arch-box,
+    .content__label,
+    .title__eyebrow,
+    .title__main,
+    .title__sub,
+    .divider__label,
+    .divider__title,
+    .divider__desc,
+    .status-badge {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .slide.is-visible .slide__display,
+    .slide.is-visible .slide__heading,
+    .slide.is-visible .slide__subheading,
+    .slide.is-visible .slide__body,
+    .slide.is-visible .slide__label,
+    .slide.is-visible .content__label,
+    .slide.is-visible .title__eyebrow,
+    .slide.is-visible .title__main,
+    .slide.is-visible .title__sub,
+    .slide.is-visible .divider__label,
+    .slide.is-visible .divider__title,
+    .slide.is-visible .divider__desc { opacity: 1; transform: none; }
+
+    .slide.is-visible .ve-card { opacity: 1; transform: none; }
+    .slide.is-visible .flow-step { opacity: 1; transform: none; }
+    .slide.is-visible .linkage-row { opacity: 1; transform: none; }
+    .slide.is-visible .arch-box { opacity: 1; transform: none; }
+    .slide.is-visible .status-badge { opacity: 1; transform: none; }
+
+    /* stagger children */
+    .slide.is-visible .ve-card:nth-child(1) { transition-delay: 0.05s; }
+    .slide.is-visible .ve-card:nth-child(2) { transition-delay: 0.12s; }
+    .slide.is-visible .ve-card:nth-child(3) { transition-delay: 0.19s; }
+    .slide.is-visible .ve-card:nth-child(4) { transition-delay: 0.26s; }
+    .slide.is-visible .ve-card:nth-child(5) { transition-delay: 0.33s; }
+    .slide.is-visible .ve-card:nth-child(6) { transition-delay: 0.40s; }
+
+    .slide.is-visible .flow-step:nth-child(1) { transition-delay: 0.08s; }
+    .slide.is-visible .flow-step:nth-child(2) { transition-delay: 0.18s; }
+    .slide.is-visible .flow-step:nth-child(3) { transition-delay: 0.28s; }
+    .slide.is-visible .flow-step:nth-child(4) { transition-delay: 0.38s; }
+    .slide.is-visible .flow-step:nth-child(5) { transition-delay: 0.48s; }
+    .slide.is-visible .flow-step:nth-child(6) { transition-delay: 0.58s; }
+
+    .slide.is-visible .linkage-row:nth-child(odd) { transition-delay: 0.08s; }
+    .slide.is-visible .linkage-row:nth-child(even) { transition-delay: 0.20s; }
+
+    .slide.is-visible .arch-box:nth-child(1) { transition-delay: 0.05s; }
+    .slide.is-visible .arch-box:nth-child(2) { transition-delay: 0.14s; }
+    .slide.is-visible .arch-box:nth-child(3) { transition-delay: 0.23s; }
+    .slide.is-visible .arch-box:nth-child(4) { transition-delay: 0.32s; }
+
+    .slide.is-visible .status-badge:nth-child(2) { transition-delay: 0.08s; }
+    .slide.is-visible .status-badge:nth-child(3) { transition-delay: 0.16s; }
+    .slide.is-visible .status-badge:nth-child(4) { transition-delay: 0.24s; }
+    .slide.is-visible .status-badge:nth-child(5) { transition-delay: 0.32s; }
+
+    .title__eyebrow { transition-delay: 0.05s; }
+    .title__main { transition-delay: 0.15s; }
+    .title__sub { transition-delay: 0.30s; }
+    .divider__label { transition-delay: 0.05s; }
+    .divider__title { transition-delay: 0.15s; }
+    .divider__desc { transition-delay: 0.28s; }
+  }
+
+  /* Responsive */
+  @media (max-height: 600px) {
+    .slide { padding-top: 24px; padding-bottom: 24px; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- NAV CHROME -->
+<nav class="nav-chrome" id="navChrome">
+  <div class="nav-dots" id="navDots"></div>
+</nav>
+<div class="nav-counter" id="navCounter"></div>
+<div class="nav-hint" id="navHint">↑ ↓  /  scroll</div>
+
+<div class="deck" id="deck">
+
+  <!-- ==================== SLIDE 1: TITLE ==================== -->
+  <section class="slide slide--title bg--teal">
+    <!-- decorative background -->
+    <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.05;pointer-events:none" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
+      <circle cx="900" cy="100" r="300" fill="none" stroke="#2cc4b0" stroke-width="1"/>
+      <circle cx="900" cy="100" r="500" fill="none" stroke="#2cc4b0" stroke-width="0.5"/>
+      <circle cx="200" cy="600" r="200" fill="none" stroke="#2cc4b0" stroke-width="0.8"/>
+      <line x1="0" y1="350" x2="1200" y2="350" stroke="#2cc4b0" stroke-width="0.5"/>
+    </svg>
+    <div style="position:relative;z-index:1;">
+      <div class="title__eyebrow" style="color:rgba(180,255,240,0.7)">Powerhouse / Vetra Ecosystem</div>
+      <div class="title__main" style="color:#d4f0ec">Service<br>Offering<br>Flow</div>
+      <div class="title__sub" style="color:rgba(180,255,240,0.7)">End-to-end: from operator template to live customer subscription — four document models, two actors, one status chain.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 2: OVERVIEW ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--teal)">Overview</div>
+      <h2 class="slide__heading slide__gap-sm">Four documents. Two actors. One flow.</h2>
+      <p class="slide__body">The ecosystem models the full lifecycle of a service offering — from an operator authoring a product template to a customer subscribing and a resource being provisioned live.</p>
+    </div>
+    <div class="card-grid card-grid--2col">
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__label" style="color:var(--teal)">ResourceTemplate</div>
+        <div class="ve-card__title">The Product Definition</div>
+        <div class="ve-card__body">Operator-authored. Defines <em>what the product is</em>: target audiences, standardized service overview, content sections (deep-dive), FAQs, and facet + facet option catalog.</div>
+        <div class="ve-card__tag-row"><span class="tag tag--teal">Operator Drive</span><span class="tag tag--slate">DRAFT → ACTIVE</span></div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">ServiceOffering</div>
+        <div class="ve-card__title">The Commercial Package</div>
+        <div class="ve-card__body">Operator-authored. References a ResourceTemplate. Defines <em>what the customer buys</em>: service groups, services, tiers, pricing, billing cycles, usage limits, add-ons.</div>
+        <div class="ve-card__tag-row"><span class="tag tag--amber">Operator Drive</span><span class="tag tag--slate">DRAFT → ACTIVE</span></div>
+      </div>
+      <div class="ve-card ve-card--green">
+        <div class="ve-card__label" style="color:var(--green)">SubscriptionInstance</div>
+        <div class="ve-card__title">The Customer Record</div>
+        <div class="ve-card__body">Auto-created on "Submit Request" in Arch. Lives in the customer/builder's Connect drive. Tracks tier, billing cycle, billing dates, and subscription status.</div>
+        <div class="ve-card__tag-row"><span class="tag tag--green">Customer Drive</span><span class="tag tag--slate">PENDING → ACTIVE</span></div>
+      </div>
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__label" style="color:var(--rose)">ResourceInstance</div>
+        <div class="ve-card__title">The Provisioned Resource</div>
+        <div class="ve-card__body">Auto-created simultaneously on "Submit Request" in Arch. Lives in the operator's Connect drive. Tracks provisioning progress, configuration facets, and resource lifecycle status.</div>
+        <div class="ve-card__tag-row"><span class="tag tag--rose">Operator Drive</span><span class="tag tag--slate">DRAFT → ACTIVE</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 3: DIVIDER — RESOURCE TEMPLATE ==================== -->
+  <section class="slide slide--divider bg--teal">
+    <div class="divider__num">01</div>
+    <div class="divider__content">
+      <div class="divider__label">Document Model 1 of 4</div>
+      <div class="divider__title" style="color:#d4f0ec">Resource<br>Template</div>
+      <div class="divider__desc" style="color:rgba(180,255,240,0.65)">The product definition. What the service is, who it's for, and what facets it exposes — before any pricing or tier structure.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 4: RESOURCE TEMPLATE DETAIL ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--teal)">ResourceTemplate — What it defines</div>
+      <h2 class="slide__heading slide__gap-sm">Product identity, not commercial structure</h2>
+    </div>
+    <div class="card-grid card-grid--3col">
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__label" style="color:var(--teal)">Target Audiences</div>
+        <div class="ve-card__title">Who this is for</div>
+        <div class="ve-card__body">Labeled audience segments with optional color coding. Signals to prospective customers which tier or product type fits their profile.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--teal-dim);color:var(--teal);padding:2px 6px;border-radius:3px">targetAudiences[]</code></div>
+      </div>
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__label" style="color:var(--teal)">Service Overview</div>
+        <div class="ve-card__title">Vague, standardized summary</div>
+        <div class="ve-card__body">High-level description of what a customer can expect in a concrete service offering. Not the pricing — that lives in ServiceOffering.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--teal-dim);color:var(--teal);padding:2px 6px;border-radius:3px">summary, description</code></div>
+      </div>
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__label" style="color:var(--teal)">Content Sections</div>
+        <div class="ve-card__title">Expandable deep-dive content</div>
+        <div class="ve-card__body">Rich product detail organized into expandable sections — technical depth, methodology, case studies. Ordered by <code style="font-size:0.85em">displayOrder</code>.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--teal-dim);color:var(--teal);padding:2px 6px;border-radius:3px">contentSections[]</code></div>
+      </div>
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__label" style="color:var(--teal)">FAQs</div>
+        <div class="ve-card__title">Frequently asked questions</div>
+        <div class="ve-card__body">Question/answer pairs for the product listing. Help prospective customers understand the offering before subscribing.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--teal-dim);color:var(--teal);padding:2px 6px;border-radius:3px">faqFields[]</code></div>
+      </div>
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__label" style="color:var(--teal)">Facets + Options</div>
+        <div class="ve-card__title">Configuration dimensions</div>
+        <div class="ve-card__body">Declares which facet categories this resource supports (e.g., "Region", "Plan type") and which options are valid. Used to filter and configure ResourceInstances.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--teal-dim);color:var(--teal);padding:2px 6px;border-radius:3px">facetTargets[]</code></div>
+      </div>
+      <div class="ve-card" style="border-left: 3px solid var(--border-bright); background: var(--surface2);">
+        <div class="ve-card__label">NOT in ResourceTemplate</div>
+        <div class="ve-card__title" style="color:var(--text-dim)">Service groups, tiers, pricing</div>
+        <div class="ve-card__body" style="color:var(--text-dim)">Service groups, services, tiers, add-ons, billing cycles, and pricing are all defined in <strong>ServiceOffering</strong> — not here.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 5: RESOURCE TEMPLATE STATUS ==================== -->
+  <section class="slide slide--split bg--light">
+    <div class="split__left">
+      <div class="content__label" style="color:var(--teal)">ResourceTemplate — Lifecycle</div>
+      <h2 class="slide__heading slide__gap-md">From draft to deprecated</h2>
+      <p class="slide__body slide__gap-md">Templates evolve through four statuses. Only <strong>ACTIVE</strong> templates can be referenced by a ServiceOffering. Operators mark templates <strong>DEPRECATED</strong> when a newer version supersedes them.</p>
+      <div class="status-row">
+        <span class="status-badge status-badge--draft">DRAFT</span>
+        <span style="color:var(--text-dim);font-size:14px">→</span>
+        <span class="status-badge" style="background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal)">COMING_SOON</span>
+        <span style="color:var(--text-dim);font-size:14px">→</span>
+        <span class="status-badge status-badge--active">ACTIVE</span>
+        <span style="color:var(--text-dim);font-size:14px">→</span>
+        <span class="status-badge status-badge--cancelled">DEPRECATED</span>
+      </div>
+    </div>
+    <div class="split__divider"></div>
+    <div class="split__right">
+      <div class="content__label" style="color:var(--amber)">Who creates it?</div>
+      <h3 class="slide__subheading slide__gap-md">Operator, in their Connect drive</h3>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step__num flow-step__num--teal">1</div>
+          <div class="flow-step__content">
+            <div class="flow-step__title">Operator authors the template</div>
+            <div class="flow-step__body">Sets title, summary, description, target audiences, content sections, FAQs, and facet catalog.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num flow-step__num--teal">2</div>
+          <div class="flow-step__content">
+            <div class="flow-step__title">Template goes COMING_SOON or ACTIVE</div>
+            <div class="flow-step__body">Signals availability to the Arch marketplace listing.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num flow-step__num--teal">3</div>
+          <div class="flow-step__content">
+            <div class="flow-step__title">ServiceOffering references this template</div>
+            <div class="flow-step__body">The operator creates a ServiceOffering that links to this ResourceTemplate via <code style="font-family:var(--font-mono);font-size:0.85em">resourceTemplateId</code>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 6: DIVIDER — SERVICE OFFERING ==================== -->
+  <section class="slide slide--divider bg--amber">
+    <div class="divider__num">02</div>
+    <div class="divider__content">
+      <div class="divider__label">Document Model 2 of 4</div>
+      <div class="divider__title" style="color:#fde8b0">Service<br>Offering</div>
+      <div class="divider__desc" style="color:rgba(255,235,180,0.65)">The commercial package. Service groups, services, tiers, pricing, billing cycles, usage limits, and add-ons — everything the customer buys.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 7: SERVICE OFFERING STRUCTURE ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--amber)">ServiceOffering — Core structure</div>
+      <h2 class="slide__heading slide__gap-sm">The full commercial model</h2>
+    </div>
+    <div class="card-grid card-grid--3col">
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">Service Groups</div>
+        <div class="ve-card__title">Logical service bundles</div>
+        <div class="ve-card__body">Top-level groupings of services (e.g. "Core Tools", "Financial Operations"). Each group has its own billing cycle and discount mode.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--amber-dim);color:var(--amber);padding:2px 6px;border-radius:3px">serviceGroups[]</code></div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">Services</div>
+        <div class="ve-card__title">Individual deliverables</div>
+        <div class="ve-card__body">Line-item services within a group. Each service can be setup-formation or recurring, and references an option group for add-on pricing.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--amber-dim);color:var(--amber);padding:2px 6px;border-radius:3px">services[]</code></div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">Tiers</div>
+        <div class="ve-card__title">Subscription tiers</div>
+        <div class="ve-card__body">Named tiers (e.g. Essentials, Starter, Standard, Custom) with base pricing, service level bindings per service, usage limits, and billing cycle discounts.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--amber-dim);color:var(--amber);padding:2px 6px;border-radius:3px">tiers[]</code></div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">Pricing</div>
+        <div class="ve-card__title">Multi-cycle pricing</div>
+        <div class="ve-card__body">Available billing cycles (MONTHLY / QUARTERLY / ANNUAL / ONE_TIME), per-cycle amounts, and discounts. Tiers can inherit or override group-level discounts.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--amber-dim);color:var(--amber);padding:2px 6px;border-radius:3px">availableBillingCycles[]</code></div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">Usage Limits</div>
+        <div class="ve-card__title">Metered service limits</div>
+        <div class="ve-card__body">Per-tier usage limits: free limit, paid limit, reset cycle (MONTHLY, NONE…), and unit price for overages. E.g. "$250/contributor" in Standard tier.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--amber-dim);color:var(--amber);padding:2px 6px;border-radius:3px">usageLimits[]</code></div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__label" style="color:var(--amber)">Add-Ons</div>
+        <div class="ve-card__title">Optional extras</div>
+        <div class="ve-card__body">OptionGroups marked <code style="font-size:0.85em">isAddOn: true</code>. Can be tier-dependent or standalone priced. Billing cycle discounts may apply independently or via tier.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--amber-dim);color:var(--amber);padding:2px 6px;border-radius:3px">optionGroups[]</code></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 8: OH PRICING EXAMPLE ==================== -->
+  <section class="slide slide--table bg--light">
+    <div class="diagram__header">
+      <div class="content__label" style="color:var(--amber)">ServiceOffering — OH Pricing Example</div>
+      <h2 class="slide__heading">4 tiers × 5 service groups</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Service Group</th>
+            <th>Essentials ($0)</th>
+            <th>Starter ($750/mo)</th>
+            <th>Standard ($1,250/mo)</th>
+            <th>Custom</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Core Tools &amp; Documentation</strong><br><small style="color:var(--text-dim)">Invoice generator, Budget gen, Legal templates, Needs analysis</small></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+          </tr>
+          <tr>
+            <td><strong>Entity &amp; Compliance Foundation</strong><br><small style="color:var(--text-dim)">Swiss Assoc. formation, Registered address, VAT docs, Tax filing</small></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+          </tr>
+          <tr>
+            <td><strong>Financial Operations &amp; Reporting</strong><br><small style="color:var(--text-dim)">Reimbursement, Invoice mgmt, Monthly accounting, Expense report</small></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="included">✓ Partial</span></td>
+            <td><span class="included">✓ Full</span></td>
+            <td><span class="included">✓ Full</span></td>
+          </tr>
+          <tr>
+            <td><strong>Team &amp; Contributor Operations</strong><br><small style="color:var(--text-dim)">Contributor onboarding, Multi-currency payouts, Dedicated ops</small></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+          </tr>
+          <tr>
+            <td><strong>Advanced &amp; Scale Features</strong><br><small style="color:var(--text-dim)">Multiple entities, Dedicated account mgr, Admin portal, Custom workflows</small></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="not-included">— Not included</span></td>
+            <td><span class="included">✓ Included</span></td>
+          </tr>
+          <tr style="background:var(--amber-dim)">
+            <td><strong>Key Add-Ons</strong><br><small style="color:var(--text-dim)">Invoice processing, Exchange setup, Additional contributors, AML monitoring</small></td>
+            <td colspan="4" style="color:var(--amber);font-weight:600">Available across all tiers — priced separately ($21/invoice · $600 exchange setup · $250/contributor · $900/mo AML)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 9: DIVIDER — SUBSCRIPTION INSTANCE ==================== -->
+  <section class="slide slide--divider bg--slate">
+    <div class="divider__num">03</div>
+    <div class="divider__content">
+      <div class="divider__label">Document Model 3 of 4</div>
+      <div class="divider__title" style="color:#c8ddf0">Subscription<br>Instance</div>
+      <div class="divider__desc" style="color:rgba(180,210,240,0.65)">The customer's live subscription record. Created simultaneously with ResourceInstance when the customer clicks "Submit Request" in Arch.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 10: SUBSCRIPTION INSTANCE DETAIL ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--slate)">SubscriptionInstance — What it tracks</div>
+      <h2 class="slide__heading slide__gap-sm">The customer's commercial record</h2>
+    </div>
+    <div class="card-grid card-grid--3col">
+      <div class="ve-card ve-card--slate">
+        <div class="ve-card__label" style="color:var(--slate)">Customer Identity</div>
+        <div class="ve-card__title">Who subscribed</div>
+        <div class="ve-card__body">Stores <code style="font-size:0.85em">customerId</code>, name, email, customer type (Individual / Team), and team member count. Set on initialization.</div>
+      </div>
+      <div class="ve-card ve-card--slate">
+        <div class="ve-card__label" style="color:var(--slate)">Tier + Billing</div>
+        <div class="ve-card__title">What they're paying</div>
+        <div class="ve-card__body">Captures <code style="font-size:0.85em">tierName</code>, <code style="font-size:0.85em">tierPrice</code>, <code style="font-size:0.85em">selectedBillingCycle</code>, projected bill amount, next billing date, and auto-renew flag.</div>
+      </div>
+      <div class="ve-card ve-card--slate">
+        <div class="ve-card__label" style="color:var(--slate)">Service Snapshot</div>
+        <div class="ve-card__title">Services + groups locked in</div>
+        <div class="ve-card__body">Snapshots the service groups and services from the ServiceOffering at time of subscription. Includes setup costs, recurring costs, metrics, and facet selections.</div>
+      </div>
+      <div class="ve-card ve-card--slate">
+        <div class="ve-card__label" style="color:var(--slate)">Resource Link</div>
+        <div class="ve-card__title">Link to ResourceInstance</div>
+        <div class="ve-card__body">Stores a <code style="font-size:0.85em">resource: ResourceDocument</code> with the PHID of the corresponding ResourceInstance. This is the cross-document link.</div>
+      </div>
+      <div class="ve-card ve-card--slate">
+        <div class="ve-card__label" style="color:var(--slate)">Status &amp; Dates</div>
+        <div class="ve-card__title">Lifecycle timestamps</div>
+        <div class="ve-card__body">Tracks <code style="font-size:0.85em">createdAt</code>, <code style="font-size:0.85em">activatedSince</code>, <code style="font-size:0.85em">pausedSince</code>, <code style="font-size:0.85em">expiringSince</code>, <code style="font-size:0.85em">cancelledSince</code>, and renewal date.</div>
+      </div>
+      <div class="ve-card ve-card--green" style="background:var(--green-dim)">
+        <div class="ve-card__label" style="color:var(--green)">Activation Trigger</div>
+        <div class="ve-card__title" style="color:var(--green)">Becomes ACTIVE when…</div>
+        <div class="ve-card__body">The SubscriptionInstance transitions to <strong>ACTIVE</strong> when the linked ResourceInstance reaches <strong>ACTIVE</strong> status. The resource provisioning makes the subscription live.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 11: SUBSCRIPTION STATUS MACHINE ==================== -->
+  <section class="slide slide--diagram bg--light">
+    <div class="diagram__header">
+      <div class="content__label" style="color:var(--slate)">SubscriptionInstance — Status machine</div>
+      <h2 class="slide__heading">PENDING → ACTIVE → CANCELLED</h2>
+    </div>
+    <div class="mermaid-wrap" id="wrap1">
+      <div class="mermaid" id="diag1">
+flowchart LR
+  PENDING(["PENDING"]):::pending --> ACTIVE(["ACTIVE"]):::active
+  ACTIVE --> PAUSED(["PAUSED"]):::paused
+  ACTIVE --> EXPIRING(["EXPIRING"]):::expiring
+  PAUSED --> ACTIVE
+  EXPIRING --> ACTIVE
+  EXPIRING --> CANCELLED(["CANCELLED"]):::cancelled
+  ACTIVE --> CANCELLED
+  PAUSED --> CANCELLED
+
+  classDef pending fill:#3a4a5c22,stroke:#3a4a5c,color:#3a4a5c,rx:8
+  classDef active fill:#2d8c4e22,stroke:#2d8c4e,color:#2d8c4e,rx:8
+  classDef paused fill:#c97c1422,stroke:#c97c14,color:#c97c14,rx:8
+  classDef expiring fill:#c97c1422,stroke:#c97c14,color:#c97c14,rx:8
+  classDef cancelled fill:#c0374a22,stroke:#c0374a,color:#c0374a,rx:8
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn('wrap1','diag1')">+</button>
+        <button class="zoom-btn" onclick="zoomOut('wrap1','diag1')">−</button>
+        <button class="zoom-btn" onclick="zoomReset('wrap1','diag1')" style="font-size:12px">⟳</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 12: DIVIDER — RESOURCE INSTANCE ==================== -->
+  <section class="slide slide--divider" style="background:linear-gradient(135deg,#1a0a10 0%,#200c14 100%)">
+    <div class="divider__num" style="color:rgba(240,106,122,0.15)">04</div>
+    <div class="divider__content">
+      <div class="divider__label" style="color:rgba(240,106,122,0.6)">Document Model 4 of 4</div>
+      <div class="divider__title" style="color:#fad0d8">Resource<br>Instance</div>
+      <div class="divider__desc" style="color:rgba(240,200,210,0.65)">The operator's provisioning record. Created simultaneously with SubscriptionInstance when the customer submits their request.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 13: RESOURCE INSTANCE DETAIL ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--rose)">ResourceInstance — What it tracks</div>
+      <h2 class="slide__heading slide__gap-sm">The operator's provisioning record</h2>
+    </div>
+    <div class="card-grid card-grid--3col">
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__label" style="color:var(--rose)">Identity &amp; Links</div>
+        <div class="ve-card__title">What resource this is</div>
+        <div class="ve-card__body">Stores <code style="font-size:0.85em">resourceTemplateId</code>, <code style="font-size:0.85em">customerId</code>, template name, operator name, and display metadata (name, thumbnail, description).</div>
+      </div>
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__label" style="color:var(--rose)">Operator Profile</div>
+        <div class="ve-card__title">Who's provisioning it</div>
+        <div class="ve-card__body">The <code style="font-size:0.85em">operatorProfile</code> stores a PHID and document type pointing to the operator's profile document in their drive.</div>
+      </div>
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__label" style="color:var(--rose)">Facet Configuration</div>
+        <div class="ve-card__title">How it's configured</div>
+        <div class="ve-card__body">An array of <code style="font-size:0.85em">InstanceFacet</code> entries — the customer's selected facet options (categoryKey → selectedOption). Applied to the physical resource.</div>
+        <div class="ve-card__tag-row"><code style="font-family:var(--font-mono);font-size:10px;background:var(--rose-dim);color:var(--rose);padding:2px 6px;border-radius:3px">configuration[]</code></div>
+      </div>
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__label" style="color:var(--rose)">Provisioning Timeline</div>
+        <div class="ve-card__title">Progress timestamps</div>
+        <div class="ve-card__body">Tracks <code style="font-size:0.85em">confirmedAt</code>, <code style="font-size:0.85em">provisioningStartedAt</code>, <code style="font-size:0.85em">provisioningCompletedAt</code>, <code style="font-size:0.85em">activatedAt</code>. Failure path stores reason.</div>
+      </div>
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__label" style="color:var(--rose)">Suspension</div>
+        <div class="ve-card__title">Suspension types</div>
+        <div class="ve-card__body">Three suspension types: <strong>NON_PAYMENT</strong>, <strong>MAINTENANCE</strong>, <strong>OTHER</strong>. Each has its own resume path. Stores suspension reason and details.</div>
+      </div>
+      <div class="ve-card" style="border-left:3px solid var(--rose);background:var(--rose-dim)">
+        <div class="ve-card__label" style="color:var(--rose)">The Key Trigger</div>
+        <div class="ve-card__title" style="color:var(--rose)">Activating → activates subscription</div>
+        <div class="ve-card__body">When the operator moves ResourceInstance to <strong>ACTIVE</strong>, the linked SubscriptionInstance is also transitioned to <strong>ACTIVE</strong>. This is the status linkage.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 14: RESOURCE INSTANCE STATUS MACHINE ==================== -->
+  <section class="slide slide--diagram bg--light">
+    <div class="diagram__header">
+      <div class="content__label" style="color:var(--rose)">ResourceInstance — Status machine</div>
+      <h2 class="slide__heading">DRAFT → PROVISIONING → ACTIVE</h2>
+    </div>
+    <div class="mermaid-wrap" id="wrap2">
+      <div class="mermaid" id="diag2">
+flowchart LR
+  DRAFT(["DRAFT"]):::draft --> PROVISIONING(["PROVISIONING"]):::prov
+  PROVISIONING --> ACTIVE(["ACTIVE"]):::active
+  ACTIVE --> SUSPENDED(["SUSPENDED"]):::susp
+  SUSPENDED --> ACTIVE
+  ACTIVE --> TERMINATED(["TERMINATED"]):::term
+  SUSPENDED --> TERMINATED
+
+  classDef draft fill:#3a4a5c22,stroke:#3a4a5c,color:#3a4a5c
+  classDef prov fill:#c97c1422,stroke:#c97c14,color:#c97c14
+  classDef active fill:#2d8c4e22,stroke:#2d8c4e,color:#2d8c4e
+  classDef susp fill:#c97c1422,stroke:#c97c14,color:#c97c14
+  classDef term fill:#c0374a22,stroke:#c0374a,color:#c0374a
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn('wrap2','diag2')">+</button>
+        <button class="zoom-btn" onclick="zoomOut('wrap2','diag2')">−</button>
+        <button class="zoom-btn" onclick="zoomReset('wrap2','diag2')" style="font-size:12px">⟳</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 15: DIVIDER — STATUS LINKAGE ==================== -->
+  <section class="slide slide--divider bg--teal">
+    <div class="divider__num">⚡</div>
+    <div class="divider__content">
+      <div class="divider__label">Cross-Document Status Linkage</div>
+      <div class="divider__title" style="color:#d4f0ec">ResourceInstance<br>drives<br>SubscriptionInstance</div>
+      <div class="divider__desc" style="color:rgba(180,255,240,0.65)">When the operator's resource reaches ACTIVE, the customer's subscription becomes ACTIVE. One status chain, two documents, two drives.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 16: STATUS LINKAGE DETAIL ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--teal)">Status Linkage — How it works</div>
+      <h2 class="slide__heading slide__gap-sm">ResourceInstance ACTIVE → SubscriptionInstance ACTIVE</h2>
+    </div>
+    <div class="linkage-flow">
+      <div class="linkage-row" style="background:var(--surface2);border-color:var(--border-bright)">
+        <div style="flex:1;min-width:0">
+          <div class="linkage-doc">Customer / Builder Drive</div>
+          <div class="linkage-status" style="color:var(--slate)">SubscriptionInstance: <span class="status-badge status-badge--pending">PENDING</span></div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:4px">Waiting for provisioning. Billing has not started.</div>
+        </div>
+        <div class="linkage-trigger" style="background:var(--rose-dim);color:var(--rose)">waiting</div>
+      </div>
+      <div class="linkage-connector"></div>
+      <div class="linkage-row" style="background:var(--surface2);border-color:var(--border-bright)">
+        <div style="flex:1;min-width:0">
+          <div class="linkage-doc">Operator Drive</div>
+          <div class="linkage-status" style="color:var(--amber)">ResourceInstance: <span class="status-badge status-badge--provisioning">PROVISIONING</span></div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:4px">Operator confirms instance, starts provisioning, reports completion.</div>
+        </div>
+        <div class="linkage-trigger" style="background:var(--amber-dim);color:var(--amber)">operator action</div>
+      </div>
+      <div class="linkage-connector"></div>
+      <div class="linkage-row" style="background:var(--green-dim);border-color:var(--green)">
+        <div style="flex:1;min-width:0">
+          <div class="linkage-doc">Operator Drive</div>
+          <div class="linkage-status" style="color:var(--green)">ResourceInstance: <span class="status-badge status-badge--active">ACTIVE</span></div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:4px">Operator calls <code style="font-family:var(--font-mono);font-size:0.9em">ACTIVATE_INSTANCE</code> with <code style="font-family:var(--font-mono);font-size:0.9em">activatedAt</code> timestamp.</div>
+        </div>
+        <div class="linkage-trigger" style="background:var(--green-dim);color:var(--green);font-weight:700">TRIGGER ↓</div>
+      </div>
+      <div class="linkage-connector" style="background:var(--green);"></div>
+      <div class="linkage-row" style="background:var(--green-dim);border-color:var(--green);border-width:2px">
+        <div style="flex:1;min-width:0">
+          <div class="linkage-doc">Customer / Builder Drive</div>
+          <div class="linkage-status" style="color:var(--green)">SubscriptionInstance: <span class="status-badge status-badge--active">ACTIVE</span></div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:4px">Subscription activates. <code style="font-family:var(--font-mono);font-size:0.9em">activatedSince</code> is stamped. Billing cycle begins.</div>
+        </div>
+        <div class="linkage-trigger" style="background:var(--green-dim);color:var(--green);font-weight:700">✓ LIVE</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 17: DIVIDER — END-TO-END FLOW ==================== -->
+  <section class="slide slide--divider bg--amber">
+    <div class="divider__num">→</div>
+    <div class="divider__content">
+      <div class="divider__label">The Complete Picture</div>
+      <div class="divider__title" style="color:#fde8b0">End-to-End<br>Flow</div>
+      <div class="divider__desc" style="color:rgba(255,235,180,0.65)">Operator authors → customer subscribes via Arch → both instances created → operator provisions → resource goes ACTIVE → subscription goes ACTIVE.</div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 18: ACTOR FLOW — OPERATOR ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--amber)">Actor Flow — Operator</div>
+      <h2 class="slide__heading slide__gap-sm">Operator: author → provision → activate</h2>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--amber">1</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Author ResourceTemplate</div>
+          <div class="flow-step__body">Define target audiences, vague service overview, expandable content sections, FAQs, and facet catalog. Set status to ACTIVE.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--amber">2</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Create ServiceOffering</div>
+          <div class="flow-step__body">Reference the ResourceTemplate. Define service groups, services, tiers, pricing, billing cycles, usage limits, and add-ons. Publish to ACTIVE.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--amber">3</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Receive the ResourceInstance (created by Arch)</div>
+          <div class="flow-step__body">When a customer submits a request on Arch, a ResourceInstance is created in the operator's Connect drive — DRAFT status, pre-populated with customer details and facet configuration.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--amber">4</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Confirm → start provisioning → complete</div>
+          <div class="flow-step__body">Operator confirms the instance, reports provisioning started, then reports provisioning completed. Status: DRAFT → PROVISIONING.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--green">5</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Activate ResourceInstance → triggers SubscriptionInstance ACTIVE</div>
+          <div class="flow-step__body">Operator calls <code style="font-family:var(--font-mono);font-size:0.9em">ACTIVATE_INSTANCE</code>. ResourceInstance goes ACTIVE. The linked SubscriptionInstance in the customer drive goes ACTIVE. Billing begins.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 19: ACTOR FLOW — CUSTOMER ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--green)">Actor Flow — Customer / Builder</div>
+      <h2 class="slide__heading slide__gap-sm">Customer: browse → configure → submit</h2>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--teal">1</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Browse Arch marketplace</div>
+          <div class="flow-step__body">Customer views service listings sourced from active ResourceTemplates and ServiceOfferings. Reviews content sections, FAQs, and pricing tiers.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--teal">2</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Configure the ServiceOffering</div>
+          <div class="flow-step__body">Customer selects a tier, billing cycle, facet options, and add-ons. A <code style="font-family:var(--font-mono);font-size:0.9em">FinalConfiguration</code> snapshot is built in the ServiceOffering document.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--teal">3</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Click "Submit Request" in Arch</div>
+          <div class="flow-step__body">This is the creation moment. Arch simultaneously creates two documents:</div>
+        </div>
+      </div>
+      <div class="flow-step" style="margin-left: 44px;">
+        <div class="flow-step__num" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);font-family:var(--font-mono);font-size:11px;min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">S</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">SubscriptionInstance created → customer/builder's Connect drive</div>
+          <div class="flow-step__body">Status: PENDING. Contains tier, billing cycle, and service snapshot. Awaits resource activation.</div>
+        </div>
+      </div>
+      <div class="flow-step" style="margin-left: 44px;">
+        <div class="flow-step__num" style="background:var(--rose-dim);color:var(--rose);border:1px solid var(--rose);font-family:var(--font-mono);font-size:11px;min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">R</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">ResourceInstance created → operator's Connect drive</div>
+          <div class="flow-step__body">Status: DRAFT. Contains customer details and facet configuration. Operator sees it and begins provisioning.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step__num flow-step__num--green">4</div>
+        <div class="flow-step__content">
+          <div class="flow-step__title">Wait → SubscriptionInstance goes ACTIVE</div>
+          <div class="flow-step__body">Once the operator activates the ResourceInstance, the customer's SubscriptionInstance transitions to ACTIVE automatically. The service is live.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 20: DOCUMENT RELATIONSHIP MAP ==================== -->
+  <section class="slide slide--diagram bg--light">
+    <div class="diagram__header">
+      <div class="content__label" style="color:var(--slate)">Document Relationship Map</div>
+      <h2 class="slide__heading">How the four documents relate</h2>
+    </div>
+    <div class="mermaid-wrap" id="wrap3">
+      <div class="mermaid" id="diag3">
+flowchart TB
+  subgraph OPERATOR_DRIVE["Operator's Connect Drive"]
+    direction TB
+    RT["ResourceTemplate\n(product identity,\nfacets, content, FAQs)"]:::rt
+    SO["ServiceOffering\n(service groups, tiers,\npricing, add-ons)"]:::so
+    RI["ResourceInstance\n(provisioning record,\nfacet config)"]:::ri
+  end
+
+  subgraph CUSTOMER_DRIVE["Customer / Builder's Connect Drive"]
+    SI["SubscriptionInstance\n(subscription record,\nbilling, status)"]:::si
+  end
+
+  subgraph ARCH["Arch — Marketplace"]
+    BROWSE["Customer browses\n& configures\nServiceOffering"]:::action
+    SUBMIT["Submit Request\n→ creates both\ninstances"]:::trigger
+  end
+
+  SO -->|"references"| RT
+  BROWSE -->|"reads"| SO
+  BROWSE --> SUBMIT
+  SUBMIT -->|"creates in\ncustomer drive"| SI
+  SUBMIT -->|"creates in\noperator drive"| RI
+  RI -->|"ACTIVE\ntriggers ACTIVE"| SI
+
+  classDef rt fill:#0c7e7522,stroke:#0c7e75,color:#0c7e75
+  classDef so fill:#c97c1422,stroke:#c97c14,color:#c97c14
+  classDef ri fill:#c0374a22,stroke:#c0374a,color:#c0374a
+  classDef si fill:#2d8c4e22,stroke:#2d8c4e,color:#2d8c4e
+  classDef action fill:#3a4a5c22,stroke:#3a4a5c,color:#3a4a5c
+  classDef trigger fill:#0c7e7522,stroke:#0c7e75,color:#0c7e75,font-weight:bold
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn('wrap3','diag3')">+</button>
+        <button class="zoom-btn" onclick="zoomOut('wrap3','diag3')">−</button>
+        <button class="zoom-btn" onclick="zoomReset('wrap3','diag3')" style="font-size:12px">⟳</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 21: ARCHITECTURAL DECISIONS ==================== -->
+  <section class="slide slide--content bg--light">
+    <div class="content__header">
+      <div class="content__label" style="color:var(--teal)">Architecture — Key design decisions</div>
+      <h2 class="slide__heading slide__gap-sm">Why this structure?</h2>
+    </div>
+    <div class="card-grid card-grid--2col">
+      <div class="ve-card ve-card--teal">
+        <div class="ve-card__title">Separation of template vs offering</div>
+        <div class="ve-card__body">ResourceTemplate is the evergreen product identity. ServiceOffering is the versioned commercial package. Multiple offerings can reference the same template. Operators update commercial terms without touching product content.</div>
+      </div>
+      <div class="ve-card ve-card--amber">
+        <div class="ve-card__title">Two instances, two drives</div>
+        <div class="ve-card__body">SubscriptionInstance lives in the customer's drive — they own their subscription record. ResourceInstance lives in the operator's drive — they own the provisioning workflow. Neither party accesses the other's document directly.</div>
+      </div>
+      <div class="ve-card ve-card--green">
+        <div class="ve-card__title">Status linkage, not shared state</div>
+        <div class="ve-card__body">ResourceInstance and SubscriptionInstance don't share state. The link is via PHID reference. When ResourceInstance reaches ACTIVE, an event/operation triggers ACTIVATE_SUBSCRIPTION on the SubscriptionInstance — clean event sourcing.</div>
+      </div>
+      <div class="ve-card ve-card--rose">
+        <div class="ve-card__title">FinalConfiguration snapshot</div>
+        <div class="ve-card__body">When a customer configures a ServiceOffering, a FinalConfiguration snapshot is written to the offering document. This locks in the exact pricing, tier, billing cycle, and add-ons at subscription time — even if the offering changes later.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 22: GLOSSARY / FIELD MAP ==================== -->
+  <section class="slide slide--table bg--light">
+    <div class="diagram__header">
+      <div class="content__label" style="color:var(--slate)">Quick Reference</div>
+      <h2 class="slide__heading">Key fields across all four documents</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Key Field</th>
+            <th>Type</th>
+            <th>What it stores</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>ResourceTemplate</strong></td><td><code>targetAudiences[]</code></td><td>Array</td><td>Labeled audience segments with optional color</td></tr>
+          <tr><td><strong>ResourceTemplate</strong></td><td><code>facetTargets[]</code></td><td>Array</td><td>Facet categories + valid options for this resource</td></tr>
+          <tr><td><strong>ResourceTemplate</strong></td><td><code>contentSections[]</code></td><td>Array</td><td>Expandable deep-dive product content sections</td></tr>
+          <tr><td><strong>ResourceTemplate</strong></td><td><code>faqFields[]</code></td><td>Array</td><td>FAQ question/answer pairs for the listing</td></tr>
+          <tr><td><strong>ServiceOffering</strong></td><td><code>resourceTemplateId</code></td><td>PHID</td><td>Reference to the linked ResourceTemplate</td></tr>
+          <tr><td><strong>ServiceOffering</strong></td><td><code>serviceGroups[]</code></td><td>Array</td><td>Logical service bundles with billing cycle + pricing</td></tr>
+          <tr><td><strong>ServiceOffering</strong></td><td><code>tiers[]</code></td><td>Array</td><td>Subscription tiers with service levels + usage limits</td></tr>
+          <tr><td><strong>ServiceOffering</strong></td><td><code>finalConfiguration</code></td><td>Object</td><td>Snapshot of customer's selected tier, cycle, add-ons</td></tr>
+          <tr><td><strong>SubscriptionInstance</strong></td><td><code>resource</code></td><td>ResourceDocument</td><td>PHID link to the paired ResourceInstance</td></tr>
+          <tr><td><strong>SubscriptionInstance</strong></td><td><code>status</code></td><td>Enum</td><td>PENDING / ACTIVE / PAUSED / EXPIRING / CANCELLED</td></tr>
+          <tr><td><strong>SubscriptionInstance</strong></td><td><code>activatedSince</code></td><td>DateTime</td><td>Set when ResourceInstance triggers ACTIVE status</td></tr>
+          <tr><td><strong>ResourceInstance</strong></td><td><code>configuration[]</code></td><td>InstanceFacet[]</td><td>Customer's selected facet options applied to resource</td></tr>
+          <tr><td><strong>ResourceInstance</strong></td><td><code>status</code></td><td>Enum</td><td>DRAFT / PROVISIONING / ACTIVE / SUSPENDED / TERMINATED</td></tr>
+          <tr><td><strong>ResourceInstance</strong></td><td><code>operatorProfile</code></td><td>OperatorProfile</td><td>PHID + document type of the operator's profile doc</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- Mermaid -->
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#f5ede0',
+      primaryBorderColor: '#c97c14',
+      primaryTextColor: '#1f1208',
+      lineColor: '#7a6245',
+      edgeLabelBackground: '#fdf6ed',
+      fontSize: '15px',
+      fontFamily: "'Bricolage Grotesque', 'Trebuchet MS', sans-serif",
+    },
+    flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 50, rankSpacing: 60 }
+  });
+</script>
+
+<!-- Slide Engine JS -->
+<script>
+  const deck = document.getElementById('deck');
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const dots = document.getElementById('navDots');
+  const counter = document.getElementById('navCounter');
+  const progress = document.getElementById('progressBar');
+  const hint = document.getElementById('navHint');
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Slide ' + (i + 1));
+    d.addEventListener('click', () => goTo(i));
+    dots.appendChild(d);
+  });
+
+  let current = 0;
+  let isAnimating = false;
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= slides.length) return;
+    current = idx;
+    slides[idx].scrollIntoView({ behavior: 'smooth' });
+    updateUI(idx);
+  }
+
+  function updateUI(idx) {
+    const allDots = dots.querySelectorAll('.nav-dot');
+    allDots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    counter.textContent = (idx + 1) + ' / ' + slides.length;
+    progress.style.width = ((idx + 1) / slides.length * 100) + '%';
+    if (idx > 0) hint.style.opacity = '0';
+    else hint.style.opacity = '1';
+  }
+
+  // Intersection observer for visibility animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('is-visible');
+        const idx = slides.indexOf(e.target);
+        if (idx >= 0) updateUI(idx);
+      } else {
+        e.target.classList.remove('is-visible');
+      }
+    });
+  }, { threshold: 0.5, root: deck });
+
+  slides.forEach(s => observer.observe(s));
+
+  // Keyboard nav
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowDown', 'ArrowRight', 'PageDown', ' '].includes(e.key)) {
+      e.preventDefault();
+      goTo(current + 1);
+    }
+    if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) {
+      e.preventDefault();
+      goTo(current - 1);
+    }
+  });
+
+  // Scroll events on deck — guard against triggering slide nav from scrollable tables/diagrams
+  deck.addEventListener('wheel', (e) => {
+    const isInScrollable = e.target.closest('.table-wrap, .mermaid-wrap');
+    if (isInScrollable) return;
+    e.preventDefault();
+    if (isAnimating) return;
+    isAnimating = true;
+    goTo(e.deltaY > 0 ? current + 1 : current - 1);
+    setTimeout(() => { isAnimating = false; }, 800);
+  }, { passive: false });
+
+  updateUI(0);
+</script>
+
+<!-- Zoom controls JS -->
+<script>
+  const zoomState = {};
+
+  function getState(wrapId) {
+    if (!zoomState[wrapId]) zoomState[wrapId] = { scale: 1, tx: 0, ty: 0, dragging: false, startX: 0, startY: 0 };
+    return zoomState[wrapId];
+  }
+
+  function applyTransform(diag, s) {
+    const el = document.getElementById(diag);
+    el.style.transform = `translate(${s.tx}px, ${s.ty}px) scale(${s.scale})`;
+  }
+
+  function zoomIn(wrapId, diagId) {
+    const s = getState(wrapId);
+    s.scale = Math.min(s.scale * 1.25, 4);
+    applyTransform(diagId, s);
+  }
+
+  function zoomOut(wrapId, diagId) {
+    const s = getState(wrapId);
+    s.scale = Math.max(s.scale / 1.25, 0.5);
+    applyTransform(diagId, s);
+  }
+
+  function zoomReset(wrapId, diagId) {
+    const s = getState(wrapId);
+    s.scale = 1; s.tx = 0; s.ty = 0;
+    applyTransform(diagId, s);
+  }
+
+  // Ctrl/Cmd+scroll zoom on each mermaid wrap
+  document.querySelectorAll('.mermaid-wrap').forEach(wrap => {
+    const wrapId = wrap.id;
+    const diagId = wrap.querySelector('.mermaid').id;
+    wrap.addEventListener('wheel', (e) => {
+      e.stopPropagation();
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const s = getState(wrapId);
+        s.scale = e.deltaY < 0 ? Math.min(s.scale * 1.1, 4) : Math.max(s.scale / 1.1, 0.5);
+        applyTransform(diagId, s);
+      }
+    }, { passive: false });
+
+    // Drag to pan when zoomed
+    const diagEl = wrap.querySelector('.mermaid');
+    diagEl.addEventListener('mousedown', (e) => {
+      const s = getState(wrapId);
+      if (s.scale <= 1) return;
+      s.dragging = true;
+      s.startX = e.clientX - s.tx;
+      s.startY = e.clientY - s.ty;
+    });
+    document.addEventListener('mousemove', (e) => {
+      const s = getState(wrapId);
+      if (!s.dragging) return;
+      s.tx = e.clientX - s.startX;
+      s.ty = e.clientY - s.startY;
+      applyTransform(diagId, s);
+    });
+    document.addEventListener('mouseup', () => {
+      const s = getState(wrapId);
+      s.dragging = false;
+    });
+  });
+</script>
+
+</body>
+</html>
