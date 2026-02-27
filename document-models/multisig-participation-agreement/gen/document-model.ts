@@ -1,0 +1,485 @@
+import type { DocumentModelGlobalState } from "document-model";
+
+export const documentModel: DocumentModelGlobalState = {
+  author: {
+    name: "Powerhouse",
+    website: "https://www.powerhouse.inc/",
+  },
+  description:
+    "Legal agreement between the Association and an Active Signer governing participation in a multisignature wallet scheme",
+  extension: "mpa",
+  id: "powerhouse/multisig-participation-agreement",
+  name: "MultisigParticipationAgreement",
+  specifications: [
+    {
+      changeLog: [],
+      modules: [
+        {
+          description: "Agreement lifecycle and party setup",
+          id: "agreement",
+          name: "agreement",
+          operations: [
+            {
+              description: "Create MPA from template; sets status to DRAFT",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-init-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "initialize-mpa",
+              name: "INITIALIZE_MPA",
+              reducer:
+                "if (state.status && state.status !== 'DRAFT') {\n  throw new AgreementTerminatedError('Cannot reinitialize a non-draft MPA');\n}\nstate.templateVersion = action.input.templateVersion || null;\nstate.associationName = action.input.associationName || null;\nstate.status = 'DRAFT';",
+              schema:
+                "input InitializeMpaInput {\n  templateVersion: String\n  associationName: String\n}",
+              scope: "global",
+              template: "Create MPA from template; sets status to DRAFT",
+            },
+            {
+              description: "Set or update the Active Signer details",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-sas-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "set-active-signer",
+              name: "SET_ACTIVE_SIGNER",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nstate.activeSigner = {\n  type: action.input.type as any,\n  name: action.input.name || null,\n  isAnonymous: action.input.isAnonymous !== undefined && action.input.isAnonymous !== null ? action.input.isAnonymous : false,\n  citizenship: action.input.citizenship || null,\n  residenceCountry: action.input.residenceCountry || null,\n  incorporationCity: action.input.incorporationCity || null,\n  incorporationCountry: action.input.incorporationCountry || null,\n};",
+              schema:
+                "input SetActiveSignerInput {\n  type: String!\n  name: String\n  isAnonymous: Boolean\n  citizenship: String\n  residenceCountry: String\n  incorporationCity: String\n  incorporationCountry: String\n}",
+              scope: "global",
+              template: "Set or update the Active Signer details",
+            },
+            {
+              description: "Set Exhibit 1 wallet parameters",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-sw-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "set-wallet",
+              name: "SET_WALLET",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nif (!state.wallet) {\n  state.wallet = { numberOfKeys: null, decisionQuorum: null, signaturePlatform: null, walletAddresses: [] };\n}\nif (action.input.numberOfKeys !== undefined && action.input.numberOfKeys !== null) state.wallet.numberOfKeys = action.input.numberOfKeys;\nif (action.input.decisionQuorum !== undefined && action.input.decisionQuorum !== null) state.wallet.decisionQuorum = action.input.decisionQuorum;\nif (action.input.signaturePlatform) state.wallet.signaturePlatform = action.input.signaturePlatform;\nif (action.input.walletAddresses) state.wallet.walletAddresses = action.input.walletAddresses;",
+              schema:
+                "input SetWalletInput {\n  numberOfKeys: Int\n  decisionQuorum: Int\n  signaturePlatform: String\n  walletAddresses: [String!]\n}",
+              scope: "global",
+              template: "Set Exhibit 1 wallet parameters",
+            },
+            {
+              description: "Set Exhibit 2 process parameters",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-spd-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "set-process-details",
+              name: "SET_PROCESS_DETAILS",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nif (action.input.communicationChannel) state.communicationChannel = action.input.communicationChannel;\nif (action.input.unavailabilityThresholdHours !== undefined && action.input.unavailabilityThresholdHours !== null) state.unavailabilityThresholdHours = action.input.unavailabilityThresholdHours;",
+              schema:
+                "input SetProcessDetailsInput {\n  communicationChannel: String\n  unavailabilityThresholdHours: Int\n}",
+              scope: "global",
+              template: "Set Exhibit 2 process parameters",
+            },
+            {
+              description:
+                "Add an Exhibit 3 policy link, snapshotted at time of call",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-apl-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+                {
+                  code: "DUPLICATE_POLICY_LINK_ID",
+                  description: "A policy link with this ID already exists",
+                  id: "err-apl-duplicate",
+                  name: "DuplicatePolicyLinkIdError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "add-policy-link",
+              name: "ADD_POLICY_LINK",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nconst existing = state.policyLinks.find(l => l.id === action.input.id);\nif (existing) {\n  throw new DuplicatePolicyLinkIdError(`Policy link with id ${action.input.id} already exists`);\n}\nstate.policyLinks.push({\n  id: action.input.id,\n  label: action.input.label || null,\n  url: action.input.url || null,\n  snapshotDate: action.input.snapshotDate,\n});",
+              schema:
+                "input AddPolicyLinkInput {\n  id: OID!\n  label: String\n  url: String\n  snapshotDate: DateTime!\n}",
+              scope: "global",
+              template:
+                "Add an Exhibit 3 policy link, snapshotted at time of call",
+            },
+            {
+              description: "Remove a policy link by id",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-rpl-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+                {
+                  code: "POLICY_LINK_NOT_FOUND",
+                  description: "Referenced policy link ID does not exist",
+                  id: "err-rpl-notfound",
+                  name: "PolicyLinkNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "remove-policy-link",
+              name: "REMOVE_POLICY_LINK",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nconst idx = state.policyLinks.findIndex(l => l.id === action.input.id);\nif (idx === -1) {\n  throw new PolicyLinkNotFoundError(`Policy link with id ${action.input.id} not found`);\n}\nstate.policyLinks.splice(idx, 1);",
+              schema: "input RemovePolicyLinkInput {\n  id: OID!\n}",
+              scope: "global",
+              template: "Remove a policy link by id",
+            },
+            {
+              description: "Add an Association signatory slot",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-aas-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+                {
+                  code: "DUPLICATE_SIGNER_ID",
+                  description:
+                    "An association signer with this ID already exists",
+                  id: "err-aas-duplicate",
+                  name: "DuplicateSignerIdError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "add-association-signer",
+              name: "ADD_ASSOCIATION_SIGNER",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nconst existing = state.associationSigners.find(s => s.id === action.input.id);\nif (existing) {\n  throw new DuplicateSignerIdError(`Association signer with id ${action.input.id} already exists`);\n}\nstate.associationSigners.push({\n  id: action.input.id,\n  name: action.input.name || null,\n  function: action.input.function || null,\n  signature: null,\n});",
+              schema:
+                "input AddAssociationSignerInput {\n  id: OID!\n  name: String\n  function: String\n}",
+              scope: "global",
+              template: "Add an Association signatory slot",
+            },
+            {
+              description: "Remove an Association signatory slot by id",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-ras-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+                {
+                  code: "SIGNER_NOT_FOUND",
+                  description:
+                    "Referenced association signer ID does not exist",
+                  id: "err-ras-notfound",
+                  name: "SignerNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "remove-association-signer",
+              name: "REMOVE_ASSOCIATION_SIGNER",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nconst idx = state.associationSigners.findIndex(s => s.id === action.input.id);\nif (idx === -1) {\n  throw new SignerNotFoundError(`Association signer with id ${action.input.id} not found`);\n}\nstate.associationSigners.splice(idx, 1);",
+              schema: "input RemoveAssociationSignerInput {\n  id: OID!\n}",
+              scope: "global",
+              template: "Remove an Association signatory slot by id",
+            },
+            {
+              description:
+                "Transition DRAFT to PENDING_SIGNATURE; validates all required fields",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-sfs-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+                {
+                  code: "INVALID_STATUS_TRANSITION",
+                  description:
+                    "The requested status transition is not permitted from current status",
+                  id: "err-sfs-invalid-transition",
+                  name: "InvalidStatusTransitionError",
+                  template: "",
+                },
+                {
+                  code: "MISSING_REQUIRED_FIELD",
+                  description:
+                    "A required field is not set before submitting for signature",
+                  id: "err-sfs-missing-field",
+                  name: "MissingRequiredFieldError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "submit-for-signature",
+              name: "SUBMIT_FOR_SIGNATURE",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nif (state.status !== 'DRAFT') {\n  throw new InvalidStatusTransitionError(`Cannot submit for signature from status ${state.status}`);\n}\nif (!state.associationName) throw new MissingRequiredFieldError('associationName is required');\nif (!state.activeSigner || !state.activeSigner.name) throw new MissingRequiredFieldError('activeSigner.name is required');\nif (!state.wallet || !state.wallet.numberOfKeys) throw new MissingRequiredFieldError('wallet.numberOfKeys is required');\nif (!state.wallet.decisionQuorum) throw new MissingRequiredFieldError('wallet.decisionQuorum is required');\nif (!state.wallet.signaturePlatform) throw new MissingRequiredFieldError('wallet.signaturePlatform is required');\nif (!state.communicationChannel) throw new MissingRequiredFieldError('communicationChannel is required');\nif (!state.unavailabilityThresholdHours) throw new MissingRequiredFieldError('unavailabilityThresholdHours is required');\nif (state.associationSigners.length === 0) throw new MissingRequiredFieldError('at least one associationSigner is required');\nstate.status = 'PENDING_SIGNATURE';",
+              schema:
+                "input SubmitForSignatureInput {\n  _placeholder: Boolean\n}",
+              scope: "global",
+              template:
+                "Transition DRAFT to PENDING_SIGNATURE; validates all required fields",
+            },
+            {
+              description: "Record an Association signer e-signature",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-ras2-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+                {
+                  code: "SIGNER_NOT_FOUND",
+                  description:
+                    "Referenced association signer ID does not exist",
+                  id: "err-ras2-notfound",
+                  name: "SignerNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "SIGNER_ALREADY_SIGNED",
+                  description:
+                    "Association signer has already submitted their signature",
+                  id: "err-ras2-already-signed",
+                  name: "SignerAlreadySignedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "record-association-signature",
+              name: "RECORD_ASSOCIATION_SIGNATURE",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nconst signer = state.associationSigners.find(s => s.id === action.input.signerId);\nif (!signer) {\n  throw new SignerNotFoundError(`Association signer with id ${action.input.signerId} not found`);\n}\nif (signer.signature) {\n  throw new SignerAlreadySignedError(`Association signer ${action.input.signerId} has already signed`);\n}\nsigner.signature = {\n  place: action.input.place || null,\n  date: action.input.date,\n  eSignaturePlatform: action.input.eSignaturePlatform,\n  eSignatureReference: action.input.eSignatureReference,\n  eSignatureTimestamp: action.input.eSignatureTimestamp,\n};",
+              schema:
+                "input RecordAssociationSignatureInput {\n  signerId: OID!\n  place: String\n  date: DateTime!\n  eSignaturePlatform: String!\n  eSignatureReference: String!\n  eSignatureTimestamp: DateTime!\n}",
+              scope: "global",
+              template: "Record an Association signer e-signature",
+            },
+            {
+              description:
+                "Record the Active Signer e-signature; auto-transitions to ACTIVE if all Association signers have also signed",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description: "Cannot modify a terminated MPA",
+                  id: "err-rass-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "record-active-signer-signature",
+              name: "RECORD_ACTIVE_SIGNER_SIGNATURE",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot modify a terminated MPA');\n}\nstate.activeSignerSignature = {\n  place: action.input.place || null,\n  date: action.input.date,\n  eSignaturePlatform: action.input.eSignaturePlatform,\n  eSignatureReference: action.input.eSignatureReference,\n  eSignatureTimestamp: action.input.eSignatureTimestamp,\n};\nconst allAssociationSigned = state.associationSigners.length > 0 && state.associationSigners.every(s => s.signature !== null);\nif (allAssociationSigned) {\n  state.status = 'ACTIVE';\n  state.effectiveDate = action.input.effectiveDate;\n}",
+              schema:
+                "input RecordActiveSignerSignatureInput {\n  place: String\n  date: DateTime!\n  eSignaturePlatform: String!\n  eSignatureReference: String!\n  eSignatureTimestamp: DateTime!\n  effectiveDate: DateTime!\n}",
+              scope: "global",
+              template:
+                "Record the Active Signer e-signature; auto-transitions to ACTIVE if all Association signers have also signed",
+            },
+            {
+              description:
+                "Voluntary termination by either party (MPA \u00A78)",
+              errors: [
+                {
+                  code: "TERMINATE_NOT_ACTIVE",
+                  description: "Cannot terminate an MPA that is not ACTIVE",
+                  id: "err-tv-not-active",
+                  name: "TerminateNotActiveError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "terminate-voluntary",
+              name: "TERMINATE_VOLUNTARY",
+              reducer:
+                "if (state.status !== 'ACTIVE') {\n  throw new TerminateNotActiveError(`Cannot terminate MPA with status ${state.status}`);\n}\nstate.status = 'TERMINATED';\nstate.terminationDate = action.input.terminationDate;\nstate.terminationReason = action.input.terminationReason || null;",
+              schema:
+                "input TerminateVoluntaryInput {\n  terminationDate: DateTime!\n  terminationReason: String\n}",
+              scope: "global",
+              template: "Voluntary termination by either party (MPA \u00A78)",
+            },
+            {
+              description: "Material breach auto-termination (MPA \u00A78)",
+              errors: [
+                {
+                  code: "TERMINATE_NOT_ACTIVE",
+                  description: "Cannot terminate an MPA that is not ACTIVE",
+                  id: "err-tb-not-active",
+                  name: "TerminateNotActiveError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "terminate-breach",
+              name: "TERMINATE_BREACH",
+              reducer:
+                "if (state.status !== 'ACTIVE') {\n  throw new TerminateNotActiveError(`Cannot terminate MPA with status ${state.status}`);\n}\nstate.status = 'TERMINATED';\nstate.terminationDate = action.input.terminationDate;\nstate.terminationReason = action.input.terminationReason;",
+              schema:
+                "input TerminateBreachInput {\n  terminationDate: DateTime!\n  terminationReason: String!\n}",
+              scope: "global",
+              template: "Material breach auto-termination (MPA \u00A78)",
+            },
+            {
+              description:
+                "Key compromise auto-termination trigger (MPA \u00A74.4)",
+              errors: [
+                {
+                  code: "TERMINATE_NOT_ACTIVE",
+                  description: "Cannot terminate an MPA that is not ACTIVE",
+                  id: "err-tkc-not-active",
+                  name: "TerminateNotActiveError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "terminate-key-compromise",
+              name: "TERMINATE_KEY_COMPROMISE",
+              reducer:
+                "if (state.status !== 'ACTIVE') {\n  throw new TerminateNotActiveError(`Cannot terminate MPA with status ${state.status}`);\n}\nstate.status = 'TERMINATED';\nstate.terminationDate = action.input.terminationDate;\nstate.terminationReason = 'Key compromise';",
+              schema:
+                "input TerminateKeyCompromiseInput {\n  terminationDate: DateTime!\n}",
+              scope: "global",
+              template:
+                "Key compromise auto-termination trigger (MPA \u00A74.4)",
+            },
+          ],
+        },
+        {
+          description: "Compliance event tracking",
+          id: "compliance",
+          name: "compliance",
+          operations: [
+            {
+              description: "Append a new compliance event to the record",
+              errors: [
+                {
+                  code: "AGREEMENT_TERMINATED",
+                  description:
+                    "Cannot add compliance events to a terminated MPA",
+                  id: "err-ace-terminated",
+                  name: "AgreementTerminatedError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "add-compliance-event",
+              name: "ADD_COMPLIANCE_EVENT",
+              reducer:
+                "if (state.status === 'TERMINATED') {\n  throw new AgreementTerminatedError('Cannot add compliance events to a terminated MPA');\n}\nconst slaDeadlineAt = action.input.slaDeadlineHours\n  ? new Date(new Date(action.input.occurredAt).getTime() + action.input.slaDeadlineHours * 3600000).toISOString()\n  : null;\nstate.complianceEvents.push({\n  id: action.input.id,\n  type: action.input.type as any,\n  occurredAt: action.input.occurredAt,\n  enteredAt: action.input.enteredAt,\n  enteredBy: action.input.enteredBy || null,\n  description: action.input.description || null,\n  slaDeadlineHours: action.input.slaDeadlineHours || null,\n  slaDeadlineAt,\n  slaBreached: false,\n  supersededById: null,\n  supersedes: null,\n  amendmentReason: null,\n});",
+              schema:
+                "input AddComplianceEventInput {\n  id: OID!\n  type: String!\n  occurredAt: DateTime!\n  enteredAt: DateTime!\n  enteredBy: String\n  description: String\n  slaDeadlineHours: Int\n}",
+              scope: "global",
+              template: "Append a new compliance event to the record",
+            },
+            {
+              description:
+                "Supersede an existing event with a corrected one; immutable audit trail preserved",
+              errors: [
+                {
+                  code: "EVENT_NOT_FOUND",
+                  description: "Referenced compliance event ID does not exist",
+                  id: "err-ame-notfound",
+                  name: "EventNotFoundError",
+                  template: "",
+                },
+                {
+                  code: "EVENT_ALREADY_SUPERSEDED",
+                  description:
+                    "Cannot amend an event that has already been superseded",
+                  id: "err-ame-superseded",
+                  name: "EventAlreadySupersededError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "amend-compliance-event",
+              name: "AMEND_COMPLIANCE_EVENT",
+              reducer:
+                "const original = state.complianceEvents.find(e => e.id === action.input.supersedes);\nif (!original) {\n  throw new EventNotFoundError(`Compliance event with id ${action.input.supersedes} not found`);\n}\nif (original.supersededById) {\n  throw new EventAlreadySupersededError(`Compliance event ${action.input.supersedes} has already been superseded`);\n}\noriginal.supersededById = action.input.newEventId;\nconst slaDeadlineAt = action.input.slaDeadlineHours\n  ? new Date(new Date(action.input.occurredAt).getTime() + action.input.slaDeadlineHours * 3600000).toISOString()\n  : null;\nstate.complianceEvents.push({\n  id: action.input.newEventId,\n  type: action.input.type as any,\n  occurredAt: action.input.occurredAt,\n  enteredAt: action.input.enteredAt,\n  enteredBy: action.input.enteredBy || null,\n  description: action.input.description || null,\n  slaDeadlineHours: action.input.slaDeadlineHours || null,\n  slaDeadlineAt,\n  slaBreached: false,\n  supersededById: null,\n  supersedes: action.input.supersedes,\n  amendmentReason: action.input.amendmentReason,\n});",
+              schema:
+                "input AmendComplianceEventInput {\n  newEventId: OID!\n  supersedes: OID!\n  amendmentReason: String!\n  type: String!\n  occurredAt: DateTime!\n  enteredAt: DateTime!\n  enteredBy: String\n  description: String\n  slaDeadlineHours: Int\n}",
+              scope: "global",
+              template:
+                "Supersede an existing event with a corrected one; immutable audit trail preserved",
+            },
+            {
+              description: "Flag a compliance event as having breached its SLA",
+              errors: [
+                {
+                  code: "EVENT_NOT_FOUND",
+                  description: "Referenced compliance event ID does not exist",
+                  id: "err-msb-notfound",
+                  name: "EventNotFoundError",
+                  template: "",
+                },
+              ],
+              examples: [],
+              id: "mark-sla-breached",
+              name: "MARK_SLA_BREACHED",
+              reducer:
+                "const event = state.complianceEvents.find(e => e.id === action.input.eventId);\nif (!event) {\n  throw new EventNotFoundError(`Compliance event with id ${action.input.eventId} not found`);\n}\nevent.slaBreached = true;",
+              schema: "input MarkSlaBreachedInput {\n  eventId: OID!\n}",
+              scope: "global",
+              template: "Flag a compliance event as having breached its SLA",
+            },
+          ],
+        },
+      ],
+      state: {
+        global: {
+          examples: [],
+          initialValue:
+            '{"templateVersion":null,"status":"DRAFT","associationName":null,"activeSigner":null,"wallet":null,"communicationChannel":null,"unavailabilityThresholdHours":null,"policyLinks":[],"associationSigners":[],"activeSignerSignature":null,"complianceEvents":[],"effectiveDate":null,"terminationDate":null,"terminationReason":null}',
+          schema:
+            "enum MPAStatus {\n  DRAFT\n  PENDING_SIGNATURE\n  ACTIVE\n  TERMINATED\n}\n\nenum SignerType {\n  NATURAL_PERSON\n  LEGAL_ENTITY\n}\n\nenum ComplianceEventType {\n  SIGNATURE_REQUEST_RESPONSE\n  COORDINATION_RESPONSE\n  DISPUTE_RESOLUTION\n  KEY_COMPROMISE_REPORTED\n  KEY_COMPROMISE_REPLACEMENT_COMPLETED\n  UNAVAILABILITY_NOTICE\n  CONFLICT_OF_INTEREST_DISCLOSURE\n  AML_KYC_REQUEST\n  AML_KYC_RESPONSE\n}\n\ntype ActiveSigner {\n  type: SignerType!\n  name: String\n  isAnonymous: Boolean\n  citizenship: String\n  residenceCountry: String\n  incorporationCity: String\n  incorporationCountry: String\n}\n\ntype WalletDescription {\n  numberOfKeys: Int\n  decisionQuorum: Int\n  signaturePlatform: String\n  walletAddresses: [String!]!\n}\n\ntype PolicyLink {\n  id: OID!\n  label: String\n  url: URL\n  snapshotDate: DateTime\n}\n\ntype SignatureRecord {\n  place: String\n  date: DateTime\n  eSignaturePlatform: String\n  eSignatureReference: String\n  eSignatureTimestamp: DateTime\n}\n\ntype AssociationSigner {\n  id: OID!\n  name: String\n  function: String\n  signature: SignatureRecord\n}\n\ntype ComplianceEvent {\n  id: OID!\n  type: ComplianceEventType!\n  occurredAt: DateTime!\n  enteredAt: DateTime!\n  enteredBy: String\n  description: String\n  slaDeadlineHours: Int\n  slaDeadlineAt: DateTime\n  slaBreached: Boolean\n  supersededById: OID\n  supersedes: OID\n  amendmentReason: String\n}\n\ntype MultisigParticipationAgreementState {\n  templateVersion: String\n  status: MPAStatus\n  associationName: String\n  activeSigner: ActiveSigner\n  wallet: WalletDescription\n  communicationChannel: String\n  unavailabilityThresholdHours: Int\n  policyLinks: [PolicyLink!]!\n  associationSigners: [AssociationSigner!]!\n  activeSignerSignature: SignatureRecord\n  complianceEvents: [ComplianceEvent!]!\n  effectiveDate: DateTime\n  terminationDate: DateTime\n  terminationReason: String\n}",
+        },
+        local: {
+          examples: [],
+          initialValue: "",
+          schema: "",
+        },
+      },
+      version: 1,
+    },
+  ],
+};

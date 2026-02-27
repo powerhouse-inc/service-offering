@@ -28,7 +28,7 @@ export const documentModel: DocumentModelGlobalState = {
               reducer:
                 'state.operatorProfile = {\n    id: action.input.operatorId,\n    documentType: action.input.operatorDocumentType\n};\nstate.resourceTemplateId = action.input.resourceTemplateId || null;\nstate.customerId = action.input.customerId || null;\nstate.customerName = action.input.customerName || null;\nstate.templateName = action.input.templateName || null;\nstate.operatorName = action.input.operatorName || null;\nstate.name = action.input.name || null;\nstate.thumbnailUrl = action.input.thumbnailUrl || null;\nstate.infoLink = action.input.infoLink || null;\nstate.description = action.input.description || null;\nstate.status = "DRAFT";',
               schema:
-                "input InitializeInstanceInput {\n    operatorId: PHID!\n    operatorDocumentType: String!\n    resourceTemplateId: PHID\n    customerId: PHID\n    customerName: String\n    templateName: String\n    operatorName: String\n    thumbnailUrl: URL\n    infoLink: URL\n    description: String\n}",
+                "input InitializeInstanceInput {\n    operatorId: PHID!\n    operatorDocumentType: String!\n    resourceTemplateId: PHID\n    customerId: PHID\n    customerName: String\n    templateName: String\n    operatorName: String\n    name: String\n    thumbnailUrl: URL\n    infoLink: URL\n    description: String\n}",
               scope: "global",
               template: "Initializes a new resource instance",
             },
@@ -55,7 +55,7 @@ export const documentModel: DocumentModelGlobalState = {
               reducer:
                 "state.operatorProfile = {\n    id: action.input.operatorId,\n    documentType: action.input.operatorDocumentType\n};",
               schema:
-                "input SetOperatorProfileInput {\n    operatorId: PHID!\n    operatorName: String\n}",
+                "input SetOperatorProfileInput {\n    operatorId: PHID!\n    operatorDocumentType: String!\n}",
               scope: "global",
               template: "Sets the resource profile reference",
             },
@@ -443,9 +443,9 @@ export const documentModel: DocumentModelGlobalState = {
         global: {
           examples: [],
           initialValue:
-            '{\n  "resourceTemplateId": null,\n  "customerId": null,\n  "customerName": null,\n  "templateName": null,\n  "thumbnailUrl": null,\n  "infoLink": null,\n  "description": null,\n  "operatorProfile": null,\n  "status": "DRAFT",\n  "configuration": [],\n  "confirmedAt": null,\n  "provisioningStartedAt": null,\n  "provisioningCompletedAt": null,\n  "provisioningFailureReason": null,\n  "activatedAt": null,\n  "suspendedAt": null,\n  "suspensionType": null,\n  "suspensionReason": null,\n  "suspensionDetails": null,\n  "resumedAt": null,\n  "terminatedAt": null,\n  "terminationReason": null\n}',
+            '{\n    "resourceTemplateId": null,\n    "customerId": null,\n    "customerName": null,\n    "templateName": null,\n    "operatorName": null,\n    "name": null,\n    "thumbnailUrl": null,\n    "infoLink": null,\n    "description": null,\n    "operatorProfile": null,\n    "status": "DRAFT",\n    "configuration": [],\n    "confirmedAt": null,\n    "provisioningStartedAt": null,\n    "provisioningCompletedAt": null,\n    "provisioningFailureReason": null,\n    "activatedAt": null,\n    "suspendedAt": null,\n    "suspensionType": null,\n    "suspensionReason": null,\n    "suspensionDetails": null,\n    "resumedAt": null,\n    "terminatedAt": null,\n    "terminationReason": null\n}',
           schema:
-            "type ResourceInstanceState {\n    resourceTemplateId: PHID\n    customerId: PHID\n    customerName: String\n    templateName: String\n    thumbnailUrl: URL\n    infoLink: URL\n    description: String\n    operatorProfile: OperatorProfile\n    status: InstanceStatus!\n    configuration: [InstanceFacet!]!\n    confirmedAt: DateTime\n    provisioningStartedAt: DateTime\n    provisioningCompletedAt: DateTime\n    provisioningFailureReason: String\n    activatedAt: DateTime\n    suspendedAt: DateTime\n    suspensionType: SuspensionType\n    suspensionReason: String\n    suspensionDetails: String\n    resumedAt: DateTime\n    terminatedAt: DateTime\n    terminationReason: String\n}\n\ntype OperatorProfile {\n    id: PHID!\n    operatorName: String\n}\n\nenum InstanceStatus {\n    DRAFT\n    PROVISIONING\n    ACTIVE\n    SUSPENDED\n    TERMINATED\n}\n\nenum SuspensionType {\n    NON_PAYMENT\n    MAINTENANCE\n    OTHER\n}\n\ntype InstanceFacet {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOption: String!\n}",
+            "type ResourceInstanceState {\n    resourceTemplateId: PHID\n    customerId: PHID\n    customerName: String\n    templateName: String\n    operatorName: String\n    name: String\n    thumbnailUrl: URL\n    infoLink: URL\n    description: String\n    operatorProfile: OperatorProfile\n    status: InstanceStatus!\n    configuration: [InstanceFacet!]!\n    confirmedAt: DateTime\n    provisioningStartedAt: DateTime\n    provisioningCompletedAt: DateTime\n    provisioningFailureReason: String\n    activatedAt: DateTime\n    suspendedAt: DateTime\n    suspensionType: SuspensionType\n    suspensionReason: String\n    suspensionDetails: String\n    resumedAt: DateTime\n    terminatedAt: DateTime\n    terminationReason: String\n}\n\ntype OperatorProfile {\n    id: PHID!\n    documentType: String!\n}\n\nenum InstanceStatus {\n    DRAFT\n    PROVISIONING\n    ACTIVE\n    SUSPENDED\n    TERMINATED\n}\n\nenum SuspensionType {\n    NON_PAYMENT\n    MAINTENANCE\n    OTHER\n}\n\ntype InstanceFacet {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOption: String!\n}",
         },
         local: {
           examples: [],

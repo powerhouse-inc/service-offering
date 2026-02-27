@@ -80,6 +80,7 @@ export type InitializeInstanceInput = {
   customerName?: InputMaybe<Scalars["String"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
   infoLink?: InputMaybe<Scalars["URL"]["input"]>;
+  name?: InputMaybe<Scalars["String"]["input"]>;
   operatorDocumentType: Scalars["String"]["input"];
   operatorId: Scalars["PHID"]["input"];
   operatorName?: InputMaybe<Scalars["String"]["input"]>;
@@ -103,8 +104,8 @@ export type InstanceStatus =
   | "TERMINATED";
 
 export type OperatorProfile = {
+  documentType: Scalars["String"]["output"];
   id: Scalars["PHID"]["output"];
-  operatorName: Maybe<Scalars["String"]["output"]>;
 };
 
 export type RemoveInstanceFacetInput = {
@@ -132,6 +133,8 @@ export type ResourceInstanceState = {
   customerName: Maybe<Scalars["String"]["output"]>;
   description: Maybe<Scalars["String"]["output"]>;
   infoLink: Maybe<Scalars["URL"]["output"]>;
+  name: Maybe<Scalars["String"]["output"]>;
+  operatorName: Maybe<Scalars["String"]["output"]>;
   operatorProfile: Maybe<OperatorProfile>;
   provisioningCompletedAt: Maybe<Scalars["DateTime"]["output"]>;
   provisioningFailureReason: Maybe<Scalars["String"]["output"]>;
@@ -166,8 +169,8 @@ export type SetInstanceFacetInput = {
 };
 
 export type SetOperatorProfileInput = {
+  operatorDocumentType: Scalars["String"]["input"];
   operatorId: Scalars["PHID"]["input"];
-  operatorName?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 export type SuspendForMaintenanceInput = {

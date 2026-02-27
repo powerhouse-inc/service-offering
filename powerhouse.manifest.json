@@ -38,6 +38,10 @@
         {
             "id": "powerhouse/work-breakdown",
             "name": "WorkBreakdown"
+        },
+        {
+            "id": "powerhouse/multisig-participation-agreement",
+            "name": "MultisigParticipationAgreement"
         }
     ],
     "editors": [
@@ -56,7 +60,13 @@
             ]
         }
     ],
-    "apps": [],
+    "apps": [
+        {
+            "id": "customer-portfolio",
+            "name": "Customer Portfolio",
+            "driveEditor": "customer-portfolio"
+        }
+    ],
     "subgraphs": [],
     "importScripts": []
 }

@@ -1,0 +1,229 @@
+scalar Unknown
+scalar DateTime
+scalar Attachment
+scalar Address
+scalar Amount_Tokens
+scalar EthereumAddress
+scalar EmailAddress
+scalar Amount_Percentage
+scalar Date
+scalar URL
+scalar Amount_Money
+scalar OLabel
+scalar Currency
+scalar PHID
+scalar OID
+scalar Amount_Fiat
+scalar Amount_Currency
+scalar Amount_Crypto
+scalar Amount
+scalar Upload
+
+enum MPAStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  ACTIVE
+  TERMINATED
+}
+
+enum SignerType {
+  NATURAL_PERSON
+  LEGAL_ENTITY
+}
+
+enum ComplianceEventType {
+  SIGNATURE_REQUEST_RESPONSE
+  COORDINATION_RESPONSE
+  DISPUTE_RESOLUTION
+  KEY_COMPROMISE_REPORTED
+  KEY_COMPROMISE_REPLACEMENT_COMPLETED
+  UNAVAILABILITY_NOTICE
+  CONFLICT_OF_INTEREST_DISCLOSURE
+  AML_KYC_REQUEST
+  AML_KYC_RESPONSE
+}
+
+type ActiveSigner {
+  type: SignerType!
+  name: String
+  isAnonymous: Boolean
+  citizenship: String
+  residenceCountry: String
+  incorporationCity: String
+  incorporationCountry: String
+}
+
+type WalletDescription {
+  numberOfKeys: Int
+  decisionQuorum: Int
+  signaturePlatform: String
+  walletAddresses: [String!]!
+}
+
+type PolicyLink {
+  id: OID!
+  label: String
+  url: URL
+  snapshotDate: DateTime
+}
+
+type SignatureRecord {
+  place: String
+  date: DateTime
+  eSignaturePlatform: String
+  eSignatureReference: String
+  eSignatureTimestamp: DateTime
+}
+
+type AssociationSigner {
+  id: OID!
+  name: String
+  function: String
+  signature: SignatureRecord
+}
+
+type ComplianceEvent {
+  id: OID!
+  type: ComplianceEventType!
+  occurredAt: DateTime!
+  enteredAt: DateTime!
+  enteredBy: String
+  description: String
+  slaDeadlineHours: Int
+  slaDeadlineAt: DateTime
+  slaBreached: Boolean
+  supersededById: OID
+  supersedes: OID
+  amendmentReason: String
+}
+
+type MultisigParticipationAgreementState {
+  templateVersion: String
+  status: MPAStatus
+  associationName: String
+  activeSigner: ActiveSigner
+  wallet: WalletDescription
+  communicationChannel: String
+  unavailabilityThresholdHours: Int
+  policyLinks: [PolicyLink!]!
+  associationSigners: [AssociationSigner!]!
+  activeSignerSignature: SignatureRecord
+  complianceEvents: [ComplianceEvent!]!
+  effectiveDate: DateTime
+  terminationDate: DateTime
+  terminationReason: String
+}
+
+# agreement
+
+input InitializeMpaInput {
+  templateVersion: String
+  associationName: String
+}
+
+input SetActiveSignerInput {
+  type: String!
+  name: String
+  isAnonymous: Boolean
+  citizenship: String
+  residenceCountry: String
+  incorporationCity: String
+  incorporationCountry: String
+}
+
+input SetWalletInput {
+  numberOfKeys: Int
+  decisionQuorum: Int
+  signaturePlatform: String
+  walletAddresses: [String!]
+}
+
+input SetProcessDetailsInput {
+  communicationChannel: String
+  unavailabilityThresholdHours: Int
+}
+
+input AddPolicyLinkInput {
+  id: OID!
+  label: String
+  url: String
+  snapshotDate: DateTime!
+}
+
+input RemovePolicyLinkInput {
+  id: OID!
+}
+
+input AddAssociationSignerInput {
+  id: OID!
+  name: String
+  function: String
+}
+
+input RemoveAssociationSignerInput {
+  id: OID!
+}
+
+input SubmitForSignatureInput {
+  _placeholder: Boolean
+}
+
+input RecordAssociationSignatureInput {
+  signerId: OID!
+  place: String
+  date: DateTime!
+  eSignaturePlatform: String!
+  eSignatureReference: String!
+  eSignatureTimestamp: DateTime!
+}
+
+input RecordActiveSignerSignatureInput {
+  place: String
+  date: DateTime!
+  eSignaturePlatform: String!
+  eSignatureReference: String!
+  eSignatureTimestamp: DateTime!
+  effectiveDate: DateTime!
+}
+
+input TerminateVoluntaryInput {
+  terminationDate: DateTime!
+  terminationReason: String
+}
+
+input TerminateBreachInput {
+  terminationDate: DateTime!
+  terminationReason: String!
+}
+
+input TerminateKeyCompromiseInput {
+  terminationDate: DateTime!
+}
+
+# compliance
+
+input AddComplianceEventInput {
+  id: OID!
+  type: String!
+  occurredAt: DateTime!
+  enteredAt: DateTime!
+  enteredBy: String
+  description: String
+  slaDeadlineHours: Int
+}
+
+input AmendComplianceEventInput {
+  newEventId: OID!
+  supersedes: OID!
+  amendmentReason: String!
+  type: String!
+  occurredAt: DateTime!
+  enteredAt: DateTime!
+  enteredBy: String
+  description: String
+  slaDeadlineHours: Int
+}
+
+input MarkSlaBreachedInput {
+  eventId: OID!
+}

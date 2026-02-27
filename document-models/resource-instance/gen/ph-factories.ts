@@ -17,6 +17,8 @@ export function defaultGlobalState(): ResourceInstanceGlobalState {
     customerId: null,
     customerName: null,
     templateName: null,
+    operatorName: null,
+    name: null,
     thumbnailUrl: null,
     infoLink: null,
     description: null,

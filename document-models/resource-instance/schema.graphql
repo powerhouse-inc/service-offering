@@ -24,6 +24,8 @@ type ResourceInstanceState {
     customerId: PHID
     customerName: String
     templateName: String
+    operatorName: String
+    name: String
     thumbnailUrl: URL
     infoLink: URL
     description: String
@@ -46,7 +48,7 @@ type ResourceInstanceState {
 
 type OperatorProfile {
     id: PHID!
-    operatorName: String
+    documentType: String!
 }
 
 enum InstanceStatus {
@@ -80,6 +82,7 @@ input InitializeInstanceInput {
     customerName: String
     templateName: String
     operatorName: String
+    name: String
     thumbnailUrl: URL
     infoLink: URL
     description: String
@@ -94,7 +97,7 @@ input UpdateInstanceInfoInput {
 
 input SetOperatorProfileInput {
     operatorId: PHID!
-    operatorName: String
+    operatorDocumentType: String!
 }
 
 input UpdateInstanceStatusInput {
