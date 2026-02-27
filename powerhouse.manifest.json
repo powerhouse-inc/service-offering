@@ -38,6 +38,10 @@
         {
             "id": "powerhouse/work-breakdown",
             "name": "WorkBreakdown"
+        },
+        {
+            "id": "powerhouse/multisig-participation-agreement",
+            "name": "MultisigParticipationAgreement"
         }
     ],
     "editors": [
@@ -53,6 +57,13 @@
             "name": "WorkBreakdownEditor",
             "documentTypes": [
                 "powerhouse/work-breakdown"
+            ]
+        },
+        {
+            "id": "multisig-participation-agreement-editor",
+            "name": "MultisigParticipationAgreementEditor",
+            "documentTypes": [
+                "powerhouse/multisig-participation-agreement"
             ]
         }
     ],

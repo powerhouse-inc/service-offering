@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "legal-document-analyzer": {
+      "source": "qodex-ai/ai-agent-skills",
+      "sourceType": "github",
+      "computedHash": "c3f9fb1fa4361a1d207e12ca99bbec3027b44b333b463d15bd40c834030a2da4"
+    },
+    "legal-risk-assessment": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "computedHash": "fbc4dffe38a8b8d59ccee1d016654497dc1d9f2f4ceb5ca632dcb4715d22c07f"
+    }
+  }
+}
