@@ -39,7 +39,6 @@ export const initialGlobalState: ServiceOfferingGlobalState = {
   services: [],
   tiers: [],
   optionGroups: [],
-  finalConfiguration: null,
 };
 export const initialLocalState: ServiceOfferingLocalState = {};
 

@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
-import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
+import {
+  type DocumentDispatch,
+  usePHToast,
+} from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
@@ -97,6 +100,7 @@ export function ResourceTemplateSelector({
   dispatch,
 }: ResourceTemplateSelectorProps) {
   const localTemplates = useResourceTemplateDocumentsInSelectedDrive();
+  const toast = usePHToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [showingSelector, setShowingSelector] = useState(false);
 
@@ -255,12 +259,6 @@ export function ResourceTemplateSelector({
             lastModified: now,
           }),
         );
-        dispatch(
-          setOperator({
-            operatorId: "",
-            lastModified: now,
-          }),
-        );
         return;
       }
 
@@ -281,12 +279,22 @@ export function ResourceTemplateSelector({
         );
       }
 
-      dispatch(
-        setOperator({
-          operatorId: template.state.global.operatorId ?? "",
-          lastModified: now,
-        }),
-      );
+      // Set operator from the resource template if it has one
+      const templateOperatorId = template.state.global.operatorId;
+      if (templateOperatorId) {
+        dispatch(
+          setOperator({
+            operatorId: templateOperatorId,
+            lastModified: now,
+          }),
+        );
+      } else if (!document.state.global.operatorId) {
+        // Template has no operatorId and offering doesn't have one either
+        toast?.(
+          "This product doesn't define an Operator ID. Please set one manually below.",
+          { type: "connect-warning" },
+        );
+      }
       setShowingSelector(false);
     },
     [currentTemplateId, dispatch],
@@ -719,6 +727,26 @@ function TemplateDetailView({
   const globalState = template.state.global;
   const statusStyle = getStatusStyle(globalState.status);
 
+  // Operator ID from the offering document (may have come from template or manual input)
+  const offeringOperatorId = offeringDocument.state.global.operatorId;
+  const [operatorIdInput, setOperatorIdInput] = useState(
+    offeringOperatorId || "",
+  );
+  const [isEditingOperator, setIsEditingOperator] = useState(false);
+
+  const handleSaveOperatorId = useCallback(() => {
+    const trimmed = operatorIdInput.trim();
+    if (trimmed) {
+      dispatch(
+        setOperator({
+          operatorId: trimmed,
+          lastModified: new Date().toISOString(),
+        }),
+      );
+    }
+    setIsEditingOperator(false);
+  }, [operatorIdInput, dispatch]);
+
   // Get the current facet selections from the offering document
   const offeringFacetTargets = offeringDocument.state.global.facetTargets;
 
@@ -1122,17 +1150,86 @@ function TemplateDetailView({
         </section>
       )}
 
-      {/* Metadata */}
-      <section className="rtd-metadata">
-        {globalState.operatorId && (
-          <div className="rtd-meta-field">
-            <span className="rtd-meta-field__label">Operator ID</span>
+      {/* Operator ID */}
+      <section className="rtd-card">
+        <div className="rtd-card__header">
+          <div className="rtd-card__icon rtd-card__icon--violet">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="rtd-card__title">Operator</h3>
+            <p className="rtd-card__subtitle">
+              {offeringOperatorId
+                ? "Operator assigned to this offering"
+                : "No operator set — please provide one"}
+            </p>
+          </div>
+        </div>
+        {isEditingOperator || !offeringOperatorId ? (
+          <div className="rtd-operator-input-row">
+            <input
+              type="text"
+              value={operatorIdInput}
+              onChange={(e) => setOperatorIdInput(e.target.value)}
+              placeholder="Enter operator ID (PHID)"
+              className="rtd-operator-input"
+            />
+            <button
+              type="button"
+              onClick={handleSaveOperatorId}
+              disabled={!operatorIdInput.trim()}
+              className="rtd-operator-save-btn"
+            >
+              {offeringOperatorId ? "Update" : "Set Operator"}
+            </button>
+            {isEditingOperator && offeringOperatorId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingOperator(false);
+                  setOperatorIdInput(offeringOperatorId);
+                }}
+                className="rtd-operator-cancel-btn"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="rtd-operator-display">
             <span className="rtd-meta-field__value rtd-meta-field__value--mono">
-              {globalState.operatorId}
+              {offeringOperatorId}
             </span>
+            <button
+              type="button"
+              onClick={() => setIsEditingOperator(true)}
+              className="rtd-operator-edit-btn"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
           </div>
         )}
-        {globalState.infoLink && (
+      </section>
+
+      {/* Metadata */}
+      {globalState.infoLink && (
+        <section className="rtd-metadata">
           <div className="rtd-meta-field">
             <span className="rtd-meta-field__label">More Info</span>
             <a
@@ -1154,8 +1251,8 @@ function TemplateDetailView({
               </svg>
             </a>
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
@@ -2351,6 +2448,113 @@ const styles = `
   }
 
   .rtd-meta-field__link svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Operator ID */
+  .rtd-operator-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rtd-operator-input {
+    flex: 1;
+    padding: 10px 14px;
+    font-family: var(--rts-mono);
+    font-size: 0.875rem;
+    color: var(--rts-ink);
+    background: var(--rts-surface-raised);
+    border: 1.5px solid var(--rts-border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .rtd-operator-input:focus {
+    border-color: var(--rts-violet);
+    box-shadow: 0 0 0 3px var(--rts-violet-light);
+  }
+
+  .rtd-operator-input::placeholder {
+    font-family: var(--rts-font);
+    color: var(--rts-ink-muted);
+  }
+
+  .rtd-operator-save-btn {
+    padding: 10px 18px;
+    font-family: var(--rts-font);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: white;
+    background: var(--rts-violet);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, opacity 0.15s ease;
+  }
+
+  .rtd-operator-save-btn:hover {
+    background: #6a4de6;
+  }
+
+  .rtd-operator-save-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .rtd-operator-cancel-btn {
+    padding: 10px 14px;
+    font-family: var(--rts-font);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--rts-ink-muted);
+    background: transparent;
+    border: 1.5px solid var(--rts-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .rtd-operator-cancel-btn:hover {
+    border-color: var(--rts-ink-muted);
+    color: var(--rts-ink-light);
+  }
+
+  .rtd-operator-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--rts-surface-raised);
+    border-radius: 8px;
+    border: 1px solid var(--rts-border-light);
+  }
+
+  .rtd-operator-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: var(--rts-ink-muted);
+    background: transparent;
+    border: 1.5px solid var(--rts-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .rtd-operator-edit-btn:hover {
+    border-color: var(--rts-violet);
+    color: var(--rts-violet);
+    background: var(--rts-violet-light);
+  }
+
+  .rtd-operator-edit-btn svg {
     width: 14px;
     height: 14px;
   }

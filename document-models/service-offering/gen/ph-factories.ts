@@ -31,7 +31,6 @@ export function defaultGlobalState(): ServiceOfferingGlobalState {
     services: [],
     tiers: [],
     optionGroups: [],
-    finalConfiguration: null,
   };
 }
 

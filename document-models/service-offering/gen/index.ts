@@ -19,4 +19,3 @@ export * from "./services/operations.js";
 export * from "./tiers/operations.js";
 export * from "./option-groups/operations.js";
 export * from "./service-groups/operations.js";
-export * from "./configuration/operations.js";

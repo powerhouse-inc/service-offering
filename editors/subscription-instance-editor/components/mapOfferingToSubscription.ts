@@ -4,15 +4,19 @@ import type {
   ServiceSubscriptionTier,
   Service as SOService,
   ServiceUsageLimit,
-  FinalConfiguration,
-  ResolvedDiscount,
 } from "../../../document-models/service-offering/gen/schema/types.js";
+import type {
+  PriceBreakdown,
+  OptionGroupBreakdown,
+  AddOnBreakdown,
+} from "../../../document-models/service-offering/src/utils.js";
 import type {
   InitializeSubscriptionInput,
   InitializeServiceGroupInput,
   InitializeServiceInput,
   InitializeMetricInput,
   DiscountInfoInitInput,
+  DiscountType,
   BillingCycle as SIBillingCycle,
 } from "../../../document-models/subscription-instance/gen/schema/types.js";
 
@@ -29,6 +33,8 @@ export interface MapOfferingOptions {
   customerEmail?: string;
   /** Timestamp for createdAt */
   createdAt: string;
+  /** Computed price breakdown from getUserSelectionPriceBreakdown */
+  priceBreakdown: PriceBreakdown;
 }
 
 /**
@@ -36,12 +42,12 @@ export interface MapOfferingOptions {
  * This is a one-time snapshot — the SI lives independently after creation.
  *
  * Logic:
- * 1. Find the selected tier and resolve pricing from finalConfiguration
+ * 1. Find the selected tier and resolve pricing from priceBreakdown
  * 2. Map offering service groups with tier-specific pricing
- * 3. Map option group configs from finalConfiguration as additional service groups
- * 4. Map add-on configs from finalConfiguration as optional service groups
+ * 3. Map option group breakdowns from priceBreakdown as additional service groups
+ * 4. Map add-on breakdowns from priceBreakdown as optional service groups
  * 5. Map remaining standalone services with tier service levels and usage limits
- * 6. Calculate tier price from finalConfig or service group sums (CALCULATED) or manual price
+ * 6. Calculate tier price from breakdown or service group sums (CALCULATED) or manual price
  */
 export function mapOfferingToSubscription(
   options: MapOfferingOptions,
@@ -54,6 +60,7 @@ export function mapOfferingToSubscription(
     customerName,
     customerEmail,
     createdAt,
+    priceBreakdown,
   } = options;
 
   const tier = offering.tiers.find((t) => t.id === tierId);
@@ -61,8 +68,7 @@ export function mapOfferingToSubscription(
     throw new Error(`Tier ${tierId} not found in offering`);
   }
 
-  const finalConfig = offering.finalConfiguration;
-  const currency = finalConfig?.tierCurrency ?? tier.pricing.currency;
+  const currency = priceBreakdown.tierCurrency || tier.pricing.currency;
   const pricingMode = tier.pricingMode || "MANUAL_OVERRIDE";
 
   // Track which services are accounted for in groups
@@ -77,17 +83,15 @@ export function mapOfferingToSubscription(
     groupedServiceIds,
   );
 
-  // 2. Map option group configs from finalConfiguration as service groups
-  if (finalConfig) {
-    mapFinalConfigGroups(
-      offering,
-      tier,
-      finalConfig,
-      currency,
-      groupedServiceIds,
-      serviceGroups,
-    );
-  }
+  // 2. Map option group and add-on breakdowns from priceBreakdown as service groups
+  mapBreakdownGroups(
+    offering,
+    tier,
+    priceBreakdown,
+    currency,
+    groupedServiceIds,
+    serviceGroups,
+  );
 
   // 3. Map remaining standalone services (not in any group or option group)
   const standaloneServices = offering.services
@@ -110,7 +114,8 @@ export function mapOfferingToSubscription(
       0,
     );
   } else {
-    tierPrice = finalConfig?.tierBasePrice ?? tier.pricing.amount ?? undefined;
+    tierPrice =
+      priceBreakdown.tierCycleTotal ?? tier.pricing.amount ?? undefined;
   }
 
   return {
@@ -253,21 +258,26 @@ function mapOfferingServiceGroups(
 }
 
 /**
- * Maps finalConfiguration option group configs and add-on configs
+ * Maps price breakdown option group and add-on breakdowns
  * into subscription service groups.
  */
-function mapFinalConfigGroups(
+function mapBreakdownGroups(
   offering: ServiceOfferingState,
   tier: ServiceSubscriptionTier,
-  finalConfig: FinalConfiguration,
+  breakdown: PriceBreakdown,
   globalCurrency: string,
   groupedServiceIds: Set<string>,
   serviceGroups: InitializeServiceGroupInput[],
 ): void {
-  // Non-add-on option groups
-  for (const ogConfig of finalConfig.optionGroupConfigs) {
+  // Non-add-on option groups (regular + setup)
+  const allOptionGroupBreakdowns: OptionGroupBreakdown[] = [
+    ...breakdown.optionGroupBreakdowns,
+    ...breakdown.setupGroupBreakdowns,
+  ];
+
+  for (const ogBreakdown of allOptionGroupBreakdowns) {
     const og = offering.optionGroups.find(
-      (g) => g.id === ogConfig.optionGroupId,
+      (g) => g.id === ogBreakdown.optionGroupId,
     );
     if (!og || og.isAddOn) continue;
 
@@ -280,32 +290,33 @@ function mapFinalConfigGroups(
       name: og.name,
       optional: false,
       costType: og.costType ?? undefined,
-      recurringAmount: ogConfig.recurringAmount ?? undefined,
-      recurringCurrency: ogConfig.currency ?? globalCurrency,
-      recurringBillingCycle: ogConfig.effectiveBillingCycle as SIBillingCycle,
-      recurringDiscount: mapResolvedDiscount(
-        ogConfig.discount,
+      recurringAmount: ogBreakdown.recurringAmount || undefined,
+      recurringCurrency: ogBreakdown.currency || globalCurrency,
+      recurringBillingCycle:
+        ogBreakdown.effectiveBillingCycle as SIBillingCycle,
+      recurringDiscount: mapBreakdownDiscount(
+        ogBreakdown.discount,
         og.discountMode === "INHERIT_TIER"
           ? "TIER_INHERITED"
           : "GROUP_INDEPENDENT",
       ),
-      setupAmount: ogConfig.setupCost ?? undefined,
-      setupCurrency: ogConfig.setupCostCurrency ?? undefined,
+      setupAmount: ogBreakdown.setupCost ?? undefined,
+      setupCurrency: ogBreakdown.setupCostCurrency ?? undefined,
       services: services.map((svc) =>
         mapServiceToInput(
           svc,
           tier,
           globalCurrency,
-          ogConfig.effectiveBillingCycle as SIBillingCycle,
+          ogBreakdown.effectiveBillingCycle as SIBillingCycle,
         ),
       ),
     });
   }
 
   // Add-on option groups
-  for (const aoConfig of finalConfig.addOnConfigs) {
+  for (const aoBreakdown of breakdown.addOnBreakdowns) {
     const og = offering.optionGroups.find(
-      (g) => g.id === aoConfig.optionGroupId,
+      (g) => g.id === aoBreakdown.optionGroupId,
     );
     if (!og) continue;
 
@@ -318,23 +329,23 @@ function mapFinalConfigGroups(
       name: og.name,
       optional: true,
       costType: og.costType ?? undefined,
-      recurringAmount: aoConfig.recurringAmount ?? undefined,
-      recurringCurrency: aoConfig.currency ?? globalCurrency,
-      recurringBillingCycle: aoConfig.selectedBillingCycle as SIBillingCycle,
-      recurringDiscount: mapResolvedDiscount(
-        aoConfig.discount,
+      recurringAmount: aoBreakdown.recurringAmount || undefined,
+      recurringCurrency: aoBreakdown.currency || globalCurrency,
+      recurringBillingCycle: aoBreakdown.selectedBillingCycle as SIBillingCycle,
+      recurringDiscount: mapBreakdownDiscount(
+        aoBreakdown.discount,
         og.discountMode === "INHERIT_TIER"
           ? "TIER_INHERITED"
           : "GROUP_INDEPENDENT",
       ),
-      setupAmount: aoConfig.setupCost ?? undefined,
-      setupCurrency: aoConfig.setupCostCurrency ?? undefined,
+      setupAmount: aoBreakdown.setupCost ?? undefined,
+      setupCurrency: aoBreakdown.setupCostCurrency ?? undefined,
       services: services.map((svc) =>
         mapServiceToInput(
           svc,
           tier,
           globalCurrency,
-          aoConfig.selectedBillingCycle as SIBillingCycle,
+          aoBreakdown.selectedBillingCycle as SIBillingCycle,
         ),
       ),
     });
@@ -366,17 +377,22 @@ function mapServiceToInput(
 }
 
 /**
- * Maps a ResolvedDiscount from the offering to a DiscountInfoInitInput,
+ * Maps a resolved discount from the price breakdown to a DiscountInfoInitInput,
  * or returns undefined if no discount.
  */
-function mapResolvedDiscount(
-  discount: ResolvedDiscount | null | undefined,
+function mapBreakdownDiscount(
+  discount: {
+    discountType: string;
+    discountValue: number;
+    originalAmount: number;
+    discountedAmount: number;
+  } | null,
   source: "TIER_INHERITED" | "GROUP_INDEPENDENT",
 ): DiscountInfoInitInput | undefined {
   if (!discount) return undefined;
   return {
     originalAmount: discount.originalAmount,
-    discountType: discount.discountType,
+    discountType: discount.discountType as DiscountType,
     discountValue: discount.discountValue,
     source,
   };

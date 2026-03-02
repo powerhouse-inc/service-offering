@@ -4,6 +4,7 @@ This project creates document models, editors, processors and subgraphs for the 
 
 ## Core Concepts
 
+- **Critical**: Use `bun` as the package manager for the project.
 - **Package Manager**: Use `bun` as the default package manager for the project.
 - **Document Model**: A template for creating documents. Defines schema and allowed operations for a document type.
 - **Document**: An instance of a document model containing actual data that follows the model's structure and can be modified using operations.

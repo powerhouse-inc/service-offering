@@ -7,6 +7,12 @@ import type {
 import type {
   ServiceOfferingDocument,
   ServiceStatus,
+  BillingCycle,
+} from "@powerhousedao/service-offering/document-models/service-offering";
+import {
+  getUserSelectionPriceBreakdown,
+  type UserSelection,
+  type PriceBreakdown,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import { createAction } from "document-model/core";
 import { addFile } from "document-drive";
@@ -31,10 +37,24 @@ interface ServiceOfferingsFilter {
   resourceTemplateId?: string;
 }
 
+interface BillingCycleOverrideInput {
+  groupId: string;
+  billingCycle: string;
+}
+
+interface UserSelectionInput {
+  tierId: string;
+  billingCycle: string;
+  optionGroupIds: string[];
+  groupBillingCycleOverrides?: BillingCycleOverrideInput[];
+  addonBillingCycleOverrides?: BillingCycleOverrideInput[];
+}
+
 interface CreateProductInstancesInput {
   serviceOfferingId: string;
   name: string;
   teamName: string;
+  userSelection: UserSelectionInput;
 }
 
 export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
@@ -299,7 +319,33 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
           };
         }
 
-        // Fetch the service offering to get resourceTemplateId and finalConfiguration
+        // Validate userSelection
+        const { userSelection } = input;
+        if (!userSelection) {
+          return {
+            success: false,
+            data: null,
+            errors: ["User selection is required"],
+          };
+        }
+
+        if (!userSelection.tierId) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Tier ID is required in user selection"],
+          };
+        }
+
+        if (!userSelection.billingCycle) {
+          return {
+            success: false,
+            data: null,
+            errors: ["Billing cycle is required in user selection"],
+          };
+        }
+
+        // Fetch the service offering
         const serviceOfferingDoc =
           await reactor.getDocument<ServiceOfferingDocument>(serviceOfferingId);
         if (!serviceOfferingDoc) {
@@ -320,12 +366,42 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
           };
         }
 
-        const finalConfiguration = serviceOfferingState.finalConfiguration;
-        if (!finalConfiguration) {
+        // Convert GraphQL overrides to Record<string, BillingCycle>
+        const groupBillingCycleOverrides: Record<string, BillingCycle> = {};
+        for (const o of userSelection.groupBillingCycleOverrides ?? []) {
+          groupBillingCycleOverrides[o.groupId] =
+            o.billingCycle as BillingCycle;
+        }
+        const addonBillingCycleOverrides: Record<string, BillingCycle> = {};
+        for (const o of userSelection.addonBillingCycleOverrides ?? []) {
+          addonBillingCycleOverrides[o.groupId] =
+            o.billingCycle as BillingCycle;
+        }
+
+        // Compute price breakdown from user selection
+        const selection: UserSelection = {
+          tierId: userSelection.tierId,
+          billingCycle: userSelection.billingCycle as BillingCycle,
+          optionGroupIds: userSelection.optionGroupIds ?? [],
+          groupBillingCycleOverrides,
+          addonBillingCycleOverrides,
+        };
+
+        let priceBreakdown: PriceBreakdown;
+        try {
+          priceBreakdown = getUserSelectionPriceBreakdown(
+            serviceOfferingDoc.state,
+            selection,
+          );
+        } catch (error) {
           return {
             success: false,
             data: null,
-            errors: ["Service offering has no final configuration"],
+            errors: [
+              error instanceof Error
+                ? error.message
+                : "Failed to compute price breakdown from user selection",
+            ],
           };
         }
 
@@ -468,11 +544,12 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
 
           const subscriptionInput = mapOfferingToSubscription({
             offering: serviceOfferingState,
-            tierId: finalConfiguration.selectedTierId,
-            selectedBillingCycle: finalConfiguration.selectedBillingCycle,
+            tierId: priceBreakdown.tierId,
+            selectedBillingCycle: priceBreakdown.billingCycle,
             customerId: builderProfileDoc.header.id,
             customerName: name,
             createdAt: now,
+            priceBreakdown,
           });
 
           await reactor.addAction(
@@ -487,13 +564,13 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
 
           // Set billing projection from tier price
           const projectedAmount =
-            subscriptionInput.tierPrice ?? finalConfiguration.tierBasePrice;
+            subscriptionInput.tierPrice ?? priceBreakdown.tierCycleTotal;
           if (projectedAmount != null) {
             await reactor.addAction(
               subscriptionInstanceDoc.header.id,
               SubscriptionInstance.actions.updateBillingProjection({
                 projectedBillAmount: projectedAmount,
-                projectedBillCurrency: finalConfiguration.tierCurrency || "USD",
+                projectedBillCurrency: priceBreakdown.tierCurrency || "USD",
               }),
             );
           }
@@ -669,29 +746,6 @@ function mapDiscountRule(
 }
 
 /**
- * Map a ResolvedDiscount to the GraphQL shape, or null
- */
-function mapResolvedDiscount(
-  d:
-    | {
-        discountType: string;
-        discountValue: number;
-        originalAmount: number;
-        discountedAmount: number;
-      }
-    | null
-    | undefined,
-) {
-  if (!d) return null;
-  return {
-    discountType: d.discountType,
-    discountValue: d.discountValue,
-    originalAmount: d.originalAmount,
-    discountedAmount: d.discountedAmount,
-  };
-}
-
-/**
  * Map ServiceOfferingState from document model to GraphQL response
  */
 function mapServiceOfferingState(
@@ -843,41 +897,6 @@ function mapServiceOfferingState(
       price: group.price ?? null,
       currency: group.currency || null,
     })),
-    finalConfiguration: state.finalConfiguration
-      ? {
-          selectedTierId: state.finalConfiguration.selectedTierId,
-          selectedBillingCycle: state.finalConfiguration.selectedBillingCycle,
-          tierBasePrice: state.finalConfiguration.tierBasePrice ?? null,
-          tierCurrency: state.finalConfiguration.tierCurrency,
-          optionGroupConfigs: state.finalConfiguration.optionGroupConfigs.map(
-            (ogc) => ({
-              id: ogc.id,
-              optionGroupId: ogc.optionGroupId,
-              effectiveBillingCycle: ogc.effectiveBillingCycle,
-              billingCycleOverridden: ogc.billingCycleOverridden,
-              discountStripped: ogc.discountStripped,
-              recurringAmount: ogc.recurringAmount ?? null,
-              currency: ogc.currency || null,
-              discount: mapResolvedDiscount(ogc.discount),
-              setupCost: ogc.setupCost ?? null,
-              setupCostCurrency: ogc.setupCostCurrency || null,
-              setupCostDiscount: mapResolvedDiscount(ogc.setupCostDiscount),
-            }),
-          ),
-          addOnConfigs: state.finalConfiguration.addOnConfigs.map((aoc) => ({
-            id: aoc.id,
-            optionGroupId: aoc.optionGroupId,
-            selectedBillingCycle: aoc.selectedBillingCycle,
-            recurringAmount: aoc.recurringAmount ?? null,
-            currency: aoc.currency || null,
-            discount: mapResolvedDiscount(aoc.discount),
-            setupCost: aoc.setupCost ?? null,
-            setupCostCurrency: aoc.setupCostCurrency || null,
-            setupCostDiscount: mapResolvedDiscount(aoc.setupCostDiscount),
-          })),
-          lastModified: state.finalConfiguration.lastModified,
-        }
-      : null,
   };
 }
 

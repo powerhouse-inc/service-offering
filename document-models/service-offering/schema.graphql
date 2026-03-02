@@ -38,7 +38,6 @@ type ServiceOfferingState {
     services: [Service!]!
     tiers: [ServiceSubscriptionTier!]!
     optionGroups: [OptionGroup!]!
-    finalConfiguration: FinalConfiguration
 }
 
 enum ServiceStatus {
@@ -249,49 +248,6 @@ enum GroupCostType {
     SETUP
 }
 
-type ResolvedDiscount {
-    discountType: DiscountType!
-    discountValue: Float!
-    originalAmount: Amount_Money!
-    discountedAmount: Amount_Money!
-}
-
-type FinalOptionGroupConfig {
-    id: OID!
-    optionGroupId: OID!
-    effectiveBillingCycle: BillingCycle!
-    billingCycleOverridden: Boolean!
-    discountStripped: Boolean!
-    recurringAmount: Amount_Money
-    currency: Currency
-    discount: ResolvedDiscount
-    setupCost: Amount_Money
-    setupCostCurrency: Currency
-    setupCostDiscount: ResolvedDiscount
-}
-
-type FinalAddOnConfig {
-    id: OID!
-    optionGroupId: OID!
-    selectedBillingCycle: BillingCycle!
-    recurringAmount: Amount_Money
-    currency: Currency
-    discount: ResolvedDiscount
-    setupCost: Amount_Money
-    setupCostCurrency: Currency
-    setupCostDiscount: ResolvedDiscount
-}
-
-type FinalConfiguration {
-    selectedTierId: OID!
-    selectedBillingCycle: BillingCycle!
-    tierBasePrice: Amount_Money
-    tierCurrency: Currency!
-    tierDiscount: ResolvedDiscount
-    optionGroupConfigs: [FinalOptionGroupConfig!]!
-    addOnConfigs: [FinalAddOnConfig!]!
-    lastModified: DateTime!
-}
 
 # offering
 
@@ -720,55 +676,5 @@ input RemoveRecurringPriceOptionInput {
 input RemoveServiceGroupTierPricingInput {
     serviceGroupId: OID!
     tierId: OID!
-    lastModified: DateTime!
-}
-
-# configuration
-
-input ResolvedDiscountInput {
-    discountType: DiscountType!
-    discountValue: Float!
-    originalAmount: Amount_Money!
-    discountedAmount: Amount_Money!
-}
-
-input FinalOptionGroupConfigInput {
-    id: OID!
-    optionGroupId: OID!
-    effectiveBillingCycle: BillingCycle!
-    billingCycleOverridden: Boolean!
-    discountStripped: Boolean!
-    recurringAmount: Amount_Money
-    currency: Currency
-    discount: ResolvedDiscountInput
-    setupCost: Amount_Money
-    setupCostCurrency: Currency
-    setupCostDiscount: ResolvedDiscountInput
-}
-
-input FinalAddOnConfigInput {
-    id: OID!
-    optionGroupId: OID!
-    selectedBillingCycle: BillingCycle!
-    recurringAmount: Amount_Money
-    currency: Currency
-    discount: ResolvedDiscountInput
-    setupCost: Amount_Money
-    setupCostCurrency: Currency
-    setupCostDiscount: ResolvedDiscountInput
-}
-
-input SetFinalConfigurationInput {
-    selectedTierId: OID!
-    selectedBillingCycle: BillingCycle!
-    tierBasePrice: Amount_Money
-    tierCurrency: Currency!
-    tierDiscount: ResolvedDiscountInput
-    optionGroupConfigs: [FinalOptionGroupConfigInput!]!
-    addOnConfigs: [FinalAddOnConfigInput!]!
-    lastModified: DateTime!
-}
-
-input ClearFinalConfigurationInput {
     lastModified: DateTime!
 }

@@ -20,6 +20,20 @@ export const schema: DocumentNode = gql`
     serviceOfferingId: PHID!
     name: String!
     teamName: String!
+    userSelection: UserSelectionInput!
+  }
+
+  input UserSelectionInput {
+    tierId: OID!
+    billingCycle: RSBillingCycle!
+    optionGroupIds: [OID!]!
+    groupBillingCycleOverrides: [BillingCycleOverrideInput!]
+    addonBillingCycleOverrides: [BillingCycleOverrideInput!]
+  }
+
+  input BillingCycleOverrideInput {
+    groupId: OID!
+    billingCycle: RSBillingCycle!
   }
 
   type CreateProductInstancesOutput {
@@ -144,7 +158,6 @@ export const schema: DocumentNode = gql`
     services: [RSOfferingService!]!
     tiers: [RSServiceSubscriptionTier!]!
     optionGroups: [RSOfferingOptionGroup!]!
-    finalConfiguration: RSFinalConfiguration
   }
 
   enum RSServiceStatus {
@@ -354,50 +367,5 @@ export const schema: DocumentNode = gql`
     setupCost: RSSetupCost
     setupCostDiscounts: [RSBillingCycleDiscount!]!
     recurringPricing: [RSRecurringPriceOption!]!
-  }
-
-  # ---------- Final Configuration ----------
-
-  type RSResolvedDiscount {
-    discountType: RSDiscountType!
-    discountValue: Float!
-    originalAmount: Amount_Money!
-    discountedAmount: Amount_Money!
-  }
-
-  type RSFinalOptionGroupConfig {
-    id: OID!
-    optionGroupId: OID!
-    effectiveBillingCycle: RSBillingCycle!
-    billingCycleOverridden: Boolean!
-    discountStripped: Boolean!
-    recurringAmount: Amount_Money
-    currency: Currency
-    discount: RSResolvedDiscount
-    setupCost: Amount_Money
-    setupCostCurrency: Currency
-    setupCostDiscount: RSResolvedDiscount
-  }
-
-  type RSFinalAddOnConfig {
-    id: OID!
-    optionGroupId: OID!
-    selectedBillingCycle: RSBillingCycle!
-    recurringAmount: Amount_Money
-    currency: Currency
-    discount: RSResolvedDiscount
-    setupCost: Amount_Money
-    setupCostCurrency: Currency
-    setupCostDiscount: RSResolvedDiscount
-  }
-
-  type RSFinalConfiguration {
-    selectedTierId: OID!
-    selectedBillingCycle: RSBillingCycle!
-    tierBasePrice: Amount_Money
-    tierCurrency: Currency!
-    optionGroupConfigs: [RSFinalOptionGroupConfig!]!
-    addOnConfigs: [RSFinalAddOnConfig!]!
-    lastModified: DateTime!
   }
 `;
