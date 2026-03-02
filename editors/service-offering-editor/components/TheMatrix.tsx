@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import {
-  getUserSelectionPriceBreakdown,
   type ServiceOfferingDocument,
   type ServiceOfferingAction,
   type Service,
@@ -13,9 +12,6 @@ import {
   type ServiceUsageLimit,
   type BillingCycle,
   type UsageResetCycle,
-  type PriceBreakdown,
-  type OptionGroupBreakdown,
-  type AddOnBreakdown,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
@@ -36,6 +32,12 @@ import {
   setFinalConfiguration,
 } from "../../../document-models/service-offering/gen/creators.js";
 import { resolveConfiguration } from "./resolve-configuration.js";
+import {
+  getUserSelectionPriceBreakdown,
+  type PriceBreakdown,
+  type OptionGroupBreakdown,
+  type AddOnBreakdown,
+} from "../../../document-models/service-offering/index.js";
 
 interface TheMatrixProps {
   document: ServiceOfferingDocument;
