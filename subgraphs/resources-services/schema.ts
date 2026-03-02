@@ -20,6 +20,7 @@ export const schema: DocumentNode = gql`
     serviceOfferingId: PHID!
     name: String!
     teamName: String!
+    customerEmail: EmailAddress
     userSelection: UserSelectionInput!
   }
 

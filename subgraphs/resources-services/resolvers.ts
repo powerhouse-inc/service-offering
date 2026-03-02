@@ -14,7 +14,7 @@ import {
   type UserSelection,
   type PriceBreakdown,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import { createAction } from "document-model/core";
+import { createAction, generateId } from "document-model/core";
 import { addFile } from "document-drive";
 import type { FileNode } from "document-drive";
 import {
@@ -54,6 +54,7 @@ interface CreateProductInstancesInput {
   serviceOfferingId: string;
   name: string;
   teamName: string;
+  customerEmail?: string;
   userSelection: UserSelectionInput;
 }
 
@@ -256,7 +257,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
         args: { input: CreateProductInstancesInput },
       ) => {
         const { input } = args;
-        const { serviceOfferingId, name, teamName } = input;
+        const { serviceOfferingId, name, teamName, customerEmail } = input;
 
         // Validate input
         if (!serviceOfferingId) {
@@ -424,7 +425,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
               name: teamName,
               icon: "https://cdn-icons-png.flaticon.com/512/6020/6020347.png",
             },
-            id: parsedTeamName,
+            id: generateId(),
             slug: parsedTeamName,
             preferredEditor: "builder-team-admin",
           });
@@ -548,6 +549,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             selectedBillingCycle: priceBreakdown.billingCycle,
             customerId: builderProfileDoc.header.id,
             customerName: name,
+            customerEmail,
             createdAt: now,
             priceBreakdown,
           });
@@ -578,7 +580,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
           return {
             success: true,
             data: {
-              linkToDrive: getDriveLink(teamBuilderAdminDrive.header.id),
+              linkToDrive: getDriveLink(parsedTeamName),
             },
             errors: [],
           };
@@ -601,24 +603,24 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
 
 /**
  * Build a link to a drive based on the current environment.
- * Mirrors the logic from editors/shared/graphql.ts for server-side use.
+ * Uses the drive slug in the switchboard URL path.
  */
-function getDriveLink(driveId: string): string {
+function getDriveLink(driveSlug: string): string {
   const baseUri = process.env.BASE_URI || "";
 
   if (baseUri.includes("-dev.")) {
-    return `https://connect-dev.powerhouse.xyz/?driveUrl=https://switchboard-dev.powerhouse.xyz/d/${driveId}`;
+    return `https://connect-dev.powerhouse.xyz/?driveUrl=https://switchboard-dev.powerhouse.xyz/d/${driveSlug}`;
   }
 
   if (baseUri.includes("-staging.")) {
-    return `https://connect-staging.powerhouse.xyz/?driveUrl=https://switchboard-staging.powerhouse.xyz/d/${driveId}`;
+    return `https://connect-staging.powerhouse.xyz/?driveUrl=https://switchboard-staging.powerhouse.xyz/d/${driveSlug}`;
   }
 
   if (baseUri && !baseUri.includes("localhost")) {
-    return `https://connect.powerhouse.xyz/?driveUrl=https://switchboard.powerhouse.xyz/d/${driveId}`;
+    return `https://connect.powerhouse.xyz/?driveUrl=https://switchboard.powerhouse.xyz/d/${driveSlug}`;
   }
 
-  return `http://localhost:3000/?driveUrl=http://localhost:4001/d/${driveId}`;
+  return `http://localhost:3000/?driveUrl=http://localhost:4001/d/${driveSlug}`;
 }
 
 /**

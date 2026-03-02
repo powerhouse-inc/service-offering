@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { generateId } from "document-model/core";
-import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
+import {
+  type DocumentDispatch,
+  usePHToast,
+} from "@powerhousedao/reactor-browser";
 import {
   type ServiceOfferingDocument,
   type ServiceOfferingAction,
@@ -2270,6 +2273,35 @@ const matrixStyles = `
     border-color: var(--so-amber-500);
   }
 
+  .matrix__copy-selection-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-left: auto;
+    padding: 0.375rem 0.75rem;
+    font-family: var(--so-font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--so-slate-500);
+    background: var(--so-white);
+    border: 1px solid var(--so-slate-200);
+    border-radius: var(--so-radius-md);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .matrix__copy-selection-btn:hover {
+    color: var(--so-violet-700);
+    border-color: var(--so-violet-300);
+    background: var(--so-violet-50);
+  }
+
+  .matrix__copy-selection-btn svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
   /* Tier Discount Badge */
   .matrix__tier-discount-badge {
     display: inline-block;
@@ -2418,6 +2450,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const tiers = state.global.tiers ?? [];
   const optionGroups = state.global.optionGroups ?? [];
   const serviceGroups = state.global.serviceGroups ?? [];
+  const toast = usePHToast();
 
   // Get selected facets from the offering document's facetTargets
   const offeringFacetTargets = state.global.facetTargets ?? [];
@@ -2543,6 +2576,48 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setActiveBillingCycle(cycle);
     setGroupBillingCycles({});
   }, []);
+
+  // Copy current UserSelectionInput to clipboard for mutation testing
+  const handleCopyUserSelection = useCallback(() => {
+    const selectedTier = tiers[selectedTierIdx];
+    if (!selectedTier) return;
+
+    const groupOverrides = Object.entries(groupBillingCycles)
+      .filter(([, cycle]) => cycle !== activeBillingCycle)
+      .map(([groupId, billingCycle]) => ({ groupId, billingCycle }));
+
+    const addonOverrides = Object.entries(addonBillingCycles)
+      .filter(([groupId]) => enabledOptionalGroups.has(groupId))
+      .filter(([, cycle]) => cycle !== activeBillingCycle)
+      .map(([groupId, billingCycle]) => ({ groupId, billingCycle }));
+
+    const userSelection = {
+      tierId: selectedTier.id,
+      billingCycle: activeBillingCycle,
+      optionGroupIds: [...enabledOptionalGroups],
+      ...(groupOverrides.length > 0 && {
+        groupBillingCycleOverrides: groupOverrides,
+      }),
+      ...(addonOverrides.length > 0 && {
+        addonBillingCycleOverrides: addonOverrides,
+      }),
+    };
+
+    const mutationPayload = JSON.stringify(userSelection, null, 2);
+    navigator.clipboard.writeText(mutationPayload).then(
+      () =>
+        toast?.("UserSelectionInput copied to clipboard!", { type: "success" }),
+      () => toast?.("Failed to copy to clipboard", { type: "error" }),
+    );
+  }, [
+    tiers,
+    selectedTierIdx,
+    activeBillingCycle,
+    enabledOptionalGroups,
+    groupBillingCycles,
+    addonBillingCycles,
+    toast,
+  ]);
 
   // Initialize selected facets from offering's facet targets
   const [selectedFacets, setSelectedFacets] = useState<Record<string, string>>(
@@ -3336,6 +3411,23 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
               </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={handleCopyUserSelection}
+            className="matrix__copy-selection-btn"
+            title="Copy current UserSelectionInput as JSON for mutation testing"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            Copy Selection
+          </button>
         </div>
 
         {majorityResult && !majorityDismissed && (
