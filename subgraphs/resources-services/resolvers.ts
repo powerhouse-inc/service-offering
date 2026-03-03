@@ -440,7 +440,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             addFile({
               documentType: "powerhouse/builder-profile",
               id: builderProfileDoc.header.id,
-              name: `${parsedName} Builder Profile`,
+              name: `${parsedTeamName} Builder Profile`,
               parentFolder: teamBuilderAdminDrive.state.global.nodes?.find(
                 (node) => node.kind === "folder",
               )?.parentFolder,
@@ -451,7 +451,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             builderProfileDoc.header.id,
             createAction(
               "UPDATE_PROFILE",
-              { name },
+              { name: parsedTeamName },
               undefined,
               undefined,
               "global",
@@ -504,13 +504,13 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
-              name: `${parsedName} Resource Instance`,
+              name: `${parsedTeamName} Resource Instance`,
               parentFolder: teamParentFolder,
             }),
             addFile({
               documentType: "powerhouse/subscription-instance",
               id: subscriptionInstanceDoc.header.id,
-              name: `${parsedName} Subscription Instance`,
+              name: `${parsedTeamName} Subscription Instance`,
               parentFolder: teamParentFolder,
             }),
           ]);
@@ -520,13 +520,13 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
-              name: `${parsedName} Resource Instance`,
+              name: `${parsedTeamName} Resource Instance`,
               parentFolder: operatorParentFolder,
             }),
             addFile({
               documentType: "powerhouse/subscription-instance",
               id: subscriptionInstanceDoc.header.id,
-              name: `${parsedName} Subscription Instance`,
+              name: `${parsedTeamName} Subscription Instance`,
               parentFolder: operatorParentFolder,
             }),
           ]);
@@ -538,7 +538,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             resourceTemplateId,
             operatorProfileId, // operator profile id
             builderProfileDoc.header.id, // customer id
-            name, // customer name from builder profile
+            parsedTeamName, // customer name from builder profile
           );
 
           const now = new Date().toISOString();
@@ -559,7 +559,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             SubscriptionInstance.actions.initializeSubscription({
               ...subscriptionInput,
               resourceId: resourceInstanceDoc.header.id,
-              resourceLabel: name,
+              resourceLabel: parsedTeamName,
               resourceThumbnailUrl: serviceOfferingState.thumbnailUrl,
             }),
           );
