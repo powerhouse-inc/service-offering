@@ -10,3 +10,4 @@ projects-import.js
 context
 docs
 queries
+.env
