@@ -9,7 +9,7 @@ import {
   utils,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 
-/** Document model module for the Todo List document type */
+/** Document model module for the SubscriptionInstance document type */
 export const SubscriptionInstance: DocumentModelModule<SubscriptionInstancePHState> =
   {
     version: 1,

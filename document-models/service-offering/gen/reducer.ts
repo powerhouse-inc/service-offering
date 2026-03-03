@@ -9,15 +9,12 @@ import { serviceOfferingOfferingOperations } from "../src/reducers/offering.js";
 import { serviceOfferingServicesOperations } from "../src/reducers/services.js";
 import { serviceOfferingTiersOperations } from "../src/reducers/tiers.js";
 import { serviceOfferingOptionGroupsOperations } from "../src/reducers/option-groups.js";
-import { serviceOfferingServiceGroupsOperations } from "../src/reducers/service-groups.js";
 
 import {
   UpdateOfferingInfoInputSchema,
   UpdateOfferingStatusInputSchema,
   SetOperatorInputSchema,
   SetOfferingIdInputSchema,
-  AddTargetAudienceInputSchema,
-  RemoveTargetAudienceInputSchema,
   SetFacetTargetInputSchema,
   RemoveFacetTargetInputSchema,
   AddFacetOptionInputSchema,
@@ -25,12 +22,9 @@ import {
   SelectResourceTemplateInputSchema,
   ChangeResourceTemplateInputSchema,
   SetAvailableBillingCyclesInputSchema,
-  SetFacetBindingsInputSchema,
   AddServiceInputSchema,
   UpdateServiceInputSchema,
   DeleteServiceInputSchema,
-  AddFacetBindingInputSchema,
-  RemoveFacetBindingInputSchema,
   AddTierInputSchema,
   UpdateTierInputSchema,
   UpdateTierPricingInputSchema,
@@ -52,17 +46,6 @@ import {
   UpdateOptionGroupTierPricingInputSchema,
   RemoveOptionGroupTierPricingInputSchema,
   SetOptionGroupDiscountModeInputSchema,
-  AddServiceGroupInputSchema,
-  UpdateServiceGroupInputSchema,
-  DeleteServiceGroupInputSchema,
-  ReorderServiceGroupsInputSchema,
-  AddServiceGroupTierPricingInputSchema,
-  SetServiceGroupSetupCostInputSchema,
-  RemoveServiceGroupSetupCostInputSchema,
-  AddRecurringPriceOptionInputSchema,
-  UpdateRecurringPriceOptionInputSchema,
-  RemoveRecurringPriceOptionInputSchema,
-  RemoveServiceGroupTierPricingInputSchema,
 } from "./schema/zod.js";
 
 const stateReducer: StateReducer<ServiceOfferingPHState> = (
@@ -114,30 +97,6 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       SetOfferingIdInputSchema().parse(action.input);
 
       serviceOfferingOfferingOperations.setOfferingIdOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "ADD_TARGET_AUDIENCE": {
-      AddTargetAudienceInputSchema().parse(action.input);
-
-      serviceOfferingOfferingOperations.addTargetAudienceOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_TARGET_AUDIENCE": {
-      RemoveTargetAudienceInputSchema().parse(action.input);
-
-      serviceOfferingOfferingOperations.removeTargetAudienceOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -230,18 +189,6 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       break;
     }
 
-    case "SET_FACET_BINDINGS": {
-      SetFacetBindingsInputSchema().parse(action.input);
-
-      serviceOfferingOfferingOperations.setFacetBindingsOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
     case "ADD_SERVICE": {
       AddServiceInputSchema().parse(action.input);
 
@@ -270,30 +217,6 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       DeleteServiceInputSchema().parse(action.input);
 
       serviceOfferingServicesOperations.deleteServiceOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "ADD_FACET_BINDING": {
-      AddFacetBindingInputSchema().parse(action.input);
-
-      serviceOfferingServicesOperations.addFacetBindingOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_FACET_BINDING": {
-      RemoveFacetBindingInputSchema().parse(action.input);
-
-      serviceOfferingServicesOperations.removeFacetBindingOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -546,138 +469,6 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       SetOptionGroupDiscountModeInputSchema().parse(action.input);
 
       serviceOfferingOptionGroupsOperations.setOptionGroupDiscountModeOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "ADD_SERVICE_GROUP": {
-      AddServiceGroupInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.addServiceGroupOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "UPDATE_SERVICE_GROUP": {
-      UpdateServiceGroupInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.updateServiceGroupOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "DELETE_SERVICE_GROUP": {
-      DeleteServiceGroupInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.deleteServiceGroupOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REORDER_SERVICE_GROUPS": {
-      ReorderServiceGroupsInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.reorderServiceGroupsOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "ADD_SERVICE_GROUP_TIER_PRICING": {
-      AddServiceGroupTierPricingInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.addServiceGroupTierPricingOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "SET_SERVICE_GROUP_SETUP_COST": {
-      SetServiceGroupSetupCostInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.setServiceGroupSetupCostOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_SERVICE_GROUP_SETUP_COST": {
-      RemoveServiceGroupSetupCostInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.removeServiceGroupSetupCostOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "ADD_RECURRING_PRICE_OPTION": {
-      AddRecurringPriceOptionInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.addRecurringPriceOptionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "UPDATE_RECURRING_PRICE_OPTION": {
-      UpdateRecurringPriceOptionInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.updateRecurringPriceOptionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_RECURRING_PRICE_OPTION": {
-      RemoveRecurringPriceOptionInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.removeRecurringPriceOptionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_SERVICE_GROUP_TIER_PRICING": {
-      RemoveServiceGroupTierPricingInputSchema().parse(action.input);
-
-      serviceOfferingServiceGroupsOperations.removeServiceGroupTierPricingOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

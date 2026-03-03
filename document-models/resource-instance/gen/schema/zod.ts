@@ -57,7 +57,7 @@ export function ActivateInstanceInputSchema(): z.ZodObject<
   Properties<ActivateInstanceInput>
 > {
   return z.object({
-    activatedAt: z.string().datetime(),
+    activatedAt: z.iso.datetime(),
   });
 }
 
@@ -66,7 +66,7 @@ export function ApplyConfigurationChangesInputSchema(): z.ZodObject<
 > {
   return z.object({
     addFacets: z.array(z.lazy(() => SetInstanceFacetInputSchema())).nullish(),
-    appliedAt: z.string().datetime(),
+    appliedAt: z.iso.datetime(),
     changeDescription: z.string().nullish(),
     removeFacetKeys: z.array(z.string()).nullish(),
     updateFacets: z
@@ -79,7 +79,7 @@ export function ConfirmInstanceInputSchema(): z.ZodObject<
   Properties<ConfirmInstanceInput>
 > {
   return z.object({
-    confirmedAt: z.string().datetime(),
+    confirmedAt: z.iso.datetime(),
   });
 }
 
@@ -90,13 +90,13 @@ export function InitializeInstanceInputSchema(): z.ZodObject<
     customerId: z.string().nullish(),
     customerName: z.string().nullish(),
     description: z.string().nullish(),
-    infoLink: z.string().url().nullish(),
+    infoLink: z.url().nullish(),
     operatorDocumentType: z.string(),
     operatorId: z.string(),
     operatorName: z.string().nullish(),
     resourceTemplateId: z.string().nullish(),
     templateName: z.string().nullish(),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
   });
 }
 
@@ -132,7 +132,7 @@ export function ReportProvisioningCompletedInputSchema(): z.ZodObject<
   Properties<ReportProvisioningCompletedInput>
 > {
   return z.object({
-    completedAt: z.string().datetime(),
+    completedAt: z.iso.datetime(),
   });
 }
 
@@ -140,7 +140,7 @@ export function ReportProvisioningFailedInputSchema(): z.ZodObject<
   Properties<ReportProvisioningFailedInput>
 > {
   return z.object({
-    failedAt: z.string().datetime(),
+    failedAt: z.iso.datetime(),
     failureReason: z.string(),
   });
 }
@@ -149,7 +149,7 @@ export function ReportProvisioningStartedInputSchema(): z.ZodObject<
   Properties<ReportProvisioningStartedInput>
 > {
   return z.object({
-    startedAt: z.string().datetime(),
+    startedAt: z.iso.datetime(),
   });
 }
 
@@ -158,28 +158,28 @@ export function ResourceInstanceStateSchema(): z.ZodObject<
 > {
   return z.object({
     __typename: z.literal("ResourceInstanceState").optional(),
-    activatedAt: z.string().datetime().nullish(),
+    activatedAt: z.iso.datetime().nullish(),
     configuration: z.array(z.lazy(() => InstanceFacetSchema())),
-    confirmedAt: z.string().datetime().nullish(),
+    confirmedAt: z.iso.datetime().nullish(),
     customerId: z.string().nullish(),
     customerName: z.string().nullish(),
     description: z.string().nullish(),
-    infoLink: z.string().url().nullish(),
+    infoLink: z.url().nullish(),
     operatorProfile: z.lazy(() => OperatorProfileSchema().nullish()),
-    provisioningCompletedAt: z.string().datetime().nullish(),
+    provisioningCompletedAt: z.iso.datetime().nullish(),
     provisioningFailureReason: z.string().nullish(),
-    provisioningStartedAt: z.string().datetime().nullish(),
+    provisioningStartedAt: z.iso.datetime().nullish(),
     resourceTemplateId: z.string().nullish(),
-    resumedAt: z.string().datetime().nullish(),
+    resumedAt: z.iso.datetime().nullish(),
     status: InstanceStatusSchema,
-    suspendedAt: z.string().datetime().nullish(),
+    suspendedAt: z.iso.datetime().nullish(),
     suspensionDetails: z.string().nullish(),
     suspensionReason: z.string().nullish(),
     suspensionType: SuspensionTypeSchema.nullish(),
     templateName: z.string().nullish(),
-    terminatedAt: z.string().datetime().nullish(),
+    terminatedAt: z.iso.datetime().nullish(),
     terminationReason: z.string().nullish(),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
   });
 }
 
@@ -187,7 +187,7 @@ export function ResumeAfterMaintenanceInputSchema(): z.ZodObject<
   Properties<ResumeAfterMaintenanceInput>
 > {
   return z.object({
-    resumedAt: z.string().datetime(),
+    resumedAt: z.iso.datetime(),
   });
 }
 
@@ -196,7 +196,7 @@ export function ResumeAfterPaymentInputSchema(): z.ZodObject<
 > {
   return z.object({
     paymentReference: z.string().nullish(),
-    resumedAt: z.string().datetime(),
+    resumedAt: z.iso.datetime(),
   });
 }
 
@@ -226,7 +226,7 @@ export function SuspendForMaintenanceInputSchema(): z.ZodObject<
   return z.object({
     estimatedDuration: z.string().nullish(),
     maintenanceType: z.string().nullish(),
-    suspendedAt: z.string().datetime(),
+    suspendedAt: z.iso.datetime(),
   });
 }
 
@@ -236,7 +236,7 @@ export function SuspendForNonPaymentInputSchema(): z.ZodObject<
   return z.object({
     daysPastDue: z.number().nullish(),
     outstandingAmount: z.number().nullish(),
-    suspendedAt: z.string().datetime(),
+    suspendedAt: z.iso.datetime(),
   });
 }
 
@@ -245,7 +245,7 @@ export function SuspendInstanceInputSchema(): z.ZodObject<
 > {
   return z.object({
     reason: z.string().nullish(),
-    suspendedAt: z.string().datetime(),
+    suspendedAt: z.iso.datetime(),
   });
 }
 
@@ -254,7 +254,7 @@ export function TerminateInstanceInputSchema(): z.ZodObject<
 > {
   return z.object({
     reason: z.string(),
-    terminatedAt: z.string().datetime(),
+    terminatedAt: z.iso.datetime(),
   });
 }
 
@@ -273,9 +273,9 @@ export function UpdateInstanceInfoInputSchema(): z.ZodObject<
 > {
   return z.object({
     description: z.string().nullish(),
-    infoLink: z.string().url().nullish(),
+    infoLink: z.url().nullish(),
     name: z.string().nullish(),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
   });
 }
 

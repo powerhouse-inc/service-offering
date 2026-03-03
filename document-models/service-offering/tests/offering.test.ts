@@ -8,8 +8,6 @@ import {
   updateOfferingStatus,
   setOperator,
   setOfferingId,
-  addTargetAudience,
-  removeTargetAudience,
   setFacetTarget,
   removeFacetTarget,
   addFacetOption,
@@ -20,8 +18,6 @@ import {
   UpdateOfferingStatusInputSchema,
   SetOperatorInputSchema,
   SetOfferingIdInputSchema,
-  AddTargetAudienceInputSchema,
-  RemoveTargetAudienceInputSchema,
   SetFacetTargetInputSchema,
   RemoveFacetTargetInputSchema,
   AddFacetOptionInputSchema,
@@ -30,8 +26,6 @@ import {
   ChangeResourceTemplateInputSchema,
   setAvailableBillingCycles,
   SetAvailableBillingCyclesInputSchema,
-  setFacetBindings,
-  SetFacetBindingsInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("OfferingOperations", () => {
@@ -96,40 +90,6 @@ describe("OfferingOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_OFFERING_ID",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle addTargetAudience operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(AddTargetAudienceInputSchema());
-
-    const updatedDocument = reducer(document, addTargetAudience(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "ADD_TARGET_AUDIENCE",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle removeTargetAudience operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(RemoveTargetAudienceInputSchema());
-
-    const updatedDocument = reducer(document, removeTargetAudience(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "REMOVE_TARGET_AUDIENCE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,
@@ -249,23 +209,6 @@ describe("OfferingOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_AVAILABLE_BILLING_CYCLES",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle setFacetBindings operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(SetFacetBindingsInputSchema());
-
-    const updatedDocument = reducer(document, setFacetBindings(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SET_FACET_BINDINGS",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

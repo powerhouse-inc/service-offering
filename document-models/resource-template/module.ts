@@ -9,7 +9,7 @@ import {
   utils,
 } from "@powerhousedao/service-offering/document-models/resource-template";
 
-/** Document model module for the Todo List document type */
+/** Document model module for the ResourceTemplate document type */
 export const ResourceTemplate: DocumentModelModule<ResourceTemplatePHState> = {
   version: 1,
   reducer,

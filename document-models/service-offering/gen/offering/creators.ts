@@ -4,8 +4,6 @@ import {
   UpdateOfferingStatusInputSchema,
   SetOperatorInputSchema,
   SetOfferingIdInputSchema,
-  AddTargetAudienceInputSchema,
-  RemoveTargetAudienceInputSchema,
   SetFacetTargetInputSchema,
   RemoveFacetTargetInputSchema,
   AddFacetOptionInputSchema,
@@ -13,15 +11,12 @@ import {
   SelectResourceTemplateInputSchema,
   ChangeResourceTemplateInputSchema,
   SetAvailableBillingCyclesInputSchema,
-  SetFacetBindingsInputSchema,
 } from "../schema/zod.js";
 import type {
   UpdateOfferingInfoInput,
   UpdateOfferingStatusInput,
   SetOperatorInput,
   SetOfferingIdInput,
-  AddTargetAudienceInput,
-  RemoveTargetAudienceInput,
   SetFacetTargetInput,
   RemoveFacetTargetInput,
   AddFacetOptionInput,
@@ -29,15 +24,12 @@ import type {
   SelectResourceTemplateInput,
   ChangeResourceTemplateInput,
   SetAvailableBillingCyclesInput,
-  SetFacetBindingsInput,
 } from "../types.js";
 import type {
   UpdateOfferingInfoAction,
   UpdateOfferingStatusAction,
   SetOperatorAction,
   SetOfferingIdAction,
-  AddTargetAudienceAction,
-  RemoveTargetAudienceAction,
   SetFacetTargetAction,
   RemoveFacetTargetAction,
   AddFacetOptionAction,
@@ -45,7 +37,6 @@ import type {
   SelectResourceTemplateAction,
   ChangeResourceTemplateAction,
   SetAvailableBillingCyclesAction,
-  SetFacetBindingsAction,
 } from "./actions.js";
 
 export const updateOfferingInfo = (input: UpdateOfferingInfoInput) =>
@@ -81,24 +72,6 @@ export const setOfferingId = (input: SetOfferingIdInput) =>
     { ...input },
     undefined,
     SetOfferingIdInputSchema,
-    "global",
-  );
-
-export const addTargetAudience = (input: AddTargetAudienceInput) =>
-  createAction<AddTargetAudienceAction>(
-    "ADD_TARGET_AUDIENCE",
-    { ...input },
-    undefined,
-    AddTargetAudienceInputSchema,
-    "global",
-  );
-
-export const removeTargetAudience = (input: RemoveTargetAudienceInput) =>
-  createAction<RemoveTargetAudienceAction>(
-    "REMOVE_TARGET_AUDIENCE",
-    { ...input },
-    undefined,
-    RemoveTargetAudienceInputSchema,
     "global",
   );
 
@@ -164,14 +137,5 @@ export const setAvailableBillingCycles = (
     { ...input },
     undefined,
     SetAvailableBillingCyclesInputSchema,
-    "global",
-  );
-
-export const setFacetBindings = (input: SetFacetBindingsInput) =>
-  createAction<SetFacetBindingsAction>(
-    "SET_FACET_BINDINGS",
-    { ...input },
-    undefined,
-    SetFacetBindingsInputSchema,
     "global",
   );

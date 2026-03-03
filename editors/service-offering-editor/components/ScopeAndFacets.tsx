@@ -4,14 +4,11 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
-  TargetAudience,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
   updateOfferingInfo,
   updateOfferingStatus,
   setOperator,
-  addTargetAudience,
-  removeTargetAudience,
   setFacetTarget,
   removeFacetTarget,
   addFacetOption,
@@ -29,15 +26,6 @@ const STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Active", color: "emerald" },
   { value: "DEPRECATED", label: "Deprecated", color: "rose" },
 ] as const;
-
-const AUDIENCE_PRESETS = [
-  { label: "Founders", color: "#8b5cf6" },
-  { label: "SNO Governors", color: "#f43f5e" },
-  { label: "Builders", color: "#0ea5e9" },
-  { label: "Operators", color: "#f97316" },
-  { label: "Contributors", color: "#10b981" },
-  { label: "Investors", color: "#6366f1" },
-];
 
 const FACET_CATEGORIES = [
   {
@@ -98,9 +86,6 @@ export function ScopeAndFacets({ document, dispatch }: ScopeAndFacetsProps) {
     infoLink: globalState.infoLink || "",
     status: globalState.status,
   });
-
-  const [newAudienceLabel, setNewAudienceLabel] = useState("");
-  const [showAudienceInput, setShowAudienceInput] = useState(false);
 
   useEffect(() => {
     setFormData({
@@ -183,29 +168,6 @@ export function ScopeAndFacets({ document, dispatch }: ScopeAndFacetsProps) {
     );
   };
 
-  const handleAddAudience = (label: string, color?: string) => {
-    if (!label.trim()) return;
-    dispatch(
-      addTargetAudience({
-        id: generateId(),
-        label: label.trim(),
-        color: color || null,
-        lastModified: new Date().toISOString(),
-      }),
-    );
-    setNewAudienceLabel("");
-    setShowAudienceInput(false);
-  };
-
-  const handleRemoveAudience = (id: string) => {
-    dispatch(
-      removeTargetAudience({
-        id,
-        lastModified: new Date().toISOString(),
-      }),
-    );
-  };
-
   const handleFacetOptionToggle = (
     categoryKey: string,
     categoryLabel: string,
@@ -264,11 +226,6 @@ export function ScopeAndFacets({ document, dispatch }: ScopeAndFacetsProps) {
   };
 
   const currentStatus = STATUS_OPTIONS.find((s) => s.value === formData.status);
-
-  const availablePresets = AUDIENCE_PRESETS.filter(
-    (preset) =>
-      !globalState.targetAudiences.some((a) => a.label === preset.label),
-  );
 
   return (
     <>
@@ -350,93 +307,6 @@ export function ScopeAndFacets({ document, dispatch }: ScopeAndFacetsProps) {
                 />
               </div>
             </div>
-
-            {/* Target Audiences */}
-            <div className="offering-editor__audiences">
-              {globalState.targetAudiences.map((audience: TargetAudience) => (
-                <span
-                  key={audience.id}
-                  className="offering-editor__audience-tag"
-                  style={
-                    audience.color
-                      ? {
-                          backgroundColor: `${audience.color}15`,
-                          borderColor: `${audience.color}40`,
-                          color: audience.color,
-                        }
-                      : undefined
-                  }
-                >
-                  {audience.label}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAudience(audience.id)}
-                    className="offering-editor__audience-remove"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M18 6L6 18M6 6l12 12" strokeWidth="2" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-
-              {showAudienceInput ? (
-                <div className="offering-editor__audience-input-wrap">
-                  <input
-                    type="text"
-                    value={newAudienceLabel}
-                    onChange={(e) => setNewAudienceLabel(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter")
-                        handleAddAudience(newAudienceLabel);
-                      if (e.key === "Escape") setShowAudienceInput(false);
-                    }}
-                    placeholder="Audience name..."
-                    className="offering-editor__audience-input"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleAddAudience(newAudienceLabel)}
-                    className="offering-editor__audience-add-btn"
-                  >
-                    Add
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowAudienceInput(true)}
-                  className="offering-editor__add-audience-btn"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 5v14M5 12h14" strokeWidth="2" />
-                  </svg>
-                  Add Audience
-                </button>
-              )}
-            </div>
-
-            {availablePresets.length > 0 && (
-              <div className="offering-editor__audience-presets">
-                <span className="offering-editor__presets-label">
-                  Quick add:
-                </span>
-                {availablePresets.slice(0, 4).map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() =>
-                      handleAddAudience(preset.label, preset.color)
-                    }
-                    className="offering-editor__preset-btn"
-                    style={{ color: preset.color }}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            )}
 
             <textarea
               value={formData.summary}

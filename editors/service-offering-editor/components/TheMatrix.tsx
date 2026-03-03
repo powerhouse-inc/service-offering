@@ -2449,7 +2449,6 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const services = state.global.services ?? [];
   const tiers = state.global.tiers ?? [];
   const optionGroups = state.global.optionGroups ?? [];
-  const serviceGroups = state.global.serviceGroups ?? [];
   const toast = usePHToast();
 
   // Get selected facets from the offering document's facetTargets
@@ -2739,7 +2738,6 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   }, [
     tiers,
     optionGroups,
-    serviceGroups,
     activeBillingCycle,
     enabledOptionalGroups,
     groupBillingCycles,

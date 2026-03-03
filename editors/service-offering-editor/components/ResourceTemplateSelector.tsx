@@ -11,6 +11,7 @@ import {
   selectResourceTemplate,
   changeResourceTemplate,
   setOperator,
+  updateOfferingInfo,
   addFacetOption,
   removeFacetOption,
   setFacetTarget,
@@ -278,6 +279,19 @@ export function ResourceTemplateSelector({
           }),
         );
       }
+
+      // Copy offering info from the resource template
+      const g = template.state.global;
+      dispatch(
+        updateOfferingInfo({
+          title: g.title || undefined,
+          summary: g.summary || undefined,
+          description: g.description || undefined,
+          thumbnailUrl: g.thumbnailUrl || undefined,
+          infoLink: g.infoLink || undefined,
+          lastModified: now,
+        }),
+      );
 
       // Set operator from the resource template if it has one
       const templateOperatorId = template.state.global.operatorId;

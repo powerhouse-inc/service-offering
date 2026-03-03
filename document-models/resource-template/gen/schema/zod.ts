@@ -66,7 +66,7 @@ export function AddContentSectionInputSchema(): z.ZodObject<
     content: z.string(),
     displayOrder: z.number(),
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     title: z.string(),
   });
 }
@@ -78,7 +78,7 @@ export function AddFacetBindingInputSchema(): z.ZodObject<
     bindingId: z.string(),
     facetName: z.string(),
     facetType: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     serviceId: z.string(),
     supportedOptions: z.array(z.string()),
   });
@@ -89,7 +89,7 @@ export function AddFacetOptionInputSchema(): z.ZodObject<
 > {
   return z.object({
     categoryKey: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionId: z.string(),
   });
 }
@@ -111,7 +111,7 @@ export function AddOptionGroupInputSchema(): z.ZodObject<
     description: z.string().nullish(),
     id: z.string(),
     isAddOn: z.boolean(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string(),
   });
 }
@@ -124,7 +124,7 @@ export function AddServiceInputSchema(): z.ZodObject<
     displayOrder: z.number().nullish(),
     id: z.string(),
     isSetupFormation: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string().nullish(),
     parentServiceId: z.string().nullish(),
     title: z.string(),
@@ -138,7 +138,7 @@ export function AddTargetAudienceInputSchema(): z.ZodObject<
     color: z.string().nullish(),
     id: z.string(),
     label: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -159,7 +159,7 @@ export function DeleteContentSectionInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -176,7 +176,7 @@ export function DeleteOptionGroupInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -185,7 +185,7 @@ export function DeleteServiceInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -225,7 +225,7 @@ export function RemoveFacetBindingInputSchema(): z.ZodObject<
 > {
   return z.object({
     bindingId: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     serviceId: z.string(),
   });
 }
@@ -235,7 +235,7 @@ export function RemoveFacetOptionInputSchema(): z.ZodObject<
 > {
   return z.object({
     categoryKey: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionId: z.string(),
   });
 }
@@ -245,7 +245,7 @@ export function RemoveFacetTargetInputSchema(): z.ZodObject<
 > {
   return z.object({
     categoryKey: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -254,7 +254,7 @@ export function RemoveTargetAudienceInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -262,7 +262,7 @@ export function ReorderContentSectionsInputSchema(): z.ZodObject<
   Properties<ReorderContentSectionsInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     sectionIds: z.array(z.string()),
   });
 }
@@ -272,7 +272,7 @@ export function ReorderFaqsInputSchema(): z.ZodObject<
 > {
   return z.object({
     faqIds: z.array(z.string()),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -298,8 +298,8 @@ export function ResourceTemplateStateSchema(): z.ZodObject<
     facetTargets: z.array(z.lazy(() => FacetTargetSchema())),
     faqFields: z.array(z.lazy(() => FaqFieldSchema())).nullish(),
     id: z.string(),
-    infoLink: z.string().url().nullish(),
-    lastModified: z.string().datetime(),
+    infoLink: z.url().nullish(),
+    lastModified: z.iso.datetime(),
     operatorId: z.string(),
     optionGroups: z.array(z.lazy(() => OptionGroupSchema())),
     recurringServices: z.array(z.string()),
@@ -308,7 +308,7 @@ export function ResourceTemplateStateSchema(): z.ZodObject<
     status: TemplateStatusSchema,
     summary: z.string(),
     targetAudiences: z.array(z.lazy(() => TargetAudienceSchema())),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
     title: z.string(),
   });
 }
@@ -334,7 +334,7 @@ export function SetFacetTargetInputSchema(): z.ZodObject<
     categoryKey: z.string(),
     categoryLabel: z.string(),
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     selectedOptions: z.array(z.string()),
   });
 }
@@ -343,7 +343,7 @@ export function SetOperatorInputSchema(): z.ZodObject<
   Properties<SetOperatorInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     operatorId: z.string(),
   });
 }
@@ -352,7 +352,7 @@ export function SetRecurringServicesInputSchema(): z.ZodObject<
   Properties<SetRecurringServicesInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     services: z.array(z.string()),
   });
 }
@@ -361,7 +361,7 @@ export function SetSetupServicesInputSchema(): z.ZodObject<
   Properties<SetSetupServicesInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     services: z.array(z.string()),
   });
 }
@@ -371,7 +371,7 @@ export function SetTemplateIdInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -393,7 +393,7 @@ export function UpdateContentSectionInputSchema(): z.ZodObject<
     content: z.string().nullish(),
     displayOrder: z.number().nullish(),
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     title: z.string().nullish(),
   });
 }
@@ -416,7 +416,7 @@ export function UpdateOptionGroupInputSchema(): z.ZodObject<
     description: z.string().nullish(),
     id: z.string(),
     isAddOn: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string().nullish(),
   });
 }
@@ -429,7 +429,7 @@ export function UpdateServiceInputSchema(): z.ZodObject<
     displayOrder: z.number().nullish(),
     id: z.string(),
     isSetupFormation: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string().nullish(),
     parentServiceId: z.string().nullish(),
     title: z.string().nullish(),
@@ -441,10 +441,10 @@ export function UpdateTemplateInfoInputSchema(): z.ZodObject<
 > {
   return z.object({
     description: z.string().nullish(),
-    infoLink: z.string().url().nullish(),
-    lastModified: z.string().datetime(),
+    infoLink: z.url().nullish(),
+    lastModified: z.iso.datetime(),
     summary: z.string().nullish(),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
     title: z.string().nullish(),
   });
 }
@@ -453,7 +453,7 @@ export function UpdateTemplateStatusInputSchema(): z.ZodObject<
   Properties<UpdateTemplateStatusInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     status: TemplateStatusSchema,
   });
 }

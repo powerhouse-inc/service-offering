@@ -7,13 +7,9 @@ import {
   addService,
   updateService,
   deleteService,
-  addFacetBinding,
-  removeFacetBinding,
   AddServiceInputSchema,
   UpdateServiceInputSchema,
   DeleteServiceInputSchema,
-  AddFacetBindingInputSchema,
-  RemoveFacetBindingInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
 describe("ServicesOperations", () => {
@@ -61,40 +57,6 @@ describe("ServicesOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "DELETE_SERVICE",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle addFacetBinding operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(AddFacetBindingInputSchema());
-
-    const updatedDocument = reducer(document, addFacetBinding(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "ADD_FACET_BINDING",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle removeFacetBinding operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(RemoveFacetBindingInputSchema());
-
-    const updatedDocument = reducer(document, removeFacetBinding(input));
-
-    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "REMOVE_FACET_BINDING",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

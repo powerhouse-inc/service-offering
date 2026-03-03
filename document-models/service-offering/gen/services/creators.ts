@@ -3,22 +3,16 @@ import {
   AddServiceInputSchema,
   UpdateServiceInputSchema,
   DeleteServiceInputSchema,
-  AddFacetBindingInputSchema,
-  RemoveFacetBindingInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceInput,
   UpdateServiceInput,
   DeleteServiceInput,
-  AddFacetBindingInput,
-  RemoveFacetBindingInput,
 } from "../types.js";
 import type {
   AddServiceAction,
   UpdateServiceAction,
   DeleteServiceAction,
-  AddFacetBindingAction,
-  RemoveFacetBindingAction,
 } from "./actions.js";
 
 export const addService = (input: AddServiceInput) =>
@@ -45,23 +39,5 @@ export const deleteService = (input: DeleteServiceInput) =>
     { ...input },
     undefined,
     DeleteServiceInputSchema,
-    "global",
-  );
-
-export const addFacetBinding = (input: AddFacetBindingInput) =>
-  createAction<AddFacetBindingAction>(
-    "ADD_FACET_BINDING",
-    { ...input },
-    undefined,
-    AddFacetBindingInputSchema,
-    "global",
-  );
-
-export const removeFacetBinding = (input: RemoveFacetBindingInput) =>
-  createAction<RemoveFacetBindingAction>(
-    "REMOVE_FACET_BINDING",
-    { ...input },
-    undefined,
-    RemoveFacetBindingInputSchema,
     "global",
   );

@@ -1,5 +1,4 @@
 import {
-  RemoveTargetAudienceNotFoundError,
   RemoveFacetTargetNotFoundError,
   AddFacetOptionTargetNotFoundError,
   RemoveFacetOptionTargetNotFoundError,
@@ -31,26 +30,6 @@ export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperation
     },
     setOfferingIdOperation(state, action) {
       state.id = action.input.id;
-      state.lastModified = action.input.lastModified;
-    },
-    addTargetAudienceOperation(state, action) {
-      state.targetAudiences.push({
-        id: action.input.id,
-        label: action.input.label,
-        color: action.input.color || null,
-      });
-      state.lastModified = action.input.lastModified;
-    },
-    removeTargetAudienceOperation(state, action) {
-      const index = state.targetAudiences.findIndex(
-        (ta) => ta.id === action.input.id,
-      );
-      if (index === -1) {
-        throw new RemoveTargetAudienceNotFoundError(
-          `Target audience with ID ${action.input.id} not found`,
-        );
-      }
-      state.targetAudiences.splice(index, 1);
       state.lastModified = action.input.lastModified;
     },
     setFacetTargetOperation(state, action) {
@@ -131,15 +110,6 @@ export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperation
         );
       }
       state.availableBillingCycles = action.input.billingCycles;
-      state.lastModified = action.input.lastModified;
-    },
-    setFacetBindingsOperation(state, action) {
-      state.facetBindings = action.input.facetBindings.map((fb) => ({
-        id: fb.id,
-        facetName: fb.facetName,
-        facetType: fb.facetType,
-        supportedOptions: fb.supportedOptions || [],
-      }));
       state.lastModified = action.input.lastModified;
     },
   };

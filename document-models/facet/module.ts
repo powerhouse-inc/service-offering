@@ -9,7 +9,7 @@ import {
   utils,
 } from "@powerhousedao/service-offering/document-models/facet";
 
-/** Document model module for the Todo List document type */
+/** Document model module for the Facet document type */
 export const Facet: DocumentModelModule<FacetPHState> = {
   version: 1,
   reducer,

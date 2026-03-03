@@ -32,7 +32,7 @@ export function AddOptionInputSchema(): z.ZodObject<
     id: z.string(),
     isDefault: z.boolean().nullish(),
     label: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -52,7 +52,7 @@ export function FacetStateSchema(): z.ZodObject<Properties<FacetState>> {
     __typename: z.literal("FacetState").optional(),
     description: z.string().nullish(),
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string(),
     options: z.array(z.lazy(() => FacetOptionSchema())),
   });
@@ -63,7 +63,7 @@ export function RemoveOptionInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -71,7 +71,7 @@ export function ReorderOptionsInputSchema(): z.ZodObject<
   Properties<ReorderOptionsInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionIds: z.array(z.string()),
   });
 }
@@ -81,7 +81,7 @@ export function SetFacetDescriptionInputSchema(): z.ZodObject<
 > {
   return z.object({
     description: z.string().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -89,7 +89,7 @@ export function SetFacetNameInputSchema(): z.ZodObject<
   Properties<SetFacetNameInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string(),
   });
 }
@@ -103,6 +103,6 @@ export function UpdateOptionInputSchema(): z.ZodObject<
     id: z.string(),
     isDefault: z.boolean().nullish(),
     label: z.string().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }

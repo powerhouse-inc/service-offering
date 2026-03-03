@@ -6,5 +6,3 @@ export * from "./tiers/creators.js";
 export * as tiersActions from "./tiers/creators.js";
 export * from "./option-groups/creators.js";
 export * as optionGroupsActions from "./option-groups/creators.js";
-export * from "./service-groups/creators.js";
-export * as serviceGroupsActions from "./service-groups/creators.js";

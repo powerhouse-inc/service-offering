@@ -9,7 +9,7 @@ import {
   utils,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 
-/** Document model module for the Todo List document type */
+/** Document model module for the ServiceOffering document type */
 export const ServiceOffering: DocumentModelModule<ServiceOfferingPHState> = {
   version: 1,
   reducer,

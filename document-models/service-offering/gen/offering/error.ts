@@ -1,5 +1,4 @@
 export type ErrorCode =
-  | "RemoveTargetAudienceNotFoundError"
   | "RemoveFacetTargetNotFoundError"
   | "AddFacetOptionTargetNotFoundError"
   | "RemoveFacetOptionTargetNotFoundError"
@@ -8,16 +7,6 @@ export type ErrorCode =
 
 export interface ReducerError {
   errorCode: ErrorCode;
-}
-
-export class RemoveTargetAudienceNotFoundError
-  extends Error
-  implements ReducerError
-{
-  errorCode = "RemoveTargetAudienceNotFoundError" as ErrorCode;
-  constructor(message = "RemoveTargetAudienceNotFoundError") {
-    super(message);
-  }
 }
 
 export class RemoveFacetTargetNotFoundError
@@ -71,7 +60,6 @@ export class NoBillingCyclesSelectedError
 }
 
 export const errors = {
-  RemoveTargetAudience: { RemoveTargetAudienceNotFoundError },
   RemoveFacetTarget: { RemoveFacetTargetNotFoundError },
   AddFacetOption: { AddFacetOptionTargetNotFoundError },
   RemoveFacetOption: { RemoveFacetOptionTargetNotFoundError },

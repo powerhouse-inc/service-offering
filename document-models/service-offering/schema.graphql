@@ -31,10 +31,7 @@ type ServiceOfferingState {
     status: ServiceStatus!
     lastModified: DateTime!
     availableBillingCycles: [BillingCycle!]!
-    targetAudiences: [TargetAudience!]!
     facetTargets: [FacetTarget!]!
-    facetBindings: [ResourceFacetBinding!]!
-    serviceGroups: [ServiceGroup!]!
     services: [Service!]!
     tiers: [ServiceSubscriptionTier!]!
     optionGroups: [OptionGroup!]!
@@ -45,12 +42,6 @@ enum ServiceStatus {
     COMING_SOON
     ACTIVE
     DEPRECATED
-}
-
-type TargetAudience {
-    id: OID!
-    label: String!
-    color: String
 }
 
 type FacetTarget {
@@ -75,32 +66,7 @@ type BillingCycleDiscount {
     discountRule: DiscountRule!
 }
 
-type ServiceGroup {
-    id: OID!
-    name: String!
-    description: String
-    billingCycle: BillingCycle!
-    displayOrder: Int
-    discountMode: DiscountMode
-    tierPricing: [ServiceGroupTierPricing!]!
-}
-
-type ServiceGroupTierPricing {
-    id: OID!
-    tierId: OID!
-    setupCostsPerCycle: [SetupCostPerCycle!]!
-    recurringPricing: [RecurringPriceOption!]!
-}
-
 type SetupCost {
-    amount: Amount_Money!
-    currency: Currency!
-    discount: DiscountRule
-}
-
-type SetupCostPerCycle {
-    id: OID!
-    billingCycle: BillingCycle!
     amount: Amount_Money!
     currency: Currency!
     discount: DiscountRule
@@ -119,16 +85,8 @@ type Service {
     title: String!
     description: String
     displayOrder: Int
-    serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-}
-
-type ResourceFacetBinding {
-    id: OID!
-    facetName: String!
-    facetType: PHID!
-    supportedOptions: [OID!]!
 }
 
 type ServiceSubscriptionTier {
@@ -275,18 +233,6 @@ input SetOfferingIdInput {
     lastModified: DateTime!
 }
 
-input AddTargetAudienceInput {
-    id: OID!
-    label: String!
-    color: String
-    lastModified: DateTime!
-}
-
-input RemoveTargetAudienceInput {
-    id: OID!
-    lastModified: DateTime!
-}
-
 input SetFacetTargetInput {
     id: OID!
     categoryKey: String!
@@ -328,25 +274,12 @@ input SetAvailableBillingCyclesInput {
     lastModified: DateTime!
 }
 
-input SetFacetBindingsInput {
-    facetBindings: [FacetBindingInput!]!
-    lastModified: DateTime!
-}
-
-input FacetBindingInput {
-    id: OID!
-    facetName: String!
-    facetType: PHID!
-    supportedOptions: [OID!]!
-}
-
 # services
 
 input AddServiceInput {
     id: OID!
     title: String!
     description: String
-    serviceGroupId: OID
     displayOrder: Int
     isSetupFormation: Boolean
     optionGroupId: OID
@@ -357,7 +290,6 @@ input UpdateServiceInput {
     id: OID!
     title: String
     description: String
-    serviceGroupId: OID
     displayOrder: Int
     isSetupFormation: Boolean
     optionGroupId: OID
@@ -366,21 +298,6 @@ input UpdateServiceInput {
 
 input DeleteServiceInput {
     id: OID!
-    lastModified: DateTime!
-}
-
-input AddFacetBindingInput {
-    serviceId: OID!
-    bindingId: OID!
-    facetName: String!
-    facetType: PHID!
-    supportedOptions: [OID!]!
-    lastModified: DateTime!
-}
-
-input RemoveFacetBindingInput {
-    serviceId: OID!
-    bindingId: OID!
     lastModified: DateTime!
 }
 
@@ -587,94 +504,5 @@ input RemoveOptionGroupTierPricingInput {
 input SetOptionGroupDiscountModeInput {
     optionGroupId: OID!
     discountMode: DiscountMode!
-    lastModified: DateTime!
-}
-
-# service-groups
-
-input AddServiceGroupInput {
-    id: OID!
-    name: String!
-    description: String
-    billingCycle: BillingCycle!
-    displayOrder: Int
-    discountMode: DiscountMode
-    lastModified: DateTime!
-}
-
-input UpdateServiceGroupInput {
-    id: OID!
-    name: String
-    description: String
-    billingCycle: BillingCycle
-    displayOrder: Int
-    discountMode: DiscountMode
-    lastModified: DateTime!
-}
-
-input DeleteServiceGroupInput {
-    id: OID!
-    lastModified: DateTime!
-}
-
-input ReorderServiceGroupsInput {
-    order: [OID!]!
-    lastModified: DateTime!
-}
-
-input AddServiceGroupTierPricingInput {
-    serviceGroupId: OID!
-    tierPricingId: OID!
-    tierId: OID!
-    lastModified: DateTime!
-}
-
-input SetServiceGroupSetupCostInput {
-    serviceGroupId: OID!
-    tierId: OID!
-    amount: Amount_Money!
-    currency: Currency!
-    discountType: DiscountType
-    discountValue: Float
-    lastModified: DateTime!
-}
-
-input RemoveServiceGroupSetupCostInput {
-    serviceGroupId: OID!
-    tierId: OID!
-    lastModified: DateTime!
-}
-
-input AddRecurringPriceOptionInput {
-    serviceGroupId: OID!
-    tierId: OID!
-    priceOptionId: OID!
-    billingCycle: BillingCycle!
-    amount: Amount_Money!
-    currency: Currency!
-    lastModified: DateTime!
-}
-
-input UpdateRecurringPriceOptionInput {
-    serviceGroupId: OID!
-    tierId: OID!
-    priceOptionId: OID!
-    billingCycle: BillingCycle
-    amount: Amount_Money
-    currency: Currency
-    discount: DiscountRuleInput
-    lastModified: DateTime!
-}
-
-input RemoveRecurringPriceOptionInput {
-    serviceGroupId: OID!
-    tierId: OID!
-    priceOptionId: OID!
-    lastModified: DateTime!
-}
-
-input RemoveServiceGroupTierPricingInput {
-    serviceGroupId: OID!
-    tierId: OID!
     lastModified: DateTime!
 }

@@ -11,7 +11,6 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
         id: action.input.id,
         title: action.input.title,
         description: action.input.description || null,
-        serviceGroupId: action.input.serviceGroupId || null,
         displayOrder: action.input.displayOrder || null,
         isSetupFormation: action.input.isSetupFormation || false,
         optionGroupId: action.input.optionGroupId || null,
@@ -28,8 +27,6 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
       if (action.input.title) service.title = action.input.title;
       if (action.input.description !== undefined)
         service.description = action.input.description || null;
-      if (action.input.serviceGroupId !== undefined)
-        service.serviceGroupId = action.input.serviceGroupId || null;
       if (action.input.displayOrder !== undefined)
         service.displayOrder = action.input.displayOrder || null;
       if (
@@ -49,26 +46,6 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
         );
       }
       state.services.splice(index, 1);
-      state.lastModified = action.input.lastModified;
-    },
-    addFacetBindingOperation(state, action) {
-      // facetBindings now live at state level, not per-service
-      // serviceId is kept in input for backward compatibility but not used for lookup
-      state.facetBindings.push({
-        id: action.input.bindingId,
-        facetName: action.input.facetName,
-        facetType: action.input.facetType,
-        supportedOptions: action.input.supportedOptions,
-      });
-      state.lastModified = action.input.lastModified;
-    },
-    removeFacetBindingOperation(state, action) {
-      const bindingIndex = state.facetBindings.findIndex(
-        (fb) => fb.id === action.input.bindingId,
-      );
-      if (bindingIndex !== -1) {
-        state.facetBindings.splice(bindingIndex, 1);
-      }
       state.lastModified = action.input.lastModified;
     },
   };

@@ -153,9 +153,8 @@ export const schema: DocumentNode = gql`
     infoLink: URL
     status: RSServiceStatus!
     lastModified: DateTime!
-    targetAudiences: [RSOfferingTargetAudience!]!
+    availableBillingCycles: [RSBillingCycle!]!
     facetTargets: [RSOfferingFacetTarget!]!
-    serviceGroups: [RSServiceGroup!]!
     services: [RSOfferingService!]!
     tiers: [RSServiceSubscriptionTier!]!
     optionGroups: [RSOfferingOptionGroup!]!
@@ -166,12 +165,6 @@ export const schema: DocumentNode = gql`
     COMING_SOON
     ACTIVE
     DEPRECATED
-  }
-
-  type RSOfferingTargetAudience {
-    id: OID!
-    label: String!
-    color: String
   }
 
   type RSFacetTarget {
@@ -204,14 +197,6 @@ export const schema: DocumentNode = gql`
     discount: RSDiscountRule
   }
 
-  type RSSetupCostPerCycle {
-    id: OID!
-    billingCycle: RSBillingCycle!
-    amount: Amount_Money!
-    currency: Currency!
-    discount: RSDiscountRule
-  }
-
   type RSRecurringPriceOption {
     id: OID!
     billingCycle: RSBillingCycle!
@@ -220,22 +205,9 @@ export const schema: DocumentNode = gql`
     discount: RSDiscountRule
   }
 
-  # ---------- Service Groups ----------
-
-  type RSServiceGroup {
-    id: OID!
-    name: String!
-    description: String
-    billingCycle: RSBillingCycle!
-    displayOrder: Int
-    tierPricing: [RSServiceGroupTierPricing!]!
-  }
-
-  type RSServiceGroupTierPricing {
-    id: OID!
-    tierId: OID!
-    setupCostsPerCycle: [RSSetupCostPerCycle!]!
-    recurringPricing: [RSRecurringPriceOption!]!
+  enum RSDiscountMode {
+    INHERIT_TIER
+    INDEPENDENT
   }
 
   # ---------- Services ----------
@@ -245,10 +217,8 @@ export const schema: DocumentNode = gql`
     title: String!
     description: String
     displayOrder: Int
-    serviceGroupId: OID
     isSetupFormation: Boolean!
     optionGroupId: OID
-    facetBindings: [RSResourceFacetBinding!]!
   }
 
   type RSResourceFacetBinding {
@@ -272,6 +242,8 @@ export const schema: DocumentNode = gql`
     isCustomPricing: Boolean!
     pricingMode: RSTierPricingMode
     pricing: RSServicePricing!
+    defaultBillingCycle: RSBillingCycle
+    billingCycleDiscounts: [RSBillingCycleDiscount!]!
     serviceLevels: [RSServiceLevelBinding!]!
     usageLimits: [RSServiceUsageLimit!]!
   }
@@ -353,6 +325,8 @@ export const schema: DocumentNode = gql`
     tierDependentPricing: [RSOptionGroupTierPricing!]
     costType: RSGroupCostType
     availableBillingCycles: [RSBillingCycle!]!
+    billingCycleDiscounts: [RSBillingCycleDiscount!]!
+    discountMode: RSDiscountMode
     price: Amount_Money
     currency: Currency
   }

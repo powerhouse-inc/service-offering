@@ -1,16 +1,11 @@
 import * as z from "zod";
 import type {
-  AddFacetBindingInput,
   AddFacetOptionInput,
   AddOnPricingMode,
   AddOptionGroupInput,
   AddOptionGroupTierPricingInput,
-  AddRecurringPriceOptionInput,
-  AddServiceGroupInput,
-  AddServiceGroupTierPricingInput,
   AddServiceInput,
   AddServiceLevelInput,
-  AddTargetAudienceInput,
   AddTierInput,
   AddUsageLimitInput,
   BillingCycle,
@@ -18,36 +13,25 @@ import type {
   BillingCycleDiscountInput,
   ChangeResourceTemplateInput,
   DeleteOptionGroupInput,
-  DeleteServiceGroupInput,
   DeleteServiceInput,
   DeleteTierInput,
   DiscountMode,
   DiscountRule,
   DiscountRuleInput,
   DiscountType,
-  FacetBindingInput,
   FacetTarget,
   GroupCostType,
   OptionGroup,
   OptionGroupTierPricing,
   RecurringPriceOption,
   RecurringPriceOptionInput,
-  RemoveFacetBindingInput,
   RemoveFacetOptionInput,
   RemoveFacetTargetInput,
   RemoveOptionGroupTierPricingInput,
-  RemoveRecurringPriceOptionInput,
-  RemoveServiceGroupSetupCostInput,
-  RemoveServiceGroupTierPricingInput,
   RemoveServiceLevelInput,
-  RemoveTargetAudienceInput,
   RemoveUsageLimitInput,
-  ReorderServiceGroupsInput,
-  ResourceFacetBinding,
   SelectResourceTemplateInput,
   Service,
-  ServiceGroup,
-  ServiceGroupTierPricing,
   ServiceLevel,
   ServiceLevelBinding,
   ServiceOfferingState,
@@ -56,28 +40,22 @@ import type {
   ServiceSubscriptionTier,
   ServiceUsageLimit,
   SetAvailableBillingCyclesInput,
-  SetFacetBindingsInput,
   SetFacetTargetInput,
   SetOfferingIdInput,
   SetOperatorInput,
   SetOptionGroupDiscountModeInput,
   SetOptionGroupStandalonePricingInput,
-  SetServiceGroupSetupCostInput,
   SetTierBillingCycleDiscountsInput,
   SetTierDefaultBillingCycleInput,
   SetTierPricingModeInput,
   SetupCost,
   SetupCostInput,
-  SetupCostPerCycle,
   StandalonePricing,
-  TargetAudience,
   TierPricingMode,
   UpdateOfferingInfoInput,
   UpdateOfferingStatusInput,
   UpdateOptionGroupInput,
   UpdateOptionGroupTierPricingInput,
-  UpdateRecurringPriceOptionInput,
-  UpdateServiceGroupInput,
   UpdateServiceInput,
   UpdateServiceLevelInput,
   UpdateTierInput,
@@ -144,25 +122,12 @@ export const UsageResetCycleSchema = z.enum([
   "WEEKLY",
 ]);
 
-export function AddFacetBindingInputSchema(): z.ZodObject<
-  Properties<AddFacetBindingInput>
-> {
-  return z.object({
-    bindingId: z.string(),
-    facetName: z.string(),
-    facetType: z.string(),
-    lastModified: z.string().datetime(),
-    serviceId: z.string(),
-    supportedOptions: z.array(z.string()),
-  });
-}
-
 export function AddFacetOptionInputSchema(): z.ZodObject<
   Properties<AddFacetOptionInput>
 > {
   return z.object({
     categoryKey: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionId: z.string(),
   });
 }
@@ -178,7 +143,7 @@ export function AddOptionGroupInputSchema(): z.ZodObject<
     description: z.string().nullish(),
     id: z.string(),
     isAddOn: z.boolean(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string(),
     price: z.number().nullish(),
   });
@@ -188,52 +153,13 @@ export function AddOptionGroupTierPricingInputSchema(): z.ZodObject<
   Properties<AddOptionGroupTierPricingInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string(),
     recurringPricing: z.array(z.lazy(() => RecurringPriceOptionInputSchema())),
     setupCost: z.lazy(() => SetupCostInputSchema().nullish()),
     setupCostDiscounts: z
       .array(z.lazy(() => BillingCycleDiscountInputSchema()))
       .nullish(),
-    tierId: z.string(),
-    tierPricingId: z.string(),
-  });
-}
-
-export function AddRecurringPriceOptionInputSchema(): z.ZodObject<
-  Properties<AddRecurringPriceOptionInput>
-> {
-  return z.object({
-    amount: z.number(),
-    billingCycle: BillingCycleSchema,
-    currency: z.string(),
-    lastModified: z.string().datetime(),
-    priceOptionId: z.string(),
-    serviceGroupId: z.string(),
-    tierId: z.string(),
-  });
-}
-
-export function AddServiceGroupInputSchema(): z.ZodObject<
-  Properties<AddServiceGroupInput>
-> {
-  return z.object({
-    billingCycle: BillingCycleSchema,
-    description: z.string().nullish(),
-    discountMode: DiscountModeSchema.nullish(),
-    displayOrder: z.number().nullish(),
-    id: z.string(),
-    lastModified: z.string().datetime(),
-    name: z.string(),
-  });
-}
-
-export function AddServiceGroupTierPricingInputSchema(): z.ZodObject<
-  Properties<AddServiceGroupTierPricingInput>
-> {
-  return z.object({
-    lastModified: z.string().datetime(),
-    serviceGroupId: z.string(),
     tierId: z.string(),
     tierPricingId: z.string(),
   });
@@ -247,9 +173,8 @@ export function AddServiceInputSchema(): z.ZodObject<
     displayOrder: z.number().nullish(),
     id: z.string(),
     isSetupFormation: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string().nullish(),
-    serviceGroupId: z.string().nullish(),
     title: z.string(),
   });
 }
@@ -259,23 +184,12 @@ export function AddServiceLevelInputSchema(): z.ZodObject<
 > {
   return z.object({
     customValue: z.string().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     level: ServiceLevelSchema,
     optionGroupId: z.string().nullish(),
     serviceId: z.string(),
     serviceLevelId: z.string(),
     tierId: z.string(),
-  });
-}
-
-export function AddTargetAudienceInputSchema(): z.ZodObject<
-  Properties<AddTargetAudienceInput>
-> {
-  return z.object({
-    color: z.string().nullish(),
-    id: z.string(),
-    label: z.string(),
-    lastModified: z.string().datetime(),
   });
 }
 
@@ -286,7 +200,7 @@ export function AddTierInputSchema(): z.ZodObject<Properties<AddTierInput>> {
     description: z.string().nullish(),
     id: z.string(),
     isCustomPricing: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string(),
   });
 }
@@ -296,7 +210,7 @@ export function AddUsageLimitInputSchema(): z.ZodObject<
 > {
   return z.object({
     freeLimit: z.number().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     limitId: z.string(),
     metric: z.string(),
     notes: z.string().nullish(),
@@ -333,7 +247,7 @@ export function ChangeResourceTemplateInputSchema(): z.ZodObject<
   Properties<ChangeResourceTemplateInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     newTemplateId: z.string(),
     previousTemplateId: z.string(),
   });
@@ -344,16 +258,7 @@ export function DeleteOptionGroupInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
-  });
-}
-
-export function DeleteServiceGroupInputSchema(): z.ZodObject<
-  Properties<DeleteServiceGroupInput>
-> {
-  return z.object({
-    id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -362,7 +267,7 @@ export function DeleteServiceInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -371,7 +276,7 @@ export function DeleteTierInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -389,17 +294,6 @@ export function DiscountRuleInputSchema(): z.ZodObject<
   return z.object({
     discountType: DiscountTypeSchema,
     discountValue: z.number(),
-  });
-}
-
-export function FacetBindingInputSchema(): z.ZodObject<
-  Properties<FacetBindingInput>
-> {
-  return z.object({
-    facetName: z.string(),
-    facetType: z.string(),
-    id: z.string(),
-    supportedOptions: z.array(z.string()),
   });
 }
 
@@ -473,22 +367,12 @@ export function RecurringPriceOptionInputSchema(): z.ZodObject<
   });
 }
 
-export function RemoveFacetBindingInputSchema(): z.ZodObject<
-  Properties<RemoveFacetBindingInput>
-> {
-  return z.object({
-    bindingId: z.string(),
-    lastModified: z.string().datetime(),
-    serviceId: z.string(),
-  });
-}
-
 export function RemoveFacetOptionInputSchema(): z.ZodObject<
   Properties<RemoveFacetOptionInput>
 > {
   return z.object({
     categoryKey: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionId: z.string(),
   });
 }
@@ -498,7 +382,7 @@ export function RemoveFacetTargetInputSchema(): z.ZodObject<
 > {
   return z.object({
     categoryKey: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -506,39 +390,8 @@ export function RemoveOptionGroupTierPricingInputSchema(): z.ZodObject<
   Properties<RemoveOptionGroupTierPricingInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string(),
-    tierId: z.string(),
-  });
-}
-
-export function RemoveRecurringPriceOptionInputSchema(): z.ZodObject<
-  Properties<RemoveRecurringPriceOptionInput>
-> {
-  return z.object({
-    lastModified: z.string().datetime(),
-    priceOptionId: z.string(),
-    serviceGroupId: z.string(),
-    tierId: z.string(),
-  });
-}
-
-export function RemoveServiceGroupSetupCostInputSchema(): z.ZodObject<
-  Properties<RemoveServiceGroupSetupCostInput>
-> {
-  return z.object({
-    lastModified: z.string().datetime(),
-    serviceGroupId: z.string(),
-    tierId: z.string(),
-  });
-}
-
-export function RemoveServiceGroupTierPricingInputSchema(): z.ZodObject<
-  Properties<RemoveServiceGroupTierPricingInput>
-> {
-  return z.object({
-    lastModified: z.string().datetime(),
-    serviceGroupId: z.string(),
     tierId: z.string(),
   });
 }
@@ -547,18 +400,9 @@ export function RemoveServiceLevelInputSchema(): z.ZodObject<
   Properties<RemoveServiceLevelInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     serviceLevelId: z.string(),
     tierId: z.string(),
-  });
-}
-
-export function RemoveTargetAudienceInputSchema(): z.ZodObject<
-  Properties<RemoveTargetAudienceInput>
-> {
-  return z.object({
-    id: z.string(),
-    lastModified: z.string().datetime(),
   });
 }
 
@@ -566,30 +410,9 @@ export function RemoveUsageLimitInputSchema(): z.ZodObject<
   Properties<RemoveUsageLimitInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     limitId: z.string(),
     tierId: z.string(),
-  });
-}
-
-export function ReorderServiceGroupsInputSchema(): z.ZodObject<
-  Properties<ReorderServiceGroupsInput>
-> {
-  return z.object({
-    lastModified: z.string().datetime(),
-    order: z.array(z.string()),
-  });
-}
-
-export function ResourceFacetBindingSchema(): z.ZodObject<
-  Properties<ResourceFacetBinding>
-> {
-  return z.object({
-    __typename: z.literal("ResourceFacetBinding").optional(),
-    facetName: z.string(),
-    facetType: z.string(),
-    id: z.string(),
-    supportedOptions: z.array(z.string()),
   });
 }
 
@@ -597,7 +420,7 @@ export function SelectResourceTemplateInputSchema(): z.ZodObject<
   Properties<SelectResourceTemplateInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     resourceTemplateId: z.string(),
   });
 }
@@ -610,33 +433,7 @@ export function ServiceSchema(): z.ZodObject<Properties<Service>> {
     id: z.string(),
     isSetupFormation: z.boolean(),
     optionGroupId: z.string().nullish(),
-    serviceGroupId: z.string().nullish(),
     title: z.string(),
-  });
-}
-
-export function ServiceGroupSchema(): z.ZodObject<Properties<ServiceGroup>> {
-  return z.object({
-    __typename: z.literal("ServiceGroup").optional(),
-    billingCycle: BillingCycleSchema,
-    description: z.string().nullish(),
-    discountMode: DiscountModeSchema.nullish(),
-    displayOrder: z.number().nullish(),
-    id: z.string(),
-    name: z.string(),
-    tierPricing: z.array(z.lazy(() => ServiceGroupTierPricingSchema())),
-  });
-}
-
-export function ServiceGroupTierPricingSchema(): z.ZodObject<
-  Properties<ServiceGroupTierPricing>
-> {
-  return z.object({
-    __typename: z.literal("ServiceGroupTierPricing").optional(),
-    id: z.string(),
-    recurringPricing: z.array(z.lazy(() => RecurringPriceOptionSchema())),
-    setupCostsPerCycle: z.array(z.lazy(() => SetupCostPerCycleSchema())),
-    tierId: z.string(),
   });
 }
 
@@ -660,20 +457,17 @@ export function ServiceOfferingStateSchema(): z.ZodObject<
     __typename: z.literal("ServiceOfferingState").optional(),
     availableBillingCycles: z.array(BillingCycleSchema),
     description: z.string().nullish(),
-    facetBindings: z.array(z.lazy(() => ResourceFacetBindingSchema())),
     facetTargets: z.array(z.lazy(() => FacetTargetSchema())),
     id: z.string(),
-    infoLink: z.string().url().nullish(),
-    lastModified: z.string().datetime(),
+    infoLink: z.url().nullish(),
+    lastModified: z.iso.datetime(),
     operatorId: z.string(),
     optionGroups: z.array(z.lazy(() => OptionGroupSchema())),
     resourceTemplateId: z.string().nullish(),
-    serviceGroups: z.array(z.lazy(() => ServiceGroupSchema())),
     services: z.array(z.lazy(() => ServiceSchema())),
     status: ServiceStatusSchema,
     summary: z.string(),
-    targetAudiences: z.array(z.lazy(() => TargetAudienceSchema())),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
     tiers: z.array(z.lazy(() => ServiceSubscriptionTierSchema())),
     title: z.string(),
   });
@@ -730,16 +524,7 @@ export function SetAvailableBillingCyclesInputSchema(): z.ZodObject<
 > {
   return z.object({
     billingCycles: z.array(BillingCycleSchema),
-    lastModified: z.string().datetime(),
-  });
-}
-
-export function SetFacetBindingsInputSchema(): z.ZodObject<
-  Properties<SetFacetBindingsInput>
-> {
-  return z.object({
-    facetBindings: z.array(z.lazy(() => FacetBindingInputSchema())),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -750,7 +535,7 @@ export function SetFacetTargetInputSchema(): z.ZodObject<
     categoryKey: z.string(),
     categoryLabel: z.string(),
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     selectedOptions: z.array(z.string()),
   });
 }
@@ -760,7 +545,7 @@ export function SetOfferingIdInputSchema(): z.ZodObject<
 > {
   return z.object({
     id: z.string(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
   });
 }
 
@@ -768,7 +553,7 @@ export function SetOperatorInputSchema(): z.ZodObject<
   Properties<SetOperatorInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     operatorId: z.string(),
   });
 }
@@ -778,7 +563,7 @@ export function SetOptionGroupDiscountModeInputSchema(): z.ZodObject<
 > {
   return z.object({
     discountMode: DiscountModeSchema,
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string(),
   });
 }
@@ -790,24 +575,10 @@ export function SetOptionGroupStandalonePricingInputSchema(): z.ZodObject<
     billingCycleDiscounts: z
       .array(z.lazy(() => BillingCycleDiscountInputSchema()))
       .nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string(),
     recurringPricing: z.array(z.lazy(() => RecurringPriceOptionInputSchema())),
     setupCost: z.lazy(() => SetupCostInputSchema().nullish()),
-  });
-}
-
-export function SetServiceGroupSetupCostInputSchema(): z.ZodObject<
-  Properties<SetServiceGroupSetupCostInput>
-> {
-  return z.object({
-    amount: z.number(),
-    currency: z.string(),
-    discountType: DiscountTypeSchema.nullish(),
-    discountValue: z.number().nullish(),
-    lastModified: z.string().datetime(),
-    serviceGroupId: z.string(),
-    tierId: z.string(),
   });
 }
 
@@ -816,7 +587,7 @@ export function SetTierBillingCycleDiscountsInputSchema(): z.ZodObject<
 > {
   return z.object({
     discounts: z.array(z.lazy(() => BillingCycleDiscountInputSchema())),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     tierId: z.string(),
   });
 }
@@ -826,7 +597,7 @@ export function SetTierDefaultBillingCycleInputSchema(): z.ZodObject<
 > {
   return z.object({
     defaultBillingCycle: BillingCycleSchema,
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     tierId: z.string(),
   });
 }
@@ -835,7 +606,7 @@ export function SetTierPricingModeInputSchema(): z.ZodObject<
   Properties<SetTierPricingModeInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     pricingMode: TierPricingModeSchema,
     tierId: z.string(),
   });
@@ -860,19 +631,6 @@ export function SetupCostInputSchema(): z.ZodObject<
   });
 }
 
-export function SetupCostPerCycleSchema(): z.ZodObject<
-  Properties<SetupCostPerCycle>
-> {
-  return z.object({
-    __typename: z.literal("SetupCostPerCycle").optional(),
-    amount: z.number(),
-    billingCycle: BillingCycleSchema,
-    currency: z.string(),
-    discount: z.lazy(() => DiscountRuleSchema().nullish()),
-    id: z.string(),
-  });
-}
-
 export function StandalonePricingSchema(): z.ZodObject<
   Properties<StandalonePricing>
 > {
@@ -883,26 +641,15 @@ export function StandalonePricingSchema(): z.ZodObject<
   });
 }
 
-export function TargetAudienceSchema(): z.ZodObject<
-  Properties<TargetAudience>
-> {
-  return z.object({
-    __typename: z.literal("TargetAudience").optional(),
-    color: z.string().nullish(),
-    id: z.string(),
-    label: z.string(),
-  });
-}
-
 export function UpdateOfferingInfoInputSchema(): z.ZodObject<
   Properties<UpdateOfferingInfoInput>
 > {
   return z.object({
     description: z.string().nullish(),
-    infoLink: z.string().url().nullish(),
-    lastModified: z.string().datetime(),
+    infoLink: z.url().nullish(),
+    lastModified: z.iso.datetime(),
     summary: z.string().nullish(),
-    thumbnailUrl: z.string().url().nullish(),
+    thumbnailUrl: z.url().nullish(),
     title: z.string().nullish(),
   });
 }
@@ -911,7 +658,7 @@ export function UpdateOfferingStatusInputSchema(): z.ZodObject<
   Properties<UpdateOfferingStatusInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     status: ServiceStatusSchema,
   });
 }
@@ -927,7 +674,7 @@ export function UpdateOptionGroupInputSchema(): z.ZodObject<
     description: z.string().nullish(),
     id: z.string(),
     isAddOn: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string().nullish(),
     price: z.number().nullish(),
   });
@@ -937,7 +684,7 @@ export function UpdateOptionGroupTierPricingInputSchema(): z.ZodObject<
   Properties<UpdateOptionGroupTierPricingInput>
 > {
   return z.object({
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string(),
     recurringPricing: z
       .array(z.lazy(() => RecurringPriceOptionInputSchema()))
@@ -950,35 +697,6 @@ export function UpdateOptionGroupTierPricingInputSchema(): z.ZodObject<
   });
 }
 
-export function UpdateRecurringPriceOptionInputSchema(): z.ZodObject<
-  Properties<UpdateRecurringPriceOptionInput>
-> {
-  return z.object({
-    amount: z.number().nullish(),
-    billingCycle: BillingCycleSchema.nullish(),
-    currency: z.string().nullish(),
-    discount: z.lazy(() => DiscountRuleInputSchema().nullish()),
-    lastModified: z.string().datetime(),
-    priceOptionId: z.string(),
-    serviceGroupId: z.string(),
-    tierId: z.string(),
-  });
-}
-
-export function UpdateServiceGroupInputSchema(): z.ZodObject<
-  Properties<UpdateServiceGroupInput>
-> {
-  return z.object({
-    billingCycle: BillingCycleSchema.nullish(),
-    description: z.string().nullish(),
-    discountMode: DiscountModeSchema.nullish(),
-    displayOrder: z.number().nullish(),
-    id: z.string(),
-    lastModified: z.string().datetime(),
-    name: z.string().nullish(),
-  });
-}
-
 export function UpdateServiceInputSchema(): z.ZodObject<
   Properties<UpdateServiceInput>
 > {
@@ -987,9 +705,8 @@ export function UpdateServiceInputSchema(): z.ZodObject<
     displayOrder: z.number().nullish(),
     id: z.string(),
     isSetupFormation: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     optionGroupId: z.string().nullish(),
-    serviceGroupId: z.string().nullish(),
     title: z.string().nullish(),
   });
 }
@@ -999,7 +716,7 @@ export function UpdateServiceLevelInputSchema(): z.ZodObject<
 > {
   return z.object({
     customValue: z.string().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     level: ServiceLevelSchema.nullish(),
     optionGroupId: z.string().nullish(),
     serviceLevelId: z.string(),
@@ -1014,7 +731,7 @@ export function UpdateTierInputSchema(): z.ZodObject<
     description: z.string().nullish(),
     id: z.string(),
     isCustomPricing: z.boolean().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     name: z.string().nullish(),
   });
 }
@@ -1025,7 +742,7 @@ export function UpdateTierPricingInputSchema(): z.ZodObject<
   return z.object({
     amount: z.number().nullish(),
     currency: z.string().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     tierId: z.string(),
   });
 }
@@ -1035,7 +752,7 @@ export function UpdateUsageLimitInputSchema(): z.ZodObject<
 > {
   return z.object({
     freeLimit: z.number().nullish(),
-    lastModified: z.string().datetime(),
+    lastModified: z.iso.datetime(),
     limitId: z.string(),
     metric: z.string().nullish(),
     notes: z.string().nullish(),

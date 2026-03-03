@@ -4,8 +4,6 @@ import type {
   UpdateOfferingStatusAction,
   SetOperatorAction,
   SetOfferingIdAction,
-  AddTargetAudienceAction,
-  RemoveTargetAudienceAction,
   SetFacetTargetAction,
   RemoveFacetTargetAction,
   AddFacetOptionAction,
@@ -13,7 +11,6 @@ import type {
   SelectResourceTemplateAction,
   ChangeResourceTemplateAction,
   SetAvailableBillingCyclesAction,
-  SetFacetBindingsAction,
 } from "./actions.js";
 import type { ServiceOfferingState } from "../types.js";
 
@@ -36,16 +33,6 @@ export interface ServiceOfferingOfferingOperations {
   setOfferingIdOperation: (
     state: ServiceOfferingState,
     action: SetOfferingIdAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  addTargetAudienceOperation: (
-    state: ServiceOfferingState,
-    action: AddTargetAudienceAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  removeTargetAudienceOperation: (
-    state: ServiceOfferingState,
-    action: RemoveTargetAudienceAction,
     dispatch?: SignalDispatch,
   ) => void;
   setFacetTargetOperation: (
@@ -81,11 +68,6 @@ export interface ServiceOfferingOfferingOperations {
   setAvailableBillingCyclesOperation: (
     state: ServiceOfferingState,
     action: SetAvailableBillingCyclesAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  setFacetBindingsOperation: (
-    state: ServiceOfferingState,
-    action: SetFacetBindingsAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

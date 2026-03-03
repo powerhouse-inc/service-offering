@@ -8,7 +8,6 @@ import type {
 import type {
   PriceBreakdown,
   OptionGroupBreakdown,
-  AddOnBreakdown,
 } from "../../../document-models/service-offering/src/utils.js";
 import type {
   InitializeSubscriptionInput,
@@ -43,11 +42,10 @@ export interface MapOfferingOptions {
  *
  * Logic:
  * 1. Find the selected tier and resolve pricing from priceBreakdown
- * 2. Map offering service groups with tier-specific pricing
- * 3. Map option group breakdowns from priceBreakdown as additional service groups
- * 4. Map add-on breakdowns from priceBreakdown as optional service groups
- * 5. Map remaining standalone services with tier service levels and usage limits
- * 6. Calculate tier price from breakdown or service group sums (CALCULATED) or manual price
+ * 2. Map option group breakdowns from priceBreakdown as service groups
+ * 3. Map add-on breakdowns from priceBreakdown as optional service groups
+ * 4. Map remaining standalone services with tier service levels and usage limits
+ * 5. Calculate tier price from breakdown or service group sums (CALCULATED) or manual price
  */
 export function mapOfferingToSubscription(
   options: MapOfferingOptions,
@@ -74,16 +72,8 @@ export function mapOfferingToSubscription(
   // Track which services are accounted for in groups
   const groupedServiceIds = new Set<string>();
 
-  // 1. Map offering service groups with tier-specific pricing
-  const serviceGroups: InitializeServiceGroupInput[] = mapOfferingServiceGroups(
-    offering,
-    tier,
-    selectedBillingCycle,
-    currency,
-    groupedServiceIds,
-  );
-
-  // 2. Map option group and add-on breakdowns from priceBreakdown as service groups
+  // 1. Map option group and add-on breakdowns from priceBreakdown as service groups
+  const serviceGroups: InitializeServiceGroupInput[] = [];
   mapBreakdownGroups(
     offering,
     tier,
@@ -135,126 +125,6 @@ export function mapOfferingToSubscription(
     services: standaloneServices,
     serviceGroups,
   };
-}
-
-/**
- * Maps offering service groups to subscription service groups.
- * Finds services by their serviceGroupId and applies tier-specific pricing.
- */
-function mapOfferingServiceGroups(
-  offering: ServiceOfferingState,
-  tier: ServiceSubscriptionTier,
-  selectedBillingCycle: SIBillingCycle,
-  globalCurrency: string,
-  groupedServiceIds: Set<string>,
-): InitializeServiceGroupInput[] {
-  return offering.serviceGroups.map((group) => {
-    // Find services that belong to this service group
-    const groupServices = offering.services.filter(
-      (s) => s.serviceGroupId === group.id,
-    );
-    groupServices.forEach((s) => groupedServiceIds.add(s.id));
-
-    // Find tier-specific pricing for this group
-    const tierPricing = group.tierPricing.find((tp) => tp.tierId === tier.id);
-
-    // Find the recurring price option matching the selected billing cycle
-    let recurringOption = tierPricing?.recurringPricing.find(
-      (rp) => rp.billingCycle === selectedBillingCycle,
-    );
-    if (!recurringOption) {
-      recurringOption = tierPricing?.recurringPricing.find(
-        (rp) => rp.billingCycle === (group.billingCycle as string),
-      );
-    }
-
-    // Apply group-level discount from the recurring option itself
-    let discountedAmount = recurringOption?.amount;
-    let discountInput: DiscountInfoInitInput | undefined;
-
-    if (recurringOption && tier.billingCycleDiscounts.length > 0) {
-      const cycleDiscount = tier.billingCycleDiscounts.find(
-        (d) => d.billingCycle === selectedBillingCycle,
-      );
-      if (cycleDiscount) {
-        const originalAmount = recurringOption.amount;
-        const rule = cycleDiscount.discountRule;
-        discountedAmount =
-          rule.discountType === "PERCENTAGE"
-            ? originalAmount * (1 - rule.discountValue / 100)
-            : originalAmount - rule.discountValue;
-        discountInput = {
-          originalAmount,
-          discountType: rule.discountType,
-          discountValue: rule.discountValue,
-          source: "TIER_INHERITED",
-        };
-      }
-    }
-
-    // Fallback to the recurring option's own discount
-    if (recurringOption?.discount && !discountInput) {
-      const originalAmount = recurringOption.amount;
-      const d = recurringOption.discount;
-      discountedAmount =
-        d.discountType === "PERCENTAGE"
-          ? originalAmount * (1 - d.discountValue / 100)
-          : originalAmount - d.discountValue;
-      discountInput = {
-        originalAmount,
-        discountType: d.discountType,
-        discountValue: d.discountValue,
-        source: "GROUP_INDEPENDENT",
-      };
-    }
-
-    // Find setup cost for the selected billing cycle
-    let setupAmount: number | undefined;
-    let setupCurrency: string | undefined;
-    if (tierPricing) {
-      const setupCostOption = tierPricing.setupCostsPerCycle.find(
-        (sc) => sc.billingCycle === selectedBillingCycle,
-      );
-      if (setupCostOption) {
-        setupAmount = setupCostOption.amount;
-        setupCurrency = setupCostOption.currency;
-      }
-    }
-
-    // Map services in this group
-    const mappedServices = groupServices
-      .filter((svc) => {
-        const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
-        return (
-          !level ||
-          (level.level !== "NOT_INCLUDED" && level.level !== "NOT_APPLICABLE")
-        );
-      })
-      .map((svc) =>
-        mapServiceToInput(
-          svc,
-          tier,
-          globalCurrency,
-          (recurringOption?.billingCycle ??
-            group.billingCycle) as SIBillingCycle,
-        ),
-      );
-
-    return {
-      id: generateId(),
-      name: group.name,
-      optional: false,
-      costType: "RECURRING",
-      setupAmount,
-      setupCurrency,
-      recurringAmount: discountedAmount,
-      recurringCurrency: recurringOption?.currency ?? globalCurrency,
-      recurringBillingCycle: (recurringOption?.billingCycle ??
-        group.billingCycle) as SIBillingCycle,
-      recurringDiscount: discountInput,
-      services: mappedServices,
-    };
-  });
 }
 
 /**

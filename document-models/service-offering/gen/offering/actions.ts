@@ -4,8 +4,6 @@ import type {
   UpdateOfferingStatusInput,
   SetOperatorInput,
   SetOfferingIdInput,
-  AddTargetAudienceInput,
-  RemoveTargetAudienceInput,
   SetFacetTargetInput,
   RemoveFacetTargetInput,
   AddFacetOptionInput,
@@ -13,7 +11,6 @@ import type {
   SelectResourceTemplateInput,
   ChangeResourceTemplateInput,
   SetAvailableBillingCyclesInput,
-  SetFacetBindingsInput,
 } from "../types.js";
 
 export type UpdateOfferingInfoAction = Action & {
@@ -31,14 +28,6 @@ export type SetOperatorAction = Action & {
 export type SetOfferingIdAction = Action & {
   type: "SET_OFFERING_ID";
   input: SetOfferingIdInput;
-};
-export type AddTargetAudienceAction = Action & {
-  type: "ADD_TARGET_AUDIENCE";
-  input: AddTargetAudienceInput;
-};
-export type RemoveTargetAudienceAction = Action & {
-  type: "REMOVE_TARGET_AUDIENCE";
-  input: RemoveTargetAudienceInput;
 };
 export type SetFacetTargetAction = Action & {
   type: "SET_FACET_TARGET";
@@ -68,23 +57,16 @@ export type SetAvailableBillingCyclesAction = Action & {
   type: "SET_AVAILABLE_BILLING_CYCLES";
   input: SetAvailableBillingCyclesInput;
 };
-export type SetFacetBindingsAction = Action & {
-  type: "SET_FACET_BINDINGS";
-  input: SetFacetBindingsInput;
-};
 
 export type ServiceOfferingOfferingAction =
   | UpdateOfferingInfoAction
   | UpdateOfferingStatusAction
   | SetOperatorAction
   | SetOfferingIdAction
-  | AddTargetAudienceAction
-  | RemoveTargetAudienceAction
   | SetFacetTargetAction
   | RemoveFacetTargetAction
   | AddFacetOptionAction
   | RemoveFacetOptionAction
   | SelectResourceTemplateAction
   | ChangeResourceTemplateAction
-  | SetAvailableBillingCyclesAction
-  | SetFacetBindingsAction;
+  | SetAvailableBillingCyclesAction;
