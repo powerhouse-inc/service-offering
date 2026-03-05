@@ -10,3 +10,11 @@ projects-import.js
 context
 docs
 .env
+
+# Non-application files
+knowledge/
+.claude/skills/
+
+# Separate workstreams (not ready for this branch)
+document-models/multisig-participation-agreement/
+editors/multisig-participation-agreement-editor/
