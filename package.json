@@ -1,7 +1,7 @@
 {
   "name": "@powerhousedao/service-offering",
   "description": "service offering document models",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "license": "AGPL-3.0-only",
   "type": "module",
   "files": [
@@ -45,7 +45,8 @@
     "./style.css": "./dist/style.css"
   },
   "scripts": {
-    "build": "npm run tsc && npm run tailwind",
+    "build": "npm run tsc && npm run copy-css && npm run tailwind",
+    "copy-css": "cp editors/service-offering-editor/editor.css dist/editors/service-offering-editor/editor.css",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint --config eslint.config.js --cache --cache-strategy content",
