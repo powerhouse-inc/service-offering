@@ -38,14 +38,25 @@ export default function ServiceOfferingEditor() {
 
   if (!document) {
     return (
-      <div className="so-editor">
-        <div className="so-empty-state">
-          <div className="so-empty-state__icon">
+      <div
+        className="min-h-full overflow-y-auto"
+        style={{
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+          background:
+            "linear-gradient(135deg, #f1f5f9 0%, #f8fafc 50%, #f0f4f8 100%)",
+        }}
+      >
+        <div className="flex flex-col items-center justify-center min-h-screen text-center p-12">
+          <div
+            className="w-20 h-20 mb-6 text-slate-300"
+            style={{ animation: "so-float 3s ease-in-out infinite" }}
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth={1.5}
+              className="w-full h-full"
             >
               <path
                 strokeLinecap="round"
@@ -54,10 +65,10 @@ export default function ServiceOfferingEditor() {
               />
             </svg>
           </div>
-          <h2 className="so-empty-state__title">
+          <h2 className="text-2xl font-semibold text-slate-700 m-0 mb-2 tracking-tight">
             No service offering selected
           </h2>
-          <p className="so-empty-state__subtitle">
+          <p className="text-base text-slate-500 m-0">
             Select a document to start editing
           </p>
         </div>
@@ -116,26 +127,42 @@ export default function ServiceOfferingEditor() {
 
   return (
     <TooltipProvider>
-      <div className="so-editor">
+      <div
+        className="min-h-full overflow-y-auto"
+        style={{
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+          background:
+            "linear-gradient(135deg, #f1f5f9 0%, #f8fafc 50%, #f0f4f8 100%)",
+        }}
+      >
         <DocumentToolbar />
-        <div className="so-editor__container">
-          {/* Global Progress Component with integrated navigation */}
+        <div className="max-w-[1400px] mx-auto px-8 pt-6 pb-12">
           <OfferingProgress
             document={document}
             dispatch={dispatch}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
-          <div className="so-editor__content">
+          <div
+            className="min-h-[500px]"
+            style={{ animation: "so-fade-in 300ms ease-out" }}
+          >
             {renderTabContent()}
             {nextTab && (
-              <div className="so-editor__next-bar" ref={nextBarRef}>
+              <div
+                className="flex items-center justify-end gap-3 py-4 mt-6 border-t border-slate-200"
+                ref={nextBarRef}
+              >
                 {!isCurrentStepComplete && (
-                  <span className="so-editor__next-warning">
+                  <span className="text-[0.6875rem] text-amber-600">
                     This step is not yet complete — you can still continue
                   </span>
                 )}
-                <button className="so-editor__next-btn" onClick={goNext}>
+                <button
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-[0.8125rem] font-semibold text-white bg-violet-600 border-none rounded-[10px] cursor-pointer transition-colors duration-150 hover:bg-violet-700"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                  onClick={goNext}
+                >
                   Next: {TAB_LABELS[nextTab]}
                   <svg
                     viewBox="0 0 24 24"
@@ -152,7 +179,16 @@ export default function ServiceOfferingEditor() {
           </div>
         </div>
         {nextTab && !nextBarVisible && (
-          <button className="so-editor__next-fab" onClick={goNext}>
+          <button
+            className="fixed bottom-6 right-8 inline-flex items-center gap-1.5 px-5 py-2.5 text-[0.8125rem] font-semibold text-white bg-violet-600 border-none rounded-full cursor-pointer z-50 hover:bg-violet-700"
+            style={{
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              boxShadow:
+                "0 4px 12px rgba(109, 40, 217, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)",
+              animation: "so-fab-in 0.2s ease-out",
+            }}
+            onClick={goNext}
+          >
             Next: {TAB_LABELS[nextTab]}
             <svg
               viewBox="0 0 24 24"

@@ -117,7 +117,9 @@ const SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
   ],
 };
 import type { ServiceSubscriptionTier } from "../../../document-models/service-offering/gen/schema/types.js";
-import "./ServiceCatalog.css";
+
+const fontSans = { fontFamily: "'DM Sans', system-ui, sans-serif" };
+const fontMono = { fontFamily: "'DM Mono', 'SF Mono', monospace" };
 
 interface ServiceCatalogProps {
   document: ServiceOfferingDocument;
@@ -800,21 +802,30 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       {/* Edit Group Modal */}
       {editingGroup && (
         <div
-          className="catalog__modal-overlay"
+          className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-[1000]"
+          style={{ animation: "so-fade-in 150ms ease-out" }}
           onClick={() => setEditingGroup(null)}
         >
-          <div className="catalog__modal" onClick={(e) => e.stopPropagation()}>
-            <div className="catalog__modal-header">
-              <h3 className="catalog__modal-title">
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-[420px] max-h-[90vh] flex flex-col"
+            style={{ animation: "so-scale-in 200ms ease-out" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
+              <h3
+                className="text-lg font-semibold text-slate-800 m-0 tracking-[-0.01em]"
+                style={fontSans}
+              >
                 Edit Group
                 <InfoIcon content="Standalone: same price for all tiers. Tier-Dependent: different price per tier. Choose Tier-Dependent when you want to offer volume discounts at higher tiers." />
               </h3>
               <button
                 onClick={() => setEditingGroup(null)}
-                className="catalog__modal-close"
+                className="w-8 h-8 rounded-[10px] bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-slate-100 hover:text-slate-600"
                 aria-label="Close"
               >
                 <svg
+                  className="w-[18px] h-[18px]"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -824,20 +835,31 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 </svg>
               </button>
             </div>
-            <div className="catalog__modal-body">
-              <div className="catalog__field">
-                <label className="catalog__label">Group Name</label>
+            <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto flex-1 min-h-0">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                  style={fontSans}
+                >
+                  Group Name
+                </label>
                 <input
                   type="text"
                   value={editGroupName}
                   onChange={(e) => setEditGroupName(e.target.value)}
-                  className="catalog__input"
+                  className="w-full px-3 py-2.5 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md transition-all duration-150 focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                  style={fontSans}
                   autoFocus
                 />
               </div>
-              <div className="catalog__type-selector">
-                <span className="catalog__type-label">Category</span>
-                <div className="catalog__type-buttons">
+              <div className="flex flex-col gap-2">
+                <span
+                  className="text-[0.6875rem] font-semibold uppercase tracking-[0.05em] text-slate-500"
+                  style={fontSans}
+                >
+                  Category
+                </span>
+                <div className="flex gap-1.5">
                   {[
                     { type: "setup" as const, label: "Setup", color: "amber" },
                     {
@@ -854,7 +876,16 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                     <button
                       key={type}
                       onClick={() => setEditGroupType(type)}
-                      className={`catalog__type-btn catalog__type-btn--${color} ${editGroupType === type ? "catalog__type-btn--active" : ""}`}
+                      className={`flex-1 px-2.5 py-2 text-xs font-semibold rounded-md border-[1.5px] cursor-pointer transition-all duration-150 ${
+                        editGroupType === type
+                          ? color === "amber"
+                            ? "border-amber-500 bg-amber-50 text-amber-700"
+                            : color === "emerald"
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                              : "border-violet-500 bg-violet-50 text-violet-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                      style={fontSans}
                     >
                       {label}
                     </button>
@@ -863,11 +894,14 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
               </div>
 
               {editGroupType !== "setup" && (
-                <div className="catalog__field">
-                  <label className="catalog__label">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                    style={fontSans}
+                  >
                     Available Billing Cycles
                   </label>
-                  <div className="catalog__checkbox-group">
+                  <div className="flex flex-col gap-2.5 p-3 bg-slate-50 rounded-[10px]">
                     {(
                       Object.entries(BILLING_CYCLE_SHORT_LABELS) as [
                         BillingCycle,
@@ -876,7 +910,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                     )
                       .filter(([value]) => value !== "ONE_TIME")
                       .map(([value, label]) => (
-                        <label key={value} className="catalog__checkbox-label">
+                        <label
+                          key={value}
+                          className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700"
+                        >
                           <input
                             type="checkbox"
                             checked={editGroupBillingCycles.includes(value)}
@@ -894,7 +931,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                 );
                               }
                             }}
-                            className="catalog__checkbox"
+                            className="cursor-pointer w-4 h-4"
                           />
                           <span>{label}</span>
                         </label>
@@ -909,23 +946,31 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 tiers.length > 0 && (
                   <>
                     {/* Tier Tab Bar */}
-                    <div className="catalog__tier-tabs">
+                    <div className="flex gap-0 border-b border-slate-200 mb-3 overflow-x-auto">
                       {tiers.map((tier) => (
                         <button
                           key={tier.id}
                           onClick={() => setEditTierTab(tier.id)}
-                          className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
+                          className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-none border-none border-b-2 cursor-pointer whitespace-nowrap transition-all duration-150 ${
+                            editTierTab === tier.id
+                              ? "text-violet-700 border-b-violet-600 font-semibold"
+                              : "text-slate-500 border-b-transparent hover:text-slate-700 hover:bg-slate-50"
+                          } ${tier.isCustomPricing ? "italic" : ""}`}
+                          style={fontSans}
                         >
                           {tier.name}
                           {tier.isCustomPricing && (
-                            <span className="catalog__tier-tab-badge">
+                            <span className="text-[0.5625rem] font-semibold uppercase tracking-[0.04em] text-amber-600 bg-amber-50 px-[5px] py-px rounded-full">
                               Custom
                             </span>
                           )}
                           {!tier.isCustomPricing &&
                             editTierPrices[tier.id] &&
                             parseFloat(editTierPrices[tier.id]) > 0 && (
-                              <span className="catalog__tier-tab-price">
+                              <span
+                                className="text-[0.6875rem] text-emerald-600 font-semibold"
+                                style={fontMono}
+                              >
                                 {formatPrice(
                                   parseFloat(editTierPrices[tier.id]),
                                 )}
@@ -934,7 +979,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                           {!tier.isCustomPricing &&
                             (!editTierPrices[tier.id] ||
                               parseFloat(editTierPrices[tier.id]) <= 0) && (
-                              <span className="catalog__tier-tab-warning">
+                              <span
+                                className="text-[0.6875rem] text-amber-500 font-medium"
+                                style={fontMono}
+                              >
                                 $0
                               </span>
                             )}
@@ -953,7 +1001,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                         // Custom tier: no price input
                         if (activeTier.isCustomPricing) {
                           return (
-                            <div className="catalog__tier-custom-note">
+                            <div className="flex items-center gap-2 p-3 bg-slate-50 border border-dashed border-slate-300 rounded-md text-xs text-slate-500 italic">
                               <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -999,14 +1047,21 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                         const projectedTotal = otherGroupsTotal + tierBase;
 
                         return (
-                          <div className="catalog__tier-panel">
+                          <div
+                            style={{ animation: "catalog__fade-in 0.15s ease" }}
+                          >
                             {/* Recurring Price for this tier */}
-                            <div className="catalog__field">
-                              <label className="catalog__label">
+                            <div className="flex flex-col gap-1.5">
+                              <label
+                                className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                                style={fontSans}
+                              >
                                 Recurring Price ({activeTier.name})
                               </label>
-                              <div className="catalog__fee-input-wrapper">
-                                <span className="catalog__fee-prefix">$</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-500">
+                                  $
+                                </span>
                                 <input
                                   type="number"
                                   value={editTierPrices[activeTier.id] || ""}
@@ -1017,37 +1072,39 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                     })
                                   }
                                   placeholder="0.00"
-                                  className="catalog__fee-input"
+                                  className="flex-1 px-2.5 py-2 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                                  style={fontSans}
                                   step="0.01"
                                 />
                               </div>
                             </div>
 
-                            {/* Budget indicator — only in MANUAL_OVERRIDE mode (CALCULATED tier has no fixed budget) */}
+                            {/* Budget indicator -- only in MANUAL_OVERRIDE mode (CALCULATED tier has no fixed budget) */}
                             {tierAmount > 0 &&
                               activeTier.pricingMode !== "CALCULATED" && (
-                                <div className="catalog__tier-budget">
-                                  <span className="catalog__tier-budget-title">
+                                <div className="mt-2 p-2 px-2.5 bg-slate-50 border border-slate-200 rounded-md">
+                                  <span className="block text-[0.6875rem] font-semibold text-slate-700 mb-1.5">
                                     {activeTier.name} budget:{" "}
                                     {formatPrice(projectedTotal)}/mo of{" "}
                                     {formatPrice(tierAmount)}/mo
                                   </span>
-                                  <div className="catalog__tier-budget-row">
-                                    <div className="catalog__tier-budget-bar">
+                                  <div className="flex items-center gap-1.5 py-[3px]">
+                                    <div className="flex-1 h-[5px] bg-slate-200 rounded-full overflow-hidden">
                                       <div
-                                        className={`catalog__tier-budget-fill ${projectedTotal > tierAmount ? "catalog__tier-budget-fill--over" : ""}`}
+                                        className={`h-full rounded-full transition-[width] duration-200 ease-linear ${projectedTotal > tierAmount ? "bg-rose-500" : "bg-emerald-500"}`}
                                         style={{
                                           width: `${Math.min((projectedTotal / tierAmount) * 100, 100)}%`,
                                         }}
                                       />
                                     </div>
                                     <span
-                                      className={`catalog__tier-budget-amount ${projectedTotal > tierAmount ? "catalog__tier-budget-amount--over" : ""}`}
+                                      className={`shrink-0 text-[0.625rem] ${projectedTotal > tierAmount ? "text-rose-600 font-semibold" : "text-slate-600"}`}
+                                      style={fontMono}
                                     >
                                       {formatPrice(projectedTotal)} /{" "}
                                       {formatPrice(tierAmount)}
                                       {projectedTotal > tierAmount && (
-                                        <span className="catalog__tier-budget-warn">
+                                        <span className="text-rose-500 font-bold">
                                           {" "}
                                           +
                                           {formatPrice(
@@ -1061,12 +1118,17 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                               )}
 
                             {/* Setup Cost for this tier */}
-                            <div className="catalog__field">
-                              <label className="catalog__label">
+                            <div className="flex flex-col gap-1.5">
+                              <label
+                                className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                                style={fontSans}
+                              >
                                 Setup Cost (one-time)
                               </label>
-                              <div className="catalog__fee-input-wrapper">
-                                <span className="catalog__fee-prefix">$</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-500">
+                                  $
+                                </span>
                                 <input
                                   type="number"
                                   value={
@@ -1079,7 +1141,8 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                     })
                                   }
                                   placeholder="0.00"
-                                  className="catalog__fee-input"
+                                  className="flex-1 px-2.5 py-2 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                                  style={fontSans}
                                   step="0.01"
                                 />
                               </div>
@@ -1088,11 +1151,14 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             {/* Billing Cycles & Discounts for this tier */}
                             {editGroupBillingCycles.length > 0 &&
                               tierBase > 0 && (
-                                <div className="catalog__field">
-                                  <label className="catalog__label">
+                                <div className="flex flex-col gap-1.5">
+                                  <label
+                                    className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                                    style={fontSans}
+                                  >
                                     Billing Cycles & Discounts
                                   </label>
-                                  <div className="catalog__addon-cycles">
+                                  <div className="flex flex-col gap-2">
                                     {editGroupBillingCycles.map((cycle) => {
                                       const months =
                                         BILLING_CYCLE_MONTHS[cycle];
@@ -1126,34 +1192,43 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                       return (
                                         <div
                                           key={cycle}
-                                          className="catalog__addon-cycle-row catalog__addon-cycle-row--active"
+                                          className="border border-slate-200 rounded-[10px] px-3.5 py-2.5 bg-white"
                                         >
-                                          <div className="catalog__addon-cycle-top">
-                                            <span className="catalog__addon-cycle-label">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="text-sm font-semibold text-slate-700">
                                               {cycleLabel}
                                             </span>
-                                            <span className="catalog__addon-cycle-total">
+                                            <span
+                                              className="text-[0.9375rem] font-bold text-slate-800"
+                                              style={fontMono}
+                                            >
                                               {formatPrice(total, "USD")}
                                             </span>
                                           </div>
                                           {!isMonthly && (
-                                            <div className="catalog__addon-cycle-detail">
-                                              <div className="catalog__addon-cycle-calc">
-                                                <span className="catalog__addon-cycle-calc-label">
+                                            <div className="flex gap-4 mt-2 pt-2 border-t border-dashed border-slate-200">
+                                              <div className="flex-1 flex flex-col gap-0.5">
+                                                <span
+                                                  className="text-[0.625rem] font-medium uppercase tracking-[0.06em] text-violet-500"
+                                                  style={fontMono}
+                                                >
                                                   Standard Price
                                                 </span>
-                                                <span className="catalog__addon-cycle-calc-formula">
+                                                <span className="text-[0.8125rem] text-slate-600 flex items-baseline gap-1.5">
                                                   ${tierBase} &times; {months}mo
-                                                  <span className="catalog__addon-cycle-calc-result">
+                                                  <span className="font-semibold text-slate-700">
                                                     {formatPrice(total, "USD")}
                                                   </span>
                                                 </span>
                                               </div>
-                                              <div className="catalog__addon-cycle-discount-col">
-                                                <span className="catalog__addon-cycle-calc-label">
+                                              <div className="flex-1 flex flex-col gap-0.5">
+                                                <span
+                                                  className="text-[0.625rem] font-medium uppercase tracking-[0.06em] text-violet-500"
+                                                  style={fontMono}
+                                                >
                                                   Discount
                                                 </span>
-                                                <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                                <div className="flex items-center border border-slate-200 rounded-[10px] overflow-hidden transition-all duration-150 h-[34px] focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(124,58,237,0.1)]">
                                                   <input
                                                     type="number"
                                                     value={
@@ -1179,9 +1254,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                                     step="0.1"
                                                     min="0"
                                                     max="100"
-                                                    className="catalog__discount-input"
+                                                    className="flex-1 py-1.5 px-2 pr-1 border-none text-sm text-slate-700 bg-transparent outline-none min-w-0 placeholder:text-slate-400"
+                                                    style={fontMono}
                                                   />
-                                                  <span className="catalog__discount-suffix">
+                                                  <span className="px-3 py-2.5 pl-2 text-sm font-medium text-slate-400 bg-slate-50 whitespace-nowrap select-none">
                                                     %
                                                   </span>
                                                 </div>
@@ -1189,15 +1265,21 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                             </div>
                                           )}
                                           {effective !== null && (
-                                            <div className="catalog__addon-cycle-effective">
-                                              <span className="catalog__addon-cycle-effective-arrow">
+                                            <div className="flex items-center gap-2 mt-1.5 px-2.5 py-1.5 bg-emerald-50 rounded-md">
+                                              <span className="text-[0.8125rem] text-emerald-600">
                                                 &rarr;
                                               </span>
-                                              <span className="catalog__addon-cycle-effective-price">
+                                              <span
+                                                className="text-sm font-bold text-emerald-700"
+                                                style={fontMono}
+                                              >
                                                 {formatPrice(effective, "USD")}
                                               </span>
                                               {savingsPct > 0 && (
-                                                <span className="catalog__addon-cycle-effective-savings">
+                                                <span
+                                                  className="ml-auto text-[0.6875rem] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full"
+                                                  style={fontMono}
+                                                >
                                                   {formatPrice(
                                                     total - effective,
                                                     "USD",
@@ -1224,10 +1306,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 editGroupPricingMode === "STANDALONE" && (
                   <>
                     {/* Recurring Price (base monthly) */}
-                    <div className="catalog__field">
-                      <label className="catalog__label">Recurring Price</label>
-                      <div className="catalog__fee-input-wrapper">
-                        <span className="catalog__fee-prefix">$</span>
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                        style={fontSans}
+                      >
+                        Recurring Price
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">$</span>
                         <input
                           type="number"
                           value={editGroupBasePrice}
@@ -1235,19 +1322,23 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             setEditGroupBasePrice(e.target.value)
                           }
                           placeholder="0.00"
-                          className="catalog__fee-input"
+                          className="flex-1 px-2.5 py-2 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                          style={fontSans}
                           step="0.01"
                         />
                       </div>
                     </div>
 
                     {/* Setup Cost */}
-                    <div className="catalog__field">
-                      <label className="catalog__label">
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                        style={fontSans}
+                      >
                         Setup Cost (one-time)
                       </label>
-                      <div className="catalog__fee-input-wrapper">
-                        <span className="catalog__fee-prefix">$</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">$</span>
                         <input
                           type="number"
                           value={editGroupSetupCost}
@@ -1255,7 +1346,8 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             setEditGroupSetupCost(e.target.value)
                           }
                           placeholder="0.00"
-                          className="catalog__fee-input"
+                          className="flex-1 px-2.5 py-2 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                          style={fontSans}
                           step="0.01"
                         />
                       </div>
@@ -1263,11 +1355,14 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
                     {/* Billing Cycles & Discounts */}
                     {editGroupBillingCycles.length > 0 && (
-                      <div className="catalog__field">
-                        <label className="catalog__label">
+                      <div className="flex flex-col gap-1.5">
+                        <label
+                          className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                          style={fontSans}
+                        >
                           Billing Cycles & Discounts
                         </label>
-                        <div className="catalog__addon-cycles">
+                        <div className="flex flex-col gap-2">
                           {editGroupBillingCycles.map((cycle) => {
                             const base = parseFloat(editGroupBasePrice) || 0;
                             const months = BILLING_CYCLE_MONTHS[cycle];
@@ -1292,42 +1387,51 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             return (
                               <div
                                 key={cycle}
-                                className={`catalog__addon-cycle-row ${base > 0 ? "catalog__addon-cycle-row--active" : ""}`}
+                                className={`border border-slate-200 rounded-[10px] px-3.5 py-2.5 transition-[150ms] ${base > 0 ? "bg-white" : "bg-slate-50"}`}
                               >
-                                <div className="catalog__addon-cycle-top">
-                                  <span className="catalog__addon-cycle-label">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-sm font-semibold text-slate-700">
                                     {cycleLabel}
                                   </span>
                                   {total !== null ? (
-                                    <span className="catalog__addon-cycle-total">
+                                    <span
+                                      className="text-[0.9375rem] font-bold text-slate-800"
+                                      style={fontMono}
+                                    >
                                       {formatPrice(total, "USD")}
                                     </span>
                                   ) : (
-                                    <span className="catalog__addon-cycle-dash">
+                                    <span className="text-sm text-slate-400">
                                       --
                                     </span>
                                   )}
                                 </div>
                                 {base > 0 && (
-                                  <div className="catalog__addon-cycle-detail">
+                                  <div className="flex gap-4 mt-2 pt-2 border-t border-dashed border-slate-200">
                                     {!isMonthly && (
-                                      <div className="catalog__addon-cycle-calc">
-                                        <span className="catalog__addon-cycle-calc-label">
+                                      <div className="flex-1 flex flex-col gap-0.5">
+                                        <span
+                                          className="text-[0.625rem] font-medium uppercase tracking-[0.06em] text-violet-500"
+                                          style={fontMono}
+                                        >
                                           Standard Price
                                         </span>
-                                        <span className="catalog__addon-cycle-calc-formula">
+                                        <span className="text-[0.8125rem] text-slate-600 flex items-baseline gap-1.5">
                                           ${base} &times; {shortLabel}
-                                          <span className="catalog__addon-cycle-calc-result">
+                                          <span className="font-semibold text-slate-700">
                                             {formatPrice(total ?? 0, "USD")}
                                           </span>
                                         </span>
                                       </div>
                                     )}
-                                    <div className="catalog__addon-cycle-discount-col">
-                                      <span className="catalog__addon-cycle-calc-label">
+                                    <div className="flex-1 flex flex-col gap-0.5">
+                                      <span
+                                        className="text-[0.625rem] font-medium uppercase tracking-[0.06em] text-violet-500"
+                                        style={fontMono}
+                                      >
                                         Discount
                                       </span>
-                                      <div className="catalog__discount-flat catalog__discount-flat--compact">
+                                      <div className="flex items-center border border-slate-200 rounded-[10px] overflow-hidden transition-all duration-150 h-[34px] focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(124,58,237,0.1)]">
                                         <input
                                           type="number"
                                           value={editGroupDiscounts[cycle]}
@@ -1341,9 +1445,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                           step="0.1"
                                           min="0"
                                           max="100"
-                                          className="catalog__discount-input"
+                                          className="flex-1 py-1.5 px-2 pr-1 border-none text-sm text-slate-700 bg-transparent outline-none min-w-0 placeholder:text-slate-400"
+                                          style={fontMono}
                                         />
-                                        <span className="catalog__discount-suffix">
+                                        <span className="px-3 py-2.5 pl-2 text-sm font-medium text-slate-400 bg-slate-50 whitespace-nowrap select-none">
                                           %
                                         </span>
                                       </div>
@@ -1351,15 +1456,21 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                   </div>
                                 )}
                                 {effective !== null && discountPct > 0 && (
-                                  <div className="catalog__addon-cycle-effective">
-                                    <span className="catalog__addon-cycle-effective-arrow">
+                                  <div className="flex items-center gap-2 mt-1.5 px-2.5 py-1.5 bg-emerald-50 rounded-md">
+                                    <span className="text-[0.8125rem] text-emerald-600">
                                       &rarr;
                                     </span>
-                                    <span className="catalog__addon-cycle-effective-price">
+                                    <span
+                                      className="text-sm font-bold text-emerald-700"
+                                      style={fontMono}
+                                    >
                                       {formatPrice(effective, "USD")}
                                     </span>
                                     {savingsPct > 0 && (
-                                      <span className="catalog__addon-cycle-effective-savings">
+                                      <span
+                                        className="ml-auto text-[0.6875rem] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full"
+                                        style={fontMono}
+                                      >
                                         {savingsPct}% off
                                       </span>
                                     )}
@@ -1376,16 +1487,19 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
               {editGroupType === "setup" && (
                 <>
-                  <div className="catalog__fee-field">
-                    <span className="catalog__fee-label">One-time Fee</span>
-                    <div className="catalog__fee-input-wrapper">
-                      <span className="catalog__fee-prefix">$</span>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.05em] text-slate-500">
+                      One-time Fee
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">$</span>
                       <input
                         type="number"
                         value={editGroupPrice}
                         onChange={(e) => setEditGroupPrice(e.target.value)}
                         placeholder="0"
-                        className="catalog__fee-input"
+                        className="flex-1 px-2.5 py-2 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                        style={fontSans}
                         step="0.01"
                       />
                     </div>
@@ -1393,20 +1507,25 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
                   {/* Per-tier setup fee discounts */}
                   {tiers.length > 0 && parseFloat(editGroupPrice) > 0 && (
-                    <div className="catalog__setup-tier-discounts">
-                      <span className="catalog__fee-label">
+                    <div className="flex flex-col gap-2.5">
+                      <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.05em] text-slate-500">
                         Setup Fee Discounts by Tier & Billing Cycle
                       </span>
-                      <div className="catalog__tier-tabs">
+                      <div className="flex gap-0 border-b border-slate-200 mb-3 overflow-x-auto">
                         {tiers.map((tier) => (
                           <button
                             key={tier.id}
                             onClick={() => setEditTierTab(tier.id)}
-                            className={`catalog__tier-tab ${editTierTab === tier.id ? "catalog__tier-tab--active" : ""} ${tier.isCustomPricing ? "catalog__tier-tab--custom" : ""}`}
+                            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-none border-none border-b-2 cursor-pointer whitespace-nowrap transition-all duration-150 ${
+                              editTierTab === tier.id
+                                ? "text-violet-700 border-b-violet-600 font-semibold"
+                                : "text-slate-500 border-b-transparent hover:text-slate-700 hover:bg-slate-50"
+                            } ${tier.isCustomPricing ? "italic" : ""}`}
+                            style={fontSans}
                           >
                             {tier.name}
                             {tier.isCustomPricing && (
-                              <span className="catalog__tier-tab-badge">
+                              <span className="text-[0.5625rem] font-semibold uppercase tracking-[0.04em] text-amber-600 bg-amber-50 px-[5px] py-px rounded-full">
                                 Custom
                               </span>
                             )}
@@ -1423,7 +1542,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
                           if (activeTier.isCustomPricing) {
                             return (
-                              <div className="catalog__tier-custom-note">
+                              <div className="flex items-center gap-2 p-3 bg-slate-50 border border-dashed border-slate-300 rounded-md text-xs text-slate-500 italic">
                                 <svg
                                   viewBox="0 0 24 24"
                                   fill="none"
@@ -1457,7 +1576,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                           };
 
                           return (
-                            <div className="catalog__setup-cycle-grid">
+                            <div className="flex flex-col gap-1.5">
                               {SETUP_CYCLES.map((cycle) => {
                                 const entry =
                                   editSetupTierDiscounts[activeTier.id]?.[
@@ -1487,21 +1606,24 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                 return (
                                   <div
                                     key={cycle}
-                                    className="catalog__setup-cycle-row"
+                                    className="flex flex-col gap-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-md"
                                   >
-                                    <div className="catalog__setup-cycle-header">
-                                      <span className="catalog__setup-cycle-label">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs font-semibold text-slate-700">
                                         {cycleLabels[cycle]} subscription
                                       </span>
-                                      <span className="catalog__setup-cycle-base">
+                                      <span
+                                        className="text-xs text-slate-400"
+                                        style={fontMono}
+                                      >
                                         {formatPrice(baseAmount, "USD")}
                                       </span>
                                     </div>
-                                    <div className="catalog__setup-cycle-controls">
-                                      <span className="catalog__discount-label">
+                                    <div className="flex gap-1.5 items-stretch">
+                                      <span className="text-[0.8125rem] font-medium text-slate-500 whitespace-nowrap">
                                         Discount
                                       </span>
-                                      <div className="catalog__fee-input-wrapper catalog__fee-input-wrapper--discount">
+                                      <div className="flex-1 flex items-center gap-2">
                                         <input
                                           type="number"
                                           value={dValue}
@@ -1521,29 +1643,39 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                             setEditSetupTierDiscounts(updated);
                                           }}
                                           placeholder="0"
-                                          className="catalog__fee-input"
+                                          className="flex-1 px-2.5 py-2 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                                          style={fontSans}
                                           step="0.01"
                                           min="0"
                                           max="100"
                                         />
-                                        <span className="catalog__discount-suffix">
+                                        <span className="px-3 py-2.5 pl-2 text-sm font-medium text-slate-400 bg-slate-50 whitespace-nowrap select-none">
                                           %
                                         </span>
                                       </div>
                                     </div>
                                     {parsedValue > 0 && baseAmount > 0 && (
-                                      <div className="catalog__setup-effective">
-                                        <span className="catalog__setup-effective-arrow">
+                                      <div className="flex items-center gap-2 px-2.5 py-1.5 bg-emerald-50 border border-emerald-100 rounded-md flex-wrap">
+                                        <span className="text-xs text-emerald-500">
                                           &rarr;
                                         </span>
-                                        <span className="catalog__setup-effective-base">
+                                        <span
+                                          className="text-xs text-slate-400 line-through"
+                                          style={fontMono}
+                                        >
                                           {formatPrice(baseAmount, "USD")}
                                         </span>
-                                        <span className="catalog__setup-effective-price">
+                                        <span
+                                          className="text-sm font-bold text-emerald-700"
+                                          style={fontMono}
+                                        >
                                           {formatPrice(effectiveAmount, "USD")}
                                         </span>
                                         {savingsPct > 0 && (
-                                          <span className="catalog__setup-effective-savings">
+                                          <span
+                                            className="ml-auto text-[0.625rem] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md"
+                                            style={fontMono}
+                                          >
                                             save {formatPrice(savings, "USD")} (
                                             {savingsPct}% off)
                                           </span>
@@ -1561,17 +1693,24 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 </>
               )}
             </div>
-            <div className="catalog__modal-footer">
+            <div className="flex gap-3 px-6 pt-4 pb-5 border-t border-slate-100">
               <button
                 onClick={() => setEditingGroup(null)}
-                className="catalog__btn catalog__btn--secondary"
+                className="flex-1 px-4 py-2.5 text-[0.8125rem] font-semibold rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={fontSans}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveGroupEdit}
                 disabled={!editGroupName.trim()}
-                className="catalog__btn catalog__btn--primary"
+                className="flex-1 px-4 py-2.5 text-[0.8125rem] font-semibold rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 text-white hover:enabled:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  ...fontSans,
+                  background:
+                    "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                  boxShadow: "0 2px 6px rgba(124, 58, 237, 0.25)",
+                }}
               >
                 Save Changes
               </button>
@@ -1580,20 +1719,24 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         </div>
       )}
 
-      <div className="catalog">
+      <div className="flex gap-6 min-h-[600px]">
         {/* Service Groups Sidebar */}
-        <aside className="catalog__sidebar">
-          <div className="catalog__sidebar-header">
-            <h2 className="catalog__sidebar-title">
+        <aside
+          className="w-80 shrink-0 bg-white rounded-xl shadow-md border border-slate-100 p-5"
+          style={{ animation: "so-scale-in 300ms ease-out" }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[1.0625rem] font-semibold text-slate-800 m-0 tracking-[-0.01em]">
               Service Groups
               <InfoIcon content="Option Groups bundle related services together. They can be setup fees (one-time), recurring charges, or add-ons that clients select independently." />
             </h2>
             <button
               onClick={handleAddNewGroup}
-              className="catalog__add-btn"
+              className="w-8 h-8 rounded-[10px] bg-slate-100 border-none text-slate-500 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-violet-100 hover:text-violet-600"
               aria-label="Add group"
             >
               <svg
+                className="w-[18px] h-[18px]"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1604,7 +1747,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
             </button>
           </div>
 
-          <div className="catalog__groups">
+          <div className="flex flex-col gap-5">
             {/* Setup & Formation Groups */}
             {setupGroups.length > 0 && (
               <GroupSection
@@ -1649,15 +1792,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
             {/* Ungrouped services */}
             {ungroupedServices.length > 0 && (
-              <div className="catalog__section">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setSelectedGroupId(null)}
-                  className={`catalog__ungrouped-btn ${selectedGroupId === null ? "catalog__ungrouped-btn--active" : ""}`}
+                  className={`w-full px-3.5 py-2.5 bg-transparent border-none border-t border-slate-200 rounded-none cursor-pointer text-left transition-all duration-150 mt-2 pt-[18px] hover:bg-slate-50 ${selectedGroupId === null ? "bg-slate-100 border-l-[3px] border-l-slate-500 rounded-[10px]" : ""}`}
                 >
-                  <span className="catalog__ungrouped-name">
+                  <span className="block text-sm font-medium text-slate-700">
                     Ungrouped Services
                   </span>
-                  <span className="catalog__ungrouped-count">
+                  <span className="block text-xs text-slate-400 mt-0.5">
                     {ungroupedServices.length} services
                   </span>
                 </button>
@@ -1666,25 +1809,35 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
             {/* Empty state */}
             {optionGroups.length === 0 && ungroupedServices.length === 0 && (
-              <div className="catalog__empty">
-                <p className="catalog__empty-title">No service groups yet</p>
-                <p className="catalog__empty-text">Click + to create a group</p>
+              <div className="text-center px-4 py-8 text-slate-500">
+                <p className="text-sm font-medium m-0 mb-1">
+                  No service groups yet
+                </p>
+                <p className="text-xs m-0 text-slate-400">
+                  Click + to create a group
+                </p>
               </div>
             )}
           </div>
         </aside>
 
         {/* Services List */}
-        <main className="catalog__main">
-          <div className="catalog__main-header">
-            <div className="catalog__main-info">
-              <h2 className="catalog__main-title">
+        <main
+          className="flex-1 bg-white rounded-xl shadow-md border border-slate-100 p-6"
+          style={{
+            animation: "so-scale-in 300ms ease-out",
+            animationDelay: "50ms",
+          }}
+        >
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div className="flex-1">
+              <h2 className="text-[1.375rem] font-semibold text-slate-800 m-0 mb-1.5 tracking-[-0.02em]">
                 {selectedGroup?.name || "Ungrouped Services"}
               </h2>
-              <p className="catalog__main-subtitle">
+              <p className="text-sm text-slate-500 m-0">
                 {selectedGroup?.costType === "SETUP" ? (
-                  <span className="catalog__main-meta">
-                    <span className="catalog__badge catalog__badge--amber">
+                  <span className="flex items-center gap-2.5">
+                    <span className="inline-flex items-center px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.04em] rounded-full bg-amber-100 text-amber-700">
                       Setup & Formation
                     </span>
                     {selectedGroup.price != null
@@ -1692,30 +1845,30 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                       : "Included in tier price"}
                   </span>
                 ) : selectedGroup?.isAddOn ? (
-                  <span className="catalog__main-meta">
+                  <span className="flex items-center gap-2.5">
                     Optional add-on group
                     {selectedGroup.availableBillingCycles.map((cycle) => (
                       <span
                         key={cycle}
-                        className="catalog__badge catalog__badge--violet"
+                        className="inline-flex items-center px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.04em] rounded-full bg-violet-100 text-violet-700"
                         style={{ marginLeft: 8 }}
                       >
                         {BILLING_CYCLE_SHORT_LABELS[cycle]}
                       </span>
                     ))}
                     {selectedGroup.price != null && (
-                      <span className="catalog__fee-display">
+                      <span className="text-amber-600">
                         ${selectedGroup.price}
                       </span>
                     )}
                   </span>
                 ) : selectedGroup ? (
-                  <span className="catalog__main-meta">
+                  <span className="flex items-center gap-2.5">
                     Included in subscription
                     {selectedGroup.availableBillingCycles.map((cycle) => (
                       <span
                         key={cycle}
-                        className="catalog__badge catalog__badge--emerald"
+                        className="inline-flex items-center px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.04em] rounded-full bg-emerald-100 text-emerald-700"
                         style={{ marginLeft: 8 }}
                       >
                         {BILLING_CYCLE_SHORT_LABELS[cycle]}
@@ -1728,13 +1881,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
               </p>
             </div>
             {selectedGroupId && (
-              <div className="catalog__header-actions">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setShowServiceTemplates(!showServiceTemplates)}
-                  className="catalog__btn catalog__btn--secondary"
+                  className="flex-1 px-4 py-2.5 text-[0.8125rem] font-semibold rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={fontSans}
                   title="Quick-add from templates"
                 >
                   <svg
+                    className="w-4 h-4"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -1746,9 +1901,16 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 </button>
                 <button
                   onClick={() => setIsAddingService(true)}
-                  className="catalog__btn catalog__btn--primary"
+                  className="flex-1 px-4 py-2.5 text-[0.8125rem] font-semibold rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 text-white hover:enabled:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    ...fontSans,
+                    background:
+                      "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                    boxShadow: "0 2px 6px rgba(124, 58, 237, 0.25)",
+                  }}
                 >
                   <svg
+                    className="w-4 h-4"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -1764,16 +1926,23 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
           {/* Service Templates Quick-Add Panel */}
           {showServiceTemplates && selectedGroupId && (
-            <div className="catalog__templates-panel">
-              <div className="catalog__templates-header">
-                <h3 className="catalog__templates-title">
-                  Quick Add from Templates
+            <div
+              className="border border-violet-200 rounded-xl p-5 mb-6"
+              style={{
+                background: "linear-gradient(135deg, #f5f3ff 0%, #f8fafc 100%)",
+                animation: "so-scale-in 150ms ease-out",
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold text-slate-800 m-0 flex items-center gap-2">
+                  {"⚡"} Quick Add from Templates
                 </h3>
                 <button
                   onClick={() => setShowServiceTemplates(false)}
-                  className="catalog__templates-close"
+                  className="w-7 h-7 rounded-md bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-white hover:text-slate-600"
                 >
                   <svg
+                    className="w-4 h-4"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -1783,18 +1952,18 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                   </svg>
                 </button>
               </div>
-              <p className="catalog__templates-hint">
+              <p className="text-[0.8125rem] text-slate-500 m-0 mb-4">
                 Click any template to instantly add it to this group. Services
                 will be included in all tiers by default.
               </p>
-              <div className="catalog__templates-grid">
+              <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
                 {Object.entries(SERVICE_TEMPLATES).map(
                   ([category, templates]) => (
-                    <div key={category} className="catalog__template-category">
-                      <h4 className="catalog__template-category-title">
+                    <div key={category} className="flex flex-col gap-2">
+                      <h4 className="text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-slate-500 m-0 pl-1">
                         {category}
                       </h4>
-                      <div className="catalog__template-items">
+                      <div className="flex flex-col gap-1">
                         {templates.map((template, idx) => {
                           // Check if service already exists
                           const alreadyExists = services.some(
@@ -1810,21 +1979,21 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                 handleAddFromTemplate(template)
                               }
                               disabled={alreadyExists}
-                              className={`catalog__template-item ${alreadyExists ? "catalog__template-item--exists" : ""}`}
+                              className={`flex items-center gap-2.5 px-3 py-2.5 bg-white border border-slate-200 rounded-[10px] cursor-pointer text-left transition-all duration-150 hover:enabled:border-violet-300 hover:enabled:bg-white hover:enabled:shadow-[0_2px_8px_rgba(124,58,237,0.1)] hover:enabled:translate-x-0.5 active:enabled:translate-x-0 ${alreadyExists ? "opacity-60 cursor-not-allowed" : ""}`}
                             >
-                              <span className="catalog__template-icon">
+                              <span className="text-xl shrink-0">
                                 {template.icon}
                               </span>
-                              <div className="catalog__template-info">
-                                <span className="catalog__template-name">
+                              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                <span className="text-[0.8125rem] font-medium text-slate-800">
                                   {template.title}
                                 </span>
-                                <span className="catalog__template-desc">
+                                <span className="text-[0.6875rem] text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">
                                   {template.description}
                                 </span>
                               </div>
                               {alreadyExists && (
-                                <span className="catalog__template-badge">
+                                <span className="px-2 py-0.5 text-[0.5625rem] font-bold uppercase tracking-[0.04em] bg-emerald-100 text-emerald-700 rounded shrink-0">
                                   Added
                                 </span>
                               )}
@@ -1840,8 +2009,9 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           )}
 
           {!selectedGroupId && (
-            <div className="catalog__notice catalog__notice--info">
+            <div className="flex items-start gap-3 px-4 py-3.5 rounded-[10px] mb-5 bg-sky-50 border border-sky-200 text-sky-700">
               <svg
+                className="w-5 h-5 shrink-0 mt-px"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1850,7 +2020,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 16v-4m0-4h.01" />
               </svg>
-              <p>
+              <p className="text-[0.8125rem] m-0 leading-relaxed">
                 Select a service group from the sidebar to add services.
                 Services must belong to a group to be properly managed.
               </p>
@@ -1858,9 +2028,17 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           )}
 
           {isAddingService && selectedGroupId && (
-            <div className="catalog__add-service-form">
-              <div className="catalog__field">
-                <label className="catalog__label">Service Name</label>
+            <div
+              className="bg-slate-50 rounded-[10px] border border-slate-200 p-5 mb-6 flex flex-col gap-4"
+              style={{ animation: "so-scale-in 150ms ease-out" }}
+            >
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                  style={fontSans}
+                >
+                  Service Name
+                </label>
                 <input
                   type="text"
                   value={newService.title}
@@ -1868,12 +2046,18 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                     setNewService({ ...newService, title: e.target.value })
                   }
                   placeholder="Enter service name..."
-                  className="catalog__input"
+                  className="w-full px-3 py-2.5 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md transition-all duration-150 focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                  style={fontSans}
                   autoFocus
                 />
               </div>
-              <div className="catalog__field">
-                <label className="catalog__label">Description</label>
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                  style={fontSans}
+                >
+                  Description
+                </label>
                 <textarea
                   value={newService.description}
                   onChange={(e) =>
@@ -1884,21 +2068,31 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                   }
                   placeholder="Enter description..."
                   rows={2}
-                  className="catalog__textarea"
+                  className="w-full px-3 py-2.5 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md resize-none transition-all duration-150 focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+                  style={fontSans}
                 />
               </div>
 
               {/* Tier Selection */}
               {tiers.length > 0 && (
-                <div className="catalog__field">
-                  <label className="catalog__label">Include in Tiers</label>
-                  <div className="catalog__tier-grid">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                    style={fontSans}
+                  >
+                    Include in Tiers
+                  </label>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2.5">
                     {tiers.map((tier) => {
                       const isSelected = selectedTierIds.has(tier.id);
                       return (
                         <label
                           key={tier.id}
-                          className={`catalog__tier-option ${isSelected ? "catalog__tier-option--selected" : ""}`}
+                          className={`flex items-center gap-2.5 px-3.5 py-3 bg-white border-[1.5px] rounded-[10px] cursor-pointer transition-all duration-150 ${
+                            isSelected
+                              ? "border-emerald-500 bg-emerald-50 hover:border-emerald-600"
+                              : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                          }`}
                         >
                           <input
                             type="checkbox"
@@ -1912,13 +2106,17 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                               }
                               setSelectedTierIds(newSet);
                             }}
-                            className="catalog__tier-checkbox"
+                            className="w-[18px] h-[18px] shrink-0 accent-emerald-600 cursor-pointer"
                           />
-                          <span className="catalog__tier-name">
+                          <span
+                            className={`flex-1 text-sm font-medium ${isSelected ? "text-emerald-800" : "text-slate-800"}`}
+                          >
                             {tier.name}
                           </span>
                           {tier.pricing.amount !== null && (
-                            <span className="catalog__tier-price">
+                            <span
+                              className={`text-xs font-medium whitespace-nowrap ${isSelected ? "text-emerald-600" : "text-slate-500"}`}
+                            >
                               ${tier.pricing.amount}
                             </span>
                           )}
@@ -1927,7 +2125,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                     })}
                   </div>
                   {selectedTierIds.size === 0 && (
-                    <p className="catalog__tier-hint">
+                    <p className="text-xs text-slate-500 mt-2 m-0 italic">
                       Select at least one tier to include this service
                     </p>
                   )}
@@ -1935,8 +2133,9 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
               )}
 
               {tiers.length === 0 && (
-                <div className="catalog__notice catalog__notice--warning">
+                <div className="flex items-start gap-3 px-4 py-3.5 rounded-[10px] mb-5 bg-amber-50 border border-amber-200 text-amber-700">
                   <svg
+                    className="w-5 h-5 shrink-0 mt-px"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -1944,18 +2143,24 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                   >
                     <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                  <p>
+                  <p className="text-[0.8125rem] m-0 leading-relaxed">
                     No tiers defined yet. Define tiers in the Tier Definition
                     tab first to specify which tiers include this service.
                   </p>
                 </div>
               )}
 
-              <div className="catalog__form-actions">
+              <div className="flex gap-2">
                 <button
                   onClick={handleAddService}
                   disabled={!newService.title.trim()}
-                  className="catalog__btn catalog__btn--primary"
+                  className="flex-1 px-4 py-2.5 text-[0.8125rem] font-semibold rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 text-white hover:enabled:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    ...fontSans,
+                    background:
+                      "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                    boxShadow: "0 2px 6px rgba(124, 58, 237, 0.25)",
+                  }}
                 >
                   Add Service
                 </button>
@@ -1965,7 +2170,8 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                     setNewService({ title: "", description: "" });
                     setSelectedTierIds(new Set());
                   }}
-                  className="catalog__btn catalog__btn--secondary"
+                  className="flex-1 px-4 py-2.5 text-[0.8125rem] font-semibold rounded-[10px] border-none cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={fontSans}
                 >
                   Cancel
                 </button>
@@ -1974,9 +2180,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           )}
 
           {displayedServices.length === 0 ? (
-            <div className="catalog__services-empty">
-              <div className="catalog__services-empty-icon">
+            <div className="text-center px-6 py-[60px]">
+              <div className="w-14 h-14 mx-auto mb-4 text-slate-300">
                 <svg
+                  className="w-full h-full"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1985,17 +2192,17 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <h3 className="catalog__services-empty-title">
+              <h3 className="text-[1.0625rem] font-semibold text-slate-700 m-0 mb-1.5">
                 No services in this group
               </h3>
-              <p className="catalog__services-empty-text">
+              <p className="text-sm text-slate-500 m-0">
                 {selectedGroupId
                   ? 'Click "Add Service" to create a new service.'
                   : "Select a group to manage its services."}
               </p>
             </div>
           ) : (
-            <div className="catalog__services-list">
+            <div className="flex flex-col gap-3">
               {displayedServices.map((service) => (
                 <ServiceCard
                   key={service.id}
@@ -2059,14 +2266,22 @@ function GroupSection({
   onDelete,
 }: GroupSectionProps) {
   return (
-    <div className="catalog__section">
-      <div className="catalog__section-header">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
         <span
-          className={`catalog__section-dot catalog__section-dot--${color}`}
+          className={`w-2 h-2 rounded-full ${
+            color === "amber"
+              ? "bg-amber-500"
+              : color === "emerald"
+                ? "bg-emerald-500"
+                : "bg-violet-500"
+          }`}
         />
-        <span className="catalog__section-title">{title}</span>
+        <span className="text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-slate-500">
+          {title}
+        </span>
       </div>
-      <div className="catalog__section-items">
+      <div className="flex flex-col gap-1">
         {groups.map((group) => (
           <GroupButton
             key={group.id}
@@ -2108,48 +2323,63 @@ function GroupButton({
 
   return (
     <div
-      className="catalog__group-wrapper"
+      className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <button
         onClick={onSelect}
-        className={`catalog__group-btn catalog__group-btn--${color} ${isSelected ? "catalog__group-btn--active" : ""}`}
+        className={`w-full px-3.5 py-2.5 bg-transparent border-none rounded-[10px] cursor-pointer text-left transition-all duration-150 hover:bg-slate-50 ${
+          isSelected
+            ? `border-l-[3px] border-l-solid ${
+                color === "amber"
+                  ? "bg-amber-50 border-l-amber-500"
+                  : color === "emerald"
+                    ? "bg-emerald-50 border-l-emerald-500"
+                    : "bg-violet-50 border-l-violet-500"
+              }`
+            : ""
+        }`}
       >
-        <div className="catalog__group-info">
-          <span className="catalog__group-name">{group.name}</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm font-medium text-slate-800">
+            {group.name}
+          </span>
           {isSetup && (
-            <span className="catalog__group-tag catalog__group-tag--amber">
+            <span className="px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-[0.04em] rounded bg-amber-100 text-amber-700">
               SETUP
             </span>
           )}
           {group.isAddOn && (
-            <span className="catalog__group-tag catalog__group-tag--violet">
+            <span className="px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-[0.04em] rounded bg-violet-100 text-violet-700">
               OPTIONAL
             </span>
           )}
           {group.availableBillingCycles.length > 0 && !isSetup && (
-            <span className="catalog__group-tag catalog__group-tag--emerald">
+            <span className="px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-[0.04em] rounded bg-emerald-100 text-emerald-700">
               {group.availableBillingCycles
                 .map((c) => BILLING_CYCLE_SHORT_LABELS[c])
                 .join(", ")}
             </span>
           )}
         </div>
-        <div className="catalog__group-meta">
+        <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
           <span>
             {serviceCount} services
             {serviceCount === 0 && (
-              <span className="catalog__validation-hint"> — add services</span>
+              <span className="text-[0.6875rem] text-amber-600">
+                {" "}
+                — add services
+              </span>
             )}
           </span>
           {group.costType === "SETUP" && group.price != null && (
-            <span className="catalog__group-fee">
+            <span className="text-amber-600">
               {formatPrice(group.price, "USD")}
             </span>
           )}
           {group.isAddOn && group.price != null && (
-            <span className="catalog__group-fee">
+            <span className="text-amber-600">
               {formatPrice(group.price, "USD")}
             </span>
           )}
@@ -2164,7 +2394,7 @@ function GroupButton({
                   (p) => p.billingCycle === "MONTHLY",
                 )?.amount;
               return monthlyPrice != null && monthlyPrice > 0 ? (
-                <span className="catalog__group-fee">
+                <span className="text-amber-600">
                   {formatPrice(monthlyPrice, "USD")}/mo
                 </span>
               ) : null;
@@ -2172,16 +2402,20 @@ function GroupButton({
         </div>
       </button>
       {isHovered && (
-        <div className="catalog__group-actions">
+        <div
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex gap-0.5"
+          style={{ animation: "so-fade-in 150ms ease-out" }}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
             }}
-            className="catalog__group-action catalog__group-action--edit"
+            className="w-7 h-7 rounded-[10px] bg-white border border-slate-200 text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:scale-105 hover:shadow-[0_2px_4px_rgba(0,0,0,0.1)] active:scale-95 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-600"
             aria-label="Edit group"
           >
             <svg
+              className="w-3.5 h-3.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2197,10 +2431,11 @@ function GroupButton({
               e.stopPropagation();
               onDelete();
             }}
-            className="catalog__group-action catalog__group-action--delete"
+            className="w-7 h-7 rounded-[10px] bg-white border border-slate-200 text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:scale-105 hover:shadow-[0_2px_4px_rgba(0,0,0,0.1)] active:scale-95 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600"
             aria-label="Delete group"
           >
             <svg
+              className="w-3.5 h-3.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2274,11 +2509,17 @@ function ServiceCard({
 
   return (
     <div
-      className={`catalog__service-card ${service.isSetupFormation ? "catalog__service-card--setup" : ""} ${isExpanded ? "catalog__service-card--expanded" : ""}`}
+      className={`flex flex-col gap-4 p-[18px] bg-white border-[1.5px] rounded-[10px] transition-all duration-150 hover:border-slate-300 hover:shadow-sm ${
+        service.isSetupFormation
+          ? "bg-amber-50 border-amber-200 hover:border-amber-300"
+          : isExpanded
+            ? "border-violet-300"
+            : "border-slate-200"
+      }`}
     >
-      <div className="catalog__service-main">
-        <div className="catalog__service-content">
-          <div className="catalog__service-header">
+      <div className="flex gap-4">
+        <div className="flex-1 flex flex-col gap-3">
+          <div className="flex items-center gap-2.5">
             <input
               type="text"
               value={localTitle}
@@ -2288,10 +2529,11 @@ function ServiceCard({
                   onUpdate(service, { title: localTitle.trim() });
                 }
               }}
-              className="catalog__service-title-input"
+              className="flex-1 text-base font-medium text-slate-800 bg-transparent border-none border-b-[1.5px] border-b-transparent px-0 pb-0.5 transition-all duration-150 hover:border-b-slate-300 focus:outline-none focus:border-b-violet-500"
+              style={fontSans}
             />
             {service.isSetupFormation && (
-              <span className="catalog__badge catalog__badge--amber">
+              <span className="inline-flex items-center px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.04em] rounded-full bg-amber-100 text-amber-700">
                 Setup Service
               </span>
             )}
@@ -2306,16 +2548,21 @@ function ServiceCard({
             }}
             placeholder="Add a description..."
             rows={2}
-            className="catalog__service-desc-input"
+            className="w-full px-3 py-2.5 text-[0.8125rem] text-slate-600 bg-slate-50 border border-slate-200 rounded-md resize-none transition-all duration-150 hover:bg-white hover:border-slate-300 focus:outline-none focus:bg-white focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+            style={fontSans}
           />
 
           {/* Tier badges - quick view */}
           {tiers.length > 0 && (
-            <div className="catalog__service-tiers-preview">
+            <div className="flex flex-wrap gap-1.5 mt-1">
               {tiers.map((tier) => (
                 <span
                   key={tier.id}
-                  className={`catalog__service-tier-badge ${includedTierIds.has(tier.id) ? "catalog__service-tier-badge--included" : "catalog__service-tier-badge--excluded"}`}
+                  className={`px-2 py-[3px] text-[0.625rem] font-semibold uppercase tracking-[0.04em] rounded ${
+                    includedTierIds.has(tier.id)
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 text-slate-400"
+                  }`}
                 >
                   {tier.name}
                 </span>
@@ -2323,13 +2570,14 @@ function ServiceCard({
             </div>
           )}
         </div>
-        <div className="catalog__service-actions">
+        <div className="flex flex-col gap-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="catalog__service-expand"
+            className="w-9 h-9 rounded-[10px] bg-slate-100 border-none text-slate-500 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-violet-100 hover:text-violet-600"
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
             <svg
+              className="w-[18px] h-[18px] transition-transform duration-150"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2341,10 +2589,11 @@ function ServiceCard({
           </button>
           <button
             onClick={onDelete}
-            className="catalog__service-delete"
+            className="w-9 h-9 shrink-0 rounded-[10px] bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-rose-100 hover:text-rose-600"
             aria-label="Delete service"
           >
             <svg
+              className="w-[18px] h-[18px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2358,10 +2607,18 @@ function ServiceCard({
 
       {/* Expanded section for editing group and tier inclusion */}
       {isExpanded && (
-        <div className="catalog__service-expanded">
+        <div
+          className="border-t border-slate-200 mt-4 pt-4 flex flex-col gap-4"
+          style={{ animation: "so-fade-in 150ms ease-out" }}
+        >
           {/* Group assignment */}
-          <div className="catalog__service-section">
-            <label className="catalog__label">Assign to Group</label>
+          <div className="flex flex-col gap-2">
+            <label
+              className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+              style={fontSans}
+            >
+              Assign to Group
+            </label>
             <select
               value={service.optionGroupId || ""}
               onChange={(e) => {
@@ -2376,7 +2633,8 @@ function ServiceCard({
                   isSetupFormation: isSetupGroup,
                 });
               }}
-              className="catalog__select"
+              className="w-full px-3 py-2.5 text-sm text-slate-800 bg-white border-[1.5px] border-slate-200 rounded-md cursor-pointer transition-all duration-150 hover:border-slate-300 focus:outline-none focus:border-violet-500 focus:shadow-[0_0_0_2px_rgb(237,233,254)]"
+              style={fontSans}
             >
               <option value="">No group (ungrouped)</option>
               {optionGroups.map((group) => {
@@ -2397,15 +2655,24 @@ function ServiceCard({
 
           {/* Tier inclusion */}
           {tiers.length > 0 && (
-            <div className="catalog__service-section">
-              <label className="catalog__label">Include in Tiers</label>
-              <div className="catalog__tier-grid catalog__tier-grid--compact">
+            <div className="flex flex-col gap-2">
+              <label
+                className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-500"
+                style={fontSans}
+              >
+                Include in Tiers
+              </label>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
                 {tiers.map((tier) => {
                   const isIncluded = includedTierIds.has(tier.id);
                   return (
                     <label
                       key={tier.id}
-                      className={`catalog__tier-option ${isIncluded ? "catalog__tier-option--selected" : ""}`}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 bg-white border-[1.5px] rounded-[10px] cursor-pointer transition-all duration-150 ${
+                        isIncluded
+                          ? "border-emerald-500 bg-emerald-50 hover:border-emerald-600"
+                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -2413,11 +2680,17 @@ function ServiceCard({
                         onChange={(e) => {
                           onToggleTier(service.id, tier.id, e.target.checked);
                         }}
-                        className="catalog__tier-checkbox"
+                        className="w-[18px] h-[18px] shrink-0 accent-emerald-600 cursor-pointer"
                       />
-                      <span className="catalog__tier-name">{tier.name}</span>
+                      <span
+                        className={`flex-1 text-sm font-medium ${isIncluded ? "text-emerald-800" : "text-slate-800"}`}
+                      >
+                        {tier.name}
+                      </span>
                       {tier.pricing.amount !== null && (
-                        <span className="catalog__tier-price">
+                        <span
+                          className={`text-xs font-medium whitespace-nowrap ${isIncluded ? "text-emerald-600" : "text-slate-500"}`}
+                        >
                           ${tier.pricing.amount}
                         </span>
                       )}

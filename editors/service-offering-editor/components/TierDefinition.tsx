@@ -17,7 +17,6 @@ import {
 import { calculateTierRecurringPrice, formatPrice } from "./pricing-utils.js";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
-import "./TierDefinition.css";
 
 interface TierDefinitionProps {
   document: ServiceOfferingDocument;
@@ -105,6 +104,9 @@ const BILLING_CYCLE_OPTIONS: { value: BillingCycle; label: string }[] = [
   { value: "ANNUAL", label: "Annual" },
 ];
 
+const fontSans = "'DM Sans', system-ui, sans-serif";
+const fontMono = "'DM Mono', 'SF Mono', monospace";
+
 export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
   const { state } = document;
   const tiers = state.global.tiers ?? [];
@@ -184,37 +186,69 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
 
   return (
     <>
-      <div className="tier-def">
+      <div className="flex flex-col gap-6">
         {/* Tier Presets - Show when no tiers exist (Default Effect) */}
         {tiers.length === 0 && (
-          <div className="tier-presets">
-            <div className="tier-presets__header">
-              <h3 className="tier-presets__title">
+          <div
+            className="rounded-xl p-6 mb-6 border border-violet-100"
+            style={{
+              background:
+                "linear-gradient(135deg, rgb(245 243 255) 0%, rgb(240 249 255) 100%)",
+            }}
+          >
+            <div className="mb-5">
+              <h3
+                className="text-lg font-bold text-slate-800 m-0 mb-1.5 flex items-center gap-2"
+                style={{ fontFamily: fontSans }}
+              >
+                <span>{"⚡"}</span>
                 Quick Start with a Template
                 <InfoIcon content="Quick-start templates for common tier structures. You can customize everything after selecting a preset." />
               </h3>
-              <p className="tier-presets__subtitle">
+              <p className="text-sm text-slate-600 m-0">
                 Choose a pricing structure to get started quickly, or create
                 custom tiers below
               </p>
             </div>
-            <div className="tier-presets__grid">
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              }}
+            >
               {TIER_PRESETS.map((preset) => (
                 <button
                   key={preset.name}
                   onClick={() => handleApplyPreset(preset)}
-                  className="tier-preset-card"
+                  className="group flex flex-col gap-3 p-5 bg-white border-2 border-slate-200 rounded-[10px] cursor-pointer transition-all duration-150 text-left hover:border-violet-400 hover:-translate-y-0.5"
+                  style={{ boxShadow: undefined }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(124, 58, 237, 0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 >
-                  <span className="tier-preset-card__icon">{preset.icon}</span>
-                  <div className="tier-preset-card__content">
-                    <h4 className="tier-preset-card__name">{preset.name}</h4>
-                    <p className="tier-preset-card__desc">
+                  <span className="text-2xl">{preset.icon}</span>
+                  <div className="flex-1">
+                    <h4
+                      className="text-base font-semibold text-slate-800 m-0 mb-1"
+                      style={{ fontFamily: fontSans }}
+                    >
+                      {preset.name}
+                    </h4>
+                    <p className="text-[0.8125rem] text-slate-500 m-0">
                       {preset.description}
                     </p>
                   </div>
-                  <div className="tier-preset-card__preview">
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
                     {preset.tiers.map((t, i) => (
-                      <span key={i} className="tier-preset-card__tier">
+                      <span
+                        key={i}
+                        className="text-[0.6875rem] py-1 px-2 bg-slate-100 text-slate-600 rounded-md group-hover:bg-violet-100 group-hover:text-violet-700"
+                        style={{ fontFamily: fontMono }}
+                      >
                         {t.name}
                         {t.isCustomPricing ? " (Custom)" : ""}
                       </span>
@@ -227,12 +261,12 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
         )}
 
         {/* Billing Cycle Selector */}
-        <div className="tier-billing-cycles">
-          <span className="tier-billing-cycles__label">
+        <div className="bg-white border border-slate-200 rounded-xl py-5 px-6 flex items-center gap-4">
+          <span className="text-[0.8rem] font-semibold text-slate-600 uppercase tracking-wide whitespace-nowrap">
             Billing Cycles:
             <InfoIcon content="Select which payment frequencies you want to offer. These will be available for pricing across all tiers." />
           </span>
-          <div className="tier-billing-cycles__options">
+          <div className="flex gap-2 flex-wrap">
             {BILLING_CYCLE_OPTIONS.map((opt) => {
               const isActive = (
                 state.global.availableBillingCycles ?? []
@@ -240,7 +274,11 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
               return (
                 <button
                   key={opt.value}
-                  className={`tier-billing-cycles__btn ${isActive ? "tier-billing-cycles__btn--active" : ""}`}
+                  className={`py-2 px-4 rounded-lg text-[0.85rem] font-medium cursor-pointer transition-all duration-150 ${
+                    isActive
+                      ? "bg-violet-500 border-[1.5px] border-violet-500 text-white hover:bg-violet-600 hover:border-violet-600"
+                      : "bg-white border-[1.5px] border-slate-200 text-slate-500 hover:border-violet-300 hover:text-violet-600"
+                  }`}
                   onClick={() => {
                     const current = state.global.availableBillingCycles ?? [];
                     let updated: BillingCycle[];
@@ -264,13 +302,16 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
             })}
           </div>
           {(state.global.availableBillingCycles ?? []).length === 0 && (
-            <div className="tier__validation-warning">
+            <div className="text-[0.6875rem] text-rose-600 py-1.5 px-2.5 bg-rose-50 rounded-md mt-2">
               Select at least one billing cycle to enable pricing
             </div>
           )}
         </div>
 
-        <div className="tier-def__grid">
+        <div
+          className="so-scrollbar-h flex flex-nowrap gap-6 overflow-x-auto overflow-y-visible pb-4"
+          style={{ scrollBehavior: "smooth", WebkitOverflowScrolling: "touch" }}
+        >
           {tiers.map((tier, index) => (
             <TierCard
               key={tier.id}
@@ -284,11 +325,24 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
           ))}
 
           {isAddingTier ? (
-            <div className="tier-form-card">
-              <h3 className="tier-form-card__title">New Subscription Tier</h3>
+            <div
+              className="w-80 bg-white border-2 border-violet-200 rounded-xl p-6"
+              style={{ animation: "tier-slide-up 0.2s ease-out" }}
+            >
+              <h3
+                className="text-base font-bold text-slate-900 mb-5"
+                style={{ fontFamily: fontSans }}
+              >
+                New Subscription Tier
+              </h3>
 
-              <div className="tier-form-card__field">
-                <label className="tier-form-card__label">Tier Name</label>
+              <div className="mb-4">
+                <label
+                  className="block text-[0.625rem] font-medium uppercase tracking-widest text-slate-500 mb-1.5"
+                  style={{ fontFamily: fontMono }}
+                >
+                  Tier Name
+                </label>
                 <input
                   type="text"
                   value={newTier.name}
@@ -296,12 +350,13 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
                     setNewTier({ ...newTier, name: e.target.value })
                   }
                   placeholder="e.g., Basic, Professional"
-                  className="tier-form-card__input"
+                  className="w-full text-base font-semibold text-slate-900 bg-white border border-slate-200 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-400 focus:shadow-[0_0_0_3px_rgb(237_233_254)] placeholder:font-normal placeholder:text-slate-400"
+                  style={{ fontFamily: fontSans }}
                   autoFocus
                 />
               </div>
 
-              <label className="tier-form-card__toggle">
+              <label className="flex items-center gap-2.5 mb-4 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newTier.isCustomPricing}
@@ -311,18 +366,20 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
                       isCustomPricing: e.target.checked,
                     })
                   }
-                  className="tier-form-card__checkbox"
+                  className="w-[1.125rem] h-[1.125rem] cursor-pointer"
+                  style={{ accentColor: "#f59e0b" }}
                 />
-                <span className="tier-form-card__toggle-text">
+                <span className="text-[0.8125rem] text-slate-600">
                   Custom Pricing (price varies per client)
                 </span>
               </label>
 
-              <div className="tier-form-card__actions">
+              <div className="flex gap-2.5 mt-5">
                 <button
                   onClick={handleAddTier}
                   disabled={!newTier.name.trim()}
-                  className="tier-form-card__btn tier-form-card__btn--primary"
+                  className="flex-1 py-2.5 px-4 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-violet-600 text-white border-none hover:enabled:bg-violet-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+                  style={{ fontFamily: fontSans }}
                 >
                   Create Tier
                 </button>
@@ -335,7 +392,8 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
                       isCustomPricing: false,
                     });
                   }}
-                  className="tier-form-card__btn tier-form-card__btn--secondary"
+                  className="flex-1 py-2.5 px-4 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-100 text-slate-700 border-none hover:bg-slate-200"
+                  style={{ fontFamily: fontSans }}
                 >
                   Cancel
                 </button>
@@ -344,11 +402,11 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
           ) : (
             <button
               onClick={() => setIsAddingTier(true)}
-              className="tier-add-card"
+              className="group w-80 min-h-[280px] bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-200 hover:border-violet-300 hover:bg-violet-50"
             >
-              <div className="tier-add-card__icon-wrap">
+              <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center transition-all duration-200 group-hover:bg-violet-100">
                 <svg
-                  className="tier-add-card__icon"
+                  className="w-6 h-6 text-slate-400 transition-all duration-150 group-hover:text-violet-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -361,14 +419,19 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
                   />
                 </svg>
               </div>
-              <span className="tier-add-card__text">Add Subscription Tier</span>
+              <span
+                className="text-[0.9375rem] font-semibold text-slate-500 transition-all duration-150 group-hover:text-violet-600"
+                style={{ fontFamily: fontSans }}
+              >
+                Add Subscription Tier
+              </span>
             </button>
           )}
         </div>
 
-        <div className="tier-notice">
+        <div className="flex items-start gap-3.5 p-4 px-5 bg-amber-50 border border-amber-200 rounded-xl">
           <svg
-            className="tier-notice__icon"
+            className="shrink-0 w-5 h-5 text-amber-600 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -380,11 +443,14 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="tier-notice__content">
-            <p className="tier-notice__title">
+          <div className="flex-1">
+            <p
+              className="text-sm font-semibold text-amber-800 mb-1"
+              style={{ fontFamily: fontSans }}
+            >
               Pricing is managed at the option group level
             </p>
-            <p className="tier-notice__text">
+            <p className="text-[0.8125rem] text-amber-700 leading-relaxed">
               Billing cycles and pricing are configured per option group in the
               Service Catalog. Setup fees, recurring prices, and billing cycles
               apply to all tiers within each group.
@@ -460,32 +526,58 @@ const TierCard = memo(function TierCard({
   };
 
   return (
-    <div className={`tier-card ${isRecommended ? "tier-card--popular" : ""}`}>
+    <div
+      className={`w-80 bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-200 relative hover:shadow-lg hover:-translate-y-0.5 ${
+        isRecommended
+          ? "border-2 border-violet-300 scale-[1.02] z-[1] hover:scale-[1.02] hover:-translate-y-0.5"
+          : ""
+      }`}
+      style={{
+        maxHeight: "85vh",
+        animation: "tier-slide-up 0.3s ease-out",
+      }}
+    >
       {/* Most Popular Badge - Social Proof */}
       {isRecommended && (
-        <div className="tier-card__popular-banner">
-          <svg viewBox="0 0 24 24" fill="currentColor">
+        <div
+          className="absolute top-[-1px] left-1/2 -translate-x-1/2 flex items-center gap-1 py-1 px-3.5 text-white text-[0.6875rem] font-semibold uppercase tracking-wide rounded-b-lg z-[2]"
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(124 58 237) 0%, rgb(109 40 217) 100%)",
+            boxShadow: "0 2px 8px rgba(124, 58, 237, 0.3)",
+          }}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
           Most Popular
           <InfoIcon content="Automatically assigned to the middle tier. This badge helps guide client decisions toward the recommended option." />
         </div>
       )}
-      <div className="tier-card__accent" style={{ background: accent.color }} />
+      <div className="h-1 w-full" style={{ background: accent.color }} />
 
-      <div className="tier-card__body">
-        <div className="tier-card__header">
-          <div className="tier-card__name-group">
-            <span className="tier-card__label">Tier Name</span>
+      <div className="so-scrollbar-v p-6 overflow-y-auto flex-1">
+        <div className="flex items-start justify-between mb-5">
+          <div className="flex-1">
+            <span
+              className="block text-[0.625rem] font-medium uppercase tracking-widest text-slate-400 mb-1.5"
+              style={{ fontFamily: fontMono }}
+            >
+              Tier Name
+            </span>
             <input
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
               onBlur={handleNameBlur}
-              className="tier-card__name-input"
+              className="w-full text-[1.375rem] font-bold text-slate-900 bg-transparent border-none border-b-2 border-b-transparent pb-1 pl-0 transition-all duration-150 outline-none hover:border-b-slate-200 focus:border-b-violet-500"
+              style={{ fontFamily: fontSans }}
             />
           </div>
-          <button onClick={onDelete} className="tier-card__delete-btn">
+          <button
+            onClick={onDelete}
+            className="p-1.5 text-slate-400 bg-transparent border-none rounded-md cursor-pointer transition-all duration-150 hover:text-rose-500 hover:bg-rose-50"
+          >
             <svg
               width="20"
               height="20"
@@ -504,9 +596,9 @@ const TierCard = memo(function TierCard({
         </div>
 
         {isCustomPricing && (
-          <div className="tier-card__custom-badge">
+          <div className="flex items-center gap-2 py-3 px-4 bg-amber-50 border border-amber-200 rounded-[10px] mb-4">
             <svg
-              className="tier-card__custom-icon"
+              className="w-5 h-5 text-amber-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -518,9 +610,11 @@ const TierCard = memo(function TierCard({
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <div className="tier-card__custom-text">
-              <span className="tier-card__custom-title">Custom Pricing</span>
-              <span className="tier-card__custom-desc">
+            <div className="flex-1">
+              <span className="block text-[0.8125rem] font-semibold text-amber-800">
+                Custom Pricing
+              </span>
+              <span className="text-[0.6875rem] text-amber-600">
                 Price varies per client
               </span>
             </div>
@@ -528,46 +622,57 @@ const TierCard = memo(function TierCard({
         )}
 
         {!isCustomPricing && (
-          <div className="tier-card__pricing">
-            <div className="tier-card__pricing-header">
-              <span className="tier-card__label">
+          <div className="mb-4">
+            <div className="mb-1.5">
+              <span
+                className="block text-[0.625rem] font-medium uppercase tracking-widest text-slate-400 mb-1.5"
+                style={{ fontFamily: fontMono }}
+              >
                 Recurring Price
                 <InfoIcon content="This price is automatically calculated from the services and pricing configured in the Service Catalog. It is read-only — to change it, adjust pricing in your option groups." />
               </span>
             </div>
 
-            <div className="tier-card__pricing-box">
-              <span className="tier-card__currency">$</span>
-              <span className="tier-card__calculated-amount">
+            <div className="flex items-center gap-2 py-3.5 px-4 bg-slate-50 rounded-[10px] border border-slate-100">
+              <span>$</span>
+              <span
+                className="text-[1.375rem] font-semibold text-emerald-700"
+                style={{ fontFamily: fontMono }}
+              >
                 {formatPrice(calculatedPrice.monthlyTotal).replace("$", "")}
               </span>
-              <span className="tier-card__calculated-label">/mo</span>
+              <span className="text-sm text-emerald-600 font-medium">/mo</span>
             </div>
 
             {calculatedPrice.groupBreakdown.length > 0 && (
-              <div className="tier-card__breakdown">
-                <span className="tier-card__breakdown-title">
+              <div className="mt-2 py-2 px-2.5 bg-slate-50 rounded-md border border-slate-100">
+                <span className="block text-[0.625rem] font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                   Sum of {calculatedPrice.groupBreakdown.length} service group
                   {calculatedPrice.groupBreakdown.length !== 1 ? "s" : ""}
                 </span>
                 {calculatedPrice.groupBreakdown.map((g) => (
                   <div
                     key={g.groupId}
-                    className={`tier-card__breakdown-row ${!g.hasPrice ? "tier-card__breakdown-row--missing" : ""}`}
+                    className="flex items-center justify-between py-[0.1875rem]"
                   >
-                    <span className="tier-card__breakdown-name">
+                    <span
+                      className={`flex items-center gap-1 text-xs ${g.hasPrice ? "text-slate-600" : "text-amber-600"}`}
+                    >
                       {!g.hasPrice && (
                         <svg
                           viewBox="0 0 24 24"
                           fill="currentColor"
-                          className="tier-card__breakdown-warn"
+                          className="w-3 h-3 text-amber-500"
                         >
                           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                         </svg>
                       )}
                       {g.groupName}
                     </span>
-                    <span className="tier-card__breakdown-amount">
+                    <span
+                      className={`text-xs font-medium ${g.hasPrice ? "text-slate-700" : "text-amber-500 italic"}`}
+                      style={{ fontFamily: fontMono }}
+                    >
                       {g.hasPrice ? formatPrice(g.monthlyAmount) : "$0"}
                     </span>
                   </div>
@@ -576,8 +681,9 @@ const TierCard = memo(function TierCard({
             )}
 
             {calculatedPrice.missingPriceGroups.length > 0 && (
-              <div className="tier-card__missing-warning">
+              <div className="flex items-center gap-1.5 mt-2 py-1.5 px-2 text-[0.6875rem] text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
                 <svg
+                  className="shrink-0 w-3.5 h-3.5 text-amber-500"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -601,22 +707,28 @@ const TierCard = memo(function TierCard({
           </div>
         )}
 
-        <div className="tier-card__description">
-          <span className="tier-card__label">Description</span>
+        <div className="mt-4">
+          <span
+            className="block text-[0.625rem] font-medium uppercase tracking-widest text-slate-400 mb-1.5"
+            style={{ fontFamily: fontMono }}
+          >
+            Description
+          </span>
           <textarea
             value={localDescription}
             onChange={(e) => setLocalDescription(e.target.value)}
             onBlur={handleDescriptionBlur}
             placeholder="Add a description..."
             rows={2}
-            className="tier-card__desc-textarea"
+            className="w-full text-[0.8125rem] text-slate-600 bg-slate-50 border border-slate-200 rounded-[10px] p-3 resize-none outline-none transition-all duration-150 focus:border-violet-400 focus:shadow-[0_0_0_3px_rgb(237_233_254)] placeholder:text-slate-400"
+            style={{ fontFamily: fontSans }}
           />
         </div>
       </div>
 
-      <div className="tier-card__footer">
+      <div className="flex items-center gap-2 py-4 px-6 bg-slate-50 border-t border-slate-100">
         <svg
-          className="tier-card__footer-icon"
+          className="w-4 h-4 text-slate-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -628,7 +740,7 @@ const TierCard = memo(function TierCard({
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span className="tier-card__footer-text">
+        <span className="text-xs text-slate-500">
           Configure service levels in the Matrix view
         </span>
       </div>

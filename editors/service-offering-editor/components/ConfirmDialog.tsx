@@ -31,15 +31,25 @@ export function ConfirmDialog({
   }, [onCancel]);
 
   return (
-    <div className="so-confirm__overlay" onClick={onCancel}>
+    <div
+      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[2000]"
+      style={{ animation: "so-confirm-fade-in 0.15s ease-out" }}
+      onClick={onCancel}
+    >
       <div
-        className="so-confirm__dialog"
+        className="bg-white rounded-xl p-6 max-w-[380px] w-[90%] text-center"
+        style={{
+          boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+          animation: "so-confirm-scale-in 0.15s ease-out",
+        }}
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"
       >
-        <div className={`so-confirm__icon so-confirm__icon--${variant}`}>
+        <div
+          className={`inline-flex items-center justify-center w-11 h-11 rounded-full mb-3 ${variant === "danger" ? "bg-rose-50 text-rose-500" : "bg-amber-50 text-amber-500"}`}
+        >
           {variant === "danger" ? (
             <svg
               viewBox="0 0 24 24"
@@ -72,22 +82,33 @@ export function ConfirmDialog({
             </svg>
           )}
         </div>
-        <h3 className="so-confirm__title" id="confirm-title">
+        <h3
+          className="text-base font-bold text-slate-800 m-0 mb-1.5"
+          id="confirm-title"
+        >
           {title}
         </h3>
-        <p className="so-confirm__message" id="confirm-message">
+        <p
+          className="text-[0.8125rem] text-slate-500 leading-6 m-0 mb-5"
+          id="confirm-message"
+        >
           {message}
         </p>
-        <div className="so-confirm__actions">
+        <div className="flex justify-center gap-2">
           <button
-            className="so-confirm__btn so-confirm__btn--cancel"
+            className="px-5 py-2 text-[0.8125rem] font-semibold border-none rounded-lg cursor-pointer transition-all duration-150 bg-slate-100 text-slate-600 hover:bg-slate-200"
             onClick={onCancel}
           >
             {cancelLabel}
           </button>
           <button
             ref={confirmRef}
-            className={`so-confirm__btn so-confirm__btn--${variant}`}
+            className={`px-5 py-2 text-[0.8125rem] font-semibold border-none rounded-lg cursor-pointer transition-all duration-150 ${variant === "danger" ? "bg-rose-500 text-white hover:bg-rose-600" : "bg-amber-500 text-white hover:bg-amber-600"}`}
+            style={
+              variant === "danger"
+                ? { boxShadow: "0 2px 6px rgba(244, 63, 94, 0.3)" }
+                : { boxShadow: "0 2px 6px rgba(245, 158, 11, 0.3)" }
+            }
             onClick={onConfirm}
           >
             {confirmLabel}

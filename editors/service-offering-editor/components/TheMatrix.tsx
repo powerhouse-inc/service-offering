@@ -41,7 +41,6 @@ import {
 } from "../../../document-models/service-offering/index.js";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
-import "./TheMatrix.css";
 
 interface TheMatrixProps {
   document: ServiceOfferingDocument;
@@ -58,37 +57,37 @@ const SERVICE_LEVELS: {
     value: "INCLUDED",
     label: "Included",
     shortLabel: "✓",
-    color: "var(--so-emerald-600)",
+    color: "#059669",
   },
   {
     value: "OPTIONAL",
     label: "Optional",
     shortLabel: "Optional",
-    color: "var(--so-sky-600)",
+    color: "#0284c7",
   },
   {
     value: "NOT_INCLUDED",
     label: "Not Included",
     shortLabel: "—",
-    color: "var(--so-slate-400)",
+    color: "#94a3b8",
   },
   {
     value: "NOT_APPLICABLE",
     label: "Not Applicable",
     shortLabel: "/",
-    color: "var(--so-slate-300)",
+    color: "#cbd5e1",
   },
   {
     value: "CUSTOM",
     label: "Custom",
     shortLabel: "Custom",
-    color: "var(--so-amber-600)",
+    color: "#d97706",
   },
   {
     value: "VARIABLE",
     label: "Variable",
     shortLabel: "#",
-    color: "var(--so-violet-600)",
+    color: "#7c3aed",
   },
 ];
 
@@ -901,7 +900,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const getLevelDisplay = (
     serviceLevel: ServiceLevelBinding | undefined,
   ): { label: string; color: string } => {
-    if (!serviceLevel) return { label: "—", color: "var(--so-slate-300)" };
+    if (!serviceLevel) return { label: "—", color: "#cbd5e1" };
 
     const level = serviceLevel.level;
     const config = SERVICE_LEVELS.find((l) => l.value === level);
@@ -909,23 +908,23 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     if (level === "CUSTOM" && serviceLevel.customValue) {
       return {
         label: serviceLevel.customValue,
-        color: config?.color || "var(--so-amber-600)",
+        color: config?.color || "#d97706",
       };
     }
 
     return {
       label: config?.shortLabel || level,
-      color: config?.color || "var(--so-slate-600)",
+      color: config?.color || "#475569",
     };
   };
 
   if (services.length === 0 || tiers.length === 0) {
     return (
       <>
-        <div className="matrix">
-          <div className="matrix__empty">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="py-16 px-8 text-center">
             <svg
-              className="matrix__empty-icon"
+              className="w-16 h-16 mx-auto mb-4 text-slate-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -937,8 +936,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 d="M4 6h16M4 10h16M4 14h16M4 18h16"
               />
             </svg>
-            <h3 className="matrix__empty-title">Matrix Not Ready</h3>
-            <p className="matrix__empty-text">
+            <h3
+              className="text-lg font-semibold text-slate-900 mb-2"
+              style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+            >
+              Matrix Not Ready
+            </h3>
+            <p className="text-sm text-slate-500 max-w-[28rem] mx-auto">
               {services.length === 0 && tiers.length === 0
                 ? "Add services in the Service Catalog and tiers in Tier Definition to configure the matrix."
                 : services.length === 0
@@ -953,17 +957,27 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
   return (
     <>
-      <div className="matrix">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {/* Facet Selector - Dynamic from Resource Template */}
         {Object.keys(facetCategories).length > 0 && (
-          <div className="matrix__facets">
-            <div className="matrix__facets-row">
+          <div
+            className="px-6 py-5 border-b border-slate-200"
+            style={{
+              background: "linear-gradient(to bottom, #f8fafc, #ffffff)",
+            }}
+          >
+            <div className="flex flex-wrap items-end gap-6">
               {Object.entries(facetCategories).map(([key, category]) => (
-                <div key={key} className="matrix__facet-group">
-                  <span className="matrix__facet-label">{category.label}</span>
+                <div key={key} className="flex flex-col gap-1.5">
+                  <span
+                    className="text-[0.625rem] font-medium uppercase tracking-[0.08em] text-slate-500"
+                    style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+                  >
+                    {category.label}
+                  </span>
                   {category.options.length <= 3 ? (
-                    <div className="matrix__toggle-group">
-                      {category.options.map((option) => (
+                    <div className="flex bg-white border border-slate-200 rounded-[10px] overflow-hidden">
+                      {category.options.map((option, optIdx) => (
                         <button
                           key={option.id}
                           type="button"
@@ -973,11 +987,17 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               [key]: option.id,
                             }))
                           }
-                          className={`matrix__toggle-btn ${
+                          className={`px-3.5 py-2 text-[0.8125rem] font-medium border-none cursor-pointer transition-all duration-150 ${optIdx > 0 ? "border-l border-slate-200" : ""} ${
                             selectedFacets[key] === option.id
-                              ? "matrix__toggle-btn--active"
-                              : ""
+                              ? "bg-violet-100 text-violet-700"
+                              : "bg-white text-slate-600 hover:bg-slate-50"
                           }`}
+                          style={{
+                            fontFamily: "'DM Sans', system-ui, sans-serif",
+                            ...(optIdx > 0
+                              ? { borderLeft: "1px solid #e2e8f0" }
+                              : {}),
+                          }}
                         >
                           {option.label}
                         </button>
@@ -994,7 +1014,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           [key]: e.target.value,
                         }))
                       }
-                      className="matrix__facet-select"
+                      className="text-[0.8125rem] text-slate-700 bg-white border border-slate-200 rounded-[10px] py-2 pl-3 pr-8 cursor-pointer outline-none transition-all duration-150 appearance-none hover:border-slate-300 focus:border-violet-400 focus:shadow-[0_0_0_3px_#ede9fe]"
+                      style={{
+                        fontFamily: "'DM Sans', system-ui, sans-serif",
+                        backgroundImage:
+                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")",
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 0.5rem center",
+                        backgroundSize: "1rem",
+                      }}
                     >
                       {category.options.map((option) => (
                         <option key={option.id} value={option.id}>
@@ -1011,25 +1039,31 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
         {/* Incomplete Services Warning */}
         {incompleteServices.length > 0 && (
-          <div className="matrix__incomplete-warning">
-            <div className="matrix__incomplete-icon">
+          <div
+            className="flex items-start gap-3.5 p-4 px-5 mb-4 bg-amber-50 border border-amber-200 rounded-[10px]"
+            style={{
+              animation: "matrix-warning-pulse 2s ease-in-out infinite",
+            }}
+          >
+            <div className="shrink-0 w-6 h-6 text-amber-600">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
+                className="w-full h-full"
               >
                 <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <div className="matrix__incomplete-content">
-              <span className="matrix__incomplete-title">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-amber-800">
                 {incompleteServices.length} service
                 {incompleteServices.length !== 1 ? "s" : ""} not configured
               </span>
-              <span className="matrix__incomplete-text">
+              <span className="text-[0.8125rem] text-amber-700 leading-6">
                 The following services are not included in any tier:{" "}
-                <strong>
+                <strong className="font-semibold text-amber-900">
                   {incompleteServices
                     .slice(0, 3)
                     .map((s) => s.title)
@@ -1043,22 +1077,29 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         )}
 
         {/* Billing Cycle Selector */}
-        <div className="matrix__billing-cycle-bar">
-          <span className="matrix__billing-cycle-label">
+        <div className="flex items-center gap-4 py-3 px-5 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+          <span
+            className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-slate-500 whitespace-nowrap"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
             Set Subscription Plan & Billing Cycle:
           </span>
-          <div className="matrix__billing-cycle-tabs">
+          <div className="flex gap-1.5">
             {availableCyclesForSelectedTier.map((cycle) => (
               <button
                 key={cycle}
                 onClick={() => handleGlobalCycleChange(cycle)}
-                className={`matrix__billing-cycle-tab ${!isCustomBillingMode && activeBillingCycle === cycle ? "matrix__billing-cycle-tab--active" : ""}`}
+                className={`py-1.5 px-3.5 text-[0.8125rem] font-medium rounded-[10px] cursor-pointer transition-all duration-150 ${!isCustomBillingMode && activeBillingCycle === cycle ? "bg-violet-600 border-violet-600 text-white hover:bg-violet-700 hover:border-violet-700" : "text-slate-600 bg-white border border-slate-200 hover:border-violet-300 hover:text-violet-700"}`}
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               >
                 {BILLING_CYCLE_SHORT_LABELS[cycle]}
               </button>
             ))}
             {isCustomBillingMode && (
-              <span className="matrix__billing-cycle-tab matrix__billing-cycle-tab--custom matrix__billing-cycle-tab--active">
+              <span
+                className="py-1.5 px-3.5 text-[0.8125rem] font-medium rounded-[10px] bg-amber-500 border border-amber-500 text-white cursor-default italic"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+              >
                 Custom
               </span>
             )}
@@ -1066,14 +1107,16 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
           <button
             type="button"
             onClick={handleCopyUserSelection}
-            className="matrix__copy-selection-btn"
+            className="inline-flex items-center gap-1.5 ml-auto py-1.5 px-3 text-[0.6875rem] font-medium text-slate-500 bg-white border border-slate-200 rounded-[10px] cursor-pointer transition-all duration-150 whitespace-nowrap hover:text-violet-700 hover:border-violet-300 hover:bg-violet-50"
             title="Copy current UserSelectionInput as JSON for mutation testing"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
           >
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              className="w-3.5 h-3.5"
             >
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -1083,13 +1126,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         </div>
 
         {majorityResult && !majorityDismissed && (
-          <div className="matrix__majority-banner">
+          <div className="flex items-center gap-2 py-2 px-3 mb-2 bg-sky-50 border border-sky-200 rounded-[10px] text-xs text-sky-800">
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="matrix__majority-icon"
+              className="shrink-0 w-4 h-4 text-sky-500"
             >
               <path
                 strokeLinecap="round"
@@ -1097,7 +1140,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span className="matrix__majority-text">
+            <span className="flex-1">
               {majorityResult.count} of {majorityResult.total} service groups
               use{" "}
               <strong>
@@ -1107,7 +1150,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             </span>
             <button
               type="button"
-              className="matrix__majority-btn matrix__majority-btn--switch"
+              className="py-1 px-2 text-[0.6875rem] font-medium rounded-md cursor-pointer border border-transparent transition-all duration-150 bg-sky-600 text-white hover:bg-sky-700"
+              style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               onClick={() => {
                 handleGlobalCycleChange(majorityResult.majorityCycle);
                 setMajorityDismissed(true);
@@ -1118,7 +1162,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             </button>
             <button
               type="button"
-              className="matrix__majority-btn matrix__majority-btn--dismiss"
+              className="py-1 px-2 text-[0.6875rem] font-medium rounded-md cursor-pointer transition-all duration-150 bg-transparent text-sky-600 border border-sky-300 hover:bg-sky-100"
+              style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               onClick={() => setMajorityDismissed(true)}
             >
               Keep current
@@ -1126,11 +1171,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
           </div>
         )}
 
-        <div className="matrix__table-wrap">
-          <table className="matrix__table">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] so-scrollbar-h so-scrollbar-v">
+          <table className="w-full border-collapse text-[0.8125rem]">
             <thead>
               <tr>
-                <th className="matrix__corner-cell">
+                <th className="sticky left-0 z-10 bg-white p-4 text-left font-normal text-slate-500 border-b border-slate-200 min-w-[260px]">
                   <InfoIcon
                     content="INCLUDED: part of the tier. OPTIONAL: available as add-on. NOT_INCLUDED: not available in this tier. CUSTOM/VARIABLE: negotiated pricing."
                     side="right"
@@ -1140,6 +1185,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   const cyclePrice = tier.isCustomPricing
                     ? null
                     : getTierDisplayPrice(idx);
+                  const isSelected = idx === selectedTierIdx;
 
                   return (
                     <th
@@ -1147,31 +1193,87 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                       onClick={() => {
                         setSelectedTierIdx(idx);
                       }}
-                      className={`matrix__tier-header ${
-                        idx === selectedTierIdx
-                          ? "matrix__tier-header--selected"
-                          : ""
+                      className={`p-4 text-center border-b border-slate-200 min-w-[140px] cursor-pointer transition-all duration-150 ${
+                        isSelected ? "text-white relative" : "bg-white"
                       }`}
+                      style={
+                        isSelected
+                          ? {
+                              background:
+                                "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                              boxShadow:
+                                "0 4px 12px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                            }
+                          : undefined
+                      }
+                      onMouseEnter={(e) => {
+                        if (!isSelected)
+                          e.currentTarget.style.background =
+                            "linear-gradient(180deg, #f8fafc 0%, #f5f3ff 100%)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = "";
+                      }}
                     >
-                      <div className="matrix__tier-header-inner">
-                        <div className="matrix__tier-radio" />
-                        <span className="matrix__tier-name">{tier.name}</span>
+                      {isSelected && (
+                        <div
+                          className="absolute inset-0 pointer-events-none"
+                          style={{
+                            background:
+                              "linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 50%)",
+                          }}
+                        />
+                      )}
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div
+                          className="w-4 h-4 rounded-full transition-all duration-150"
+                          style={
+                            isSelected
+                              ? {
+                                  borderColor: "rgba(255, 255, 255, 0.9)",
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                                  boxShadow:
+                                    "inset 0 0 0 3px #ffffff, 0 2px 4px rgba(0, 0, 0, 0.15)",
+                                  border: "2px solid rgba(255,255,255,0.9)",
+                                }
+                              : { border: "2px solid #cbd5e1" }
+                          }
+                        />
+                        <span
+                          className={`font-semibold ${isSelected ? "text-white" : "text-slate-900"}`}
+                          style={{
+                            fontFamily: "'DM Sans', system-ui, sans-serif",
+                          }}
+                        >
+                          {tier.name}
+                        </span>
                         {tier.isCustomPricing ? (
-                          <span className="matrix__tier-price">Custom</span>
+                          <span
+                            className={`text-[0.6875rem] ${isSelected ? "text-white/85" : "text-slate-500"}`}
+                          >
+                            Custom
+                          </span>
                         ) : cyclePrice ? (
                           <>
-                            <span className="matrix__tier-price-main">
+                            <span
+                              className={`text-xl font-bold leading-tight ${isSelected ? "text-white" : "text-slate-900"}`}
+                            >
                               {formatPrice(
                                 cyclePrice.monthlyEquivalent,
                                 tierBreakdowns[idx].tierCurrency,
                               )}
-                              <span className="matrix__tier-price-unit">
+                              <span
+                                className={`text-xs font-normal ${isSelected ? "text-white/70" : "text-slate-500"}`}
+                              >
                                 /mo
                               </span>
                             </span>
                             {!isCustomBillingMode &&
                               activeBillingCycle !== "MONTHLY" && (
-                                <span className="matrix__tier-billed">
+                                <span
+                                  className={`text-[0.6875rem] ${isSelected ? "text-white/65" : "text-slate-400"}`}
+                                >
                                   Billed{" "}
                                   {formatPrice(
                                     cyclePrice.billedTotal,
@@ -1183,13 +1285,23 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                             {!isCustomBillingMode &&
                               cyclePrice.hasDiscount &&
                               cyclePrice.savingsPercent > 0 && (
-                                <span className="matrix__tier-discount-badge">
+                                <span
+                                  className="inline-block mt-1 py-0.5 px-2 text-[0.625rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md"
+                                  style={{
+                                    fontFamily:
+                                      "'DM Mono', 'SF Mono', monospace",
+                                  }}
+                                >
                                   SAVE {cyclePrice.savingsPercent}%
                                 </span>
                               )}
                           </>
                         ) : (
-                          <span className="matrix__tier-price">—</span>
+                          <span
+                            className={`text-[0.6875rem] ${isSelected ? "text-white/85" : "text-slate-500"}`}
+                          >
+                            —
+                          </span>
                         )}
                       </div>
                     </th>
@@ -1202,7 +1314,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
               <tr>
                 <td
                   colSpan={tiers.length + 1}
-                  className="matrix__section-header"
+                  className="bg-slate-100 py-2.5 px-4 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-600 border-b border-slate-200"
+                  style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
                 >
                   Service Catalog
                 </td>
@@ -1214,14 +1327,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 <tr>
                   <td
                     colSpan={tiers.length + 1}
-                    className="matrix__category-header"
+                    className="bg-slate-50 py-3 px-4 text-xs font-semibold text-slate-700 border-b border-slate-200 flex items-center gap-2"
                   >
-                    <span className="matrix__category-icon">
+                    <span className="flex items-center justify-center w-5 h-5 text-slate-500">
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.75"
+                        className="w-full h-full"
                       >
                         <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16" />
                         <path d="M9 21v-6h6v6" />
@@ -1311,14 +1425,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 <tr>
                   <td
                     colSpan={tiers.length + 1}
-                    className="matrix__category-header"
+                    className="bg-slate-50 py-3 px-4 text-xs font-semibold text-slate-700 border-b border-slate-200 flex items-center gap-2"
                   >
-                    <span className="matrix__category-icon">
+                    <span className="flex items-center justify-center w-5 h-5 text-slate-500">
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.75"
+                        className="w-full h-full"
                       >
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                       </svg>
@@ -1409,7 +1524,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 />
               )}
 
-              <tr className="matrix__total-row">
+              <tr className="bg-slate-100 [&>td]:py-2.5 [&>td]:px-4 [&>td]:font-semibold [&>td]:text-slate-700 [&>td]:border-b [&>td]:border-slate-300 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-slate-100">
                 <td>SUBTOTAL</td>
                 {tiers.map((tier, idx) => {
                   if (tier.isCustomPricing) {
@@ -1428,8 +1543,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
                   return (
                     <td key={tier.id} style={{ textAlign: "center" }}>
-                      <div className="matrix__subtotal-cell">
-                        <span className="matrix__subtotal-tier-price">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="font-semibold">
                           {formatPrice(
                             isCalculated ? groupSum : tierPrice,
                             currency,
@@ -1437,8 +1552,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                         </span>
                         {isCalculated && (
                           <span
-                            className="matrix__calculated-badge"
+                            className="inline-block ml-1 px-1 text-[0.5rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle uppercase"
                             title="Calculated from service groups"
+                            style={{
+                              fontFamily: "'DM Mono', 'SF Mono', monospace",
+                            }}
                           >
                             calc
                           </span>
@@ -1448,7 +1566,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           tierPrice > 0 &&
                           groupSum !== tierPrice && (
                             <span
-                              className={`matrix__subtotal-comparison ${isOver ? "matrix__subtotal-comparison--over" : "matrix__subtotal-comparison--under"}`}
+                              className={`text-[0.5625rem] py-px px-1.5 rounded-md ${isOver ? "text-rose-700 bg-rose-100 font-semibold" : "text-slate-500 bg-slate-100"}`}
+                              style={{
+                                fontFamily: "'DM Mono', 'SF Mono', monospace",
+                              }}
                             >
                               {isOver
                                 ? `Groups: ${formatPrice(groupSum, currency)} (+${formatPrice(groupSum - tierPrice, currency)})`
@@ -1503,16 +1624,19 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
           </table>
 
           {/* Grand Total - Sticky at bottom of scroll container */}
-          <div className="matrix__grand-total-sticky">
-            <table className="matrix__table">
+          <div
+            className="sticky bottom-0 z-[15] border-t-[3px] border-violet-400"
+            style={{ boxShadow: "0 -4px 16px rgba(0, 0, 0, 0.12)" }}
+          >
+            <table className="w-full border-collapse text-[0.8125rem] m-0">
               <tbody>
                 {/* 1. Recurring Tier Price — global mode: single row; custom mode: per-group rows */}
                 {!isCustomBillingMode ? (
-                  <tr className="matrix__grand-total-row">
+                  <tr className="bg-violet-100 [&>td]:py-3.5 [&>td]:px-4 [&>td]:font-bold [&>td]:text-violet-900 [&>td]:border-t-2 [&>td]:border-violet-300 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-violet-100">
                     <td>
                       Recurring Tier Price
                       <InfoIcon content="Shows the calculated total for a client selecting this tier with the current billing cycle. Includes base price + included services + optional add-ons." />
-                      <span className="matrix__grand-total-cycle">
+                      <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
                         /
                         {BILLING_CYCLE_SHORT_LABELS[
                           activeBillingCycle
@@ -1541,11 +1665,19 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                         <td
                           key={tier.id}
                           className={
-                            idx === selectedTierIdx
-                              ? "matrix__grand-total-cell--selected"
-                              : ""
+                            idx === selectedTierIdx ? "text-white relative" : ""
                           }
-                          style={{ textAlign: "center" }}
+                          style={{
+                            textAlign: "center",
+                            ...(idx === selectedTierIdx
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                  boxShadow:
+                                    "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                }
+                              : {}),
+                          }}
                         >
                           {idx === selectedTierIdx ? (
                             tier.isCustomPricing ? (
@@ -1557,7 +1689,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                                   breakdown.tierCurrency,
                                 )}
                                 {savingsPct > 0 && (
-                                  <span className="matrix__discount-tag">
+                                  <span
+                                    className="inline-block ml-1.5 py-px px-1.5 text-[0.5625rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle"
+                                    style={{
+                                      fontFamily:
+                                        "'DM Mono', 'SF Mono', monospace",
+                                    }}
+                                  >
                                     SAVE {savingsPct}%
                                   </span>
                                 )}
@@ -1574,11 +1712,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     (ogb) => (
                       <tr
                         key={`group-${ogb.optionGroupId}`}
-                        className="matrix__grand-total-row"
+                        className="bg-violet-100 [&>td]:py-3.5 [&>td]:px-4 [&>td]:font-bold [&>td]:text-violet-900 [&>td]:border-t-2 [&>td]:border-violet-300 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-violet-100"
                       >
                         <td>
                           {ogb.optionGroupName}
-                          <span className="matrix__grand-total-cycle">
+                          <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
                             /
                             {BILLING_CYCLE_SHORT_LABELS[
                               ogb.effectiveBillingCycle
@@ -1590,10 +1728,20 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                             key={tier.id}
                             className={
                               idx === selectedTierIdx
-                                ? "matrix__grand-total-cell--selected"
+                                ? "text-white relative"
                                 : ""
                             }
-                            style={{ textAlign: "center" }}
+                            style={{
+                              textAlign: "center",
+                              ...(idx === selectedTierIdx
+                                ? {
+                                    background:
+                                      "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                    boxShadow:
+                                      "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                  }
+                                : {}),
+                            }}
                           >
                             {idx === selectedTierIdx ? (
                               tier.isCustomPricing ? (
@@ -1606,7 +1754,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                                   )}
                                   {ogb.discount &&
                                     ogb.discount.discountValue > 0 && (
-                                      <span className="matrix__discount-tag">
+                                      <span
+                                        className="inline-block ml-1.5 py-px px-1.5 text-[0.5625rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle"
+                                        style={{
+                                          fontFamily:
+                                            "'DM Mono', 'SF Mono', monospace",
+                                        }}
+                                      >
                                         SAVE{" "}
                                         {Math.round(
                                           ogb.discount.discountType ===
@@ -1640,11 +1794,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   .map((ab) => (
                     <tr
                       key={`addon-recurring-${ab.optionGroupId}`}
-                      className="matrix__grand-total-row matrix__grand-total-row--addon"
+                      className="bg-violet-50 [&>td]:border-t [&>td]:border-dashed [&>td]:border-violet-200 [&>td]:font-semibold [&>td]:text-[0.8125rem] [&>td]:text-violet-700 [&>td]:py-2 [&>td]:px-4 [&>td:first-child]:bg-violet-50"
                     >
                       <td>
                         + {ab.optionGroupName}
-                        <span className="matrix__grand-total-cycle">
+                        <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
                           /
                           {BILLING_CYCLE_SHORT_LABELS[
                             ab.selectedBillingCycle
@@ -1655,17 +1809,31 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                         <td
                           key={tier.id}
                           className={
-                            idx === selectedTierIdx
-                              ? "matrix__grand-total-cell--selected"
-                              : ""
+                            idx === selectedTierIdx ? "text-white relative" : ""
                           }
-                          style={{ textAlign: "center" }}
+                          style={{
+                            textAlign: "center",
+                            ...(idx === selectedTierIdx
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                  boxShadow:
+                                    "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                }
+                              : {}),
+                          }}
                         >
                           {idx === selectedTierIdx ? (
                             <>
                               +{formatPrice(ab.recurringAmount, ab.currency)}
                               {ab.discount && ab.discount.discountValue > 0 && (
-                                <span className="matrix__discount-tag">
+                                <span
+                                  className="inline-block ml-1.5 py-px px-1.5 text-[0.5625rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle"
+                                  style={{
+                                    fontFamily:
+                                      "'DM Mono', 'SF Mono', monospace",
+                                  }}
+                                >
                                   SAVE{" "}
                                   {Math.round(
                                     ab.discount.discountType === "PERCENTAGE"
@@ -1693,11 +1861,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   .map((ab) => (
                     <tr
                       key={`addon-setup-${ab.optionGroupId}`}
-                      className="matrix__grand-total-row matrix__grand-total-row--addon"
+                      className="bg-violet-50 [&>td]:border-t [&>td]:border-dashed [&>td]:border-violet-200 [&>td]:font-semibold [&>td]:text-[0.8125rem] [&>td]:text-violet-700 [&>td]:py-2 [&>td]:px-4 [&>td:first-child]:bg-violet-50"
                     >
                       <td>
                         + {ab.optionGroupName}{" "}
-                        <span className="matrix__grand-total-cycle">
+                        <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
                           (one-time setup)
                         </span>
                       </td>
@@ -1705,11 +1873,19 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                         <td
                           key={tier.id}
                           className={
-                            idx === selectedTierIdx
-                              ? "matrix__grand-total-cell--selected"
-                              : ""
+                            idx === selectedTierIdx ? "text-white relative" : ""
                           }
-                          style={{ textAlign: "center" }}
+                          style={{
+                            textAlign: "center",
+                            ...(idx === selectedTierIdx
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                  boxShadow:
+                                    "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                }
+                              : {}),
+                          }}
                         >
                           {idx === selectedTierIdx
                             ? `${formatPrice(
@@ -1739,17 +1915,25 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   if (totalSetupBase === 0) return null;
                   const hasDiscount = totalSetupEffective !== totalSetupBase;
                   return (
-                    <tr className="matrix__grand-total-row matrix__grand-total-row--setup">
+                    <tr className="bg-violet-50 [&>td]:border-t [&>td]:border-dashed [&>td]:border-violet-200 [&>td]:font-semibold [&>td]:text-[0.8125rem] [&>td]:text-violet-700 [&>td]:py-2 [&>td]:px-4 [&>td:first-child]:bg-violet-50">
                       <td>+ Setup & Formation Fees</td>
                       {tiers.map((tier, idx) => (
                         <td
                           key={tier.id}
                           className={
-                            idx === selectedTierIdx
-                              ? "matrix__grand-total-cell--selected"
-                              : ""
+                            idx === selectedTierIdx ? "text-white relative" : ""
                           }
-                          style={{ textAlign: "center" }}
+                          style={{
+                            textAlign: "center",
+                            ...(idx === selectedTierIdx
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                  boxShadow:
+                                    "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                }
+                              : {}),
+                          }}
                         >
                           {idx === selectedTierIdx
                             ? hasDiscount
@@ -1779,26 +1963,52 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         )}
 
         {addServiceModal && (
-          <div className="matrix__modal-overlay">
-            <div className="matrix__modal matrix__modal--wide">
-              <h3 className="matrix__modal-title">Add New Service</h3>
+          <div
+            className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center z-[100]"
+            style={{ animation: "modal-backdrop 0.2s ease-out" }}
+          >
+            <div
+              className="bg-white rounded-xl p-6 max-h-[85vh] overflow-y-auto"
+              style={{
+                width: "min(32rem, calc(100vw - 2rem))",
+                maxWidth: "32rem",
+                boxShadow:
+                  "0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08)",
+                animation: "modal-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            >
+              <h3
+                className="text-xl font-bold text-slate-900 mb-5 tracking-tight"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+              >
+                Add New Service
+              </h3>
 
               {/* Service Name */}
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">Service Name</label>
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
+                  Service Name
+                </label>
                 <input
                   type="text"
                   value={newServiceName}
                   onChange={(e) => setNewServiceName(e.target.value)}
                   placeholder="Enter service name"
-                  className="matrix__modal-input"
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                   autoFocus
                 />
               </div>
 
               {/* Description */}
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
                   Description (optional)
                 </label>
                 <textarea
@@ -1806,23 +2016,27 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   onChange={(e) => setNewServiceDescription(e.target.value)}
                   placeholder="Enter description..."
                   rows={2}
-                  className="matrix__modal-textarea"
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 resize-y min-h-[80px] focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 />
               </div>
 
               {/* Tier Selection */}
               {tiers.length > 0 && (
-                <div className="matrix__modal-field">
-                  <label className="matrix__modal-label">
+                <div className="mb-5">
+                  <label
+                    className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                    style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                  >
                     Include in Tiers
                   </label>
-                  <div className="matrix__modal-tier-grid">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {tiers.map((tier) => {
                       const isSelected = newServiceSelectedTiers.has(tier.id);
                       return (
                         <label
                           key={tier.id}
-                          className={`matrix__modal-tier-option ${isSelected ? "matrix__modal-tier-option--selected" : ""}`}
+                          className={`relative flex items-center gap-2 p-3 bg-white border-2 rounded-xl cursor-pointer transition-all duration-150 min-w-0 overflow-hidden ${isSelected ? "border-violet-500 bg-violet-50 shadow-[0_0_0_3px_rgba(139,92,246,0.15)] hover:border-violet-600" : "border-slate-300 hover:border-violet-400 hover:bg-violet-50"}`}
                         >
                           <input
                             type="checkbox"
@@ -1836,13 +2050,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }
                               setNewServiceSelectedTiers(newSet);
                             }}
-                            className="matrix__modal-tier-checkbox"
+                            className="relative w-5 h-5 shrink-0 appearance-none bg-white border-2 border-slate-400 rounded-md cursor-pointer transition-all duration-150 checked:bg-violet-600 checked:border-violet-600"
                           />
-                          <span className="matrix__modal-tier-name">
+                          <span className="flex-1 text-sm font-semibold text-slate-800 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {tier.name}
                           </span>
                           {tier.pricing.amount !== null && (
-                            <span className="matrix__modal-tier-price">
+                            <span className="text-xs font-semibold text-slate-500 whitespace-nowrap shrink-0">
                               ${tier.pricing.amount}/mo
                             </span>
                           )}
@@ -1851,14 +2065,14 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     })}
                   </div>
                   {newServiceSelectedTiers.size === 0 && (
-                    <p className="matrix__modal-tier-hint">
+                    <p className="text-[0.8125rem] text-slate-500 mt-3 italic">
                       Select at least one tier to include this service
                     </p>
                   )}
                 </div>
               )}
 
-              <p className="matrix__modal-hint">
+              <p className="text-[0.8125rem] text-slate-600 mb-5 leading-6">
                 This service will be added to{" "}
                 <strong>
                   {addServiceModal.groupId !== UNGROUPED_ID
@@ -1873,7 +2087,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 service.
               </p>
 
-              <div className="matrix__modal-actions">
+              <div className="flex gap-3 justify-end pt-2">
                 <button
                   onClick={() => {
                     setAddServiceModal(null);
@@ -1881,7 +2095,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     setNewServiceDescription("");
                     setNewServiceSelectedTiers(new Set());
                   }}
-                  className="matrix__modal-btn matrix__modal-btn--cancel"
+                  className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-200 text-slate-600 border-none hover:bg-slate-300 hover:text-slate-800"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   Cancel
                 </button>
@@ -1890,7 +2105,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   disabled={
                     !newServiceName.trim() || newServiceSelectedTiers.size === 0
                   }
-                  className="matrix__modal-btn matrix__modal-btn--primary"
+                  className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-violet-600 text-white border-none shadow-[0_2px_4px_rgba(124,58,237,0.3)] hover:enabled:bg-violet-700 hover:enabled:shadow-[0_4px_8px_rgba(124,58,237,0.4)] hover:enabled:-translate-y-px active:enabled:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   Add Service
                 </button>
@@ -1901,24 +2117,50 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
         {/* Edit Service Modal */}
         {editServiceModal && (
-          <div className="matrix__modal-overlay">
-            <div className="matrix__modal matrix__modal--wide">
-              <h3 className="matrix__modal-title">Edit Service</h3>
+          <div
+            className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center z-[100]"
+            style={{ animation: "modal-backdrop 0.2s ease-out" }}
+          >
+            <div
+              className="bg-white rounded-xl p-6 max-h-[85vh] overflow-y-auto"
+              style={{
+                width: "min(32rem, calc(100vw - 2rem))",
+                maxWidth: "32rem",
+                boxShadow:
+                  "0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08)",
+                animation: "modal-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            >
+              <h3
+                className="text-xl font-bold text-slate-900 mb-5 tracking-tight"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+              >
+                Edit Service
+              </h3>
 
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">Service Name</label>
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
+                  Service Name
+                </label>
                 <input
                   type="text"
                   value={editServiceName}
                   onChange={(e) => setEditServiceName(e.target.value)}
                   placeholder="Enter service name"
-                  className="matrix__modal-input"
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                   autoFocus
                 />
               </div>
 
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
                   Description (optional)
                 </label>
                 <textarea
@@ -1926,23 +2168,27 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   onChange={(e) => setEditServiceDescription(e.target.value)}
                   placeholder="Enter description..."
                   rows={2}
-                  className="matrix__modal-textarea"
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 resize-y min-h-[80px] focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 />
               </div>
 
               {/* Tier Selection */}
               {tiers.length > 0 && (
-                <div className="matrix__modal-field">
-                  <label className="matrix__modal-label">
+                <div className="mb-5">
+                  <label
+                    className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                    style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                  >
                     Include in Tiers
                   </label>
-                  <div className="matrix__modal-tier-grid">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {tiers.map((tier) => {
                       const isSelected = editServiceSelectedTiers.has(tier.id);
                       return (
                         <label
                           key={tier.id}
-                          className={`matrix__modal-tier-option ${isSelected ? "matrix__modal-tier-option--selected" : ""}`}
+                          className={`relative flex items-center gap-2 p-3 bg-white border-2 rounded-xl cursor-pointer transition-all duration-150 min-w-0 overflow-hidden ${isSelected ? "border-violet-500 bg-violet-50 shadow-[0_0_0_3px_rgba(139,92,246,0.15)] hover:border-violet-600" : "border-slate-300 hover:border-violet-400 hover:bg-violet-50"}`}
                         >
                           <input
                             type="checkbox"
@@ -1956,13 +2202,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }
                               setEditServiceSelectedTiers(newSet);
                             }}
-                            className="matrix__modal-tier-checkbox"
+                            className="relative w-5 h-5 shrink-0 appearance-none bg-white border-2 border-slate-400 rounded-md cursor-pointer transition-all duration-150 checked:bg-violet-600 checked:border-violet-600"
                           />
-                          <span className="matrix__modal-tier-name">
+                          <span className="flex-1 text-sm font-semibold text-slate-800 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {tier.name}
                           </span>
                           {tier.pricing.amount !== null && (
-                            <span className="matrix__modal-tier-price">
+                            <span className="text-xs font-semibold text-slate-500 whitespace-nowrap shrink-0">
                               ${tier.pricing.amount}/mo
                             </span>
                           )}
@@ -1973,7 +2219,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 </div>
               )}
 
-              <div className="matrix__modal-actions">
+              <div className="flex gap-3 justify-end pt-2">
                 <button
                   onClick={() => {
                     setEditServiceModal(null);
@@ -1981,14 +2227,16 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     setEditServiceDescription("");
                     setEditServiceSelectedTiers(new Set());
                   }}
-                  className="matrix__modal-btn matrix__modal-btn--cancel"
+                  className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-200 text-slate-600 border-none hover:bg-slate-300 hover:text-slate-800"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEditService}
                   disabled={!editServiceName.trim()}
-                  className="matrix__modal-btn matrix__modal-btn--primary"
+                  className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-violet-600 text-white border-none shadow-[0_2px_4px_rgba(124,58,237,0.3)] hover:enabled:bg-violet-700 hover:enabled:shadow-[0_4px_8px_rgba(124,58,237,0.4)] hover:enabled:-translate-y-px active:enabled:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   Save Changes
                 </button>
@@ -1999,26 +2247,50 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
         {/* Metric Edit Modal */}
         {metricModal && (
-          <div className="matrix__modal-overlay">
-            <div className="matrix__modal matrix__modal--wide">
-              <h3 className="matrix__modal-title">
+          <div
+            className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center z-[100]"
+            style={{ animation: "modal-backdrop 0.2s ease-out" }}
+          >
+            <div
+              className="bg-white rounded-xl p-6 max-h-[85vh] overflow-y-auto"
+              style={{
+                width: "min(32rem, calc(100vw - 2rem))",
+                maxWidth: "32rem",
+                boxShadow:
+                  "0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08)",
+                animation: "modal-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
+            >
+              <h3
+                className="text-xl font-bold text-slate-900 mb-5 tracking-tight"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+              >
                 {metricModal.metric ? "Edit Metric" : "Add Metric"}
               </h3>
 
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">Metric Name</label>
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
+                  Metric Name
+                </label>
                 <input
                   type="text"
                   value={metricName}
                   onChange={(e) => setMetricName(e.target.value)}
                   placeholder="e.g., Number of Entities, API Calls, Storage"
-                  className="matrix__modal-input"
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                   autoFocus
                 />
               </div>
 
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
                   Unit Name (Optional)
                 </label>
                 <input
@@ -2026,25 +2298,31 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   value={metricUnitName}
                   onChange={(e) => setMetricUnitName(e.target.value)}
                   placeholder="e.g., entity, user, API call, GB"
-                  className="matrix__modal-input"
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 />
                 <p
-                  className="matrix__modal-hint"
+                  className="text-[0.8125rem] text-slate-600 mb-5 leading-6"
                   style={{ marginTop: "0.375rem" }}
                 >
                   Used for overage pricing (e.g., "$50/entity above free limit")
                 </p>
               </div>
 
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">Reset Cycle</label>
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
+                  Reset Cycle
+                </label>
                 <select
                   value={metricResetCycle}
                   onChange={(e) =>
                     setMetricResetCycle(e.target.value as UsageResetCycle)
                   }
-                  className="matrix__modal-input"
-                  style={{ cursor: "pointer" }}
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400 cursor-pointer"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   <option value="NONE">None (One-time)</option>
                   <option value="DAILY">Daily</option>
@@ -2052,7 +2330,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   <option value="MONTHLY">Monthly</option>
                 </select>
                 <p
-                  className="matrix__modal-hint"
+                  className="text-[0.8125rem] text-slate-600 mb-5 leading-6"
                   style={{ marginTop: "0.375rem" }}
                 >
                   How often usage limits reset. Use "None" for one-time setup
@@ -2060,12 +2338,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 </p>
               </div>
 
-              <div className="matrix__modal-field">
-                <label className="matrix__modal-label">
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
                   Pricing Tiers & Values
                 </label>
                 <p
-                  className="matrix__modal-hint"
+                  className="text-[0.8125rem] text-slate-600 mb-5 leading-6"
                   style={{ marginBottom: "0.75rem" }}
                 >
                   Enable the metric for each tier and set values.
@@ -2155,9 +2436,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }))
                             }
                             placeholder={isEnabled ? "Free limit" : "—"}
-                            className="matrix__modal-input"
+                            className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
                             disabled={!isEnabled}
                             style={{
+                              fontFamily: "'DM Sans', system-ui, sans-serif",
                               flex: 1,
                               opacity: isEnabled ? 1 : 0.5,
                               cursor: isEnabled ? "text" : "not-allowed",
@@ -2173,9 +2455,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }))
                             }
                             placeholder={isEnabled ? "Paid limit" : "—"}
-                            className="matrix__modal-input"
+                            className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400"
                             disabled={!isEnabled}
                             style={{
+                              fontFamily: "'DM Sans', system-ui, sans-serif",
                               flex: 1,
                               opacity: isEnabled ? 1 : 0.5,
                               cursor: isEnabled ? "text" : "not-allowed",
@@ -2206,7 +2489,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                             </span>
                             <span
                               style={{
-                                fontFamily: "var(--so-font-mono)",
+                                fontFamily: "'DM Mono', 'SF Mono', monospace",
                                 fontSize: "0.8125rem",
                                 color: "#64748b",
                               }}
@@ -2226,7 +2509,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               step="0.01"
                               style={{
                                 width: "4rem",
-                                fontFamily: "var(--so-font-mono)",
+                                fontFamily: "'DM Mono', 'SF Mono', monospace",
                                 fontSize: "0.8125rem",
                                 fontWeight: 500,
                                 color: "#0f172a",
@@ -2256,7 +2539,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 </div>
               </div>
 
-              <div className="matrix__modal-actions">
+              <div className="flex gap-3 justify-end pt-2">
                 <button
                   onClick={() => {
                     setMetricModal(null);
@@ -2268,14 +2551,16 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     setMetricOveragePrices({});
                     setMetricResetCycle("MONTHLY");
                   }}
-                  className="matrix__modal-btn matrix__modal-btn--cancel"
+                  className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-200 text-slate-600 border-none hover:bg-slate-300 hover:text-slate-800"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveMetric}
                   disabled={!metricName.trim() || metricEnabledTiers.size === 0}
-                  className="matrix__modal-btn matrix__modal-btn--primary"
+                  className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-violet-600 text-white border-none shadow-[0_2px_4px_rgba(124,58,237,0.3)] hover:enabled:bg-violet-700 hover:enabled:shadow-[0_4px_8px_rgba(124,58,237,0.4)] hover:enabled:-translate-y-px active:enabled:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
                   {metricModal.metric ? "Save Changes" : "Add Metric"}
                 </button>
@@ -2388,34 +2673,45 @@ function ServiceGroupSection({
     : groupActiveCycle || activeBillingCycle;
 
   const headerClass = isSetupFormation
-    ? "matrix__group-header--setup"
+    ? "bg-amber-100"
     : isOptional
-      ? "matrix__group-header--optional"
-      : "matrix__group-header--regular";
+      ? "bg-sky-100"
+      : "bg-slate-100";
 
   const rowClass = isSetupFormation
-    ? "matrix__service-row--setup"
+    ? "bg-amber-50"
     : isOptional
-      ? "matrix__service-row--optional"
-      : "matrix__service-row--regular";
+      ? "bg-sky-50"
+      : "bg-slate-50";
 
   return (
     <>
-      <tr className={`matrix__group-header ${headerClass}`}>
-        <td className={`matrix__group-header-sticky ${headerClass}`}>
-          <div className="matrix__group-header-inner">
+      <tr className={`py-3 px-4 border-b border-slate-200 ${headerClass}`}>
+        <td
+          className={`sticky left-0 z-10 py-3 px-4 border-b border-slate-200 ${headerClass}`}
+        >
+          <div className="flex items-center gap-3">
             {isOptional && (
               <button
                 onClick={onToggle}
-                className={`matrix__group-toggle ${isEnabled ? "matrix__group-toggle--on" : "matrix__group-toggle--off"}`}
+                className={`relative w-10 h-5 rounded-full border-none cursor-pointer transition-all duration-200 ${isEnabled ? "bg-violet-600" : "bg-slate-300"}`}
               >
-                <span className="matrix__group-toggle-knob" />
+                <span
+                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-150 ${isEnabled ? "left-[calc(100%-1.125rem)]" : "left-0.5"}`}
+                />
               </button>
             )}
-            <div className="matrix__group-name-block">
-              <span className="matrix__group-name">{group.name}</span>
+            <div className="flex flex-col gap-0.5">
+              <span
+                className="font-semibold text-slate-800"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+              >
+                {group.name}
+              </span>
               {group.isAddOn && (
-                <span className="matrix__group-subtitle">Optional Add-on</span>
+                <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05em] text-slate-400">
+                  Optional Add-on
+                </span>
               )}
             </div>
             {/* Group pricing: price + billing cycle tabs + discount + setup cost */}
@@ -2441,9 +2737,9 @@ function ServiceGroupSection({
                       )
                     : 0;
                 return (
-                  <div className="matrix__addon-pricing-bar">
+                  <div className="flex items-center gap-3 ml-auto">
                     {monthlyBase > 0 && (
-                      <span className="matrix__addon-price">
+                      <span className="text-sm font-bold text-slate-800 whitespace-nowrap">
                         {formatPrice(
                           effectiveBillingCycle === "MONTHLY"
                             ? monthlyBase
@@ -2454,18 +2750,18 @@ function ServiceGroupSection({
                       </span>
                     )}
                     {effectiveBillingCycle !== "MONTHLY" && monthlyBase > 0 && (
-                      <span className="matrix__addon-billed">
+                      <span className="text-[0.6875rem] font-medium text-slate-500 whitespace-nowrap">
                         Billed {formatPrice(recurringAmount, currency)}{" "}
                         {BILLING_CYCLE_LABELS[effectiveBillingCycle]}
                       </span>
                     )}
                     {savingsPct > 0 && (
-                      <span className="matrix__addon-discount">
+                      <span className="text-[0.6875rem] font-semibold text-emerald-600 whitespace-nowrap">
                         SAVE {Math.round(savingsPct)}%
                       </span>
                     )}
                     {setupCost && setupCost.amount > 0 && (
-                      <span className="matrix__addon-setup">
+                      <span className="text-[0.6875rem] font-medium text-slate-500 whitespace-nowrap">
                         +{" "}
                         {formatPrice(
                           setupCost.amount,
@@ -2485,10 +2781,10 @@ function ServiceGroupSection({
           style={{ textAlign: "center" }}
         >
           <span
-            className={`matrix__group-badge ${
+            className={`inline-block py-1 px-2.5 rounded-md text-[0.625rem] font-semibold uppercase tracking-[0.04em] ${
               isSetupFormation || !isOptional
-                ? "matrix__group-badge--included"
-                : "matrix__group-badge--optional"
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-sky-200 text-sky-700"
             }`}
           >
             {isSetupFormation
@@ -2528,14 +2824,17 @@ function ServiceGroupSection({
       })}
 
       {onAddService && group.id !== "__ungrouped__" && (
-        <tr className={`matrix__add-service-row ${rowClass}`}>
+        <tr
+          className={`[&>td]:py-2 [&>td]:px-4 [&>td]:pl-8 [&>td]:border-b [&>td]:border-slate-100 ${rowClass}`}
+        >
           <td className={rowClass}>
             <button
               onClick={() => onAddService(group.id, isSetupFormation)}
-              className="matrix__add-service-btn"
+              className="flex items-center gap-1.5 text-[0.8125rem] font-medium text-violet-600 bg-transparent border-none cursor-pointer transition-all duration-150 hover:text-violet-700"
+              style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
             >
               <svg
-                className="matrix__add-service-icon"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -2559,7 +2858,7 @@ function ServiceGroupSection({
           const basePrice = group.price ?? 0;
           if (basePrice === 0) {
             return (
-              <tr className="matrix__setup-total-row">
+              <tr className="bg-slate-50 [&>td]:py-2.5 [&>td]:px-4 [&>td]:font-semibold [&>td]:text-slate-700 [&>td]:border-b [&>td]:border-slate-200 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-slate-50">
                 <td>TOTAL SETUP FEE</td>
                 <td colSpan={tiers.length} style={{ textAlign: "center" }}>
                   No setup fee configured
@@ -2590,7 +2889,7 @@ function ServiceGroupSection({
           const curr = group.currency || "USD";
           const hasDiscount = effectivePrice !== basePrice;
           return (
-            <tr className="matrix__setup-total-row">
+            <tr className="bg-slate-50 [&>td]:py-2.5 [&>td]:px-4 [&>td]:font-semibold [&>td]:text-slate-700 [&>td]:border-b [&>td]:border-slate-200 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-slate-50">
               <td>TOTAL SETUP FEE</td>
               <td colSpan={tiers.length} style={{ textAlign: "center" }}>
                 {hasDiscount ? (
@@ -2644,7 +2943,9 @@ function ServiceGroupSection({
           const currency = groupBreakdown?.currency || group.currency || "USD";
 
           return (
-            <tr className={`matrix__total-row ${headerClass}`}>
+            <tr
+              className={`[&>td]:py-2.5 [&>td]:px-4 [&>td]:font-semibold [&>td]:text-slate-700 [&>td]:border-b [&>td]:border-slate-300 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 ${headerClass}`}
+            >
               <td className={headerClass}>SUBTOTAL</td>
               <td colSpan={tiers.length} style={{ textAlign: "center" }}>
                 {isEnabled && (baseMonthly > 0 || setupCost > 0) ? (
@@ -2726,13 +3027,17 @@ function ServiceRowWithMetrics({
 
   return (
     <>
-      <tr className={`matrix__service-row ${rowClass}`}>
-        <td className={`matrix__service-cell ${rowClass}`}>
-          <div className="matrix__service-cell-wrapper">
+      <tr
+        className={`group/servicerow transition-all duration-150 hover:brightness-[0.98] ${rowClass}`}
+      >
+        <td
+          className={`py-2.5 px-4 pl-8 border-b border-slate-100 sticky left-0 z-10 ${rowClass}`}
+        >
+          <div className="flex items-center justify-start gap-2">
             {/* Reorder arrows */}
-            <div className="matrix__reorder-buttons">
+            <div className="flex flex-col gap-px mr-2 opacity-0 group-hover/servicerow:opacity-100 transition-opacity duration-150">
               <button
-                className="matrix__reorder-btn"
+                className="flex items-center justify-center w-[18px] h-[14px] p-0 border-none bg-transparent text-slate-400 cursor-pointer rounded-sm transition-all duration-150 hover:enabled:bg-violet-100 hover:enabled:text-violet-600 disabled:opacity-30 disabled:cursor-not-allowed [&>svg]:w-3 [&>svg]:h-3"
                 onClick={(e) => {
                   e.stopPropagation();
                   onReorderService(service.id, "up", groupServices);
@@ -2750,7 +3055,7 @@ function ServiceRowWithMetrics({
                 </svg>
               </button>
               <button
-                className="matrix__reorder-btn"
+                className="flex items-center justify-center w-[18px] h-[14px] p-0 border-none bg-transparent text-slate-400 cursor-pointer rounded-sm transition-all duration-150 hover:enabled:bg-violet-100 hover:enabled:text-violet-600 disabled:opacity-30 disabled:cursor-not-allowed [&>svg]:w-3 [&>svg]:h-3"
                 onClick={(e) => {
                   e.stopPropagation();
                   onReorderService(service.id, "down", groupServices);
@@ -2769,7 +3074,8 @@ function ServiceRowWithMetrics({
               </button>
             </div>
             <button
-              className="matrix__service-title matrix__service-title--clickable"
+              className="text-[0.8125rem] text-slate-700 bg-none border-none py-1 px-2 -m-1 rounded cursor-pointer transition-all duration-150 text-left hover:bg-slate-100 hover:text-violet-700"
+              style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               onClick={(e) => {
                 e.stopPropagation();
                 onEditService(service);
@@ -2779,14 +3085,17 @@ function ServiceRowWithMetrics({
               {service.title}
             </button>
             {service.isSetupFormation && (
-              <span className="matrix__service-setup-badge">Setup</span>
+              <span className="inline-block py-px px-1.5 ml-1.5 text-[0.5625rem] font-bold uppercase tracking-[0.04em] rounded-md bg-amber-100 text-amber-700 align-middle">
+                Setup
+              </span>
             )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onAddMetric(service.id);
               }}
-              className="matrix__add-metric-btn"
+              className="opacity-60 group-hover/servicerow:opacity-100 text-[0.6875rem] font-medium text-violet-600 bg-transparent border-none cursor-pointer py-0.5 px-1.5 rounded-md transition-all duration-150 whitespace-nowrap hover:bg-violet-100 hover:text-violet-700"
+              style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               title="Add metric to this service"
             >
               + Metric
@@ -2813,11 +3122,27 @@ function ServiceRowWithMetrics({
           return (
             <td
               key={tier.id}
-              className={`matrix__level-cell ${
-                isSelected ? "matrix__level-cell--selected" : ""
-              } ${tierIdx === selectedTierIdx ? "matrix__level-cell--highlight" : ""} ${
-                isNotIncluded ? "matrix__level-cell--not-included" : ""
+              className={`py-2.5 px-4 text-center border-b border-slate-100 cursor-pointer transition-all duration-150 hover:bg-white/50 ${
+                isSelected
+                  ? "shadow-[inset_0_0_0_2px_#8b5cf6] bg-violet-500/[0.08]"
+                  : ""
+              } ${tierIdx === selectedTierIdx ? "" : ""} ${
+                isNotIncluded ? "relative" : ""
               }`}
+              style={
+                tierIdx === selectedTierIdx
+                  ? {
+                      background: isSelected
+                        ? "rgba(139, 92, 246, 0.08)"
+                        : "linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, rgba(139, 92, 246, 0.12) 100%)",
+                    }
+                  : isNotIncluded
+                    ? {
+                        background:
+                          "repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(148, 163, 184, 0.08) 8px, rgba(148, 163, 184, 0.08) 16px)",
+                      }
+                    : undefined
+              }
               onClick={() =>
                 setSelectedCell(
                   isSelected
@@ -2827,14 +3152,20 @@ function ServiceRowWithMetrics({
               }
             >
               <span
-                className={`matrix__level-value ${isNotIncluded ? "matrix__level-value--not-included" : ""}`}
-                style={{ color: display.color }}
+                className={`font-medium ${isNotIncluded ? "opacity-60" : ""}`}
+                style={{
+                  color: display.color,
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                }}
               >
                 {display.label}
               </span>
               {/* Loss Aversion: Show upgrade hint for NOT_INCLUDED */}
               {isNotIncluded && nextTierWithService && (
-                <span className="matrix__upgrade-hint">
+                <span
+                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 translate-y-1 text-[0.5625rem] font-medium text-violet-600 whitespace-nowrap opacity-0 transition-all duration-150 pointer-events-none group-hover/servicerow:opacity-0"
+                  style={{ opacity: 0 }}
+                >
                   In {nextTierWithService.name} →
                 </span>
               )}
@@ -2846,23 +3177,30 @@ function ServiceRowWithMetrics({
       {metrics.map((metric) => (
         <tr
           key={`${service.id}-${metric}`}
-          className={`matrix__metric-row ${rowClass}`}
+          className={`group/metricrow bg-inherit cursor-pointer transition-all duration-150 hover:bg-violet-500/[0.08] ${rowClass}`}
           onClick={() => onEditMetric(service.id, metric)}
         >
-          <td className={`matrix__metric-cell ${rowClass}`}>
-            <div className="matrix__metric-name-wrapper">
-              <span className="matrix__metric-name">{metric}</span>
-              <div className="matrix__metric-actions">
+          <td
+            className={`py-2 px-4 pl-28 border-b border-slate-100 sticky left-0 z-10 align-middle ${rowClass}`}
+          >
+            <div className="flex items-center gap-2 relative h-full">
+              <span
+                className="text-xs italic text-slate-500"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+              >
+                {metric}
+              </span>
+              <div className="flex gap-1 opacity-0 group-hover/metricrow:opacity-100 transition-all duration-150">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onEditMetric(service.id, metric);
                   }}
-                  className="matrix__metric-btn matrix__metric-btn--edit"
+                  className="p-0.5 bg-transparent border-none text-slate-400 cursor-pointer rounded-md transition-all duration-150 flex items-center justify-center hover:bg-slate-200 hover:text-violet-600"
                   title="Edit metric"
                 >
                   <svg
-                    className="matrix__metric-btn-icon"
+                    className="w-3 h-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2880,11 +3218,11 @@ function ServiceRowWithMetrics({
                     e.stopPropagation();
                     onRemoveMetric(service.id, metric);
                   }}
-                  className="matrix__metric-btn matrix__metric-btn--remove"
+                  className="p-0.5 bg-transparent border-none text-slate-400 cursor-pointer rounded-md transition-all duration-150 flex items-center justify-center hover:bg-slate-200 hover:text-rose-600"
                   title="Remove metric"
                 >
                   <svg
-                    className="matrix__metric-btn-icon"
+                    className="w-3 h-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2906,20 +3244,24 @@ function ServiceRowWithMetrics({
             return (
               <td
                 key={tier.id}
-                className={`matrix__metric-value-cell ${
+                className="py-1.5 px-3 text-center border-b border-slate-100 align-middle"
+                style={
                   tierIdx === selectedTierIdx
-                    ? "matrix__level-cell--highlight"
-                    : ""
-                }`}
+                    ? {
+                        background:
+                          "linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, rgba(139, 92, 246, 0.12) 100%)",
+                      }
+                    : undefined
+                }
               >
-                <div className="matrix__metric-card">
+                <div className="inline-flex flex-col border border-slate-200 rounded-[10px] overflow-hidden min-w-[10rem]">
                   {usageLimit ? (
                     <>
-                      <div className="matrix__metric-card-row">
-                        <span className="matrix__metric-card-label">
+                      <div className="flex justify-between items-center py-1.5 px-3 gap-4">
+                        <span className="text-[0.6875rem] text-slate-500 whitespace-nowrap">
                           Included
                         </span>
-                        <span className="matrix__metric-card-value">
+                        <span className="text-xs text-slate-700 text-right whitespace-nowrap">
                           {usageLimit.freeLimit != null ? (
                             <>
                               <strong>
@@ -2930,7 +3272,7 @@ function ServiceRowWithMetrics({
                               </strong>
                               {usageLimit.resetCycle &&
                                 usageLimit.resetCycle !== "NONE" && (
-                                  <span className="matrix__metric-card-cycle">
+                                  <span className="text-[0.625rem] font-normal text-slate-400">
                                     {" "}
                                     / {usageLimit.resetCycle.toLowerCase()}
                                   </span>
@@ -2942,16 +3284,16 @@ function ServiceRowWithMetrics({
                         </span>
                       </div>
                       {usageLimit.unitPrice != null && (
-                        <div className="matrix__metric-card-row matrix__metric-card-row--overage">
-                          <span className="matrix__metric-card-label">
+                        <div className="flex justify-between items-center py-1.5 px-3 gap-4 border-t border-slate-100">
+                          <span className="text-[0.6875rem] text-slate-500 whitespace-nowrap">
                             Overage
                           </span>
-                          <span className="matrix__metric-card-value matrix__metric-card-value--overage">
+                          <span className="text-xs text-emerald-600 font-medium text-right whitespace-nowrap">
                             {formatPrice(
                               usageLimit.unitPrice,
                               usageLimit.unitPriceCurrency || "USD",
                             )}
-                            <span className="matrix__metric-card-cycle">
+                            <span className="text-[0.625rem] font-normal text-slate-400">
                               {" "}
                               / extra
                             </span>
@@ -2960,7 +3302,7 @@ function ServiceRowWithMetrics({
                       )}
                     </>
                   ) : (
-                    <span className="matrix__metric-empty">—</span>
+                    <span className="text-xs text-slate-300">—</span>
                   )}
                 </div>
               </td>
@@ -3112,19 +3454,35 @@ function ServiceLevelDetailPanel({
   return (
     <div
       ref={overlayRef}
-      className="matrix__panel-overlay"
+      className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm flex items-center justify-end z-50"
+      style={{ animation: "panel-overlay-fade 0.2s ease-out" }}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="panel-title"
     >
-      <div ref={panelRef} className="matrix__panel">
-        <div className="matrix__panel-header">
-          <div className="matrix__panel-header-top">
-            <span className="matrix__panel-tier">{tier.name} Tier</span>
-            <button onClick={onClose} className="matrix__panel-close">
+      <div
+        ref={panelRef}
+        className="w-96 h-full bg-white overflow-y-auto"
+        style={{
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          animation: "panel-slide-in 0.2s ease-out",
+        }}
+      >
+        <div className="bg-violet-600 text-white p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span
+              className="text-[0.6875rem] uppercase tracking-[0.08em] opacity-80"
+              style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+            >
+              {tier.name} Tier
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1 bg-transparent border-none text-white cursor-pointer rounded-md transition-all duration-150 hover:bg-white/20"
+            >
               <svg
-                className="matrix__panel-close-icon"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -3138,23 +3496,28 @@ function ServiceLevelDetailPanel({
               </svg>
             </button>
           </div>
-          <h3 id="panel-title" className="matrix__panel-title">
+          <h3
+            id="panel-title"
+            className="text-lg font-semibold"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+          >
             {service.title}
           </h3>
         </div>
 
-        <div className="matrix__panel-body">
+        <div className="p-4 flex flex-col gap-6">
           <div>
-            <div className="matrix__panel-limits-header">
+            <div className="flex items-center justify-between mb-3">
               <label
-                className="matrix__panel-section-label"
-                style={{ marginBottom: 0 }}
+                className="block text-[0.8125rem] font-semibold text-slate-700 mb-0"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               >
                 Metrics
               </label>
               <button
                 onClick={() => setIsAddingMetric(true)}
-                className="matrix__panel-add-btn"
+                className="text-[0.8125rem] font-semibold text-violet-600 bg-transparent border-none cursor-pointer transition-all duration-150 hover:text-violet-700"
+                style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               >
                 + Add Metric
               </button>
@@ -3171,16 +3534,19 @@ function ServiceLevelDetailPanel({
             ))}
 
             {usageLimits.length === 0 && !isAddingMetric && (
-              <p className="matrix__panel-empty-text">
+              <p className="text-[0.8125rem] italic text-slate-500">
                 No metrics added yet. Metrics will appear as nested rows under
                 this service in the matrix.
               </p>
             )}
 
             {isAddingMetric && (
-              <div className="matrix__panel-edit-form">
+              <div className="p-3 bg-violet-50 rounded-[10px] mb-3 [&>div]:mb-2.5 [&>div:last-child]:mb-0">
                 <div>
-                  <label className="matrix__panel-edit-label">
+                  <label
+                    className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+                    style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+                  >
                     Metric Name
                   </label>
                   <input
@@ -3188,28 +3554,36 @@ function ServiceLevelDetailPanel({
                     value={newMetric}
                     onChange={(e) => setNewMetric(e.target.value)}
                     placeholder="e.g., API Calls, Storage, Users"
-                    className="matrix__panel-input"
+                    className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+                    style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label className="matrix__panel-edit-label">Value</label>
+                  <label
+                    className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+                    style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+                  >
+                    Value
+                  </label>
                   <input
                     type="text"
                     value={newLimit}
                     onChange={(e) => setNewLimit(e.target.value)}
                     placeholder="e.g., 100, Unlimited, Custom"
-                    className="matrix__panel-input"
+                    className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+                    style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                   />
-                  <p className="matrix__panel-edit-hint">
+                  <p className="text-[0.6875rem] text-slate-400 mt-1">
                     Enter a value or leave empty
                   </p>
                 </div>
-                <div className="matrix__panel-edit-actions">
+                <div className="flex gap-2">
                   <button
                     onClick={handleAddLimit}
                     disabled={!newMetric.trim()}
-                    className="matrix__panel-edit-btn matrix__panel-edit-btn--primary"
+                    className="flex-1 py-2 px-3 text-[0.8125rem] font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-violet-600 text-white border-none hover:enabled:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                   >
                     Add Metric
                   </button>
@@ -3219,7 +3593,8 @@ function ServiceLevelDetailPanel({
                       setNewLimit("");
                       setIsAddingMetric(false);
                     }}
-                    className="matrix__panel-edit-btn matrix__panel-edit-btn--secondary"
+                    className="flex-1 py-2 px-3 text-[0.8125rem] font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-200 text-slate-700 border-none hover:bg-slate-300"
+                    style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                   >
                     Cancel
                   </button>
@@ -3229,8 +3604,12 @@ function ServiceLevelDetailPanel({
           </div>
         </div>
 
-        <div className="matrix__panel-footer">
-          <button onClick={onClose} className="matrix__panel-done-btn">
+        <div className="p-4 border-t border-slate-200 bg-white">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 px-4 text-sm font-semibold bg-violet-600 text-white border-none rounded-[10px] cursor-pointer transition-all duration-150 hover:bg-violet-700"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+          >
             Done
           </button>
         </div>
@@ -3315,66 +3694,95 @@ function MetricLimitItem({
 
   if (isEditing) {
     return (
-      <div className="matrix__panel-edit-form">
+      <div className="p-3 bg-violet-50 rounded-[10px] mb-3 [&>div]:mb-2.5 [&>div:last-child]:mb-0">
         <div>
-          <label className="matrix__panel-edit-label">Metric Name</label>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Metric Name
+          </label>
           <input
             type="text"
             value={editMetric}
             onChange={(e) => setEditMetric(e.target.value)}
             placeholder="e.g., Number of Entities"
-            className="matrix__panel-input"
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
             autoFocus
           />
         </div>
         <div>
-          <label className="matrix__panel-edit-label">Unit Name</label>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Unit Name
+          </label>
           <input
             type="text"
             value={editUnitName}
             onChange={(e) => setEditUnitName(e.target.value)}
             placeholder="e.g., entity, credit card, contractor"
-            className="matrix__panel-input"
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           />
-          <p className="matrix__panel-edit-hint">
+          <p className="text-[0.6875rem] text-slate-400 mt-1">
             Used for overage pricing display (e.g., "$50 per entity")
           </p>
         </div>
         <div>
-          <label className="matrix__panel-edit-label">Free Limit</label>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Free Limit
+          </label>
           <input
             type="text"
             value={editLimit}
             onChange={(e) => setEditLimit(e.target.value)}
             placeholder="e.g., 100, Unlimited, Custom"
-            className="matrix__panel-input"
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           />
-          <p className="matrix__panel-edit-hint">
+          <p className="text-[0.6875rem] text-slate-400 mt-1">
             Included free limit for this tier
           </p>
         </div>
         <div>
-          <label className="matrix__panel-edit-label">Paid Limit</label>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Paid Limit
+          </label>
           <input
             type="text"
             value={editPaidLimit}
             onChange={(e) => setEditPaidLimit(e.target.value)}
             placeholder="e.g., 500, 1000"
-            className="matrix__panel-input"
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           />
-          <p className="matrix__panel-edit-hint">
+          <p className="text-[0.6875rem] text-slate-400 mt-1">
             Maximum paid usage beyond the free limit (optional)
           </p>
         </div>
         <div>
-          <label className="matrix__panel-edit-label">Reset Cycle</label>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Reset Cycle
+          </label>
           <select
             value={editResetCycle}
             onChange={(e) =>
               setEditResetCycle(e.target.value as UsageResetCycle)
             }
-            className="matrix__panel-input"
-            style={{ cursor: "pointer" }}
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] cursor-pointer"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           >
             <option value="NONE">None (One-time)</option>
             <option value="DAILY">Daily</option>
@@ -3382,43 +3790,54 @@ function MetricLimitItem({
             <option value="MONTHLY">Monthly</option>
           </select>
         </div>
-        <div className="matrix__panel-overage-section">
-          <label className="matrix__panel-edit-label">
+        <div className="mt-2 pt-3 border-t border-dashed border-slate-300">
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
             Overage Pricing (Optional)
           </label>
           <p
-            className="matrix__panel-edit-hint"
+            className="text-[0.6875rem] text-slate-400 mt-1"
             style={{ marginBottom: "0.5rem" }}
           >
             Set a price for usage beyond the included limit
           </p>
-          <div className="matrix__panel-overage-row">
-            <div className="matrix__panel-overage-price">
-              <span className="matrix__panel-overage-currency">$</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1">
+              <span
+                className="text-sm text-slate-500"
+                style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+              >
+                $
+              </span>
               <input
                 type="number"
                 value={editUnitPrice}
                 onChange={(e) => setEditUnitPrice(e.target.value)}
                 placeholder="0.00"
                 step="0.01"
-                className="matrix__panel-overage-input"
+                className="w-[4.5rem] text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-md py-1.5 px-2 outline-none transition-colors duration-150 focus:border-violet-600"
+                style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
               />
             </div>
-            <span className="matrix__panel-overage-label">
+            <span className="text-xs text-slate-500">
               per {editUnitName || "unit"}
             </span>
           </div>
         </div>
-        <div className="matrix__panel-edit-actions">
+        <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="matrix__panel-edit-btn matrix__panel-edit-btn--primary"
+            className="flex-1 py-2 px-3 text-[0.8125rem] font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-violet-600 text-white border-none hover:enabled:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           >
             Save
           </button>
           <button
             onClick={handleCancel}
-            className="matrix__panel-edit-btn matrix__panel-edit-btn--secondary"
+            className="flex-1 py-2 px-3 text-[0.8125rem] font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-200 text-slate-700 border-none hover:bg-slate-300"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           >
             Cancel
           </button>
@@ -3428,14 +3847,19 @@ function MetricLimitItem({
   }
 
   return (
-    <div className="matrix__panel-limit-item">
+    <div className="group/limititem flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-[10px] mb-3">
       <div
-        className="matrix__panel-limit-content"
+        className="flex-1 cursor-pointer p-1 -m-1 rounded-md transition-all duration-150 hover:bg-slate-200"
         onClick={() => setIsEditing(true)}
       >
-        <div className="matrix__panel-limit-metric">{limit.metric}</div>
-        <div className="matrix__panel-limit-value-group">
-          <div className="matrix__panel-limit-value">
+        <div
+          className="text-sm font-semibold text-slate-900"
+          style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+        >
+          {limit.metric}
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <div className="text-[0.8125rem] text-slate-500">
             {limit.freeLimit != null
               ? `Free: ${limit.freeLimit}${limit.paidLimit != null ? ` / Paid: ${limit.paidLimit}` : ""}`
               : (limit.notes ?? "—")}
@@ -3446,18 +3870,23 @@ function MetricLimitItem({
             </div>
           )}
           {overageDisplay && (
-            <div className="matrix__panel-limit-overage">{overageDisplay}</div>
+            <div
+              className="text-[0.6875rem] text-emerald-600 font-medium"
+              style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+            >
+              {overageDisplay}
+            </div>
           )}
         </div>
       </div>
-      <div className="matrix__panel-limit-actions">
+      <div className="flex gap-1 opacity-0 group-hover/limititem:opacity-100 transition-all duration-150">
         <button
           onClick={() => setIsEditing(true)}
-          className="matrix__panel-limit-btn matrix__panel-limit-btn--edit"
+          className="p-1 bg-transparent border-none text-slate-400 cursor-pointer rounded-md transition-all duration-150 hover:bg-slate-200 hover:text-violet-600"
           title="Edit metric"
         >
           <svg
-            className="matrix__panel-limit-icon"
+            className="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -3472,11 +3901,11 @@ function MetricLimitItem({
         </button>
         <button
           onClick={onRemove}
-          className="matrix__panel-limit-btn matrix__panel-limit-btn--remove"
+          className="p-1 bg-transparent border-none text-slate-400 cursor-pointer rounded-md transition-all duration-150 hover:bg-slate-200 hover:text-rose-600"
           title="Remove metric"
         >
           <svg
-            className="matrix__panel-limit-icon"
+            className="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

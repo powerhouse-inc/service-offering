@@ -33,252 +33,8 @@ const CYCLE_SHORT: Record<string, string> = {
   ANNUAL: "12mo",
 };
 
-const panelStyles = `
-  .bcp {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--so-slate-200);
-  }
-
-  .bcp__header {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .bcp__title {
-    font-family: var(--so-font-mono);
-    font-size: 0.625rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--so-slate-500);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-
-  .bcp__title svg {
-    width: 0.875rem;
-    height: 0.875rem;
-    color: var(--so-violet-500);
-  }
-
-  .bcp__computed-label {
-    font-family: var(--so-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 500;
-    color: var(--so-slate-400);
-    background: var(--so-slate-100);
-    padding: 0.125rem 0.375rem;
-    border-radius: var(--so-radius-sm);
-    margin-left: auto;
-  }
-
-  .bcp__no-price {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: var(--so-slate-50);
-    border-radius: var(--so-radius-md);
-    color: var(--so-slate-500);
-    font-size: 0.75rem;
-  }
-
-  .bcp__no-price svg {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    color: var(--so-slate-400);
-  }
-
-  .bcp__rows {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  /* Row container */
-  .bcp-row {
-    border: 1px solid var(--so-slate-150, var(--so-slate-100));
-    border-radius: var(--so-radius-md);
-    overflow: hidden;
-    transition: all 0.15s ease;
-  }
-
-  .bcp-row--active {
-    border-color: var(--so-violet-200);
-  }
-
-  .bcp-row--disabled {
-    opacity: 0.5;
-  }
-
-  /* Top part: label + total */
-  .bcp-row__top {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.625rem 0.75rem;
-    background: var(--so-white);
-    cursor: default;
-  }
-
-  .bcp-row--active .bcp-row__top {
-    background: var(--so-violet-50);
-  }
-
-  .bcp-row__cycle-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .bcp-row__cycle-dot--active {
-    background: var(--so-violet-500);
-  }
-
-  .bcp-row__cycle-dot--inactive {
-    background: var(--so-slate-300);
-  }
-
-  .bcp-row__label {
-    font-family: var(--so-font-sans);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--so-slate-700);
-    flex: 1;
-  }
-
-  .bcp-row__total {
-    font-family: var(--so-font-mono);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--so-slate-800);
-    white-space: nowrap;
-  }
-
-  .bcp-row__dash {
-    font-family: var(--so-font-mono);
-    font-size: 0.875rem;
-    color: var(--so-slate-300);
-    margin-left: auto;
-  }
-
-  /* Expanded detail area */
-  .bcp-row__detail {
-    display: flex;
-    align-items: flex-end;
-    gap: 1rem;
-    padding: 0.5rem 0.75rem 0.625rem;
-    background: var(--so-slate-50);
-    border-top: 1px solid var(--so-slate-100);
-  }
-
-  .bcp-row--active .bcp-row__detail {
-    background: var(--so-violet-50);
-    border-top-color: var(--so-violet-100);
-  }
-
-  .bcp-row__detail-col {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .bcp-row__detail-col--price {
-    flex: 1;
-  }
-
-  .bcp-row__detail-col--discount {
-    flex: 1;
-  }
-
-  .bcp-row__detail-label {
-    font-family: var(--so-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--so-slate-400);
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .bcp-row__detail-label svg {
-    width: 0.6875rem;
-    height: 0.6875rem;
-  }
-
-  .bcp-row__calc {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--so-font-mono);
-    font-size: 0.75rem;
-    color: var(--so-slate-500);
-    padding: 0.25rem 0;
-    min-height: 1.75rem;
-  }
-
-  .bcp-row__calc-result {
-    font-weight: 600;
-    color: var(--so-slate-700);
-  }
-
-  .bcp-row__discount-display {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-family: var(--so-font-mono);
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--so-slate-600);
-    padding: 0.25rem 0;
-    min-height: 1.75rem;
-  }
-
-  .bcp-row__discount-display--zero {
-    color: var(--so-slate-300);
-  }
-
-  /* Effective price line (only when discount > 0) */
-  .bcp-row__effective {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    background: var(--so-emerald-50);
-    border-top: 1px solid var(--so-emerald-100);
-  }
-
-  .bcp-row__effective-arrow {
-    font-size: 0.6875rem;
-    color: var(--so-emerald-400);
-  }
-
-  .bcp-row__effective-price {
-    font-family: var(--so-font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--so-emerald-700);
-  }
-
-  .bcp-row__effective-savings {
-    font-family: var(--so-font-mono);
-    font-size: 0.5625rem;
-    font-weight: 600;
-    color: var(--so-emerald-600);
-    background: var(--so-emerald-100);
-    padding: 0.0625rem 0.3125rem;
-    border-radius: var(--so-radius-sm);
-    margin-left: auto;
-  }
-`;
+const fontSans = "'DM Sans', system-ui, sans-serif";
+const fontMono = "'DM Mono', 'SF Mono', monospace";
 
 export function BillingCycleConfigPanel({
   basePrice,
@@ -306,66 +62,79 @@ export function BillingCycleConfigPanel({
   };
 
   return (
-    <>
-      <style>{panelStyles}</style>
-      <div className="bcp">
-        <div className="bcp__header">
-          <span className="bcp__title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            Billing Cycles & Discounts
-          </span>
-          <span className="bcp__computed-label">
-            Computed from service groups
-          </span>
-        </div>
-
-        {!hasBasePrice && (
-          <div className="bcp__no-price">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Discounts will appear here once service groups set pricing for this
-            tier.
-          </div>
-        )}
-
-        <div className="bcp__rows">
-          {CYCLE_ORDER.map((cycle) => {
-            const enabled = isCycleEnabled(cycle);
-            const isMonthly = cycle === "MONTHLY";
-            const total = getCycleTotal(cycle);
-            const discount = getDiscountValue(cycle);
-
-            return (
-              <BillingCycleRow
-                key={cycle}
-                label={CYCLE_LABELS[cycle]}
-                shortLabel={CYCLE_SHORT[cycle]}
-                enabled={enabled}
-                isMonthly={isMonthly}
-                basePrice={basePrice}
-                total={total}
-                discount={discount}
-                currency={currency}
-                hasBasePrice={hasBasePrice}
-              />
-            );
-          })}
-        </div>
+    <div className="mt-4 pt-4 border-t border-slate-200">
+      <div className="flex items-center gap-1.5 mb-3">
+        <span
+          className="text-[0.625rem] font-medium uppercase text-slate-500 flex items-center gap-1.5"
+          style={{ fontFamily: fontMono, letterSpacing: "0.08em" }}
+        >
+          <svg
+            className="w-3.5 h-3.5 text-violet-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          Billing Cycles & Discounts
+        </span>
+        <span
+          className="text-[0.5625rem] font-medium text-slate-400 bg-slate-100 py-0.5 px-1.5 rounded-md ml-auto"
+          style={{ fontFamily: fontMono }}
+        >
+          Computed from service groups
+        </span>
       </div>
-    </>
+
+      {!hasBasePrice && (
+        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-[10px] text-slate-500 text-xs">
+          <svg
+            className="w-4 h-4 shrink-0 text-slate-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          Discounts will appear here once service groups set pricing for this
+          tier.
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {CYCLE_ORDER.map((cycle) => {
+          const enabled = isCycleEnabled(cycle);
+          const isMonthly = cycle === "MONTHLY";
+          const total = getCycleTotal(cycle);
+          const discount = getDiscountValue(cycle);
+
+          return (
+            <BillingCycleRow
+              key={cycle}
+              label={CYCLE_LABELS[cycle]}
+              shortLabel={CYCLE_SHORT[cycle]}
+              enabled={enabled}
+              isMonthly={isMonthly}
+              basePrice={basePrice}
+              total={total}
+              discount={discount}
+              currency={currency}
+              hasBasePrice={hasBasePrice}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -402,48 +171,89 @@ function BillingCycleRow({
 
   const currencySymbol = currency === "USD" ? "$" : currency;
 
-  const rowClass = [
-    "bcp-row",
-    enabled ? "bcp-row--active" : "",
-    !hasBasePrice && !isMonthly ? "bcp-row--disabled" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   return (
-    <div className={rowClass}>
+    <div
+      className={`rounded-[10px] overflow-hidden transition-all duration-150 ${
+        enabled ? "border border-violet-200" : "border border-slate-100"
+      } ${!hasBasePrice && !isMonthly ? "opacity-50" : ""}`}
+    >
       {/* Top: dot + label + total */}
-      <div className="bcp-row__top">
+      <div
+        className={`flex items-center gap-2.5 py-2.5 px-3 cursor-default ${
+          enabled ? "bg-violet-50" : "bg-white"
+        }`}
+      >
         <span
-          className={`bcp-row__cycle-dot ${enabled ? "bcp-row__cycle-dot--active" : "bcp-row__cycle-dot--inactive"}`}
+          className={`w-2 h-2 rounded-full shrink-0 ${
+            enabled ? "bg-violet-500" : "bg-slate-300"
+          }`}
         />
-        <span className="bcp-row__label">{label}</span>
+        <span
+          className="text-sm font-medium text-slate-700 flex-1"
+          style={{ fontFamily: fontSans }}
+        >
+          {label}
+        </span>
         {enabled && total !== null ? (
-          <span className="bcp-row__total">{formatPrice(total, currency)}</span>
+          <span
+            className="text-[0.9375rem] font-semibold text-slate-800 whitespace-nowrap"
+            style={{ fontFamily: fontMono }}
+          >
+            {formatPrice(total, currency)}
+          </span>
         ) : (
-          !enabled && <span className="bcp-row__dash">--</span>
+          !enabled && (
+            <span
+              className="text-sm text-slate-300 ml-auto"
+              style={{ fontFamily: fontMono }}
+            >
+              --
+            </span>
+          )
         )}
       </div>
 
       {/* Detail: standard price calc + discount display (read-only) */}
       {enabled && hasBasePrice && (
-        <div className="bcp-row__detail">
-          <div className="bcp-row__detail-col bcp-row__detail-col--price">
-            <span className="bcp-row__detail-label">Standard Price</span>
-            <div className="bcp-row__calc">
+        <div
+          className={`flex items-end gap-4 px-3 pt-2 pb-2.5 border-t ${
+            enabled
+              ? "bg-violet-50 border-violet-100"
+              : "bg-slate-50 border-slate-100"
+          }`}
+        >
+          <div className="flex flex-col gap-1 flex-1">
+            <span
+              className="text-[0.5625rem] font-semibold uppercase text-slate-400 flex items-center gap-1"
+              style={{ fontFamily: fontMono, letterSpacing: "0.06em" }}
+            >
+              Standard Price
+            </span>
+            <div
+              className="flex items-center gap-2 text-xs text-slate-500 py-1"
+              style={{ fontFamily: fontMono, minHeight: "1.75rem" }}
+            >
               <span>
                 {currencySymbol}
                 {basePrice} &times; {shortLabel}
               </span>
-              <span className="bcp-row__calc-result">
+              <span className="font-semibold text-slate-700">
                 {formatPrice(total ?? 0, currency)}
               </span>
             </div>
           </div>
-          <div className="bcp-row__detail-col bcp-row__detail-col--discount">
-            <span className="bcp-row__detail-label">
+          <div className="flex flex-col gap-1 flex-1">
+            <span
+              className="text-[0.5625rem] font-semibold uppercase text-slate-400 flex items-center gap-1"
+              style={{ fontFamily: fontMono, letterSpacing: "0.06em" }}
+            >
               Flat Discount
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg
+                className="w-[0.6875rem] h-[0.6875rem]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -453,7 +263,10 @@ function BillingCycleRow({
               </svg>
             </span>
             <div
-              className={`bcp-row__discount-display ${discount === 0 ? "bcp-row__discount-display--zero" : ""}`}
+              className={`flex items-center gap-1 text-[0.8125rem] font-medium py-1 ${
+                discount === 0 ? "text-slate-300" : "text-slate-600"
+              }`}
+              style={{ fontFamily: fontMono, minHeight: "1.75rem" }}
             >
               - {currencySymbol}
               {discount > 0 ? discount.toLocaleString() : "0"}
@@ -464,13 +277,19 @@ function BillingCycleRow({
 
       {/* Effective price bar (only when discount > 0) */}
       {effectivePrice !== null && discount > 0 && (
-        <div className="bcp-row__effective">
-          <span className="bcp-row__effective-arrow">&rarr;</span>
-          <span className="bcp-row__effective-price">
+        <div className="flex items-center gap-1.5 py-1.5 px-3 bg-emerald-50 border-t border-emerald-100">
+          <span className="text-[0.6875rem] text-emerald-400">&rarr;</span>
+          <span
+            className="text-xs font-semibold text-emerald-700"
+            style={{ fontFamily: fontMono }}
+          >
             {formatPrice(effectivePrice, currency)}
           </span>
           {savingsPercent > 0 && (
-            <span className="bcp-row__effective-savings">
+            <span
+              className="text-[0.5625rem] font-semibold text-emerald-600 bg-emerald-100 py-[0.0625rem] px-[0.3125rem] rounded-md ml-auto"
+              style={{ fontFamily: fontMono }}
+            >
               {savingsPercent}% off
             </span>
           )}

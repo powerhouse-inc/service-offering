@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import "./MarkdownPreview.css";
 
 interface ExpandButtonProps {
   shouldTruncate: boolean;
@@ -82,7 +81,27 @@ export function MarkdownPreview({
 
   return (
     <div className={className}>
-      <div className="markdown-preview-content" data-color-mode="light">
+      <style>{`
+        .so-markdown-preview p { margin-bottom: 0.75em; }
+        .so-markdown-preview p:last-child { margin-bottom: 0; }
+        .so-markdown-preview h1, .so-markdown-preview h2, .so-markdown-preview h3 {
+          font-weight: 600; color: #1e293b; margin-top: 1em; margin-bottom: 0.5em;
+        }
+        .so-markdown-preview h1 { font-size: 1.25rem; }
+        .so-markdown-preview h2 { font-size: 1.125rem; }
+        .so-markdown-preview h3 { font-size: 1rem; }
+        .so-markdown-preview ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.75em; }
+        .so-markdown-preview ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.75em; }
+        .so-markdown-preview a { color: #4f46e5; text-decoration: underline; }
+        .so-markdown-preview code { background: #f1f5f9; padding: 0.125em 0.375em; border-radius: 0.25em; font-size: 0.875em; }
+        .so-markdown-preview blockquote { border-left: 3px solid #e2e8f0; padding-left: 1em; color: #64748b; font-style: italic; }
+        .so-markdown-preview strong { font-weight: 600; color: #334155; }
+        .so-markdown-preview .anchor, .so-markdown-preview .octicon { display: none; }
+      `}</style>
+      <div
+        className="so-markdown-preview text-sm leading-relaxed text-slate-600"
+        data-color-mode="light"
+      >
         <MarkdownRenderer source={displayContent} disableCopy={true} />
       </div>
       <ExpandButton
