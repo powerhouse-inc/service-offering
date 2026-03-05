@@ -12,7 +12,6 @@ docs
 .env
 
 # Non-application files
-backup-documents/
 knowledge/
 .claude/skills/
 
