@@ -1,0 +1,35 @@
+{
+    "name": "v6-service-offering",
+    "description": "",
+    "category": "",
+    "publisher": {
+        "name": "",
+        "url": ""
+    },
+    "documentModels": [
+        {
+            "id": "powerhouse/facet",
+            "name": "Facet"
+        },
+        {
+            "id": "powerhouse/resource-instance",
+            "name": "ResourceInstance"
+        },
+        {
+            "id": "powerhouse/resource-template",
+            "name": "ResourceTemplate"
+        },
+        {
+            "id": "powerhouse/service-offering",
+            "name": "ServiceOffering"
+        },
+        {
+            "id": "powerhouse/subscription-instance",
+            "name": "SubscriptionInstance"
+        }
+    ],
+    "editors": [],
+    "apps": [],
+    "subgraphs": [],
+    "importScripts": []
+}

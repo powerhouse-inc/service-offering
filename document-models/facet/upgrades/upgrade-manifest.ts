@@ -1,0 +1,9 @@
+import type { UpgradeManifest } from "document-model";
+import { latestVersion, supportedVersions } from "./versions.js";
+
+export const facetUpgradeManifest: UpgradeManifest<typeof supportedVersions> = {
+  documentType: "powerhouse/facet",
+  latestVersion,
+  supportedVersions,
+  upgrades: {},
+};
