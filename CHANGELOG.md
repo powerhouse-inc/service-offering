@@ -1,3 +1,10 @@
+# [1.0.0-dev.2](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.1...v1.0.0-dev.2) (2026-03-12)
+
+
+### Bug Fixes
+
+* copy editor CSS to dist to resolve missing ./editor.css import ([b95e11c](https://github.com/powerhouse-inc/service-offering/commit/b95e11c9139d45864416e10798d1d2ab8fafe804))
+
 # 1.0.0-dev.1 (2026-03-10)
 
 
