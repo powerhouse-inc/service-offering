@@ -1,4 +1,4 @@
-import { type ISubgraph } from "@powerhousedao/reactor-api";
+import { BaseSubgraph } from "@powerhousedao/reactor-api";
 import type { PHDocument } from "document-model";
 import type {
   ResourceTemplateDocument,
@@ -52,8 +52,9 @@ interface CreateProductInstancesInput {
   userSelection: UserSelectionInput;
 }
 
-export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
+export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> => {
   const reactor = subgraph.reactor;
+  const reactorClient = subgraph.reactorClient;
 
   return {
     Query: {
@@ -63,81 +64,44 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
       ) => {
         const { id, status, operatorId } = args.filter || {};
 
-        // If filtering by specific id, try to fetch directly
+        // If filtering by specific id, fetch directly
         if (id) {
           try {
-            const doc = await reactor.getDocument<ResourceTemplateDocument>(id);
-            if (
-              doc &&
-              doc.header.documentType === "powerhouse/resource-template"
-            ) {
-              const state = doc.state.global;
-              // Check status filter if provided
-              if (
-                status &&
-                status.length > 0 &&
-                !status.includes(state.status)
-              ) {
-                return [];
-              }
-              // Check operatorId filter if provided
-              if (operatorId && state.operatorId !== operatorId) {
-                return [];
-              }
-              return [mapResourceTemplateState(state, doc)];
+            const result = await reactorClient.find({ type: "powerhouse/resource-template", ids: [id] });
+            const docs = result.results as ResourceTemplateDocument[];
+            if (docs.length === 0) return [];
+
+            const doc = docs[0];
+            const state = doc.state.global;
+            if (status && status.length > 0 && !status.includes(state.status)) {
+              return [];
             }
+            if (operatorId && state.operatorId !== operatorId) {
+              return [];
+            }
+            return [mapResourceTemplateState(state, doc)];
           } catch {
-            // Document not found
+            return [];
           }
-          return [];
         }
 
-        // Scan all drives for resource template documents
-        const drives = await reactor.getDrives();
-        const resourceTemplates: ReturnType<typeof mapResourceTemplateState>[] =
-          [];
+        // Find all resource template documents
+        const result = await reactorClient.find({ type: "powerhouse/resource-template" });
+        const docs = result.results as ResourceTemplateDocument[];
 
-        for (const driveId of drives) {
-          try {
-            const docIds = await reactor.getDocuments(driveId);
-            const docs = await Promise.all(
-              docIds.map(async (docId) => {
-                try {
-                  return await reactor.getDocument<PHDocument>(docId);
-                } catch {
-                  return null;
-                }
-              }),
-            );
+        const resourceTemplates: ReturnType<typeof mapResourceTemplateState>[] = [];
 
-            for (const doc of docs) {
-              if (
-                doc &&
-                doc.header.documentType === "powerhouse/resource-template"
-              ) {
-                const resourceDoc = doc as ResourceTemplateDocument;
-                const state = resourceDoc.state.global;
+        for (const doc of docs) {
+          const state = doc.state.global;
 
-                // Apply status filter if provided
-                if (
-                  status &&
-                  status.length > 0 &&
-                  !status.includes(state.status)
-                ) {
-                  continue;
-                }
-
-                // Apply operatorId filter if provided
-                if (operatorId && state.operatorId !== operatorId) {
-                  continue;
-                }
-
-                resourceTemplates.push(mapResourceTemplateState(state, doc));
-              }
-            }
-          } catch (error) {
-            console.warn(`Failed to inspect drive ${driveId}:`, error);
+          if (status && status.length > 0 && !status.includes(state.status)) {
+            continue;
           }
+          if (operatorId && state.operatorId !== operatorId) {
+            continue;
+          }
+
+          resourceTemplates.push(mapResourceTemplateState(state, doc));
         }
 
         return resourceTemplates;
@@ -150,96 +114,56 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
         const { id, status, operatorId, resourceTemplateId } =
           args.filter || {};
 
-        // If filtering by specific id, try to fetch directly
+        // If filtering by specific id, fetch directly
         if (id) {
           try {
-            const doc = await reactor.getDocument<ServiceOfferingDocument>(id);
-            if (
-              doc &&
-              doc.header.documentType === "powerhouse/service-offering"
-            ) {
-              const state = doc.state.global;
-              // Check status filter if provided
-              if (
-                status &&
-                status.length > 0 &&
-                !status.includes(state.status)
-              ) {
-                return [];
-              }
-              // Check operatorId filter if provided
-              if (operatorId && state.operatorId !== operatorId) {
-                return [];
-              }
-              // Check resourceTemplateId filter if provided
-              if (
-                resourceTemplateId &&
-                state.resourceTemplateId !== resourceTemplateId
-              ) {
-                return [];
-              }
-              return [mapServiceOfferingState(state, doc)];
+            const result = await reactorClient.find({ type: "powerhouse/service-offering", ids: [id] });
+            const docs = result.results as ServiceOfferingDocument[];
+            if (docs.length === 0) return [];
+
+            const doc = docs[0];
+            const state = doc.state.global;
+            if (status && status.length > 0 && !status.includes(state.status)) {
+              return [];
             }
+            if (operatorId && state.operatorId !== operatorId) {
+              return [];
+            }
+            if (
+              resourceTemplateId &&
+              state.resourceTemplateId !== resourceTemplateId
+            ) {
+              return [];
+            }
+            return [mapServiceOfferingState(state, doc)];
           } catch {
-            // Document not found
+            return [];
           }
-          return [];
         }
 
-        // Scan all drives for service offering documents
-        const drives = await reactor.getDrives();
-        const serviceOfferings: ReturnType<typeof mapServiceOfferingState>[] =
-          [];
+        // Find all service offering documents
+        const result = await reactorClient.find({ type: "powerhouse/service-offering" });
+        const docs = result.results as ServiceOfferingDocument[];
 
-        for (const driveId of drives) {
-          try {
-            const docIds = await reactor.getDocuments(driveId);
-            const docs = await Promise.all(
-              docIds.map(async (docId) => {
-                try {
-                  return await reactor.getDocument<PHDocument>(docId);
-                } catch {
-                  return null;
-                }
-              }),
-            );
+        const serviceOfferings: ReturnType<typeof mapServiceOfferingState>[] = [];
 
-            for (const doc of docs) {
-              if (
-                doc &&
-                doc.header.documentType === "powerhouse/service-offering"
-              ) {
-                const offeringDoc = doc as ServiceOfferingDocument;
-                const state = offeringDoc.state.global;
+        for (const doc of docs) {
+          const state = doc.state.global;
 
-                // Apply status filter if provided
-                if (
-                  status &&
-                  status.length > 0 &&
-                  !status.includes(state.status)
-                ) {
-                  continue;
-                }
-
-                // Apply operatorId filter if provided
-                if (operatorId && state.operatorId !== operatorId) {
-                  continue;
-                }
-
-                // Apply resourceTemplateId filter if provided
-                if (
-                  resourceTemplateId &&
-                  state.resourceTemplateId !== resourceTemplateId
-                ) {
-                  continue;
-                }
-
-                serviceOfferings.push(mapServiceOfferingState(state, doc));
-              }
-            }
-          } catch (error) {
-            console.warn(`Failed to inspect drive ${driveId}:`, error);
+          if (status && status.length > 0 && !status.includes(state.status)) {
+            continue;
           }
+          if (operatorId && state.operatorId !== operatorId) {
+            continue;
+          }
+          if (
+            resourceTemplateId &&
+            state.resourceTemplateId !== resourceTemplateId
+          ) {
+            continue;
+          }
+
+          serviceOfferings.push(mapServiceOfferingState(state, doc));
         }
 
         return serviceOfferings;
@@ -440,7 +364,7 @@ export const getResolvers = (subgraph: ISubgraph): Record<string, unknown> => {
             )?.parentFolder;
 
           const operatorDrive = await getOperatorDrive(
-            reactor,
+            reactorClient,
             resourceTemplateId,
           );
           if (!operatorDrive) {
@@ -623,6 +547,12 @@ function mapResourceTemplateState(
       parentServiceId: service.parentServiceId || null,
       isSetupFormation: service.isSetupFormation,
       optionGroupId: service.optionGroupId || null,
+      facetBindings: (service.facetBindings || []).map((binding) => ({
+        id: binding.id,
+        facetName: binding.facetName,
+        facetType: binding.facetType,
+        supportedOptions: binding.supportedOptions,
+      })),
     })),
     optionGroups: (state.optionGroups || []).map((group) => ({
       id: group.id,
@@ -651,7 +581,7 @@ function mapResourceTemplateState(
  * Initializes basic info and sets facet configuration from template facetTargets.
  */
 async function populateResourceInstance(
-  reactor: ISubgraph["reactor"],
+  reactor: BaseSubgraph["reactor"],
   resourceInstanceDocId: string,
   resourceTemplateId: string,
   operatorId: string,
@@ -734,10 +664,10 @@ function mapServiceOfferingState(
       name: tier.name,
       description: tier.description || null,
       isCustomPricing: tier.isCustomPricing,
-      pricingMode: tier.pricingMode || null,
+      pricingMode: tier.pricingMode,
       pricing: tier.pricing
         ? {
-            amount: tier.pricing.amount ?? null,
+            amount: tier.pricing.amount,
             currency: tier.pricing.currency,
           }
         : null,
@@ -751,6 +681,7 @@ function mapServiceOfferingState(
         id: level.id,
         serviceId: level.serviceId,
         level: level.level,
+        description: level.description || null,
       })),
       usageLimits: tier.usageLimits.map((limit) => ({
         id: limit.id,
@@ -765,7 +696,7 @@ function mapServiceOfferingState(
       description: group.description || null,
       isAddOn: group.isAddOn,
       defaultSelected: group.defaultSelected,
-      pricingMode: group.pricingMode || null,
+      pricingMode: group.pricingMode,
       standalonePricing: group.standalonePricing
         ? {
             amount: group.standalonePricing.amount,
@@ -791,17 +722,19 @@ function mapServiceOfferingState(
   };
 }
 
+/**
+ * Find the drive that contains a given resource template document.
+ * Uses reactorClient to find the parent drive.
+ */
 async function getOperatorDrive(
-  reactor: ISubgraph["reactor"],
+  reactorClient: BaseSubgraph["reactorClient"],
   resourceTemplateId: string,
 ) {
-  const drives = await reactor.getDrives();
-  const results = await Promise.all(
-    drives.map(async (drive) => {
-      const docIds = await reactor.getDocuments(drive);
-      return docIds.includes(resourceTemplateId) ? drive : null;
-    }),
+  const result = await reactorClient.getParents(resourceTemplateId);
+  const parentDrive = result.results.find(
+    (doc) => doc.header.documentType === "powerhouse/document-drive",
   );
-  const driveId = results.find((id) => id !== null);
-  return driveId ? reactor.getDrive(driveId) : undefined;
+  return parentDrive as
+    | (PHDocument & { state: { global: { nodes: FileNode[] } } })
+    | undefined;
 }
