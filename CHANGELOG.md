@@ -1,3 +1,10 @@
+# [1.0.0-dev.4](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.3...v1.0.0-dev.4) (2026-03-13)
+
+
+### Bug Fixes
+
+* resources-services subgraph resolvers ([207ff68](https://github.com/powerhouse-inc/service-offering/commit/207ff686dbd66a3e45ccf91b992c0112377294e3))
+
 # [1.0.0-dev.3](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.2...v1.0.0-dev.3) (2026-03-12)
 
 # [1.0.0-dev.2](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.1...v1.0.0-dev.2) (2026-03-12)
