@@ -462,11 +462,13 @@ export const getResolvers = (
             (node: Node) => node.kind === "folder",
           )?.parentFolder;
 
-          // add resource-instance and subscription-instance references to operator drive
+          // register docs as children of operator drive so Connect can sync them
           await reactorClient.addChildren(operatorDrive.header.id, [
             resourceInstanceDoc.header.id,
             subscriptionInstanceDoc.header.id,
           ]);
+
+          // add file references to operator drive
           await reactorClient.execute(operatorDrive.header.id, "main", [
             addFile({
               documentType: "powerhouse/resource-instance",
