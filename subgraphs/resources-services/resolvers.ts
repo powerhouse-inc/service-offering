@@ -1,27 +1,23 @@
 import type { BaseSubgraph } from "@powerhousedao/reactor-api";
 import type { PHDocument } from "document-model";
 import type { IReactorClient } from "@powerhousedao/reactor";
+import type { ResourceTemplateDocument } from "../../document-models/resource-template/v1/gen/types.js";
+import type { TemplateStatus } from "../../document-models/resource-template/v1/gen/schema/types.js";
+import type { ServiceOfferingDocument } from "../../document-models/service-offering/v1/gen/types.js";
 import type {
-  ResourceTemplateDocument,
-  TemplateStatus,
-} from "@powerhousedao/service-offering/document-models/resource-template";
-import type {
-  ServiceOfferingDocument,
   ServiceStatus,
   BillingCycle,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "../../document-models/service-offering/v1/gen/schema/types.js";
 import {
   getUserSelectionPriceBreakdown,
   type UserSelection,
   type PriceBreakdown,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "../../document-models/service-offering/v1/src/utils.js";
 import { createAction } from "document-model/core";
 import { addFile, driveCreateDocument } from "document-drive";
 import type { DocumentDriveDocument, FileNode, Node } from "document-drive";
-import {
-  ResourceInstanceV1 as ResourceInstance,
-  SubscriptionInstanceV1 as SubscriptionInstance,
-} from "@powerhousedao/service-offering/document-models";
+import { ResourceInstance } from "../../document-models/resource-instance/v1/module.js";
+import { SubscriptionInstance } from "../../document-models/subscription-instance/v1/module.js";
 import { mapOfferingToSubscription } from "../../editors/subscription-instance-editor/components/mapOfferingToSubscription.js";
 
 // Filter types
