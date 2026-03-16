@@ -370,6 +370,7 @@ export const getResolvers = (
         try {
           // create team-builder-admin drive
           const driveDoc = driveCreateDocument();
+          driveDoc.header.name = teamName;
           driveDoc.state.global.name = teamName;
           driveDoc.state.global.icon =
             "https://cdn-icons-png.flaticon.com/512/6020/6020347.png";
@@ -379,24 +380,49 @@ export const getResolvers = (
           const teamBuilderAdminDrive =
             await reactorClient.create<DocumentDriveDocument>(driveDoc);
 
-          // create builder-profile doc inside the team-builder-admin drive
+          const driveId = teamBuilderAdminDrive.header.id;
+
+          // create documents as children of the drive so Connect can sync them
           const builderProfileDoc = await reactorClient.createEmpty(
             "powerhouse/builder-profile",
+            { parentIdentifier: driveId },
+          );
+          const resourceInstanceDoc = await reactorClient.createEmpty(
+            "powerhouse/resource-instance",
+            { parentIdentifier: driveId },
+          );
+          const subscriptionInstanceDoc = await reactorClient.createEmpty(
+            "powerhouse/subscription-instance",
+            { parentIdentifier: driveId },
           );
 
+          // add file references to the team drive
           const teamRootFolder = teamBuilderAdminDrive.state.global.nodes.find(
             (node: Node) => node.kind === "folder",
           )?.parentFolder;
 
-          await reactorClient.execute(teamBuilderAdminDrive.header.id, "main", [
+          await reactorClient.execute(driveId, "main", [
             addFile({
               documentType: "powerhouse/builder-profile",
               id: builderProfileDoc.header.id,
               name: `${parsedTeamName} Builder Profile`,
               parentFolder: teamRootFolder,
             }),
+            addFile({
+              documentType: "powerhouse/resource-instance",
+              id: resourceInstanceDoc.header.id,
+              name: `${parsedTeamName} Resource Instance`,
+              parentFolder: teamRootFolder,
+            }),
+            addFile({
+              documentType: "powerhouse/subscription-instance",
+              id: subscriptionInstanceDoc.header.id,
+              name: `${parsedTeamName} Subscription Instance`,
+              parentFolder: teamRootFolder,
+            }),
           ]);
 
+          // update builder profile
           await reactorClient.execute(builderProfileDoc.header.id, "main", [
             createAction(
               "UPDATE_PROFILE",
@@ -407,20 +433,7 @@ export const getResolvers = (
             ),
           ]);
 
-          // create resource-instance and subscription-instance docs
-          const resourceInstanceDoc = await reactorClient.createEmpty(
-            "powerhouse/resource-instance",
-          );
-          const subscriptionInstanceDoc = await reactorClient.createEmpty(
-            "powerhouse/subscription-instance",
-          );
-
-          // resolve parent folders for both drives
-          const teamParentFolder =
-            teamBuilderAdminDrive.state.global.nodes.find(
-              (node: Node) => node.kind === "folder",
-            )?.parentFolder;
-
+          // find operator drive and add references there too
           const operatorDrive = await getOperatorDrive(
             reactorClient,
             resourceTemplateId,
@@ -449,23 +462,11 @@ export const getResolvers = (
             (node: Node) => node.kind === "folder",
           )?.parentFolder;
 
-          // batch add resource-instance and subscription-instance to team-builder-admin drive
-          await reactorClient.execute(teamBuilderAdminDrive.header.id, "main", [
-            addFile({
-              documentType: "powerhouse/resource-instance",
-              id: resourceInstanceDoc.header.id,
-              name: `${parsedTeamName} Resource Instance`,
-              parentFolder: teamParentFolder,
-            }),
-            addFile({
-              documentType: "powerhouse/subscription-instance",
-              id: subscriptionInstanceDoc.header.id,
-              name: `${parsedTeamName} Subscription Instance`,
-              parentFolder: teamParentFolder,
-            }),
+          // add resource-instance and subscription-instance references to operator drive
+          await reactorClient.addChildren(operatorDrive.header.id, [
+            resourceInstanceDoc.header.id,
+            subscriptionInstanceDoc.header.id,
           ]);
-
-          // batch add resource-instance and subscription-instance to operator drive
           await reactorClient.execute(operatorDrive.header.id, "main", [
             addFile({
               documentType: "powerhouse/resource-instance",
