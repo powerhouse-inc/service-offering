@@ -1,3 +1,10 @@
+# [1.0.0-dev.5](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.4...v1.0.0-dev.5) (2026-03-16)
+
+
+### Bug Fixes
+
+* **subscription-instance:** search service groups when adjusting metric usage ([836f63c](https://github.com/powerhouse-inc/service-offering/commit/836f63c9a1691217a47576e308eb4feee6496e24))
+
 # [1.0.0-dev.4](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.3...v1.0.0-dev.4) (2026-03-13)
 
 
