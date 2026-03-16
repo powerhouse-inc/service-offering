@@ -462,7 +462,8 @@ export const getResolvers = (
             (node: Node) => node.kind === "folder",
           )?.parentFolder;
 
-          // register docs as children of operator drive so Connect can sync them
+          // add reactor-level relationships so Connect syncs the child documents
+          // (createEmpty guarantees CREATE_DOCUMENT is persisted before this runs)
           await reactorClient.addChildren(operatorDrive.header.id, [
             resourceInstanceDoc.header.id,
             subscriptionInstanceDoc.header.id,
