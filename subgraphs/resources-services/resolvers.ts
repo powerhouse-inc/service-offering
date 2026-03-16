@@ -13,8 +13,8 @@ import {
   type UserSelection,
   type PriceBreakdown,
 } from "../../document-models/service-offering/v1/src/utils.js";
-import { createAction } from "document-model/core";
-import { addFile, driveCreateDocument } from "document-drive";
+import { createAction, generateId } from "document-model/core";
+import { addFile, addFolder, driveCreateDocument } from "document-drive";
 import type { DocumentDriveDocument, FileNode, Node } from "document-drive";
 import { ResourceInstance } from "../../document-models/resource-instance/v1/module.js";
 import { SubscriptionInstance } from "../../document-models/subscription-instance/v1/module.js";
@@ -396,29 +396,30 @@ export const getResolvers = (
             { parentIdentifier: driveId },
           );
 
-          // add file references to the team drive
-          const teamRootFolder = teamBuilderAdminDrive.state.global.nodes.find(
-            (node: Node) => node.kind === "folder",
-          )?.parentFolder;
+          // create "Service Subscriptions" folder and organize files in team drive
+          const teamServiceSubsFolderId = generateId();
 
           await reactorClient.execute(driveId, "main", [
+            addFolder({
+              id: teamServiceSubsFolderId,
+              name: "Service Subscriptions",
+            }),
             addFile({
               documentType: "powerhouse/builder-profile",
               id: builderProfileDoc.header.id,
               name: `${parsedTeamName} Builder Profile`,
-              parentFolder: teamRootFolder,
             }),
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
               name: `${parsedTeamName} Resource Instance`,
-              parentFolder: teamRootFolder,
+              parentFolder: teamServiceSubsFolderId,
             }),
             addFile({
               documentType: "powerhouse/subscription-instance",
               id: subscriptionInstanceDoc.header.id,
               name: `${parsedTeamName} Subscription Instance`,
-              parentFolder: teamRootFolder,
+              parentFolder: teamServiceSubsFolderId,
             }),
           ]);
 
@@ -458,9 +459,23 @@ export const getResolvers = (
             );
           }
 
-          const operatorParentFolder = operatorDrive.state.global.nodes.find(
-            (node: Node) => node.kind === "folder",
-          )?.parentFolder;
+          // find or create "Service Subscriptions" folder in the operator drive
+          let serviceSubscriptionsFolderId =
+            operatorDrive.state.global.nodes.find(
+              (node: Node) =>
+                node.kind === "folder" &&
+                node.name === "Service Subscriptions",
+            )?.id;
+
+          if (!serviceSubscriptionsFolderId) {
+            serviceSubscriptionsFolderId = generateId();
+            await reactorClient.execute(operatorDrive.header.id, "main", [
+              addFolder({
+                id: serviceSubscriptionsFolderId,
+                name: "Service Subscriptions",
+              }),
+            ]);
+          }
 
           // add reactor-level relationships so Connect syncs the child documents
           // (createEmpty guarantees CREATE_DOCUMENT is persisted before this runs)
@@ -469,19 +484,19 @@ export const getResolvers = (
             subscriptionInstanceDoc.header.id,
           ]);
 
-          // add file references to operator drive
+          // add file references to operator drive under "Service Subscriptions"
           await reactorClient.execute(operatorDrive.header.id, "main", [
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
               name: `${parsedTeamName} Resource Instance`,
-              parentFolder: operatorParentFolder,
+              parentFolder: serviceSubscriptionsFolderId,
             }),
             addFile({
               documentType: "powerhouse/subscription-instance",
               id: subscriptionInstanceDoc.header.id,
               name: `${parsedTeamName} Subscription Instance`,
-              parentFolder: operatorParentFolder,
+              parentFolder: serviceSubscriptionsFolderId,
             }),
           ]);
 
