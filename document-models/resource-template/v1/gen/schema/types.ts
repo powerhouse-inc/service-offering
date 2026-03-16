@@ -207,11 +207,11 @@ export type ResourceTemplateState = {
   contentSections: Array<ContentSection>;
   description: Maybe<Scalars["String"]["output"]>;
   facetTargets: Array<FacetTarget>;
-  faqFields: Array<FaqField>;
-  id: Scalars["PHID"]["output"];
+  faqFields: Maybe<Array<FaqField>>;
+  id: Maybe<Scalars["PHID"]["output"]>;
   infoLink: Maybe<Scalars["URL"]["output"]>;
-  lastModified: Scalars["DateTime"]["output"];
-  operatorId: Scalars["PHID"]["output"];
+  lastModified: Maybe<Scalars["DateTime"]["output"]>;
+  operatorId: Maybe<Scalars["PHID"]["output"]>;
   optionGroups: Array<OptionGroup>;
   recurringServices: Array<Scalars["String"]["output"]>;
   services: Array<Service>;

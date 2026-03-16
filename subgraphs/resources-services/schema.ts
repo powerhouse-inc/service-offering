@@ -47,7 +47,7 @@ export const schema: DocumentNode = gql`
 
   input RSResourceTemplatesFilter {
     id: PHID
-    status: [RSTemplateStatus!]
+    status: [RSTemplateStatusInput!]
     operatorId: PHID
   }
 
@@ -60,7 +60,7 @@ export const schema: DocumentNode = gql`
 
   # ============ Resource Template Types ============
 
-  enum RSTemplateStatus {
+  enum RSTemplateStatusInput {
     DRAFT
     COMING_SOON
     ACTIVE
@@ -83,14 +83,28 @@ export const schema: DocumentNode = gql`
     facetTargets: [RSFacetTarget!]!
     services: [RSService!]!
     optionGroups: [RSOptionGroup!]!
-    faqFields: [RSFaqField!]!
+    faqFields: [RSFaqField!]
     contentSections: [RSContentSection!]!
+  }
+
+  enum RSTemplateStatus {
+    DRAFT
+    COMING_SOON
+    ACTIVE
+    DEPRECATED
   }
 
   type RSTargetAudience {
     id: OID!
     label: String!
     color: String
+  }
+
+  type RSOfferingFacetTarget {
+    id: OID!
+    categoryKey: String!
+    categoryLabel: String!
+    selectedOptions: [String!]!
   }
 
   type RSService {
@@ -102,13 +116,6 @@ export const schema: DocumentNode = gql`
     isSetupFormation: Boolean!
     optionGroupId: OID
     facetBindings: [RSResourceFacetBinding!]!
-  }
-
-  type RSResourceFacetBinding {
-    id: OID!
-    facetName: String!
-    facetType: PHID!
-    supportedOptions: [OID!]!
   }
 
   type RSOptionGroup {
@@ -147,7 +154,7 @@ export const schema: DocumentNode = gql`
     status: RSServiceStatus!
     lastModified: DateTime!
     availableBillingCycles: [RSBillingCycle!]!
-    facetTargets: [RSFacetTarget!]!
+    facetTargets: [RSOfferingFacetTarget!]!
     services: [RSOfferingService!]!
     tiers: [RSServiceSubscriptionTier!]!
     optionGroups: [RSOfferingOptionGroup!]!
@@ -167,34 +174,40 @@ export const schema: DocumentNode = gql`
     selectedOptions: [String!]!
   }
 
-  # ---------- Primitives ----------
+  # ---------- Discount & Pricing Primitives ----------
 
   enum RSDiscountType {
     PERCENTAGE
-    FIXED_AMOUNT
+    FLAT_AMOUNT
   }
 
-  enum RSBillingCycle {
-    MONTHLY
-    QUARTERLY
-    SEMI_ANNUAL
-    ANNUAL
-  }
-
-  type RSBillingCycleDiscount {
-    cycle: RSBillingCycle!
+  type RSDiscountRule {
     discountType: RSDiscountType!
     discountValue: Float!
   }
 
-  type RSPricing {
+  type RSBillingCycleDiscount {
+    billingCycle: RSBillingCycle!
+    discountRule: RSDiscountRule!
+  }
+
+  type RSSetupCost {
     amount: Amount_Money!
     currency: Currency!
+    discount: RSDiscountRule
+  }
+
+  type RSRecurringPriceOption {
+    id: OID!
+    billingCycle: RSBillingCycle!
+    amount: Amount_Money!
+    currency: Currency!
+    discount: RSDiscountRule
   }
 
   enum RSDiscountMode {
     INHERIT_TIER
-    OWN_DISCOUNTS
+    INDEPENDENT
   }
 
   # ---------- Services ----------
@@ -208,12 +221,18 @@ export const schema: DocumentNode = gql`
     optionGroupId: OID
   }
 
+  type RSResourceFacetBinding {
+    id: OID!
+    facetName: String!
+    facetType: PHID!
+    supportedOptions: [OID!]!
+  }
+
   # ---------- Tiers ----------
 
   enum RSTierPricingMode {
-    CUSTOM
-    FIXED
-    PER_SEAT
+    CALCULATED
+    MANUAL_OVERRIDE
   }
 
   type RSServiceSubscriptionTier {
@@ -221,26 +240,66 @@ export const schema: DocumentNode = gql`
     name: String!
     description: String
     isCustomPricing: Boolean!
-    pricingMode: RSTierPricingMode!
-    pricing: RSPricing
+    pricingMode: RSTierPricingMode
+    pricing: RSServicePricing!
     defaultBillingCycle: RSBillingCycle
     billingCycleDiscounts: [RSBillingCycleDiscount!]!
     serviceLevels: [RSServiceLevelBinding!]!
-    usageLimits: [RSUsageLimit!]!
+    usageLimits: [RSServiceUsageLimit!]!
+  }
+
+  type RSServicePricing {
+    amount: Amount_Money
+    currency: Currency!
+  }
+
+  enum RSBillingCycle {
+    MONTHLY
+    QUARTERLY
+    SEMI_ANNUAL
+    ANNUAL
+    ONE_TIME
   }
 
   type RSServiceLevelBinding {
     id: OID!
     serviceId: OID!
-    level: String!
-    description: String
+    level: RSServiceLevel!
+    customValue: String
+    optionGroupId: OID
   }
 
-  type RSUsageLimit {
+  enum RSServiceLevel {
+    INCLUDED
+    NOT_INCLUDED
+    OPTIONAL
+    CUSTOM
+    VARIABLE
+    NOT_APPLICABLE
+  }
+
+  type RSServiceUsageLimit {
     id: OID!
-    name: String!
-    limit: Int!
-    unit: String
+    serviceId: OID!
+    metric: String!
+    unitName: String
+    freeLimit: Int
+    paidLimit: Int
+    resetCycle: RSUsageResetCycle
+    notes: String
+    unitPrice: Amount_Money
+    unitPriceCurrency: Currency
+  }
+
+  enum RSUsageResetCycle {
+    NONE
+    HOURLY
+    DAILY
+    WEEKLY
+    MONTHLY
+    QUARTERLY
+    SEMI_ANNUAL
+    ANNUAL
   }
 
   # ---------- Option Groups ----------
@@ -261,9 +320,9 @@ export const schema: DocumentNode = gql`
     description: String
     isAddOn: Boolean!
     defaultSelected: Boolean!
-    pricingMode: RSAddOnPricingMode!
-    standalonePricing: RSPricing
-    tierDependentPricing: [RSTierDependentPricing!]!
+    pricingMode: RSAddOnPricingMode
+    standalonePricing: RSStandalonePricing
+    tierDependentPricing: [RSOptionGroupTierPricing!]
     costType: RSGroupCostType
     availableBillingCycles: [RSBillingCycle!]!
     billingCycleDiscounts: [RSBillingCycleDiscount!]!
@@ -272,9 +331,16 @@ export const schema: DocumentNode = gql`
     currency: Currency
   }
 
-  type RSTierDependentPricing {
+  type RSStandalonePricing {
+    setupCost: RSSetupCost
+    recurringPricing: [RSRecurringPriceOption!]!
+  }
+
+  type RSOptionGroupTierPricing {
+    id: OID!
     tierId: OID!
-    amount: Amount_Money!
-    currency: Currency!
+    setupCost: RSSetupCost
+    setupCostDiscounts: [RSBillingCycleDiscount!]!
+    recurringPricing: [RSRecurringPriceOption!]!
   }
 `;

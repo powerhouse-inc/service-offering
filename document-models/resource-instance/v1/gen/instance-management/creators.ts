@@ -3,6 +3,7 @@ import {
   InitializeInstanceInputSchema,
   UpdateInstanceInfoInputSchema,
   SetOperatorProfileInputSchema,
+  UpdateInstanceStatusInputSchema,
   ConfirmInstanceInputSchema,
   ReportProvisioningStartedInputSchema,
   ReportProvisioningCompletedInputSchema,
@@ -19,6 +20,7 @@ import type {
   InitializeInstanceInput,
   UpdateInstanceInfoInput,
   SetOperatorProfileInput,
+  UpdateInstanceStatusInput,
   ConfirmInstanceInput,
   ReportProvisioningStartedInput,
   ReportProvisioningCompletedInput,
@@ -35,6 +37,7 @@ import type {
   InitializeInstanceAction,
   UpdateInstanceInfoAction,
   SetOperatorProfileAction,
+  UpdateInstanceStatusAction,
   ConfirmInstanceAction,
   ReportProvisioningStartedAction,
   ReportProvisioningCompletedAction,
@@ -72,6 +75,15 @@ export const setOperatorProfile = (input: SetOperatorProfileInput) =>
     { ...input },
     undefined,
     SetOperatorProfileInputSchema,
+    "global",
+  );
+
+export const updateInstanceStatus = (input: UpdateInstanceStatusInput) =>
+  createAction<UpdateInstanceStatusAction>(
+    "UPDATE_INSTANCE_STATUS",
+    { ...input },
+    undefined,
+    UpdateInstanceStatusInputSchema,
     "global",
   );
 

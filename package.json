@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/powerhouse-inc/service-offering"
+    "url": "git+https://github.com/powerhouse-inc/service-offering.git"
   },
   "type": "module",
   "files": [
@@ -76,30 +76,33 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "0.3.15",
-    "@powerhousedao/builder-tools": "6.0.1-staging.1",
-    "@powerhousedao/common": "6.0.1-staging.1",
-    "@powerhousedao/design-system": "6.0.1-staging.1",
+    "@powerhousedao/builder-tools": "6.0.0-dev.90",
+    "@powerhousedao/common": "6.0.0-dev.90",
+    "@powerhousedao/design-system": "6.0.0-dev.90",
     "@powerhousedao/document-engineering": "1.40.1",
-    "@powerhousedao/vetra": "6.0.1-staging.1",
+    "@powerhousedao/vetra": "6.0.0-dev.90",
+    "@tailwindcss/vite": "^4.2.1",
     "@uiw/react-md-editor": "^4.0.11",
     "cmd-ts": "^0.15.0",
-    "document-model": "6.0.1-staging.1",
+    "document-model": "^6.0.0-dev.90",
     "graphql": "^16.10.0",
     "graphql-tag": "^2.12.6",
     "lucide-react": "^0.577.0",
     "rehype-slug": "^6.0.0",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-svgr": "^4.5.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",
-    "@powerhousedao/analytics-engine-core": "6.0.1-staging.1",
-    "@powerhousedao/config": "6.0.1-staging.1",
-    "@powerhousedao/connect": "6.0.1-staging.1",
-    "@powerhousedao/ph-cli": "6.0.1-staging.1",
-    "@powerhousedao/reactor-api": "6.0.1-staging.1",
-    "@powerhousedao/reactor-browser": "6.0.1-staging.1",
-    "@powerhousedao/reactor-local": "6.0.1-staging.1",
-    "@powerhousedao/switchboard": "6.0.1-staging.1",
+    "@powerhousedao/analytics-engine-core": "6.0.0-dev.90",
+    "@powerhousedao/config": "6.0.0-dev.90",
+    "@powerhousedao/connect": "6.0.0-dev.90",
+    "@powerhousedao/ph-cli": "6.0.0-dev.90",
+    "@powerhousedao/reactor-api": "6.0.0-dev.90",
+    "@powerhousedao/reactor-browser": "6.0.0-dev.90",
+    "@powerhousedao/reactor-local": "6.0.0-dev.90",
+    "@powerhousedao/switchboard": "6.0.0-dev.90",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@tailwindcss/cli": "^4.1.4",
@@ -107,7 +110,7 @@
     "@types/node": "^24.9.2",
     "@types/react": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.0",
-    "document-drive": "6.0.1-staging.1",
+    "document-drive": "^6.0.0-dev.90",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
@@ -116,7 +119,7 @@
     "globals": "^16.4.0",
     "package-manager-detector": "^0.2.8",
     "pm2": "^5.4.3",
-    "react": "^19.2.3",
+    "react": "^19.2.4",
     "react-dom": "^19.2.3",
     "semantic-release": "^25.0.3",
     "tailwindcss": "^4.1.16",
@@ -189,5 +192,7 @@
   "bugs": {
     "url": "https://github.com/powerhouse-inc/service-offering/issues"
   },
-  "homepage": "https://github.com/powerhouse-inc/service-offering#readme"
+  "homepage": "https://github.com/powerhouse-inc/service-offering#readme",
+  "readme": "ERROR: No README data found!",
+  "_id": "@powerhousedao/service-offering@1.0.0-dev.4"
 }

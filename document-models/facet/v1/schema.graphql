@@ -20,10 +20,10 @@ scalar Amount
 scalar Upload
 
 type FacetState {
-    id: PHID!
+    id: PHID
     name: String!
     description: String
-    lastModified: DateTime!
+    lastModified: DateTime
     options: [FacetOption!]!
 }
 

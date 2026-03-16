@@ -17,7 +17,7 @@ export function OperatorNotes({ document, dispatch }: OperatorNotesProps) {
   const [notes, setNotes] = useState(currentNotes);
 
   const handleSave = useCallback(() => {
-    dispatch(setOperatorNotes({ notes: notes || null }));
+    dispatch(setOperatorNotes({ operatorNotes: notes || null }));
     setIsEditing(false);
   }, [dispatch, notes]);
 

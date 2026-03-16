@@ -48,12 +48,12 @@ export function BillingCycleConfigPanel({
 
   const isCycleEnabled = (cycle: BillingCycle): boolean => {
     if (cycle === "MONTHLY") return true;
-    return billingCycleDiscounts.some((d) => d.cycle === cycle);
+    return billingCycleDiscounts.some((d) => d.billingCycle === cycle);
   };
 
   const getDiscountValue = (cycle: BillingCycle): number => {
-    const entry = billingCycleDiscounts.find((d) => d.cycle === cycle);
-    return entry?.discountValue ?? 0;
+    const entry = billingCycleDiscounts.find((d) => d.billingCycle === cycle);
+    return entry?.discountRule?.discountValue ?? 0;
   };
 
   const getCycleTotal = (cycle: BillingCycle): number | null => {

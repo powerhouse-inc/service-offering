@@ -51,8 +51,8 @@ export function FacetStateSchema(): z.ZodObject<Properties<FacetState>> {
   return z.object({
     __typename: z.literal("FacetState").optional(),
     description: z.string().nullish(),
-    id: z.string(),
-    lastModified: z.iso.datetime(),
+    id: z.string().nullish(),
+    lastModified: z.iso.datetime().nullish(),
     name: z.string(),
     options: z.array(z.lazy(() => FacetOptionSchema())),
   });

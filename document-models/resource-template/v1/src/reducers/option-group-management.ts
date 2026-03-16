@@ -63,29 +63,10 @@ export const resourceTemplateOptionGroupManagementOperations: ResourceTemplateOp
         displayOrder: action.input.displayOrder,
       });
     },
-    updateFaqOperation(state, action) {
-      if (!state.faqFields) return;
-      const faqField = state.faqFields.find((f) => f.id === action.input.id);
-      if (faqField) {
-        if (action.input.question !== undefined) {
-          faqField.question = action.input.question || null;
-        }
-        if (action.input.answer !== undefined) {
-          faqField.answer = action.input.answer || null;
-        }
-      }
-    },
-    deleteFaqOperation(state, action) {
-      if (!state.faqFields) return;
-      const faqIndex = state.faqFields.findIndex(
-        (f) => f.id === action.input.id,
-      );
-      if (faqIndex !== -1) {
-        state.faqFields.splice(faqIndex, 1);
-      }
-    },
+    updateFaqOperation(state, action) {},
+    deleteFaqOperation(state, action) {},
     reorderFaqsOperation(state, action) {
-      action.input.faqIds.forEach((id, index) => {
+      action.input.faqIds.forEach((id: string, index: number) => {
         const faq = state.faqFields?.find((f) => f.id === id);
         if (faq) {
           faq.displayOrder = index;

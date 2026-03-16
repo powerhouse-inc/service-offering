@@ -13,10 +13,10 @@ import { createDocument } from "./utils.js";
 
 export function defaultGlobalState(): FacetGlobalState {
   return {
-    id: "",
+    id: null,
     name: "",
     description: null,
-    lastModified: "1970-01-01T00:00:00.000Z",
+    lastModified: null,
     options: [],
   };
 }

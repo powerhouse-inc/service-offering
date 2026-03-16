@@ -6,14 +6,19 @@ import type {
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 import { initializeSubscription } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 import type { ServiceOfferingState } from "../../../document-models/service-offering/v1/gen/schema/types.js";
+import type { ServiceOfferingPHState } from "../../../document-models/service-offering/v1/gen/types.js";
+import { getUserSelectionPriceBreakdown } from "../../../document-models/service-offering/v1/src/utils.js";
 import type { BillingCycle } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
 import { mapOfferingToSubscription } from "./mapOfferingToSubscription.js";
 
 interface ImportServiceConfigButtonProps {
   document: SubscriptionInstanceDocument;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
+  /** The Service Offering state to import from (from browser store) */
   offeringState?: ServiceOfferingState;
+  /** The selected tier ID */
   selectedTierId?: string;
+  /** The selected billing cycle */
   selectedBillingCycle?: BillingCycle;
 }
 
@@ -33,11 +38,23 @@ export function ImportServiceConfigButton({
   const importServiceConfig = useCallback(() => {
     if (!offeringState || !selectedTierId || !selectedBillingCycle) return;
 
+    // Wrap global state to match ServiceOfferingPHState shape for price breakdown
+    const phState = {
+      global: offeringState,
+      local: {},
+    } as ServiceOfferingPHState;
+    const priceBreakdown = getUserSelectionPriceBreakdown(phState, {
+      tierId: selectedTierId,
+      billingCycle: selectedBillingCycle,
+      optionGroupIds: [],
+    });
+
     const input = mapOfferingToSubscription({
       offering: offeringState,
       tierId: selectedTierId,
       selectedBillingCycle,
       createdAt: new Date().toISOString(),
+      priceBreakdown,
     });
 
     dispatch(initializeSubscription(input));

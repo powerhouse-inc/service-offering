@@ -9,7 +9,7 @@ export const documentModel: DocumentModelGlobalState = {
   },
   extension: "",
   description:
-    "Document model for defining categorical options (facets) used to customize service offerings.",
+    "Document model for defining categorical options (facets) used to customize service offerings. Examples include SNO Function, Legal Entity Type, Team configurations, and Anonymity settings.",
   specifications: [
     {
       state: {
@@ -20,10 +20,10 @@ export const documentModel: DocumentModelGlobalState = {
         },
         global: {
           schema:
-            "type FacetState {\n    id: PHID!\n    name: String!\n    description: String\n    lastModified: DateTime!\n    options: [FacetOption!]!\n}\n\ntype FacetOption {\n    id: OID!\n    label: String!\n    description: String\n    displayOrder: Int\n    isDefault: Boolean!\n}",
+            "type FacetState {\n    id: PHID\n    name: String!\n    description: String\n    lastModified: DateTime\n    options: [FacetOption!]!\n}\n\ntype FacetOption {\n    id: OID!\n    label: String!\n    description: String\n    displayOrder: Int\n    isDefault: Boolean!\n}",
           examples: [],
           initialValue:
-            '{"id":"","name":"","description":null,"lastModified":"1970-01-01T00:00:00.000Z","options":[]}',
+            '{\n    "id": null,\n    "name": "",\n    "description": null,\n    "lastModified": null,\n    "options": []\n}',
         },
       },
       modules: [
@@ -74,7 +74,15 @@ export const documentModel: DocumentModelGlobalState = {
               template: "Adds a new option to the facet",
               reducer:
                 "state.options.push({\n    id: action.input.id,\n    label: action.input.label,\n    description: action.input.description || null,\n    displayOrder: action.input.displayOrder || null,\n    isDefault: action.input.isDefault || false\n});\nstate.lastModified = action.input.lastModified;",
-              errors: [],
+              errors: [
+                {
+                  id: "duplicate-option-id",
+                  name: "DuplicateOptionIdError",
+                  code: "DUPLICATE_OPTION_ID",
+                  description: "An option with this ID already exists",
+                  template: "",
+                },
+              ],
               examples: [],
               scope: "global",
             },
@@ -86,8 +94,16 @@ export const documentModel: DocumentModelGlobalState = {
                 "input UpdateOptionInput {\n    id: OID!\n    label: String\n    description: String\n    displayOrder: Int\n    isDefault: Boolean\n    lastModified: DateTime!\n}",
               template: "Updates an existing option",
               reducer:
-                "const option = state.options.find(o => o.id === action.input.id);\nif (option) {\n    if (action.input.label) option.label = action.input.label;\n    if (action.input.description !== undefined) option.description = action.input.description || null;\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) option.displayOrder = action.input.displayOrder;\n    if (action.input.isDefault !== undefined && action.input.isDefault !== null) option.isDefault = action.input.isDefault;\n}\nstate.lastModified = action.input.lastModified;",
-              errors: [],
+                "const option = state.options.find(o => o.id === action.input.id);\nif (option) {\n    if (action.input.label) {\n        option.label = action.input.label;\n    }\n    if (action.input.description !== undefined) {\n        option.description = action.input.description || null;\n    }\n    if (action.input.displayOrder !== undefined && action.input.displayOrder !== null) {\n        option.displayOrder = action.input.displayOrder;\n    }\n    if (action.input.isDefault !== undefined && action.input.isDefault !== null) {\n        option.isDefault = action.input.isDefault;\n    }\n}\nstate.lastModified = action.input.lastModified;",
+              errors: [
+                {
+                  id: "option-not-found",
+                  name: "OptionNotFoundError",
+                  code: "OPTION_NOT_FOUND",
+                  description: "Option with the specified ID does not exist",
+                  template: "",
+                },
+              ],
               examples: [],
               scope: "global",
             },
@@ -100,7 +116,15 @@ export const documentModel: DocumentModelGlobalState = {
               template: "Removes an option from the facet",
               reducer:
                 "const optionIndex = state.options.findIndex(o => o.id === action.input.id);\nif (optionIndex !== -1) {\n    state.options.splice(optionIndex, 1);\n}\nstate.lastModified = action.input.lastModified;",
-              errors: [],
+              errors: [
+                {
+                  id: "remove-option-not-found",
+                  name: "RemoveOptionNotFoundError",
+                  code: "REMOVE_OPTION_NOT_FOUND",
+                  description: "Option with the specified ID does not exist",
+                  template: "",
+                },
+              ],
               examples: [],
               scope: "global",
             },

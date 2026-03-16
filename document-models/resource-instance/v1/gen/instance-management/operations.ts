@@ -3,6 +3,7 @@ import type {
   InitializeInstanceAction,
   UpdateInstanceInfoAction,
   SetOperatorProfileAction,
+  UpdateInstanceStatusAction,
   ConfirmInstanceAction,
   ReportProvisioningStartedAction,
   ReportProvisioningCompletedAction,
@@ -31,6 +32,11 @@ export interface ResourceInstanceInstanceManagementOperations {
   setOperatorProfileOperation: (
     state: ResourceInstanceState,
     action: SetOperatorProfileAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  updateInstanceStatusOperation: (
+    state: ResourceInstanceState,
+    action: UpdateInstanceStatusAction,
     dispatch?: SignalDispatch,
   ) => void;
   confirmInstanceOperation: (

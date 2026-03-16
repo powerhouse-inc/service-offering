@@ -31,7 +31,8 @@ export function MetricActions({
         incrementMetricUsage({
           serviceId,
           metricId: metric.id,
-          amount,
+          incrementBy: amount,
+          currentTime: new Date().toISOString(),
         }),
       );
     },
@@ -44,7 +45,8 @@ export function MetricActions({
         decrementMetricUsage({
           serviceId,
           metricId: metric.id,
-          amount,
+          decrementBy: amount,
+          currentTime: new Date().toISOString(),
         }),
       );
     },

@@ -9,6 +9,7 @@ import {
   formatCurrency,
   formatDate,
   formatBillingCycleSuffix,
+  formatDiscountBadge,
   computeBillingBreakdown,
   type GroupBillingBreakdown,
   type MetricOverage,
@@ -154,6 +155,13 @@ export function BillingPanel({ document }: BillingPanelProps) {
                 <div key={svc.id} className="si-billing-line">
                   <span className="si-billing-line__name">
                     {svc.name || "Service"}
+                    {svc.recurringCost?.billingCycle && (
+                      <span className="si-billing-line__cycle">
+                        {formatBillingCycleSuffix(
+                          svc.recurringCost.billingCycle,
+                        )}
+                      </span>
+                    )}
                   </span>
                   <span className="si-billing-line__amount">
                     {formatCurrency(svc.recurringCost!.amount, currency)}
@@ -276,8 +284,23 @@ function GroupFixedCostRow({
               Add-on
             </span>
           )}
+          {group.recurringCycle && (
+            <span className="si-billing-line__cycle">
+              {formatBillingCycleSuffix(group.recurringCycle)}
+            </span>
+          )}
         </span>
         <span className="si-billing-group__amount-block">
+          {group.discount && (
+            <>
+              <span className="si-billing-group__original">
+                {formatCurrency(group.discount.originalAmount, currency)}
+              </span>
+              <span className="si-billing-group__discount-badge">
+                {formatDiscountBadge(group.discount)}
+              </span>
+            </>
+          )}
           <span className="si-billing-group__amount">
             {formatCurrency(
               group.recurringAmount ?? 0,

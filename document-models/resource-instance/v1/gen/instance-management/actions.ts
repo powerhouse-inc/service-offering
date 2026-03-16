@@ -3,6 +3,7 @@ import type {
   InitializeInstanceInput,
   UpdateInstanceInfoInput,
   SetOperatorProfileInput,
+  UpdateInstanceStatusInput,
   ConfirmInstanceInput,
   ReportProvisioningStartedInput,
   ReportProvisioningCompletedInput,
@@ -27,6 +28,10 @@ export type UpdateInstanceInfoAction = Action & {
 export type SetOperatorProfileAction = Action & {
   type: "SET_OPERATOR_PROFILE";
   input: SetOperatorProfileInput;
+};
+export type UpdateInstanceStatusAction = Action & {
+  type: "UPDATE_INSTANCE_STATUS";
+  input: UpdateInstanceStatusInput;
 };
 export type ConfirmInstanceAction = Action & {
   type: "CONFIRM_INSTANCE";
@@ -77,6 +82,7 @@ export type ResourceInstanceInstanceManagementAction =
   | InitializeInstanceAction
   | UpdateInstanceInfoAction
   | SetOperatorProfileAction
+  | UpdateInstanceStatusAction
   | ConfirmInstanceAction
   | ReportProvisioningStartedAction
   | ReportProvisioningCompletedAction

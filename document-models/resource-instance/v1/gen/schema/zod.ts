@@ -23,6 +23,7 @@ import type {
   TerminateInstanceInput,
   UpdateInstanceFacetInput,
   UpdateInstanceInfoInput,
+  UpdateInstanceStatusInput,
 } from "./types.js";
 
 type Properties<T> = Required<{
@@ -90,7 +91,6 @@ export function InitializeInstanceInputSchema(): z.ZodObject<
     customerName: z.string().nullish(),
     description: z.string().nullish(),
     infoLink: z.url().nullish(),
-    name: z.string().nullish(),
     operatorDocumentType: z.string(),
     operatorId: z.string(),
     operatorName: z.string().nullish(),
@@ -165,8 +165,6 @@ export function ResourceInstanceStateSchema(): z.ZodObject<
     customerName: z.string().nullish(),
     description: z.string().nullish(),
     infoLink: z.url().nullish(),
-    name: z.string().nullish(),
-    operatorName: z.string().nullish(),
     operatorProfile: z.lazy(() => OperatorProfileSchema().nullish()),
     provisioningCompletedAt: z.iso.datetime().nullish(),
     provisioningFailureReason: z.string().nullish(),
@@ -278,5 +276,13 @@ export function UpdateInstanceInfoInputSchema(): z.ZodObject<
     infoLink: z.url().nullish(),
     name: z.string().nullish(),
     thumbnailUrl: z.url().nullish(),
+  });
+}
+
+export function UpdateInstanceStatusInputSchema(): z.ZodObject<
+  Properties<UpdateInstanceStatusInput>
+> {
+  return z.object({
+    status: InstanceStatusSchema,
   });
 }

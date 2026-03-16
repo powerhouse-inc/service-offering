@@ -12,6 +12,7 @@ import {
   InitializeInstanceInputSchema,
   UpdateInstanceInfoInputSchema,
   SetOperatorProfileInputSchema,
+  UpdateInstanceStatusInputSchema,
   ConfirmInstanceInputSchema,
   ReportProvisioningStartedInputSchema,
   ReportProvisioningCompletedInputSchema,
@@ -66,6 +67,18 @@ const stateReducer: StateReducer<ResourceInstancePHState> = (
       SetOperatorProfileInputSchema().parse(action.input);
 
       resourceInstanceInstanceManagementOperations.setOperatorProfileOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "UPDATE_INSTANCE_STATUS": {
+      UpdateInstanceStatusInputSchema().parse(action.input);
+
+      resourceInstanceInstanceManagementOperations.updateInstanceStatusOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

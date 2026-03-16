@@ -20,22 +20,22 @@ scalar Amount
 scalar Upload
 
 type ResourceTemplateState {
-    id: PHID!
-    operatorId: PHID!
+    id: PHID
+    operatorId: PHID
     title: String!
     summary: String!
     description: String
     thumbnailUrl: URL
     infoLink: URL
     status: TemplateStatus!
-    lastModified: DateTime!
+    lastModified: DateTime
     targetAudiences: [TargetAudience!]!
     setupServices: [String!]!
     recurringServices: [String!]!
     facetTargets: [FacetTarget!]!
     services: [Service!]!
     optionGroups: [OptionGroup!]!
-    faqFields: [FaqField!]!
+    faqFields: [FaqField!]
     contentSections: [ContentSection!]!
 }
 
@@ -255,13 +255,13 @@ input AddFaqInput {
 }
 
 input UpdateFaqInput {
-    id: OID!
-    question: String
-    answer: String
+  id: OID!
+  question: String
+  answer: String
 }
 
 input DeleteFaqInput {
-    id: OID!
+  id:OID!
 }
 
 input ReorderFaqsInput {

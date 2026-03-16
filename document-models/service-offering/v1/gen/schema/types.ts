@@ -68,20 +68,26 @@ export type AddFacetOptionInput = {
 export type AddOnPricingMode = "STANDALONE" | "TIER_DEPENDENT";
 
 export type AddOptionGroupInput = {
+  availableBillingCycles?: InputMaybe<Array<BillingCycle>>;
+  costType?: InputMaybe<GroupCostType>;
+  currency?: InputMaybe<Scalars["Currency"]["input"]>;
   defaultSelected: Scalars["Boolean"]["input"];
   description?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
   isAddOn: Scalars["Boolean"]["input"];
   lastModified: Scalars["DateTime"]["input"];
   name: Scalars["String"]["input"];
+  price?: InputMaybe<Scalars["Amount_Money"]["input"]>;
 };
 
 export type AddOptionGroupTierPricingInput = {
-  amount: Scalars["Amount_Money"]["input"];
-  currency: Scalars["Currency"]["input"];
   lastModified: Scalars["DateTime"]["input"];
   optionGroupId: Scalars["OID"]["input"];
+  recurringPricing: Array<RecurringPriceOptionInput>;
+  setupCost?: InputMaybe<SetupCostInput>;
+  setupCostDiscounts?: InputMaybe<Array<BillingCycleDiscountInput>>;
   tierId: Scalars["OID"]["input"];
+  tierPricingId: Scalars["OID"]["input"];
 };
 
 export type AddServiceInput = {
@@ -95,15 +101,18 @@ export type AddServiceInput = {
 };
 
 export type AddServiceLevelInput = {
-  description?: InputMaybe<Scalars["String"]["input"]>;
-  id: Scalars["OID"]["input"];
+  customValue?: InputMaybe<Scalars["String"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
-  level: Scalars["String"]["input"];
+  level: ServiceLevel;
+  optionGroupId?: InputMaybe<Scalars["OID"]["input"]>;
   serviceId: Scalars["OID"]["input"];
+  serviceLevelId: Scalars["OID"]["input"];
   tierId: Scalars["OID"]["input"];
 };
 
 export type AddTierInput = {
+  amount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
+  currency: Scalars["Currency"]["input"];
   description?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
   isCustomPricing?: InputMaybe<Scalars["Boolean"]["input"]>;
@@ -112,31 +121,41 @@ export type AddTierInput = {
 };
 
 export type AddUsageLimitInput = {
-  id: Scalars["OID"]["input"];
+  freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
-  limit: Scalars["Int"]["input"];
-  name: Scalars["String"]["input"];
+  limitId: Scalars["OID"]["input"];
+  metric: Scalars["String"]["input"];
+  notes?: InputMaybe<Scalars["String"]["input"]>;
+  paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
+  resetCycle?: InputMaybe<UsageResetCycle>;
+  serviceId: Scalars["OID"]["input"];
   tierId: Scalars["OID"]["input"];
-  unit?: InputMaybe<Scalars["String"]["input"]>;
+  unitName?: InputMaybe<Scalars["String"]["input"]>;
+  unitPrice?: InputMaybe<Scalars["Amount_Money"]["input"]>;
+  unitPriceCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
 };
 
-export type BillingCycle = "ANNUAL" | "MONTHLY" | "QUARTERLY" | "SEMI_ANNUAL";
+export type BillingCycle =
+  | "ANNUAL"
+  | "MONTHLY"
+  | "ONE_TIME"
+  | "QUARTERLY"
+  | "SEMI_ANNUAL";
 
 export type BillingCycleDiscount = {
-  cycle: BillingCycle;
-  discountType: DiscountType;
-  discountValue: Scalars["Float"]["output"];
+  billingCycle: BillingCycle;
+  discountRule: DiscountRule;
 };
 
 export type BillingCycleDiscountInput = {
-  cycle: BillingCycle;
-  discountType: DiscountType;
-  discountValue: Scalars["Float"]["input"];
+  billingCycle: BillingCycle;
+  discountRule: DiscountRuleInput;
 };
 
 export type ChangeResourceTemplateInput = {
   lastModified: Scalars["DateTime"]["input"];
-  resourceTemplateId: Scalars["PHID"]["input"];
+  newTemplateId: Scalars["PHID"]["input"];
+  previousTemplateId: Scalars["PHID"]["input"];
 };
 
 export type DeleteOptionGroupInput = {
@@ -154,9 +173,19 @@ export type DeleteTierInput = {
   lastModified: Scalars["DateTime"]["input"];
 };
 
-export type DiscountMode = "INHERIT_TIER" | "OWN_DISCOUNTS";
+export type DiscountMode = "INDEPENDENT" | "INHERIT_TIER";
 
-export type DiscountType = "FIXED_AMOUNT" | "PERCENTAGE";
+export type DiscountRule = {
+  discountType: DiscountType;
+  discountValue: Scalars["Float"]["output"];
+};
+
+export type DiscountRuleInput = {
+  discountType: DiscountType;
+  discountValue: Scalars["Float"]["input"];
+};
+
+export type DiscountType = "FLAT_AMOUNT" | "PERCENTAGE";
 
 export type FacetTarget = {
   categoryKey: Scalars["String"]["output"];
@@ -179,9 +208,33 @@ export type OptionGroup = {
   isAddOn: Scalars["Boolean"]["output"];
   name: Scalars["String"]["output"];
   price: Maybe<Scalars["Amount_Money"]["output"]>;
-  pricingMode: AddOnPricingMode;
-  standalonePricing: Maybe<TierPricing>;
-  tierDependentPricing: Array<TierDependentPricing>;
+  pricingMode: Maybe<AddOnPricingMode>;
+  standalonePricing: Maybe<StandalonePricing>;
+  tierDependentPricing: Maybe<Array<OptionGroupTierPricing>>;
+};
+
+export type OptionGroupTierPricing = {
+  id: Scalars["OID"]["output"];
+  recurringPricing: Array<RecurringPriceOption>;
+  setupCost: Maybe<SetupCost>;
+  setupCostDiscounts: Array<BillingCycleDiscount>;
+  tierId: Scalars["OID"]["output"];
+};
+
+export type RecurringPriceOption = {
+  amount: Scalars["Amount_Money"]["output"];
+  billingCycle: BillingCycle;
+  currency: Scalars["Currency"]["output"];
+  discount: Maybe<DiscountRule>;
+  id: Scalars["OID"]["output"];
+};
+
+export type RecurringPriceOptionInput = {
+  amount: Scalars["Amount_Money"]["input"];
+  billingCycle: BillingCycle;
+  currency: Scalars["Currency"]["input"];
+  discount?: InputMaybe<DiscountRuleInput>;
+  id: Scalars["OID"]["input"];
 };
 
 export type RemoveFacetOptionInput = {
@@ -202,14 +255,14 @@ export type RemoveOptionGroupTierPricingInput = {
 };
 
 export type RemoveServiceLevelInput = {
-  id: Scalars["OID"]["input"];
   lastModified: Scalars["DateTime"]["input"];
+  serviceLevelId: Scalars["OID"]["input"];
   tierId: Scalars["OID"]["input"];
 };
 
 export type RemoveUsageLimitInput = {
-  id: Scalars["OID"]["input"];
   lastModified: Scalars["DateTime"]["input"];
+  limitId: Scalars["OID"]["input"];
   tierId: Scalars["OID"]["input"];
 };
 
@@ -227,14 +280,30 @@ export type Service = {
   title: Scalars["String"]["output"];
 };
 
+export type ServiceLevel =
+  | "CUSTOM"
+  | "INCLUDED"
+  | "NOT_APPLICABLE"
+  | "NOT_INCLUDED"
+  | "OPTIONAL"
+  | "VARIABLE";
+
+export type ServiceLevelBinding = {
+  customValue: Maybe<Scalars["String"]["output"]>;
+  id: Scalars["OID"]["output"];
+  level: ServiceLevel;
+  optionGroupId: Maybe<Scalars["OID"]["output"]>;
+  serviceId: Scalars["OID"]["output"];
+};
+
 export type ServiceOfferingState = {
   availableBillingCycles: Array<BillingCycle>;
   description: Maybe<Scalars["String"]["output"]>;
   facetTargets: Array<FacetTarget>;
-  id: Scalars["PHID"]["output"];
+  id: Maybe<Scalars["PHID"]["output"]>;
   infoLink: Maybe<Scalars["URL"]["output"]>;
-  lastModified: Scalars["DateTime"]["output"];
-  operatorId: Scalars["PHID"]["output"];
+  lastModified: Maybe<Scalars["DateTime"]["output"]>;
+  operatorId: Maybe<Scalars["PHID"]["output"]>;
   optionGroups: Array<OptionGroup>;
   resourceTemplateId: Maybe<Scalars["PHID"]["output"]>;
   services: Array<Service>;
@@ -243,6 +312,11 @@ export type ServiceOfferingState = {
   thumbnailUrl: Maybe<Scalars["URL"]["output"]>;
   tiers: Array<ServiceSubscriptionTier>;
   title: Scalars["String"]["output"];
+};
+
+export type ServicePricing = {
+  amount: Maybe<Scalars["Amount_Money"]["output"]>;
+  currency: Scalars["Currency"]["output"];
 };
 
 export type ServiceStatus = "ACTIVE" | "COMING_SOON" | "DEPRECATED" | "DRAFT";
@@ -254,10 +328,23 @@ export type ServiceSubscriptionTier = {
   id: Scalars["OID"]["output"];
   isCustomPricing: Scalars["Boolean"]["output"];
   name: Scalars["String"]["output"];
-  pricing: Maybe<TierPricing>;
-  pricingMode: TierPricingMode;
-  serviceLevels: Array<TierServiceLevel>;
-  usageLimits: Array<UsageLimit>;
+  pricing: ServicePricing;
+  pricingMode: Maybe<TierPricingMode>;
+  serviceLevels: Array<ServiceLevelBinding>;
+  usageLimits: Array<ServiceUsageLimit>;
+};
+
+export type ServiceUsageLimit = {
+  freeLimit: Maybe<Scalars["Int"]["output"]>;
+  id: Scalars["OID"]["output"];
+  metric: Scalars["String"]["output"];
+  notes: Maybe<Scalars["String"]["output"]>;
+  paidLimit: Maybe<Scalars["Int"]["output"]>;
+  resetCycle: Maybe<UsageResetCycle>;
+  serviceId: Scalars["OID"]["output"];
+  unitName: Maybe<Scalars["String"]["output"]>;
+  unitPrice: Maybe<Scalars["Amount_Money"]["output"]>;
+  unitPriceCurrency: Maybe<Scalars["Currency"]["output"]>;
 };
 
 export type SetAvailableBillingCyclesInput = {
@@ -290,10 +377,11 @@ export type SetOptionGroupDiscountModeInput = {
 };
 
 export type SetOptionGroupStandalonePricingInput = {
-  amount: Scalars["Amount_Money"]["input"];
-  currency: Scalars["Currency"]["input"];
+  billingCycleDiscounts?: InputMaybe<Array<BillingCycleDiscountInput>>;
   lastModified: Scalars["DateTime"]["input"];
   optionGroupId: Scalars["OID"]["input"];
+  recurringPricing: Array<RecurringPriceOptionInput>;
+  setupCost?: InputMaybe<SetupCostInput>;
 };
 
 export type SetTierBillingCycleDiscountsInput = {
@@ -314,25 +402,24 @@ export type SetTierPricingModeInput = {
   tierId: Scalars["OID"]["input"];
 };
 
-export type TierDependentPricing = {
+export type SetupCost = {
   amount: Scalars["Amount_Money"]["output"];
   currency: Scalars["Currency"]["output"];
-  tierId: Scalars["OID"]["output"];
+  discount: Maybe<DiscountRule>;
 };
 
-export type TierPricing = {
-  amount: Scalars["Amount_Money"]["output"];
-  currency: Scalars["Currency"]["output"];
+export type SetupCostInput = {
+  amount: Scalars["Amount_Money"]["input"];
+  currency: Scalars["Currency"]["input"];
+  discount?: InputMaybe<DiscountRuleInput>;
 };
 
-export type TierPricingMode = "CUSTOM" | "FIXED" | "PER_SEAT";
-
-export type TierServiceLevel = {
-  description: Maybe<Scalars["String"]["output"]>;
-  id: Scalars["OID"]["output"];
-  level: Scalars["String"]["output"];
-  serviceId: Scalars["OID"]["output"];
+export type StandalonePricing = {
+  recurringPricing: Array<RecurringPriceOption>;
+  setupCost: Maybe<SetupCost>;
 };
+
+export type TierPricingMode = "CALCULATED" | "MANUAL_OVERRIDE";
 
 export type UpdateOfferingInfoInput = {
   description?: InputMaybe<Scalars["String"]["input"]>;
@@ -349,19 +436,24 @@ export type UpdateOfferingStatusInput = {
 };
 
 export type UpdateOptionGroupInput = {
+  availableBillingCycles?: InputMaybe<Array<BillingCycle>>;
+  costType?: InputMaybe<GroupCostType>;
+  currency?: InputMaybe<Scalars["Currency"]["input"]>;
   defaultSelected?: InputMaybe<Scalars["Boolean"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["OID"]["input"];
   isAddOn?: InputMaybe<Scalars["Boolean"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
   name?: InputMaybe<Scalars["String"]["input"]>;
+  price?: InputMaybe<Scalars["Amount_Money"]["input"]>;
 };
 
 export type UpdateOptionGroupTierPricingInput = {
-  amount: Scalars["Amount_Money"]["input"];
-  currency: Scalars["Currency"]["input"];
   lastModified: Scalars["DateTime"]["input"];
   optionGroupId: Scalars["OID"]["input"];
+  recurringPricing?: InputMaybe<Array<RecurringPriceOptionInput>>;
+  setupCost?: InputMaybe<SetupCostInput>;
+  setupCostDiscounts?: InputMaybe<Array<BillingCycleDiscountInput>>;
   tierId: Scalars["OID"]["input"];
 };
 
@@ -376,10 +468,11 @@ export type UpdateServiceInput = {
 };
 
 export type UpdateServiceLevelInput = {
-  description?: InputMaybe<Scalars["String"]["input"]>;
-  id: Scalars["OID"]["input"];
+  customValue?: InputMaybe<Scalars["String"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
-  level?: InputMaybe<Scalars["String"]["input"]>;
+  level?: InputMaybe<ServiceLevel>;
+  optionGroupId?: InputMaybe<Scalars["OID"]["input"]>;
+  serviceLevelId: Scalars["OID"]["input"];
   tierId: Scalars["OID"]["input"];
 };
 
@@ -392,24 +485,32 @@ export type UpdateTierInput = {
 };
 
 export type UpdateTierPricingInput = {
-  amount: Scalars["Amount_Money"]["input"];
-  currency: Scalars["Currency"]["input"];
+  amount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
+  currency?: InputMaybe<Scalars["Currency"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
   tierId: Scalars["OID"]["input"];
 };
 
 export type UpdateUsageLimitInput = {
-  id: Scalars["OID"]["input"];
+  freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
-  limit?: InputMaybe<Scalars["Int"]["input"]>;
-  name?: InputMaybe<Scalars["String"]["input"]>;
+  limitId: Scalars["OID"]["input"];
+  metric?: InputMaybe<Scalars["String"]["input"]>;
+  notes?: InputMaybe<Scalars["String"]["input"]>;
+  paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
+  resetCycle?: InputMaybe<UsageResetCycle>;
   tierId: Scalars["OID"]["input"];
-  unit?: InputMaybe<Scalars["String"]["input"]>;
+  unitName?: InputMaybe<Scalars["String"]["input"]>;
+  unitPrice?: InputMaybe<Scalars["Amount_Money"]["input"]>;
+  unitPriceCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
 };
 
-export type UsageLimit = {
-  id: Scalars["OID"]["output"];
-  limit: Scalars["Int"]["output"];
-  name: Scalars["String"]["output"];
-  unit: Maybe<Scalars["String"]["output"]>;
-};
+export type UsageResetCycle =
+  | "ANNUAL"
+  | "DAILY"
+  | "HOURLY"
+  | "MONTHLY"
+  | "NONE"
+  | "QUARTERLY"
+  | "SEMI_ANNUAL"
+  | "WEEKLY";

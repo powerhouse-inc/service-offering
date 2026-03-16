@@ -1,13 +1,11 @@
 import type { DocumentModelModule } from "document-model";
 import { createState } from "document-model";
 import { defaultBaseState } from "document-model/core";
-import type { ResourceInstancePHState } from "@powerhousedao/service-offering/document-models/resource-instance/v1";
-import {
-  actions,
-  documentModel,
-  reducer,
-  utils,
-} from "@powerhousedao/service-offering/document-models/resource-instance/v1";
+import type { ResourceInstancePHState } from "./gen/types.js";
+import { documentModel } from "./gen/document-model.js";
+import { reducer } from "./gen/reducer.js";
+import { actions } from "./actions.js";
+import { utils } from "./utils.js";
 
 /** Document model module for the ResourceInstance document type */
 export const ResourceInstance: DocumentModelModule<ResourceInstancePHState> = {

@@ -21,8 +21,8 @@ import {
 } from "./document-schema.js";
 
 export const initialGlobalState: ServiceOfferingGlobalState = {
-  id: "",
-  operatorId: "",
+  id: null,
+  operatorId: null,
   resourceTemplateId: null,
   title: "",
   summary: "",
@@ -30,7 +30,7 @@ export const initialGlobalState: ServiceOfferingGlobalState = {
   thumbnailUrl: null,
   infoLink: null,
   status: "DRAFT",
-  lastModified: "1970-01-01T00:00:00.000Z",
+  lastModified: null,
   availableBillingCycles: [],
   facetTargets: [],
   services: [],
@@ -40,7 +40,7 @@ export const initialGlobalState: ServiceOfferingGlobalState = {
 export const initialLocalState: ServiceOfferingLocalState = {};
 
 export const utils: DocumentModelUtils<ServiceOfferingPHState> = {
-  fileExtension: "phso",
+  fileExtension: "",
   createState(state) {
     return {
       ...defaultBaseState(),

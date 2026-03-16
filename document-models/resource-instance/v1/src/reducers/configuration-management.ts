@@ -1,88 +1,100 @@
+import {
+  ConfigurationLockedError,
+  ConfigurationLockedRemoveInstanceFacetError,
+  ConfigurationLockedUpdateInstanceFacetError,
+  ConfigurationLockedApplyConfigurationChangesError,
+} from "../../gen/configuration-management/error.js";
 import type { ResourceInstanceConfigurationManagementOperations } from "@powerhousedao/service-offering/document-models/resource-instance/v1";
 
 export const resourceInstanceConfigurationManagementOperations: ResourceInstanceConfigurationManagementOperations =
   {
     setInstanceFacetOperation(state, action) {
+      if (state.status === "ACTIVE") {
+        throw new ConfigurationLockedError(
+          "Cannot modify configuration while instance is ACTIVE",
+        );
+      }
       const existingIndex = state.configuration.findIndex(
-        (f) => f.categoryKey === action.input.categoryKey,
+        (c) => c.categoryKey === action.input.categoryKey,
       );
-      const facet = {
-        id: action.input.id,
-        categoryKey: action.input.categoryKey,
-        categoryLabel: action.input.categoryLabel,
-        selectedOption: action.input.selectedOption,
-      };
       if (existingIndex !== -1) {
-        state.configuration[existingIndex] = facet;
+        state.configuration[existingIndex] = {
+          id: action.input.id,
+          categoryKey: action.input.categoryKey,
+          categoryLabel: action.input.categoryLabel,
+          selectedOption: action.input.selectedOption,
+        };
       } else {
-        state.configuration.push(facet);
+        state.configuration.push({
+          id: action.input.id,
+          categoryKey: action.input.categoryKey,
+          categoryLabel: action.input.categoryLabel,
+          selectedOption: action.input.selectedOption,
+        });
       }
     },
     removeInstanceFacetOperation(state, action) {
+      if (state.status === "ACTIVE") {
+        throw new ConfigurationLockedRemoveInstanceFacetError(
+          "Cannot modify configuration while instance is ACTIVE",
+        );
+      }
       const facetIndex = state.configuration.findIndex(
-        (f) => f.categoryKey === action.input.categoryKey,
+        (c) => c.categoryKey === action.input.categoryKey,
       );
       if (facetIndex !== -1) {
         state.configuration.splice(facetIndex, 1);
       }
     },
     updateInstanceFacetOperation(state, action) {
-      const facet = state.configuration.find(
-        (f) => f.categoryKey === action.input.categoryKey,
+      if (state.status === "ACTIVE") {
+        throw new ConfigurationLockedUpdateInstanceFacetError(
+          "Cannot modify configuration while instance is ACTIVE",
+        );
+      }
+      const facetIndex = state.configuration.findIndex(
+        (c) => c.categoryKey === action.input.categoryKey,
       );
-      if (facet) {
-        if (action.input.selectedOption)
-          facet.selectedOption = action.input.selectedOption;
-        if (action.input.categoryLabel)
-          facet.categoryLabel = action.input.categoryLabel;
+      if (facetIndex !== -1) {
+        if (action.input.selectedOption) {
+          state.configuration[facetIndex].selectedOption =
+            action.input.selectedOption;
+        }
+        if (action.input.categoryLabel) {
+          state.configuration[facetIndex].categoryLabel =
+            action.input.categoryLabel;
+        }
       }
     },
     applyConfigurationChangesOperation(state, action) {
-      // Add new facets
-      if (action.input.addFacets) {
-        for (const facetInput of action.input.addFacets) {
-          const existingIndex = state.configuration.findIndex(
-            (f) => f.categoryKey === facetInput.categoryKey,
-          );
-          const facet = {
-            id: facetInput.id,
-            categoryKey: facetInput.categoryKey,
-            categoryLabel: facetInput.categoryLabel,
-            selectedOption: facetInput.selectedOption,
-          };
-          if (existingIndex !== -1) {
-            state.configuration[existingIndex] = facet;
-          } else {
-            state.configuration.push(facet);
-          }
-        }
+      if (state.status === "ACTIVE") {
+        throw new ConfigurationLockedApplyConfigurationChangesError(
+          "Cannot modify configuration while instance is ACTIVE. Suspend the instance first.",
+        );
       }
-
-      // Update existing facets
-      if (action.input.updateFacets) {
-        for (const update of action.input.updateFacets) {
-          const facet = state.configuration.find(
-            (f) => f.categoryKey === update.categoryKey,
-          );
-          if (facet) {
-            if (update.selectedOption)
-              facet.selectedOption = update.selectedOption;
-            if (update.categoryLabel)
-              facet.categoryLabel = update.categoryLabel;
-          }
+      action.input.removeFacetKeys?.forEach((categoryKey) => {
+        const index = state.configuration.findIndex(
+          (f) => f.categoryKey === categoryKey,
+        );
+        if (index !== -1) state.configuration.splice(index, 1);
+      });
+      action.input.updateFacets?.forEach((update) => {
+        const facet = state.configuration.find(
+          (f) => f.categoryKey === update.categoryKey,
+        );
+        if (facet) {
+          if (update.selectedOption)
+            facet.selectedOption = update.selectedOption;
+          if (update.categoryLabel) facet.categoryLabel = update.categoryLabel;
         }
-      }
-
-      // Remove facets by key
-      if (action.input.removeFacetKeys) {
-        for (const key of action.input.removeFacetKeys) {
-          const index = state.configuration.findIndex(
-            (f) => f.categoryKey === key,
-          );
-          if (index !== -1) {
-            state.configuration.splice(index, 1);
-          }
-        }
-      }
+      });
+      action.input.addFacets?.forEach((newFacet) => {
+        state.configuration.push({
+          id: newFacet.id,
+          categoryKey: newFacet.categoryKey,
+          categoryLabel: newFacet.categoryLabel,
+          selectedOption: newFacet.selectedOption,
+        });
+      });
     },
   };

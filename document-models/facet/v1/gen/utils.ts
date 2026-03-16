@@ -18,10 +18,10 @@ import {
 } from "./document-schema.js";
 
 export const initialGlobalState: FacetGlobalState = {
-  id: "",
+  id: null,
   name: "",
   description: null,
-  lastModified: "1970-01-01T00:00:00.000Z",
+  lastModified: null,
   options: [],
 };
 export const initialLocalState: FacetLocalState = {};

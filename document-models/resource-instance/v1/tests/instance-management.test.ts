@@ -7,6 +7,7 @@ import {
   initializeInstance,
   updateInstanceInfo,
   setOperatorProfile,
+  updateInstanceStatus,
   confirmInstance,
   reportProvisioningStarted,
   reportProvisioningCompleted,
@@ -21,6 +22,7 @@ import {
   InitializeInstanceInputSchema,
   UpdateInstanceInfoInputSchema,
   SetOperatorProfileInputSchema,
+  UpdateInstanceStatusInputSchema,
   ConfirmInstanceInputSchema,
   ReportProvisioningStartedInputSchema,
   ReportProvisioningCompletedInputSchema,
@@ -79,6 +81,23 @@ describe("InstanceManagementOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_OPERATOR_PROFILE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle updateInstanceStatus operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(UpdateInstanceStatusInputSchema());
+
+    const updatedDocument = reducer(document, updateInstanceStatus(input));
+
+    expect(isResourceInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "UPDATE_INSTANCE_STATUS",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

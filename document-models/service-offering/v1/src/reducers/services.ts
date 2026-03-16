@@ -1,3 +1,7 @@
+import {
+  UpdateServiceNotFoundError,
+  DeleteServiceNotFoundError,
+} from "../../gen/services/error.js";
 import type { ServiceOfferingServicesOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
 
 export const serviceOfferingServicesOperations: ServiceOfferingServicesOperations =
@@ -15,27 +19,33 @@ export const serviceOfferingServicesOperations: ServiceOfferingServicesOperation
     },
     updateServiceOperation(state, action) {
       const service = state.services.find((s) => s.id === action.input.id);
-      if (service) {
-        if (action.input.title) service.title = action.input.title;
-        if (action.input.description !== undefined)
-          service.description = action.input.description || null;
-        if (action.input.displayOrder !== undefined)
-          service.displayOrder = action.input.displayOrder || null;
-        if (
-          action.input.isSetupFormation !== undefined &&
-          action.input.isSetupFormation !== null
-        )
-          service.isSetupFormation = action.input.isSetupFormation;
-        if (action.input.optionGroupId !== undefined)
-          service.optionGroupId = action.input.optionGroupId || null;
+      if (!service) {
+        throw new UpdateServiceNotFoundError(
+          `Service with ID ${action.input.id} not found`,
+        );
       }
+      if (action.input.title) service.title = action.input.title;
+      if (action.input.description !== undefined)
+        service.description = action.input.description || null;
+      if (action.input.displayOrder !== undefined)
+        service.displayOrder = action.input.displayOrder || null;
+      if (
+        action.input.isSetupFormation !== undefined &&
+        action.input.isSetupFormation !== null
+      )
+        service.isSetupFormation = action.input.isSetupFormation;
+      if (action.input.optionGroupId !== undefined)
+        service.optionGroupId = action.input.optionGroupId || null;
       state.lastModified = action.input.lastModified;
     },
     deleteServiceOperation(state, action) {
       const index = state.services.findIndex((s) => s.id === action.input.id);
-      if (index !== -1) {
-        state.services.splice(index, 1);
+      if (index === -1) {
+        throw new DeleteServiceNotFoundError(
+          `Service with ID ${action.input.id} not found`,
+        );
       }
+      state.services.splice(index, 1);
       state.lastModified = action.input.lastModified;
     },
   };

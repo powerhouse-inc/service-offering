@@ -12,6 +12,7 @@ import type {
 import {
   initializeInstance,
   updateInstanceInfo,
+  updateInstanceStatus,
   confirmInstance,
   reportProvisioningStarted,
   reportProvisioningCompleted,
@@ -252,8 +253,70 @@ interface StatusSelectorProps {
   mode: ViewMode;
 }
 
-function StatusSelector({ status }: StatusSelectorProps) {
-  return <StatusBadge status={status} />;
+function StatusSelector({ status, dispatch, mode }: StatusSelectorProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleStatusChange = useCallback(
+    (newStatus: InstanceStatus) => {
+      if (newStatus !== status) {
+        dispatch(updateInstanceStatus({ status: newStatus }));
+      }
+      setIsOpen(false);
+    },
+    [dispatch, status],
+  );
+
+  if (mode !== "operator") {
+    return <StatusBadge status={status} />;
+  }
+
+  return (
+    <div className="ri-status-selector">
+      <button
+        type="button"
+        className={`ri-badge ${STATUS_CONFIG[status].className} ri-badge--clickable`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {STATUS_CONFIG[status].label}
+        <svg
+          className="ri-badge__chevron"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          width="14"
+          height="14"
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+      {isOpen && (
+        <>
+          <div
+            className="ri-status-selector__backdrop"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="ri-status-selector__dropdown">
+            {ALL_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`ri-status-selector__option ${s === status ? "ri-status-selector__option--active" : ""}`}
+                onClick={() => handleStatusChange(s)}
+              >
+                <span
+                  className={`ri-status-selector__dot ri-status-selector__dot--${s.toLowerCase()}`}
+                />
+                {STATUS_CONFIG[s].label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 // ============================================================

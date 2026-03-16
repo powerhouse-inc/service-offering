@@ -13,15 +13,15 @@ import { createDocument } from "./utils.js";
 
 export function defaultGlobalState(): ResourceTemplateGlobalState {
   return {
-    id: "",
-    operatorId: "",
+    id: null,
+    operatorId: null,
     title: "",
     summary: "",
     description: null,
     thumbnailUrl: null,
     infoLink: null,
     status: "DRAFT",
-    lastModified: "1970-01-01T00:00:00.000Z",
+    lastModified: null,
     targetAudiences: [],
     setupServices: [],
     recurringServices: [],

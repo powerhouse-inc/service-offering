@@ -4,12 +4,16 @@ import type {
   SubscriptionInstanceDocument,
 } from "@powerhousedao/service-offering/document-models/subscription-instance";
 import type {
-  SubscriptionService,
+  Service,
   ServiceMetric,
 } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
 import type { ViewMode } from "../types.js";
 import { MetricActions } from "./MetricActions.js";
-import { formatCurrency as fmtCurrency } from "./billing-utils.js";
+import {
+  formatCurrency as fmtCurrency,
+  formatBillingCycleSuffix,
+  formatDiscountBadge,
+} from "./billing-utils.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -23,14 +27,12 @@ function UsageBar({
   dispatch,
   isOperator,
   customerName,
-  currency,
 }: {
   serviceId: string;
   metric: ServiceMetric;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   isOperator: boolean;
   customerName?: string | null;
-  currency: string;
 }) {
   const freeLimit = metric.freeLimit ?? metric.limit ?? 0;
   const paidLimit = metric.paidLimit ?? null;
@@ -65,6 +67,7 @@ function UsageBar({
       <div className="si-metric__body">
         {displayLimit > 0 && (
           <div className="si-usage-bar">
+            {/* Free portion marker */}
             {paidLimit != null && freeLimit > 0 && freeLimit < paidLimit && (
               <div
                 className="si-usage-bar__free-marker"
@@ -90,18 +93,21 @@ function UsageBar({
           customerName={customerName}
         />
       </div>
+      {/* Free/Paid limit info */}
       {paidLimit != null && freeLimit > 0 && freeLimit !== paidLimit && (
         <p className="si-metric__paid-limit">
           {freeLimit.toLocaleString()} free · {paidLimit.toLocaleString()} max
-          {metric.unitCost != null && (
+          {metric.unitCost && (
             <span>
-              {" · "}overage: {fmtCurrency(metric.unitCost, currency)}/
+              {" · "}overage:{" "}
+              {fmtCurrency(metric.unitCost.amount, metric.unitCost.currency)}/
               {metric.unitName}
             </span>
           )}
         </p>
       )}
-      {isOverFree && metric.unitCost != null && (
+      {/* Overage indicator */}
+      {isOverFree && metric.unitCost && (
         <div className="si-metric__overage">
           <strong>{(metric.currentUsage - freeLimit).toLocaleString()}</strong>{" "}
           {metric.unitName} over free limit
@@ -129,11 +135,10 @@ function UsageBar({
 }
 
 interface ServiceCardProps {
-  service: SubscriptionService;
+  service: Service;
   mode: ViewMode;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   customerName?: string | null;
-  currency: string;
 }
 
 function ServiceCard({
@@ -141,7 +146,6 @@ function ServiceCard({
   mode,
   dispatch,
   customerName,
-  currency,
 }: ServiceCardProps) {
   return (
     <div className="si-service-card">
@@ -158,6 +162,7 @@ function ServiceCard({
         <p className="si-service-card__desc">{service.description}</p>
       )}
 
+      {/* Metrics / Usage */}
       {service.metrics.length > 0 && (
         <div className="si-service-card__metrics">
           {service.metrics.map((metric) => (
@@ -168,7 +173,6 @@ function ServiceCard({
               dispatch={dispatch}
               isOperator={mode === "operator"}
               customerName={customerName}
-              currency={currency}
             />
           ))}
         </div>
@@ -183,24 +187,16 @@ export function ServicesPanel({
   mode,
 }: ServicesPanelProps) {
   const state = document.state.global;
-  const currency = state.globalCurrency || state.tierCurrency || "USD";
 
-  const allGroupedServiceIds = new Set(
-    state.serviceGroups.flatMap((g) => g.services),
-  );
-  const standaloneServices = state.services.filter(
-    (s) => !allGroupedServiceIds.has(s.id),
-  );
-
+  // Split groups into recurring (non-optional) and add-ons (optional)
   const recurringGroups = state.serviceGroups.filter((g) => !g.optional);
   const addonGroups = state.serviceGroups.filter((g) => g.optional);
 
-  const hasRecurring =
-    standaloneServices.length > 0 || recurringGroups.length > 0;
+  const hasRecurring = state.services.length > 0 || recurringGroups.length > 0;
   const hasAddons = addonGroups.length > 0;
 
   const recurringServiceCount =
-    standaloneServices.length +
+    state.services.length +
     recurringGroups.reduce((acc, g) => acc + g.services.length, 0);
 
   const addonServiceCount = addonGroups.reduce(
@@ -234,13 +230,9 @@ export function ServicesPanel({
     );
   }
 
-  const resolveGroupServices = (serviceIds: string[]) =>
-    serviceIds
-      .map((id) => state.services.find((s) => s.id === id))
-      .filter((s): s is SubscriptionService => s != null);
-
   return (
     <>
+      {/* Recurring Services */}
       {hasRecurring && (
         <div className="si-panel">
           <div className="si-panel__header">
@@ -250,54 +242,66 @@ export function ServicesPanel({
             </span>
           </div>
 
-          {standaloneServices.length > 0 && (
+          {/* Standalone Services */}
+          {state.services.length > 0 && (
             <div className="si-services-grid">
-              {standaloneServices.map((service) => (
+              {state.services.map((service) => (
                 <ServiceCard
                   key={service.id}
                   service={service}
                   mode={mode}
                   dispatch={dispatch}
                   customerName={state.customerName}
-                  currency={currency}
                 />
               ))}
             </div>
           )}
 
-          {recurringGroups.map((group) => {
-            const groupServices = resolveGroupServices(group.services);
-            return (
-              <div key={group.id} className="si-service-group">
-                <div className="si-service-group__header">
-                  <h4 className="si-service-group__name">{group.name}</h4>
-                  {group.recurringCost && (
-                    <span className="si-service-group__price">
-                      {fmtCurrency(
-                        group.recurringCost.amount,
-                        group.recurringCost.currency,
-                      )}
-                    </span>
-                  )}
-                </div>
-                <div className="si-services-grid">
-                  {groupServices.map((service) => (
-                    <ServiceCard
-                      key={service.id}
-                      service={service}
-                      mode={mode}
-                      dispatch={dispatch}
-                      customerName={state.customerName}
-                      currency={currency}
-                    />
-                  ))}
-                </div>
+          {/* Non-optional Service Groups */}
+          {recurringGroups.map((group) => (
+            <div key={group.id} className="si-service-group">
+              <div className="si-service-group__header">
+                <h4 className="si-service-group__name">{group.name}</h4>
+                {group.recurringCost && (
+                  <span className="si-service-group__price">
+                    {group.recurringCost.discount && (
+                      <>
+                        <span className="si-service-group__original-price">
+                          {fmtCurrency(
+                            group.recurringCost.discount.originalAmount,
+                            group.recurringCost.currency,
+                          )}
+                        </span>
+                        <span className="si-service-group__discount-badge">
+                          {formatDiscountBadge(group.recurringCost.discount)}
+                        </span>
+                      </>
+                    )}
+                    {fmtCurrency(
+                      group.recurringCost.amount,
+                      group.recurringCost.currency,
+                    )}
+                    {formatBillingCycleSuffix(group.recurringCost.billingCycle)}
+                  </span>
+                )}
               </div>
-            );
-          })}
+              <div className="si-services-grid">
+                {group.services.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    mode={mode}
+                    dispatch={dispatch}
+                    customerName={state.customerName}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
+      {/* Add-ons */}
       {hasAddons && (
         <div className="si-panel">
           <div className="si-panel__header">
@@ -307,39 +311,49 @@ export function ServicesPanel({
             </span>
           </div>
 
-          {addonGroups.map((group) => {
-            const groupServices = resolveGroupServices(group.services);
-            return (
-              <div key={group.id} className="si-service-group">
-                <div className="si-service-group__header">
-                  <h4 className="si-service-group__name">{group.name}</h4>
-                  <span className="si-badge si-badge--violet si-badge--sm">
-                    Optional
+          {addonGroups.map((group) => (
+            <div key={group.id} className="si-service-group">
+              <div className="si-service-group__header">
+                <h4 className="si-service-group__name">{group.name}</h4>
+                <span className="si-badge si-badge--violet si-badge--sm">
+                  Optional
+                </span>
+                {group.recurringCost && (
+                  <span className="si-service-group__price">
+                    {group.recurringCost.discount && (
+                      <>
+                        <span className="si-service-group__original-price">
+                          {fmtCurrency(
+                            group.recurringCost.discount.originalAmount,
+                            group.recurringCost.currency,
+                          )}
+                        </span>
+                        <span className="si-service-group__discount-badge">
+                          {formatDiscountBadge(group.recurringCost.discount)}
+                        </span>
+                      </>
+                    )}
+                    {fmtCurrency(
+                      group.recurringCost.amount,
+                      group.recurringCost.currency,
+                    )}
+                    {formatBillingCycleSuffix(group.recurringCost.billingCycle)}
                   </span>
-                  {group.recurringCost && (
-                    <span className="si-service-group__price">
-                      {fmtCurrency(
-                        group.recurringCost.amount,
-                        group.recurringCost.currency,
-                      )}
-                    </span>
-                  )}
-                </div>
-                <div className="si-services-grid">
-                  {groupServices.map((service) => (
-                    <ServiceCard
-                      key={service.id}
-                      service={service}
-                      mode={mode}
-                      dispatch={dispatch}
-                      customerName={state.customerName}
-                      currency={currency}
-                    />
-                  ))}
-                </div>
+                )}
               </div>
-            );
-          })}
+              <div className="si-services-grid">
+                {group.services.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    mode={mode}
+                    dispatch={dispatch}
+                    customerName={state.customerName}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </>

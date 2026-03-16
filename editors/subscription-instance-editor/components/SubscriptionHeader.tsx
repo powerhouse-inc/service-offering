@@ -79,10 +79,20 @@ export function SubscriptionHeader({
       <div className="si-header__main">
         <div className="si-header__title-row">
           <div className="si-header__info">
+            {state.resource?.thumbnailUrl && (
+              <img
+                src={state.resource.thumbnailUrl}
+                alt=""
+                className="si-header__thumbnail"
+              />
+            )}
             <div>
               <h1 className="si-header__title">
-                {state.tierName || "Subscription"}
+                {state.resource?.label || state.tierName || "Subscription"}
               </h1>
+              {state.tierName && state.resource?.label && (
+                <p className="si-header__subtitle">{state.tierName} Tier</p>
+              )}
             </div>
           </div>
           <StatusBadge status={state.status} />

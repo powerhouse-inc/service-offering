@@ -78,8 +78,8 @@ export type FacetOption = {
 
 export type FacetState = {
   description: Maybe<Scalars["String"]["output"]>;
-  id: Scalars["PHID"]["output"];
-  lastModified: Scalars["DateTime"]["output"];
+  id: Maybe<Scalars["PHID"]["output"]>;
+  lastModified: Maybe<Scalars["DateTime"]["output"]>;
   name: Scalars["String"]["output"];
   options: Array<FacetOption>;
 };

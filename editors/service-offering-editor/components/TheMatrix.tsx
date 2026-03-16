@@ -4,16 +4,17 @@ import {
   type DocumentDispatch,
   usePHToast,
 } from "@powerhousedao/reactor-browser";
-import type {
-  ServiceOfferingDocument,
-  ServiceOfferingAction,
-  Service,
-  ServiceSubscriptionTier,
-  OptionGroup,
-  BillingCycle,
-  TierServiceLevel,
-  UsageLimit,
-  ServiceOfferingState,
+import {
+  type ServiceOfferingDocument,
+  type ServiceOfferingAction,
+  type Service,
+  type ServiceSubscriptionTier,
+  type ServiceLevel,
+  type ServiceLevelBinding,
+  type OptionGroup,
+  type ServiceUsageLimit,
+  type BillingCycle,
+  type UsageResetCycle,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
@@ -32,6 +33,12 @@ import {
   addService,
   updateService,
 } from "../../../document-models/service-offering/v1/gen/creators.js";
+import {
+  getUserSelectionPriceBreakdown,
+  type PriceBreakdown,
+  type OptionGroupBreakdown,
+  type AddOnBreakdown,
+} from "../../../document-models/service-offering/v1/index.js";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 
@@ -41,7 +48,7 @@ interface TheMatrixProps {
 }
 
 const SERVICE_LEVELS: {
-  value: string;
+  value: ServiceLevel;
   label: string;
   shortLabel: string;
   color: string;
@@ -296,7 +303,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     Record<string, string>
   >({});
   // Reset cycle for the metric (shared across tiers)
-  const [metricResetCycle, setMetricResetCycle] = useState<string>("MONTHLY");
+  const [metricResetCycle, setMetricResetCycle] =
+    useState<UsageResetCycle>("MONTHLY");
 
   // Destructive action confirmation state
   const [pendingRemoveMetric, setPendingRemoveMetric] = useState<{
@@ -365,59 +373,18 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     return optionGroups.filter((g) => g.isAddOn);
   }, [optionGroups]);
 
-  interface SimplePriceBreakdown {
-    tierMonthlyBase: number;
-    tierCycleTotal: number;
-    tierCurrency: string;
-    addOnBreakdowns: { optionGroupId: string; cycleAmount: number }[];
-    optionGroupBreakdowns: { optionGroupId: string; cycleAmount: number }[];
-    totals: { grandRecurringTotal: number };
-  }
-
-  const tierBreakdowns = useMemo((): SimplePriceBreakdown[] => {
-    const months = BILLING_CYCLE_MONTHS[activeBillingCycle];
-    return tiers.map((tier) => {
-      const regularGroups = optionGroups.filter(
-        (g) => g.costType !== "SETUP" && !g.isAddOn,
-      );
-      let monthlyBase = 0;
-      const ogBreakdowns: { optionGroupId: string; cycleAmount: number }[] = [];
-      for (const group of regularGroups) {
-        const tp = group.tierDependentPricing?.find(
-          (p) => p.tierId === tier.id,
-        );
-        const amount = tp?.amount ?? group.standalonePricing?.amount ?? 0;
-        monthlyBase += amount;
-        ogBreakdowns.push({
-          optionGroupId: group.id,
-          cycleAmount: amount * months,
-        });
-      }
-      let addOnTotal = 0;
-      const addOnBreakdowns: { optionGroupId: string; cycleAmount: number }[] =
-        [];
-      for (const group of optionGroups.filter((g) => g.isAddOn)) {
-        if (!enabledOptionalGroups.has(group.id)) continue;
-        const tp = group.tierDependentPricing?.find(
-          (p) => p.tierId === tier.id,
-        );
-        const amount = tp?.amount ?? group.standalonePricing?.amount ?? 0;
-        addOnTotal += amount * months;
-        addOnBreakdowns.push({
-          optionGroupId: group.id,
-          cycleAmount: amount * months,
-        });
-      }
-      const tierCycleTotal = monthlyBase * months;
-      return {
-        tierMonthlyBase: monthlyBase,
-        tierCycleTotal,
-        tierCurrency: tier.pricing?.currency || "USD",
-        addOnBreakdowns,
-        optionGroupBreakdowns: ogBreakdowns,
-        totals: { grandRecurringTotal: tierCycleTotal + addOnTotal },
-      };
-    });
+  // Precompute price breakdowns for all tiers using the centralized utility
+  const tierBreakdowns = useMemo((): PriceBreakdown[] => {
+    const addonIds = [...enabledOptionalGroups];
+    return tiers.map((tier) =>
+      getUserSelectionPriceBreakdown(state, {
+        tierId: tier.id,
+        billingCycle: activeBillingCycle,
+        optionGroupIds: addonIds,
+        groupBillingCycleOverrides: groupBillingCycles,
+        addonBillingCycleOverrides: addonBillingCycles,
+      }),
+    );
   }, [
     tiers,
     optionGroups,
@@ -446,10 +413,12 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     return tier.serviceLevels.find((sl) => sl.serviceId === serviceId);
   };
 
-  const getUniqueMetricsForService = (_serviceId: string): string[] => {
+  const getUniqueMetricsForService = (serviceId: string): string[] => {
     const metricsSet = new Set<string>();
     tiers.forEach((tier) => {
-      tier.usageLimits.forEach((ul) => metricsSet.add(ul.name));
+      tier.usageLimits
+        .filter((ul) => ul.serviceId === serviceId)
+        .forEach((ul) => metricsSet.add(ul.metric));
     });
     return Array.from(metricsSet);
   };
@@ -470,11 +439,13 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   }, [services, tiers]);
 
   const getUsageLimitForMetric = (
-    _serviceId: string,
+    serviceId: string,
     metric: string,
     tier: ServiceSubscriptionTier,
-  ): UsageLimit | undefined => {
-    return tier.usageLimits.find((ul) => ul.name === metric);
+  ): ServiceUsageLimit | undefined => {
+    return tier.usageLimits.find(
+      (ul) => ul.serviceId === serviceId && ul.metric === metric,
+    );
   };
 
   // Derive tier display pricing from precomputed breakdown
@@ -517,15 +488,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const handleSetServiceLevel = (
     serviceId: string,
     tierId: string,
-    level: string,
+    level: ServiceLevel,
     existingLevelId?: string,
-    _optionGroupId?: string,
+    optionGroupId?: string,
   ) => {
     if (existingLevelId) {
       dispatch(
         updateServiceLevel({
           tierId,
-          id: existingLevelId,
+          serviceLevelId: existingLevelId,
           level,
           lastModified: new Date().toISOString(),
         }),
@@ -534,9 +505,10 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       dispatch(
         addServiceLevel({
           tierId,
-          id: generateId(),
+          serviceLevelId: generateId(),
           serviceId,
           level,
+          optionGroupId,
           lastModified: new Date().toISOString(),
         }),
       );
@@ -576,13 +548,18 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       }),
     );
 
+    // Create ServiceLevelBindings for each selected tier
     newServiceSelectedTiers.forEach((tierId) => {
       dispatch(
         addServiceLevel({
           tierId,
-          id: generateId(),
+          serviceLevelId: generateId(),
           serviceId: newServiceId,
           level: "INCLUDED",
+          optionGroupId:
+            addServiceModal.groupId !== UNGROUPED_ID
+              ? addServiceModal.groupId
+              : undefined,
           lastModified: now,
         }),
       );
@@ -640,12 +617,14 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
       const shouldBeIncluded = editServiceSelectedTiers.has(tier.id);
 
       if (shouldBeIncluded && !existingLevel) {
+        // Add to tier
         dispatch(
           addServiceLevel({
             tierId: tier.id,
-            id: generateId(),
+            serviceLevelId: generateId(),
             serviceId: editServiceModal.id,
             level: "INCLUDED",
+            optionGroupId: editServiceModal.optionGroupId || undefined,
             lastModified: now,
           }),
         );
@@ -654,10 +633,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         existingLevel &&
         existingLevel.level !== "INCLUDED"
       ) {
+        // Update to included
         dispatch(
           updateServiceLevel({
             tierId: tier.id,
-            id: existingLevel.id,
+            serviceLevelId: existingLevel.id,
             level: "INCLUDED",
             lastModified: now,
           }),
@@ -667,10 +647,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         existingLevel &&
         existingLevel.level === "INCLUDED"
       ) {
+        // Remove from tier (set to NOT_INCLUDED)
         dispatch(
           updateServiceLevel({
             tierId: tier.id,
-            id: existingLevel.id,
+            serviceLevelId: existingLevel.id,
             level: "NOT_INCLUDED",
             lastModified: now,
           }),
@@ -716,23 +697,35 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricResetCycle(service?.isSetupFormation ? "NONE" : "MONTHLY");
   };
 
-  const handleEditMetric = (_serviceId: string, metric: string) => {
-    setMetricModal({ serviceId: _serviceId, metric });
+  const handleEditMetric = (serviceId: string, metric: string) => {
+    setMetricModal({ serviceId, metric });
     setMetricName(metric);
+    // Initialize limits with existing values and track which tiers have this metric
     const existingLimits: Record<string, string> = {};
     const existingPaidLimits: Record<string, string> = {};
     const existingOveragePrices: Record<string, string> = {};
     const enabledTiers = new Set<string>();
     let existingUnitName = "";
+    let existingResetCycle: UsageResetCycle = "MONTHLY";
     tiers.forEach((tier) => {
-      const usageLimit = tier.usageLimits.find((ul) => ul.name === metric);
-      existingLimits[tier.id] = usageLimit?.limit?.toString() || "";
-      existingPaidLimits[tier.id] = "";
-      existingOveragePrices[tier.id] = "";
+      const usageLimit = tier.usageLimits.find(
+        (ul) => ul.serviceId === serviceId && ul.metric === metric,
+      );
+      // Load value from either limit (numeric) or notes (string)
+      existingLimits[tier.id] =
+        usageLimit?.freeLimit?.toString() || usageLimit?.notes || "";
+      existingPaidLimits[tier.id] = usageLimit?.paidLimit?.toString() || "";
+      // Load per-tier overage pricing
+      existingOveragePrices[tier.id] = usageLimit?.unitPrice?.toString() || "";
       if (usageLimit) {
         enabledTiers.add(tier.id);
-        if (!existingUnitName && usageLimit.unit) {
-          existingUnitName = usageLimit.unit;
+        // Get unit name from first tier that has it
+        if (!existingUnitName && usageLimit.unitName) {
+          existingUnitName = usageLimit.unitName;
+        }
+        // Get reset cycle from first tier that has it
+        if (usageLimit.resetCycle) {
+          existingResetCycle = usageLimit.resetCycle;
         }
       }
     });
@@ -741,7 +734,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricEnabledTiers(enabledTiers);
     setMetricOveragePrices(existingOveragePrices);
     setMetricUnitName(existingUnitName);
-    setMetricResetCycle("MONTHLY");
+    setMetricResetCycle(existingResetCycle);
   };
 
   const handleRemoveMetric = (serviceId: string, metric: string) => {
@@ -750,14 +743,17 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
   const confirmRemoveMetric = () => {
     if (!pendingRemoveMetric) return;
-    const { metric } = pendingRemoveMetric;
+    const { serviceId, metric } = pendingRemoveMetric;
+    // Remove this metric from all tiers
     tiers.forEach((tier) => {
-      const usageLimit = tier.usageLimits.find((ul) => ul.name === metric);
+      const usageLimit = tier.usageLimits.find(
+        (ul) => ul.serviceId === serviceId && ul.metric === metric,
+      );
       if (usageLimit) {
         dispatch(
           removeUsageLimit({
             tierId: tier.id,
-            id: usageLimit.id,
+            limitId: usageLimit.id,
             lastModified: new Date().toISOString(),
           }),
         );
@@ -813,46 +809,78 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   const handleSaveMetric = () => {
     if (!metricModal || !metricName.trim()) return;
 
-    const { metric: originalMetric } = metricModal;
+    const { serviceId, metric: originalMetric } = metricModal;
     const now = new Date().toISOString();
 
     tiers.forEach((tier) => {
       const isEnabled = metricEnabledTiers.has(tier.id);
       const limitValue = metricLimits[tier.id];
       const existingLimit = originalMetric
-        ? tier.usageLimits.find((ul) => ul.name === originalMetric)
+        ? tier.usageLimits.find(
+            (ul) => ul.serviceId === serviceId && ul.metric === originalMetric,
+          )
         : null;
 
-      const parsedLimit = limitValue ? parseInt(limitValue, 10) : 0;
-      const isNumeric = !isNaN(parsedLimit);
+      // Check if value is numeric or string
+      const parsedLimit = limitValue ? parseInt(limitValue, 10) : null;
+      const isNumeric = parsedLimit !== null && !isNaN(parsedLimit);
+
+      // Parse paid limit
+      const paidLimitValue = metricPaidLimits[tier.id];
+      const parsedPaidLimit = paidLimitValue
+        ? parseInt(paidLimitValue, 10)
+        : null;
+      const isPaidNumeric = parsedPaidLimit !== null && !isNaN(parsedPaidLimit);
+
+      // Get per-tier overage pricing
+      const tierOveragePrice = metricOveragePrices[tier.id];
+      const parsedOveragePrice = tierOveragePrice
+        ? parseFloat(tierOveragePrice)
+        : null;
+      const hasOveragePricing =
+        parsedOveragePrice !== null && !isNaN(parsedOveragePrice);
 
       if (existingLimit && !isEnabled) {
+        // Remove limit - tier was disabled
         dispatch(
           removeUsageLimit({
             tierId: tier.id,
-            id: existingLimit.id,
+            limitId: existingLimit.id,
             lastModified: now,
           }),
         );
       } else if (existingLimit && isEnabled) {
+        // Update existing limit - use limit for numeric values, notes for strings
         dispatch(
           updateUsageLimit({
             tierId: tier.id,
-            id: existingLimit.id,
-            name: metricName.trim(),
-            limit: isNumeric ? parsedLimit : 0,
-            unit: metricUnitName.trim() || undefined,
+            limitId: existingLimit.id,
+            metric: metricName.trim(),
+            unitName: metricUnitName.trim() || undefined,
+            freeLimit: isNumeric ? parsedLimit : null,
+            paidLimit: isPaidNumeric ? parsedPaidLimit : null,
+            notes: !isNumeric && limitValue ? limitValue.trim() : null,
+            resetCycle: metricResetCycle,
+            unitPrice: hasOveragePricing ? parsedOveragePrice : null,
+            unitPriceCurrency: hasOveragePricing ? "USD" : undefined,
             lastModified: now,
           }),
         );
       } else if (!existingLimit && isEnabled) {
+        // Add new limit - use limit for numeric values, notes for strings
         dispatch(
           addUsageLimit({
             tierId: tier.id,
-            id: generateId(),
-            name: metricName.trim(),
-            limit: isNumeric ? parsedLimit : 0,
-            unit: metricUnitName.trim() || undefined,
+            limitId: generateId(),
+            serviceId,
+            metric: metricName.trim(),
+            unitName: metricUnitName.trim() || undefined,
+            freeLimit: isNumeric ? parsedLimit : null,
+            paidLimit: isPaidNumeric ? parsedPaidLimit : null,
+            notes: !isNumeric && limitValue ? limitValue.trim() : null,
+            resetCycle: metricResetCycle,
+            unitPrice: hasOveragePricing ? parsedOveragePrice : undefined,
+            unitPriceCurrency: hasOveragePricing ? "USD" : undefined,
             lastModified: now,
           }),
         );
@@ -870,12 +898,19 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   };
 
   const getLevelDisplay = (
-    serviceLevel: TierServiceLevel | undefined,
+    serviceLevel: ServiceLevelBinding | undefined,
   ): { label: string; color: string } => {
     if (!serviceLevel) return { label: "—", color: "#cbd5e1" };
 
     const level = serviceLevel.level;
     const config = SERVICE_LEVELS.find((l) => l.value === level);
+
+    if (level === "CUSTOM" && serviceLevel.customValue) {
+      return {
+        label: serviceLevel.customValue,
+        color: config?.color || "#d97706",
+      };
+    }
 
     return {
       label: config?.shortLabel || level,
@@ -1355,9 +1390,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     costType: null,
                     currency: null,
                     price: null,
-                    pricingMode: "STANDALONE",
+                    pricingMode: null,
                     standalonePricing: null,
-                    tierDependentPricing: [],
+                    tierDependentPricing: null,
                     discountMode: null,
                   }}
                   services={ungroupedSetupServices}
@@ -1460,9 +1495,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     costType: null,
                     currency: null,
                     price: null,
-                    pricingMode: "STANDALONE",
+                    pricingMode: null,
                     standalonePricing: null,
-                    tierDependentPricing: [],
+                    tierDependentPricing: null,
                     discountMode: null,
                   }}
                   services={ungroupedRegularServices}
@@ -1500,20 +1535,34 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     );
                   }
                   const groupSum = tierBreakdowns[idx].tierMonthlyBase;
-                  const tierPrice = tier.pricing?.amount ?? 0;
-                  const currency = tier.pricing?.currency || "USD";
-                  const isOver = tierPrice > 0 && groupSum > tierPrice;
+                  const tierPrice = tier.pricing.amount ?? 0;
+                  const isCalculated = tier.pricingMode === "CALCULATED";
+                  const currency = tier.pricing.currency || "USD";
+                  const isOver =
+                    !isCalculated && tierPrice > 0 && groupSum > tierPrice;
 
                   return (
                     <td key={tier.id} style={{ textAlign: "center" }}>
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="font-semibold">
                           {formatPrice(
-                            tierPrice > 0 ? tierPrice : groupSum,
+                            isCalculated ? groupSum : tierPrice,
                             currency,
                           )}
                         </span>
-                        {groupSum > 0 &&
+                        {isCalculated && (
+                          <span
+                            className="inline-block ml-1 px-1 text-[0.5rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle uppercase"
+                            title="Calculated from service groups"
+                            style={{
+                              fontFamily: "'DM Mono', 'SF Mono', monospace",
+                            }}
+                          >
+                            calc
+                          </span>
+                        )}
+                        {!isCalculated &&
+                          groupSum > 0 &&
                           tierPrice > 0 &&
                           groupSum !== tierPrice && (
                             <span
@@ -1658,68 +1707,104 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     })}
                   </tr>
                 ) : (
+                  /* Custom billing mode: itemized per-group rows from breakdown */
                   tierBreakdowns[selectedTierIdx]?.optionGroupBreakdowns.map(
-                    (ogb) => {
-                      const ogGroup = optionGroups.find(
-                        (g) => g.id === ogb.optionGroupId,
-                      );
-                      return (
-                        <tr
-                          key={`group-${ogb.optionGroupId}`}
-                          className="bg-violet-100 [&>td]:py-3.5 [&>td]:px-4 [&>td]:font-bold [&>td]:text-violet-900 [&>td]:border-t-2 [&>td]:border-violet-300 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-violet-100"
-                        >
-                          <td>
-                            {ogGroup?.name || ogb.optionGroupId}
-                            <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
-                              /
-                              {BILLING_CYCLE_SHORT_LABELS[
-                                activeBillingCycle
-                              ].toLowerCase()}
-                            </span>
+                    (ogb) => (
+                      <tr
+                        key={`group-${ogb.optionGroupId}`}
+                        className="bg-violet-100 [&>td]:py-3.5 [&>td]:px-4 [&>td]:font-bold [&>td]:text-violet-900 [&>td]:border-t-2 [&>td]:border-violet-300 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-violet-100"
+                      >
+                        <td>
+                          {ogb.optionGroupName}
+                          <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
+                            /
+                            {BILLING_CYCLE_SHORT_LABELS[
+                              ogb.effectiveBillingCycle
+                            ].toLowerCase()}
+                          </span>
+                        </td>
+                        {tiers.map((tier, idx) => (
+                          <td
+                            key={tier.id}
+                            className={
+                              idx === selectedTierIdx
+                                ? "text-white relative"
+                                : ""
+                            }
+                            style={{
+                              textAlign: "center",
+                              ...(idx === selectedTierIdx
+                                ? {
+                                    background:
+                                      "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                    boxShadow:
+                                      "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                  }
+                                : {}),
+                            }}
+                          >
+                            {idx === selectedTierIdx ? (
+                              tier.isCustomPricing ? (
+                                "Custom"
+                              ) : ogb.monthlyBase > 0 ? (
+                                <>
+                                  {formatPrice(
+                                    ogb.recurringAmount,
+                                    ogb.currency,
+                                  )}
+                                  {ogb.discount &&
+                                    ogb.discount.discountValue > 0 && (
+                                      <span
+                                        className="inline-block ml-1.5 py-px px-1.5 text-[0.5625rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle"
+                                        style={{
+                                          fontFamily:
+                                            "'DM Mono', 'SF Mono', monospace",
+                                        }}
+                                      >
+                                        SAVE{" "}
+                                        {Math.round(
+                                          ogb.discount.discountType ===
+                                            "PERCENTAGE"
+                                            ? ogb.discount.discountValue
+                                            : ogb.cycleAmount > 0
+                                              ? ((ogb.cycleAmount -
+                                                  ogb.recurringAmount) /
+                                                  ogb.cycleAmount) *
+                                                100
+                                              : 0,
+                                        )}
+                                        %
+                                      </span>
+                                    )}
+                                </>
+                              ) : (
+                                "—"
+                              )
+                            ) : null}
                           </td>
-                          {tiers.map((tier, idx) => (
-                            <td
-                              key={tier.id}
-                              className={
-                                idx === selectedTierIdx
-                                  ? "text-white relative"
-                                  : ""
-                              }
-                              style={{
-                                textAlign: "center",
-                                ...(idx === selectedTierIdx
-                                  ? {
-                                      background:
-                                        "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
-                                      boxShadow:
-                                        "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
-                                    }
-                                  : {}),
-                              }}
-                            >
-                              {idx === selectedTierIdx
-                                ? tier.isCustomPricing
-                                  ? "Custom"
-                                  : ogb.cycleAmount > 0
-                                    ? formatPrice(ogb.cycleAmount)
-                                    : "—"
-                                : null}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    },
+                        ))}
+                      </tr>
+                    ),
                   )
                 )}
 
+                {/* 2. Recurring Add-on Prices from breakdown */}
                 {tierBreakdowns[selectedTierIdx]?.addOnBreakdowns
-                  .filter((ab) => ab.cycleAmount > 0)
-                  .map((ab, abIdx) => (
+                  .filter((ab) => ab.monthlyBase > 0)
+                  .map((ab) => (
                     <tr
-                      key={`addon-recurring-${abIdx}`}
+                      key={`addon-recurring-${ab.optionGroupId}`}
                       className="bg-violet-50 [&>td]:border-t [&>td]:border-dashed [&>td]:border-violet-200 [&>td]:font-semibold [&>td]:text-[0.8125rem] [&>td]:text-violet-700 [&>td]:py-2 [&>td]:px-4 [&>td:first-child]:bg-violet-50"
                     >
-                      <td>+ Add-on</td>
+                      <td>
+                        + {ab.optionGroupName}
+                        <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
+                          /
+                          {BILLING_CYCLE_SHORT_LABELS[
+                            ab.selectedBillingCycle
+                          ].toLowerCase()}
+                        </span>
+                      </td>
                       {tiers.map((tier, idx) => (
                         <td
                           key={tier.id}
@@ -1739,12 +1824,127 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           }}
                         >
                           {idx === selectedTierIdx ? (
-                            <>+{formatPrice(ab.cycleAmount)}</>
+                            <>
+                              +{formatPrice(ab.recurringAmount, ab.currency)}
+                              {ab.discount && ab.discount.discountValue > 0 && (
+                                <span
+                                  className="inline-block ml-1.5 py-px px-1.5 text-[0.5625rem] font-semibold text-emerald-700 bg-emerald-100 rounded-md align-middle"
+                                  style={{
+                                    fontFamily:
+                                      "'DM Mono', 'SF Mono', monospace",
+                                  }}
+                                >
+                                  SAVE{" "}
+                                  {Math.round(
+                                    ab.discount.discountType === "PERCENTAGE"
+                                      ? ab.discount.discountValue
+                                      : ab.cycleAmount > 0
+                                        ? ((ab.cycleAmount -
+                                            ab.recurringAmount) /
+                                            ab.cycleAmount) *
+                                          100
+                                        : 0,
+                                  )}
+                                  %
+                                </span>
+                              )}
+                            </>
                           ) : null}
                         </td>
                       ))}
                     </tr>
                   ))}
+
+                {/* 3. Add-on Setup Costs from breakdown */}
+                {tierBreakdowns[selectedTierIdx]?.addOnBreakdowns
+                  .filter((ab) => ab.setupCost !== null && ab.setupCost > 0)
+                  .map((ab) => (
+                    <tr
+                      key={`addon-setup-${ab.optionGroupId}`}
+                      className="bg-violet-50 [&>td]:border-t [&>td]:border-dashed [&>td]:border-violet-200 [&>td]:font-semibold [&>td]:text-[0.8125rem] [&>td]:text-violet-700 [&>td]:py-2 [&>td]:px-4 [&>td:first-child]:bg-violet-50"
+                    >
+                      <td>
+                        + {ab.optionGroupName}{" "}
+                        <span className="font-normal text-[0.6875rem] text-slate-400 ml-1">
+                          (one-time setup)
+                        </span>
+                      </td>
+                      {tiers.map((tier, idx) => (
+                        <td
+                          key={tier.id}
+                          className={
+                            idx === selectedTierIdx ? "text-white relative" : ""
+                          }
+                          style={{
+                            textAlign: "center",
+                            ...(idx === selectedTierIdx
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                  boxShadow:
+                                    "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                }
+                              : {}),
+                          }}
+                        >
+                          {idx === selectedTierIdx
+                            ? `${formatPrice(
+                                ab.setupCost!,
+                                ab.setupCostCurrency || "USD",
+                              )} one-time`
+                            : null}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+
+                {/* 4. Setup & Formation Fees from breakdown */}
+                {(() => {
+                  const setupBds =
+                    tierBreakdowns[selectedTierIdx]?.setupGroupBreakdowns ?? [];
+                  const totalSetupBase = setupBds.reduce(
+                    (sum, s) =>
+                      sum +
+                      (s.setupCostDiscount?.originalAmount ?? s.setupCost ?? 0),
+                    0,
+                  );
+                  const totalSetupEffective = setupBds.reduce(
+                    (sum, s) => sum + (s.setupCost ?? 0),
+                    0,
+                  );
+                  if (totalSetupBase === 0) return null;
+                  const hasDiscount = totalSetupEffective !== totalSetupBase;
+                  return (
+                    <tr className="bg-violet-50 [&>td]:border-t [&>td]:border-dashed [&>td]:border-violet-200 [&>td]:font-semibold [&>td]:text-[0.8125rem] [&>td]:text-violet-700 [&>td]:py-2 [&>td]:px-4 [&>td:first-child]:bg-violet-50">
+                      <td>+ Setup & Formation Fees</td>
+                      {tiers.map((tier, idx) => (
+                        <td
+                          key={tier.id}
+                          className={
+                            idx === selectedTierIdx ? "text-white relative" : ""
+                          }
+                          style={{
+                            textAlign: "center",
+                            ...(idx === selectedTierIdx
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                                  boxShadow:
+                                    "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+                                }
+                              : {}),
+                          }}
+                        >
+                          {idx === selectedTierIdx
+                            ? hasDiscount
+                              ? `${formatPrice(totalSetupEffective, "USD")} one-time`
+                              : `${formatPrice(totalSetupBase, "USD")} one-time`
+                            : null}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })()}
               </tbody>
             </table>
           </div>
@@ -1855,7 +2055,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           <span className="flex-1 text-sm font-semibold text-slate-800 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {tier.name}
                           </span>
-                          {tier.pricing?.amount != null && (
+                          {tier.pricing.amount !== null && (
                             <span className="text-xs font-semibold text-slate-500 whitespace-nowrap shrink-0">
                               ${tier.pricing.amount}/mo
                             </span>
@@ -2007,7 +2207,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           <span className="flex-1 text-sm font-semibold text-slate-800 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {tier.name}
                           </span>
-                          {tier.pricing?.amount != null && (
+                          {tier.pricing.amount !== null && (
                             <span className="text-xs font-semibold text-slate-500 whitespace-nowrap shrink-0">
                               ${tier.pricing.amount}/mo
                             </span>
@@ -2118,7 +2318,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                 </label>
                 <select
                   value={metricResetCycle}
-                  onChange={(e) => setMetricResetCycle(e.target.value)}
+                  onChange={(e) =>
+                    setMetricResetCycle(e.target.value as UsageResetCycle)
+                  }
                   className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400 cursor-pointer"
                   style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
@@ -2393,23 +2595,23 @@ interface ServiceGroupSectionProps {
   getServiceLevelForTier: (
     serviceId: string,
     tier: ServiceSubscriptionTier,
-  ) => TierServiceLevel | undefined;
+  ) => ServiceLevelBinding | undefined;
   getUniqueMetricsForService: (serviceId: string) => string[];
   getUsageLimitForMetric: (
     serviceId: string,
     metric: string,
     tier: ServiceSubscriptionTier,
-  ) => UsageLimit | undefined;
-  getLevelDisplay: (serviceLevel: TierServiceLevel | undefined) => {
+  ) => ServiceUsageLimit | undefined;
+  getLevelDisplay: (serviceLevel: ServiceLevelBinding | undefined) => {
     label: string;
     color: string;
   };
   selectedCell: { serviceId: string; tierId: string } | null;
   setSelectedCell: (cell: { serviceId: string; tierId: string } | null) => void;
-  handleSetServiceLevel?: (
+  handleSetServiceLevel: (
     serviceId: string,
     tierId: string,
-    level: string,
+    level: ServiceLevel,
     existingLevelId?: string,
     optionGroupId?: string,
   ) => void;
@@ -2430,7 +2632,7 @@ interface ServiceGroupSectionProps {
   onAddonCycleChange?: (cycle: BillingCycle) => void;
   groupActiveCycle?: BillingCycle;
   onGroupCycleChange?: (cycle: BillingCycle) => void;
-  groupBreakdown?: { optionGroupId: string; cycleAmount: number } | null;
+  groupBreakdown?: OptionGroupBreakdown | AddOnBreakdown | null;
 }
 
 function ServiceGroupSection({
@@ -2512,30 +2714,60 @@ function ServiceGroupSection({
                 </span>
               )}
             </div>
+            {/* Group pricing: price + billing cycle tabs + discount + setup cost */}
             {!isSetupFormation &&
               (() => {
                 if (!groupBreakdown) return null;
-                const { cycleAmount } = groupBreakdown;
-                if (cycleAmount <= 0) return null;
+                const { monthlyBase, recurringAmount, discount, currency } =
+                  groupBreakdown;
+                if (monthlyBase <= 0 && !group.standalonePricing?.setupCost)
+                  return null;
+                const setupCost = group.standalonePricing?.setupCost;
                 const months = BILLING_CYCLE_MONTHS[effectiveBillingCycle];
                 const monthlyEq =
                   months > 0
-                    ? Math.round((cycleAmount / months) * 100) / 100
-                    : cycleAmount;
+                    ? Math.round((recurringAmount / months) * 100) / 100
+                    : recurringAmount;
+                const savingsPct =
+                  discount && discount.originalAmount > 0
+                    ? Math.round(
+                        ((discount.originalAmount - discount.discountedAmount) /
+                          discount.originalAmount) *
+                          100,
+                      )
+                    : 0;
                 return (
                   <div className="flex items-center gap-3 ml-auto">
-                    <span className="text-sm font-bold text-slate-800 whitespace-nowrap">
-                      {formatPrice(
-                        effectiveBillingCycle === "MONTHLY"
-                          ? cycleAmount
-                          : monthlyEq,
-                      )}
-                      /mo
-                    </span>
-                    {effectiveBillingCycle !== "MONTHLY" && (
+                    {monthlyBase > 0 && (
+                      <span className="text-sm font-bold text-slate-800 whitespace-nowrap">
+                        {formatPrice(
+                          effectiveBillingCycle === "MONTHLY"
+                            ? monthlyBase
+                            : monthlyEq,
+                          currency,
+                        )}
+                        /mo
+                      </span>
+                    )}
+                    {effectiveBillingCycle !== "MONTHLY" && monthlyBase > 0 && (
                       <span className="text-[0.6875rem] font-medium text-slate-500 whitespace-nowrap">
-                        Billed {formatPrice(cycleAmount)}{" "}
+                        Billed {formatPrice(recurringAmount, currency)}{" "}
                         {BILLING_CYCLE_LABELS[effectiveBillingCycle]}
+                      </span>
+                    )}
+                    {savingsPct > 0 && (
+                      <span className="text-[0.6875rem] font-semibold text-emerald-600 whitespace-nowrap">
+                        SAVE {Math.round(savingsPct)}%
+                      </span>
+                    )}
+                    {setupCost && setupCost.amount > 0 && (
+                      <span className="text-[0.6875rem] font-medium text-slate-500 whitespace-nowrap">
+                        +{" "}
+                        {formatPrice(
+                          setupCost.amount,
+                          setupCost.currency || "USD",
+                        )}{" "}
+                        Setup
                       </span>
                     )}
                   </div>
@@ -2635,12 +2867,62 @@ function ServiceGroupSection({
             );
           }
           const selectedTier = tiers[selectedTierIdx] ?? null;
+          const tierPricing = selectedTier
+            ? group.tierDependentPricing?.find(
+                (tp) => tp.tierId === selectedTier.id,
+              )
+            : null;
+          const cycleDiscount = tierPricing?.setupCostDiscounts?.find(
+            (d) => d.billingCycle === activeBillingCycle,
+          );
+          const genericDiscount = tierPricing?.setupCost?.discount;
+          const discount = cycleDiscount?.discountRule ?? genericDiscount;
+          let effectivePrice = basePrice;
+          if (discount && discount.discountValue > 0) {
+            if (discount.discountType === "PERCENTAGE") {
+              effectivePrice = basePrice * (1 - discount.discountValue / 100);
+            } else {
+              effectivePrice = Math.max(0, basePrice - discount.discountValue);
+            }
+            effectivePrice = Math.round(effectivePrice * 100) / 100;
+          }
           const curr = group.currency || "USD";
+          const hasDiscount = effectivePrice !== basePrice;
           return (
             <tr className="bg-slate-50 [&>td]:py-2.5 [&>td]:px-4 [&>td]:font-semibold [&>td]:text-slate-700 [&>td]:border-b [&>td]:border-slate-200 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-slate-50">
               <td>TOTAL SETUP FEE</td>
               <td colSpan={tiers.length} style={{ textAlign: "center" }}>
-                {formatPrice(basePrice, curr)} flat fee
+                {hasDiscount ? (
+                  <>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        opacity: 0.5,
+                        marginRight: 6,
+                      }}
+                    >
+                      {formatPrice(basePrice, curr)}
+                    </span>
+                    {formatPrice(effectivePrice, curr)} flat fee
+                    {discount?.discountType === "PERCENTAGE"
+                      ? ` (${discount.discountValue}% off)`
+                      : ` (${formatPrice(discount?.discountValue ?? 0, curr)} off)`}
+                  </>
+                ) : (
+                  `${formatPrice(basePrice, curr)} flat fee (applied to all ${
+                    tiers.some((t) => {
+                      const tp = group.tierDependentPricing?.find(
+                        (p) => p.tierId === t.id,
+                      );
+                      const monthlyAmt = tp?.recurringPricing?.find(
+                        (r) => r.billingCycle === "MONTHLY",
+                      )?.amount;
+                      return !monthlyAmt || monthlyAmt === 0;
+                    })
+                      ? "priced "
+                      : ""
+                  }tiers)`
+                )}
               </td>
             </tr>
           );
@@ -2648,11 +2930,17 @@ function ServiceGroupSection({
 
       {isOptional &&
         (() => {
-          const cycleAmount = isEnabled
-            ? (groupBreakdown?.cycleAmount ?? 0)
+          const baseMonthly = isEnabled
+            ? (groupBreakdown?.monthlyBase ?? 0)
+            : 0;
+          const adjustedTotal = isEnabled
+            ? (groupBreakdown?.recurringAmount ?? 0)
+            : 0;
+          const setupCost = isEnabled
+            ? (group.standalonePricing?.setupCost?.amount ?? 0)
             : 0;
           const billingLabel = `/${BILLING_CYCLE_SHORT_LABELS[effectiveBillingCycle].toLowerCase()}`;
-          const currency = group.currency || "USD";
+          const currency = groupBreakdown?.currency || group.currency || "USD";
 
           return (
             <tr
@@ -2660,11 +2948,19 @@ function ServiceGroupSection({
             >
               <td className={headerClass}>SUBTOTAL</td>
               <td colSpan={tiers.length} style={{ textAlign: "center" }}>
-                {isEnabled && cycleAmount > 0
-                  ? `+${formatPrice(cycleAmount, currency)}${billingLabel}`
-                  : isEnabled
-                    ? "Included"
-                    : "—"}
+                {isEnabled && (baseMonthly > 0 || setupCost > 0) ? (
+                  <>
+                    {baseMonthly > 0 &&
+                      `+${formatPrice(adjustedTotal, currency)}${billingLabel}`}
+                    {baseMonthly > 0 && setupCost > 0 && " + "}
+                    {setupCost > 0 &&
+                      `${formatPrice(setupCost, currency)} setup`}
+                  </>
+                ) : isEnabled ? (
+                  "Included"
+                ) : (
+                  "—"
+                )}
               </td>
             </tr>
           );
@@ -2681,13 +2977,13 @@ interface ServiceRowWithMetricsProps {
   getServiceLevelForTier: (
     serviceId: string,
     tier: ServiceSubscriptionTier,
-  ) => TierServiceLevel | undefined;
+  ) => ServiceLevelBinding | undefined;
   getUsageLimitForMetric: (
     serviceId: string,
     metric: string,
     tier: ServiceSubscriptionTier,
-  ) => UsageLimit | undefined;
-  getLevelDisplay: (serviceLevel: TierServiceLevel | undefined) => {
+  ) => ServiceUsageLimit | undefined;
+  getLevelDisplay: (serviceLevel: ServiceLevelBinding | undefined) => {
     label: string;
     color: string;
   };
@@ -2960,17 +3256,51 @@ function ServiceRowWithMetrics({
               >
                 <div className="inline-flex flex-col border border-slate-200 rounded-[10px] overflow-hidden min-w-[10rem]">
                   {usageLimit ? (
-                    <div className="flex justify-between items-center py-1.5 px-3 gap-4">
-                      <span className="text-[0.6875rem] text-slate-500 whitespace-nowrap">
-                        Limit
-                      </span>
-                      <span className="text-xs text-slate-700 text-right whitespace-nowrap">
-                        <strong>
-                          {usageLimit.limit}
-                          {usageLimit.unit ? ` ${usageLimit.unit}` : ""}
-                        </strong>
-                      </span>
-                    </div>
+                    <>
+                      <div className="flex justify-between items-center py-1.5 px-3 gap-4">
+                        <span className="text-[0.6875rem] text-slate-500 whitespace-nowrap">
+                          Included
+                        </span>
+                        <span className="text-xs text-slate-700 text-right whitespace-nowrap">
+                          {usageLimit.freeLimit != null ? (
+                            <>
+                              <strong>
+                                {usageLimit.freeLimit}
+                                {usageLimit.unitName
+                                  ? ` ${usageLimit.unitName}`
+                                  : ""}
+                              </strong>
+                              {usageLimit.resetCycle &&
+                                usageLimit.resetCycle !== "NONE" && (
+                                  <span className="text-[0.625rem] font-normal text-slate-400">
+                                    {" "}
+                                    / {usageLimit.resetCycle.toLowerCase()}
+                                  </span>
+                                )}
+                            </>
+                          ) : (
+                            <strong>{usageLimit.notes || "Unlimited"}</strong>
+                          )}
+                        </span>
+                      </div>
+                      {usageLimit.unitPrice != null && (
+                        <div className="flex justify-between items-center py-1.5 px-3 gap-4 border-t border-slate-100">
+                          <span className="text-[0.6875rem] text-slate-500 whitespace-nowrap">
+                            Overage
+                          </span>
+                          <span className="text-xs text-emerald-600 font-medium text-right whitespace-nowrap">
+                            {formatPrice(
+                              usageLimit.unitPrice,
+                              usageLimit.unitPriceCurrency || "USD",
+                            )}
+                            <span className="text-[0.625rem] font-normal text-slate-400">
+                              {" "}
+                              / extra
+                            </span>
+                          </span>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <span className="text-xs text-slate-300">—</span>
                   )}
@@ -3077,23 +3407,32 @@ function ServiceLevelDetailPanel({
   const serviceLevel = service
     ? tier?.serviceLevels.find((sl) => sl.serviceId === serviceId)
     : undefined;
-  const usageLimits = service ? tier?.usageLimits || [] : [];
+  const usageLimits = service
+    ? tier?.usageLimits.filter((ul) => ul.serviceId === serviceId) || []
+    : [];
 
   const [isAddingMetric, setIsAddingMetric] = useState(false);
   const [newMetric, setNewMetric] = useState("");
   const [newLimit, setNewLimit] = useState("");
+  const [customValue, setCustomValue] = useState(
+    serviceLevel?.customValue || "",
+  );
 
   if (!service || !tier) return null;
 
   const handleAddLimit = () => {
     if (!newMetric.trim()) return;
-    const parsedLimit = newLimit ? parseInt(newLimit, 10) : NaN;
+    const parsedLimit = newLimit ? parseInt(newLimit, 10) : null;
+    const isNumeric = parsedLimit !== null && !isNaN(parsedLimit);
     dispatch(
       addUsageLimit({
         tierId: tier.id,
-        id: generateId(),
-        name: newMetric.trim(),
-        limit: !isNaN(parsedLimit) ? parsedLimit : 0,
+        limitId: generateId(),
+        serviceId: service.id,
+        metric: newMetric.trim(),
+        freeLimit: isNumeric ? parsedLimit : undefined,
+        notes: !isNumeric && newLimit ? newLimit.trim() : undefined,
+        resetCycle: "MONTHLY",
         lastModified: new Date().toISOString(),
       }),
     );
@@ -3106,7 +3445,7 @@ function ServiceLevelDetailPanel({
     dispatch(
       removeUsageLimit({
         tierId: tier.id,
-        id: limitId,
+        limitId,
         lastModified: new Date().toISOString(),
       }),
     );
@@ -3280,7 +3619,7 @@ function ServiceLevelDetailPanel({
 }
 
 interface MetricLimitItemProps {
-  limit: UsageLimit;
+  limit: ServiceUsageLimit;
   tierId: string;
   dispatch: DocumentDispatch<ServiceOfferingAction>;
   onRemove: () => void;
@@ -3293,20 +3632,41 @@ function MetricLimitItem({
   onRemove,
 }: MetricLimitItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editMetric, setEditMetric] = useState(limit.name);
-  const [editUnit, setEditUnit] = useState(limit.unit || "");
-  const [editLimit, setEditLimit] = useState(limit.limit?.toString() || "");
+  const [editMetric, setEditMetric] = useState(limit.metric);
+  const [editUnitName, setEditUnitName] = useState(limit.unitName || "");
+  const [editLimit, setEditLimit] = useState(
+    limit.freeLimit?.toString() || limit.notes || "",
+  );
+  const [editPaidLimit, setEditPaidLimit] = useState(
+    limit.paidLimit?.toString() || "",
+  );
+  const [editResetCycle, setEditResetCycle] = useState<UsageResetCycle>(
+    limit.resetCycle || "MONTHLY",
+  );
+  // Overage pricing state
+  const [editUnitPrice, setEditUnitPrice] = useState(
+    limit.unitPrice?.toString() || "",
+  );
+  const [editUnitPriceCurrency] = useState(limit.unitPriceCurrency || "USD");
 
   const handleSave = () => {
     const parsedLimit = editLimit ? parseInt(editLimit, 10) : null;
+    const isNumeric = parsedLimit !== null && !isNaN(parsedLimit);
+    const parsedPaidLimit = editPaidLimit ? parseInt(editPaidLimit, 10) : null;
+    const isPaidNumeric = parsedPaidLimit !== null && !isNaN(parsedPaidLimit);
+    const parsedUnitPrice = editUnitPrice ? parseFloat(editUnitPrice) : null;
     dispatch(
       updateUsageLimit({
         tierId,
-        id: limit.id,
-        name: editMetric.trim() || limit.name,
-        unit: editUnit.trim() || undefined,
-        limit:
-          parsedLimit !== null && !isNaN(parsedLimit) ? parsedLimit : undefined,
+        limitId: limit.id,
+        metric: editMetric.trim() || limit.metric,
+        unitName: editUnitName.trim() || undefined,
+        freeLimit: isNumeric ? parsedLimit : undefined,
+        paidLimit: isPaidNumeric ? parsedPaidLimit : undefined,
+        notes: !isNumeric && editLimit ? editLimit.trim() : undefined,
+        resetCycle: editResetCycle,
+        unitPrice: parsedUnitPrice,
+        unitPriceCurrency: parsedUnitPrice ? editUnitPriceCurrency : undefined,
         lastModified: new Date().toISOString(),
       }),
     );
@@ -3314,11 +3674,23 @@ function MetricLimitItem({
   };
 
   const handleCancel = () => {
-    setEditMetric(limit.name);
-    setEditUnit(limit.unit || "");
-    setEditLimit(limit.limit?.toString() || "");
+    setEditMetric(limit.metric);
+    setEditUnitName(limit.unitName || "");
+    setEditLimit(limit.freeLimit?.toString() || limit.notes || "");
+    setEditPaidLimit(limit.paidLimit?.toString() || "");
+    setEditResetCycle(limit.resetCycle || "MONTHLY");
+    setEditUnitPrice(limit.unitPrice?.toString() || "");
     setIsEditing(false);
   };
+
+  // Format overage display string
+  const getOverageDisplay = () => {
+    if (!limit.unitPrice) return null;
+    const unitLabel = limit.unitName || "unit";
+    return `+${formatPrice(limit.unitPrice, limit.unitPriceCurrency || "USD")} per ${unitLabel}`;
+  };
+
+  const overageDisplay = getOverageDisplay();
 
   if (isEditing) {
     return (
@@ -3345,32 +3717,114 @@ function MetricLimitItem({
             className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
             style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
           >
-            Unit
+            Unit Name
           </label>
           <input
             type="text"
-            value={editUnit}
-            onChange={(e) => setEditUnit(e.target.value)}
+            value={editUnitName}
+            onChange={(e) => setEditUnitName(e.target.value)}
             placeholder="e.g., entity, credit card, contractor"
             className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
             style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           />
+          <p className="text-[0.6875rem] text-slate-400 mt-1">
+            Used for overage pricing display (e.g., "$50 per entity")
+          </p>
         </div>
         <div>
           <label
             className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
             style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
           >
-            Limit
+            Free Limit
           </label>
           <input
             type="text"
             value={editLimit}
             onChange={(e) => setEditLimit(e.target.value)}
-            placeholder="e.g., 100"
+            placeholder="e.g., 100, Unlimited, Custom"
             className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
             style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           />
+          <p className="text-[0.6875rem] text-slate-400 mt-1">
+            Included free limit for this tier
+          </p>
+        </div>
+        <div>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Paid Limit
+          </label>
+          <input
+            type="text"
+            value={editPaidLimit}
+            onChange={(e) => setEditPaidLimit(e.target.value)}
+            placeholder="e.g., 500, 1000"
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)]"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+          />
+          <p className="text-[0.6875rem] text-slate-400 mt-1">
+            Maximum paid usage beyond the free limit (optional)
+          </p>
+        </div>
+        <div>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Reset Cycle
+          </label>
+          <select
+            value={editResetCycle}
+            onChange={(e) =>
+              setEditResetCycle(e.target.value as UsageResetCycle)
+            }
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] cursor-pointer"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+          >
+            <option value="NONE">None (One-time)</option>
+            <option value="DAILY">Daily</option>
+            <option value="WEEKLY">Weekly</option>
+            <option value="MONTHLY">Monthly</option>
+          </select>
+        </div>
+        <div className="mt-2 pt-3 border-t border-dashed border-slate-300">
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Overage Pricing (Optional)
+          </label>
+          <p
+            className="text-[0.6875rem] text-slate-400 mt-1"
+            style={{ marginBottom: "0.5rem" }}
+          >
+            Set a price for usage beyond the included limit
+          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1">
+              <span
+                className="text-sm text-slate-500"
+                style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+              >
+                $
+              </span>
+              <input
+                type="number"
+                value={editUnitPrice}
+                onChange={(e) => setEditUnitPrice(e.target.value)}
+                placeholder="0.00"
+                step="0.01"
+                className="w-[4.5rem] text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-md py-1.5 px-2 outline-none transition-colors duration-150 focus:border-violet-600"
+                style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+              />
+            </div>
+            <span className="text-xs text-slate-500">
+              per {editUnitName || "unit"}
+            </span>
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -3402,13 +3856,27 @@ function MetricLimitItem({
           className="text-sm font-semibold text-slate-900"
           style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
         >
-          {limit.name}
+          {limit.metric}
         </div>
         <div className="flex flex-col gap-0.5">
           <div className="text-[0.8125rem] text-slate-500">
-            {limit.limit != null ? `Limit: ${limit.limit}` : "—"}
-            {limit.unit ? ` ${limit.unit}` : ""}
+            {limit.freeLimit != null
+              ? `Free: ${limit.freeLimit}${limit.paidLimit != null ? ` / Paid: ${limit.paidLimit}` : ""}`
+              : (limit.notes ?? "—")}
           </div>
+          {limit.resetCycle && (
+            <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>
+              Resets {limit.resetCycle.toLowerCase()}
+            </div>
+          )}
+          {overageDisplay && (
+            <div
+              className="text-[0.6875rem] text-emerald-600 font-medium"
+              style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+            >
+              {overageDisplay}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex gap-1 opacity-0 group-hover/limititem:opacity-100 transition-all duration-150">

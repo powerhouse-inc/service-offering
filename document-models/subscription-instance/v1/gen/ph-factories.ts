@@ -28,7 +28,7 @@ export function defaultGlobalState(): SubscriptionInstanceGlobalState {
     selectedBillingCycle: null,
     globalCurrency: null,
     resource: null,
-    status: "DRAFT",
+    status: "PENDING",
     createdAt: null,
     activatedSince: null,
     pausedSince: null,

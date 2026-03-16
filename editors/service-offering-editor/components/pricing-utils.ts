@@ -8,22 +8,28 @@ export const BILLING_CYCLE_MONTHS: Record<BillingCycle, number> = {
   QUARTERLY: 3,
   SEMI_ANNUAL: 6,
   ANNUAL: 12,
+  ONE_TIME: 0,
 };
 
+// Human-readable billing cycle labels
 export const BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
   MONTHLY: "monthly",
   QUARTERLY: "quarterly",
   SEMI_ANNUAL: "semi-annually",
   ANNUAL: "annually",
+  ONE_TIME: "one-time",
 };
 
+// Short labels for dropdowns
 export const BILLING_CYCLE_SHORT_LABELS: Record<BillingCycle, string> = {
   MONTHLY: "Month",
   QUARTERLY: "Quarter",
   SEMI_ANNUAL: "6 Months",
   ANNUAL: "Year",
+  ONE_TIME: "One Time",
 };
 
+// Format price with currency symbol
 export function formatPrice(amount: number, currency: string = "USD"): string {
   const symbol = currency === "USD" ? "$" : currency;
   return `${symbol}${amount.toLocaleString("en-US", {
@@ -32,6 +38,7 @@ export function formatPrice(amount: number, currency: string = "USD"): string {
   })}`;
 }
 
+// Get available billing cycles (excluding ONE_TIME for most cases)
 export const RECURRING_BILLING_CYCLES: BillingCycle[] = [
   "MONTHLY",
   "QUARTERLY",
@@ -39,6 +46,8 @@ export const RECURRING_BILLING_CYCLES: BillingCycle[] = [
   "ANNUAL",
 ];
 
+// Calculate tier recurring price from regular OptionGroup prices
+// Regular groups = costType !== "SETUP" && !isAddOn
 export interface TierPriceBreakdown {
   groupId: string;
   groupName: string;
@@ -53,6 +62,8 @@ export interface CalculatedTierPrice {
   missingPriceGroups: string[];
 }
 
+// Get the monthly recurring price for a specific group-tier pair
+// Reads from tierDependentPricing first, falls back to standalonePricing
 function getGroupPriceForTier(
   group: OptionGroup,
   tierId: string,
@@ -61,12 +72,18 @@ function getGroupPriceForTier(
     (tp) => tp.tierId === tierId,
   );
   if (tierPricing) {
-    const amount = tierPricing.amount ?? 0;
-    return { amount, hasPrice: amount > 0 };
+    const monthlyPricing = tierPricing.recurringPricing?.find(
+      (p) => p.billingCycle === "MONTHLY",
+    );
+    const amount = monthlyPricing?.amount ?? 0;
+    return { amount, hasPrice: monthlyPricing != null && amount > 0 };
   }
 
-  const amount = group.standalonePricing?.amount ?? 0;
-  return { amount, hasPrice: amount > 0 };
+  const monthlyPricing = group.standalonePricing?.recurringPricing?.find(
+    (p) => p.billingCycle === "MONTHLY",
+  );
+  const amount = monthlyPricing?.amount ?? 0;
+  return { amount, hasPrice: monthlyPricing != null && amount > 0 };
 }
 
 export function calculateTierRecurringPrice(
@@ -87,9 +104,12 @@ export function calculateTierRecurringPrice(
       amount = tierPrice.amount;
       hasPrice = tierPrice.hasPrice;
     } else {
-      const standaloneAmount = group.standalonePricing?.amount ?? 0;
-      amount = standaloneAmount;
-      hasPrice = standaloneAmount > 0;
+      // Legacy: no tierId, read from standalone
+      const monthlyPricing = group.standalonePricing?.recurringPricing?.find(
+        (p) => p.billingCycle === "MONTHLY",
+      );
+      amount = monthlyPricing?.amount ?? 0;
+      hasPrice = monthlyPricing != null && amount > 0;
     }
 
     if (!hasPrice) {
@@ -114,6 +134,9 @@ export function calculateTierRecurringPrice(
   };
 }
 
+// Calculate effective setup price after applying discount
+// Returns base amount, effective amount (floored at 0), and savings
+// Works with both SetupCostPerCycle (ServiceGroup) and SetupCost (OptionGroup)
 export function calculateEffectiveSetupPrice(setupCost: {
   amount: number;
   discount?: { discountType: string; discountValue: number } | null;
@@ -158,6 +181,9 @@ export function calculateEffectiveSetupPrice(setupCost: {
   };
 }
 
+// Detect billing cycle majority among regular groups
+// Returns suggestion when >50% of groups share a cycle different from current global
+// groupOverrides: runtime cycle overrides keyed by group.id (from UI state)
 export function detectMajorityCycle(
   regularGroups: OptionGroup[],
   currentGlobalCycle: BillingCycle,
@@ -168,6 +194,7 @@ export function detectMajorityCycle(
   if (regularGroups.length === 0) return null;
 
   for (const group of regularGroups) {
+    // Effective cycle: override if set, otherwise global
     const effectiveCycle = groupOverrides?.[group.id] || currentGlobalCycle;
     cycleCounts.set(effectiveCycle, (cycleCounts.get(effectiveCycle) || 0) + 1);
   }

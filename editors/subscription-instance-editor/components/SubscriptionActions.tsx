@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
@@ -103,7 +102,7 @@ export function SubscriptionActions({
   const handleActivate = useCallback(() => {
     dispatch(
       activateSubscription({
-        activatedAt: new Date().toISOString(),
+        activatedSince: new Date().toISOString(),
       }),
     );
   }, [dispatch]);
@@ -111,7 +110,7 @@ export function SubscriptionActions({
   const handleOperatorPause = useCallback(() => {
     dispatch(
       pauseSubscription({
-        pausedAt: new Date().toISOString(),
+        pausedSince: new Date().toISOString(),
       }),
     );
     setConfirmAction(null);
@@ -120,7 +119,7 @@ export function SubscriptionActions({
   const handleOperatorResume = useCallback(() => {
     dispatch(
       resumeSubscription({
-        resumedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       }),
     );
     setConfirmAction(null);
@@ -129,8 +128,8 @@ export function SubscriptionActions({
   const handleOperatorCancel = useCallback(() => {
     dispatch(
       cancelSubscription({
-        cancelledAt: new Date().toISOString(),
-        reason: reason || undefined,
+        cancelledSince: new Date().toISOString(),
+        cancellationReason: reason || null,
       }),
     );
     setConfirmAction(null);
@@ -140,7 +139,7 @@ export function SubscriptionActions({
   const handleOperatorRenew = useCallback(() => {
     dispatch(
       renewExpiringSubscription({
-        renewedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       }),
     );
     setConfirmAction(null);
@@ -169,7 +168,7 @@ export function SubscriptionActions({
     handleOperatorRenew,
   ]);
 
-  const isDraft = state.status === "DRAFT";
+  const isPending = state.status === "PENDING";
   const isActive = state.status === "ACTIVE";
   const isPaused = state.status === "PAUSED";
   const isExpiring = state.status === "EXPIRING";
@@ -181,7 +180,7 @@ export function SubscriptionActions({
         {/* Status Actions - contextual based on current status */}
         {mode === "operator" && (
           <div className="si-actions__buttons">
-            {isDraft && (
+            {isPending && (
               <button
                 type="button"
                 className="si-btn si-btn--sm si-btn--success"

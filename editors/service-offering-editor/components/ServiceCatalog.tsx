@@ -7,6 +7,7 @@ import type {
   Service,
   OptionGroup,
   BillingCycle,
+  GroupCostType,
   DiscountType,
 } from "@powerhousedao/service-offering/document-models/service-offering";
 import {
@@ -161,6 +162,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     QUARTERLY: "",
     SEMI_ANNUAL: "",
     ANNUAL: "",
+    ONE_TIME: "",
   });
 
   // Per-tier pricing state for edit modal
@@ -233,6 +235,8 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         name: "New Group",
         isAddOn: false,
         defaultSelected: true,
+        costType: "RECURRING" as GroupCostType,
+        availableBillingCycles: inheritedCycles,
         lastModified: new Date().toISOString(),
       }),
     );
@@ -288,6 +292,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     setEditGroupType(groupType);
     setEditGroupPrice(group.price?.toString() || "");
 
+    // Initialize per-tier setup fee discounts from tier-dependent pricing
     const SUBSCRIPTION_CYCLES: BillingCycle[] = [
       "MONTHLY",
       "QUARTERLY",
@@ -311,6 +316,19 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
         BillingCycle,
         { discountType: DiscountType; discountValue: string }
       >;
+      const tierPricingEntry = group.tierDependentPricing?.find(
+        (tp) => tp.tierId === tier.id,
+      );
+      if (tierPricingEntry?.setupCostDiscounts) {
+        tierPricingEntry.setupCostDiscounts.forEach((d) => {
+          if (d.billingCycle && d.discountRule) {
+            emptyDiscounts[d.billingCycle] = {
+              discountType: d.discountRule.discountType,
+              discountValue: d.discountRule.discountValue?.toString() || "",
+            };
+          }
+        });
+      }
       setupTierDiscounts[tier.id] = emptyDiscounts;
     }
     setEditSetupTierDiscounts(setupTierDiscounts);
@@ -331,18 +349,26 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       setEditGroupPricingMode("STANDALONE");
     }
 
-    setEditGroupSetupCost("");
-    setEditGroupBasePrice(group.standalonePricing?.amount?.toString() || "");
+    // Initialize standalone pricing (for add-ons in STANDALONE mode or fallback)
+    setEditGroupSetupCost(
+      group.standalonePricing?.setupCost?.amount?.toString() || "",
+    );
+    const monthlyPricing = group.standalonePricing?.recurringPricing?.find(
+      (p) => p.billingCycle === "MONTHLY",
+    );
+    setEditGroupBasePrice(monthlyPricing?.amount?.toString() || "");
 
+    // Initialize per-group billing cycle discounts (flat amount only)
     const discounts: Record<BillingCycle, string> = {
       MONTHLY: "",
       QUARTERLY: "",
       SEMI_ANNUAL: "",
       ANNUAL: "",
+      ONE_TIME: "",
     };
     group.billingCycleDiscounts?.forEach((d) => {
-      if (d.cycle && d.discountValue) {
-        discounts[d.cycle] = d.discountValue.toString();
+      if (d.billingCycle && d.discountRule?.discountValue) {
+        discounts[d.billingCycle] = d.discountRule.discountValue.toString();
       }
     });
     setEditGroupDiscounts(discounts);
@@ -356,21 +382,40 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       const tierPricingEntry = group.tierDependentPricing?.find(
         (tp) => tp.tierId === tier.id,
       );
+      const tierMonthlyPricing = tierPricingEntry?.recurringPricing?.find(
+        (p) => p.billingCycle === "MONTHLY",
+      );
+      // If no tier pricing exists but group has standalone pricing, use standalone as starting point
       if (tierPricingEntry) {
-        tierPrices[tier.id] = tierPricingEntry.amount?.toString() || "";
-      } else if (group.standalonePricing) {
-        tierPrices[tier.id] = group.standalonePricing.amount?.toString() || "";
+        tierPrices[tier.id] = tierMonthlyPricing?.amount?.toString() || "";
+        tierSetupCosts[tier.id] =
+          tierPricingEntry.setupCost?.amount?.toString() || "";
+      } else if (monthlyPricing) {
+        // Pre-fill from standalone as migration aid
+        tierPrices[tier.id] = monthlyPricing.amount?.toString() || "";
+        tierSetupCosts[tier.id] =
+          group.standalonePricing?.setupCost?.amount?.toString() || "";
       } else {
         tierPrices[tier.id] = "";
+        tierSetupCosts[tier.id] = "";
       }
-      tierSetupCosts[tier.id] = "";
 
+      // Per-tier discounts: populate from tierDependentPricing[].recurringPricing[].discount
       const tierDiscountValues: Record<BillingCycle, string> = {
         MONTHLY: "",
         QUARTERLY: "",
         SEMI_ANNUAL: "",
         ANNUAL: "",
+        ONE_TIME: "",
       };
+      if (tierPricingEntry) {
+        tierPricingEntry.recurringPricing?.forEach((rp) => {
+          if (rp.discount && rp.discount.discountValue > 0) {
+            tierDiscountValues[rp.billingCycle] =
+              rp.discount.discountValue.toString();
+          }
+        });
+      }
       tierDiscounts[tier.id] = tierDiscountValues;
     }
 
@@ -385,36 +430,114 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
     const isSetup = editGroupType === "setup";
     const isAddOn = editGroupType === "addon";
+    const costType: GroupCostType = isSetup ? "SETUP" : "RECURRING";
     const price = editGroupPrice ? parseFloat(editGroupPrice) : null;
 
+    // Update the option group in the document
     dispatch(
       updateOptionGroup({
         id: editingGroup.id,
         name: editGroupName.trim(),
         isAddOn,
         defaultSelected: !isAddOn,
+        costType,
+        availableBillingCycles: isSetup ? ["ONE_TIME"] : editGroupBillingCycles,
+        price: price ?? undefined,
+        currency: price ? "USD" : undefined,
         lastModified: new Date().toISOString(),
       }),
     );
 
+    // Save setup pricing: base cost via standalone, per-tier discounts via tier pricing
     if (isSetup && price && price > 0) {
       const now = new Date().toISOString();
+      // Store base setup cost via standalone pricing
       dispatch(
         setOptionGroupStandalonePricing({
           optionGroupId: editingGroup.id,
-          amount: price,
-          currency: "USD",
+          setupCost: { amount: price, currency: "USD" },
+          recurringPricing: [],
           lastModified: now,
         }),
       );
-    }
 
-    if (!isSetup && editGroupPricingMode === "TIER_DEPENDENT") {
-      const now = new Date().toISOString();
+      // Store per-tier setup fee discounts
       for (const tier of tiers) {
         if (tier.isCustomPricing) continue;
+        const tierDiscountEntries = editSetupTierDiscounts[tier.id];
+        const setupCostDiscounts = Object.entries(tierDiscountEntries || {})
+          .filter(([, d]) => parseFloat(d.discountValue) > 0)
+          .map(([cycle, d]) => ({
+            billingCycle: cycle as BillingCycle,
+            discountRule: {
+              discountType: "PERCENTAGE" as const,
+              discountValue: parseFloat(d.discountValue),
+            },
+          }));
+
+        const existingTierPricing = editingGroup.tierDependentPricing?.find(
+          (tp) => tp.tierId === tier.id,
+        );
+        if (existingTierPricing) {
+          dispatch(
+            updateOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierId: tier.id,
+              setupCost: { amount: price, currency: "USD" },
+              setupCostDiscounts,
+              recurringPricing: [],
+              lastModified: now,
+            }),
+          );
+        } else {
+          dispatch(
+            addOptionGroupTierPricing({
+              optionGroupId: editingGroup.id,
+              tierPricingId: generateId(),
+              tierId: tier.id,
+              setupCost: { amount: price, currency: "USD" },
+              setupCostDiscounts,
+              recurringPricing: [],
+              lastModified: now,
+            }),
+          );
+        }
+      }
+    }
+
+    // Save pricing based on mode
+    if (!isSetup && editGroupPricingMode === "TIER_DEPENDENT") {
+      // Per-tier pricing: dispatch addOptionGroupTierPricing or updateOptionGroupTierPricing per tier
+      const now = new Date().toISOString();
+      for (const tier of tiers) {
+        if (tier.isCustomPricing) continue; // Skip custom tiers
 
         const baseMonthly = parseFloat(editTierPrices[tier.id]) || 0;
+        const setupCostVal = parseFloat(editTierSetupCosts[tier.id]) || 0;
+        const setupCost =
+          setupCostVal > 0
+            ? { amount: setupCostVal, currency: "USD" as const }
+            : undefined;
+
+        const recurringPricing = editGroupBillingCycles
+          .filter(() => baseMonthly > 0)
+          .map((cycle) => {
+            const discountPct =
+              parseFloat(editTierDiscounts[tier.id]?.[cycle] || "0") || 0;
+            return {
+              id: generateId(),
+              billingCycle: cycle,
+              amount: baseMonthly,
+              currency: "USD" as const,
+              discount:
+                discountPct > 0
+                  ? {
+                      discountType: "PERCENTAGE" as const,
+                      discountValue: discountPct,
+                    }
+                  : undefined,
+            };
+          });
 
         const existingTierPricing = editingGroup.tierDependentPricing?.find(
           (tp) => tp.tierId === tier.id,
@@ -425,8 +548,8 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
             updateOptionGroupTierPricing({
               optionGroupId: editingGroup.id,
               tierId: tier.id,
-              amount: baseMonthly,
-              currency: "USD",
+              setupCost,
+              recurringPricing,
               lastModified: now,
             }),
           );
@@ -434,22 +557,54 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
           dispatch(
             addOptionGroupTierPricing({
               optionGroupId: editingGroup.id,
+              tierPricingId: generateId(),
               tierId: tier.id,
-              amount: baseMonthly,
-              currency: "USD",
+              setupCost,
+              recurringPricing,
               lastModified: now,
             }),
           );
         }
       }
     } else if (!isSetup && editGroupPricingMode === "STANDALONE") {
+      // Standalone pricing (add-ons or groups with no tiers)
+      const setupCost =
+        editGroupSetupCost && parseFloat(editGroupSetupCost) > 0
+          ? {
+              amount: parseFloat(editGroupSetupCost),
+              currency: "USD" as const,
+            }
+          : undefined;
+
       const baseMonthly = parseFloat(editGroupBasePrice) || 0;
+      const recurringPricing = editGroupBillingCycles
+        .filter(() => baseMonthly > 0)
+        .map((cycle) => ({
+          id: generateId(),
+          billingCycle: cycle,
+          amount: baseMonthly,
+          currency: "USD" as const,
+        }));
+
+      const billingCycleDiscounts = editGroupBillingCycles
+        .map((cycle) => {
+          const discountPct = parseFloat(editGroupDiscounts[cycle]) || 0;
+          return {
+            billingCycle: cycle,
+            discountRule: {
+              discountType: "PERCENTAGE" as const,
+              discountValue: discountPct,
+            },
+          };
+        })
+        .filter((d) => d.discountRule.discountValue > 0);
 
       dispatch(
         setOptionGroupStandalonePricing({
           optionGroupId: editingGroup.id,
-          amount: baseMonthly,
-          currency: "USD",
+          setupCost,
+          recurringPricing,
+          billingCycleDiscounts,
           lastModified: new Date().toISOString(),
         }),
       );
@@ -493,13 +648,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       }),
     );
 
+    // Create ServiceLevelBindings for each selected tier
     selectedTierIds.forEach((tierId) => {
       dispatch(
         addServiceLevel({
-          id: generateId(),
+          serviceLevelId: generateId(),
           serviceId,
           tierId,
           level: "INCLUDED",
+          optionGroupId: selectedGroupId || undefined,
           lastModified: now,
         }),
       );
@@ -510,6 +667,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     setIsAddingService(false);
   };
 
+  // Quick-add service from template (reduces activation energy)
   const handleAddFromTemplate = (template: ServiceTemplate) => {
     if (!selectedGroupId) return;
 
@@ -529,13 +687,15 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
       }),
     );
 
+    // Auto-include in all tiers for convenience (can be changed later)
     tiers.forEach((tier) => {
       dispatch(
         addServiceLevel({
-          id: generateId(),
+          serviceLevelId: generateId(),
           serviceId,
           tierId: tier.id,
           level: "INCLUDED",
+          optionGroupId: selectedGroupId,
           lastModified: now,
         }),
       );
@@ -577,22 +737,30 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
     );
 
     if (isIncluded) {
-      if (!existingBinding) {
+      // Add or update service level binding
+      if (existingBinding) {
+        // Service level exists, might need to update it if level changed
+        // (for now we just use INCLUDED)
+      } else {
+        // Create new service level binding
+        const service = services.find((s) => s.id === serviceId);
         dispatch(
           addServiceLevel({
-            id: generateId(),
+            serviceLevelId: generateId(),
             serviceId,
             tierId,
             level: "INCLUDED",
+            optionGroupId: service?.optionGroupId || undefined,
             lastModified: now,
           }),
         );
       }
     } else {
+      // Remove service level binding
       if (existingBinding) {
         dispatch(
           removeServiceLevel({
-            id: existingBinding.id,
+            serviceLevelId: existingBinding.id,
             tierId,
             lastModified: now,
           }),
@@ -739,33 +907,35 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                         BillingCycle,
                         string,
                       ][]
-                    ).map(([value, label]) => (
-                      <label
-                        key={value}
-                        className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={editGroupBillingCycles.includes(value)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setEditGroupBillingCycles([
-                                ...editGroupBillingCycles,
-                                value,
-                              ]);
-                            } else {
-                              setEditGroupBillingCycles(
-                                editGroupBillingCycles.filter(
-                                  (c) => c !== value,
-                                ),
-                              );
-                            }
-                          }}
-                          className="cursor-pointer w-4 h-4"
-                        />
-                        <span>{label}</span>
-                      </label>
-                    ))}
+                    )
+                      .filter(([value]) => value !== "ONE_TIME")
+                      .map(([value, label]) => (
+                        <label
+                          key={value}
+                          className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editGroupBillingCycles.includes(value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditGroupBillingCycles([
+                                  ...editGroupBillingCycles,
+                                  value,
+                                ]);
+                              } else {
+                                setEditGroupBillingCycles(
+                                  editGroupBillingCycles.filter(
+                                    (c) => c !== value,
+                                  ),
+                                );
+                              }
+                            }}
+                            className="cursor-pointer w-4 h-4"
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
                   </div>
                 </div>
               )}
@@ -852,8 +1022,9 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
 
                         const tierBase =
                           parseFloat(editTierPrices[activeTier.id]) || 0;
-                        const tierAmount = activeTier.pricing?.amount ?? 0;
+                        const tierAmount = activeTier.pricing.amount ?? 0;
 
+                        // Budget: sum of other groups' prices for this tier
                         const otherGroupsTotal = regularGroups
                           .filter(
                             (g) => editingGroup && g.id !== editingGroup.id,
@@ -862,8 +1033,16 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             const tp = g.tierDependentPricing?.find(
                               (p) => p.tierId === activeTier.id,
                             );
-                            if (tp) return sum + (tp.amount ?? 0);
-                            return sum + (g.standalonePricing?.amount ?? 0);
+                            const mp = tp?.recurringPricing?.find(
+                              (p) => p.billingCycle === "MONTHLY",
+                            );
+                            if (mp) return sum + (mp.amount ?? 0);
+                            // Fallback to standalone
+                            const sp =
+                              g.standalonePricing?.recurringPricing?.find(
+                                (p) => p.billingCycle === "MONTHLY",
+                              );
+                            return sum + (sp?.amount ?? 0);
                           }, 0);
                         const projectedTotal = otherGroupsTotal + tierBase;
 
@@ -901,41 +1080,42 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             </div>
 
                             {/* Budget indicator -- only in MANUAL_OVERRIDE mode (CALCULATED tier has no fixed budget) */}
-                            {tierAmount > 0 && (
-                              <div className="mt-2 p-2 px-2.5 bg-slate-50 border border-slate-200 rounded-md">
-                                <span className="block text-[0.6875rem] font-semibold text-slate-700 mb-1.5">
-                                  {activeTier.name} budget:{" "}
-                                  {formatPrice(projectedTotal)}/mo of{" "}
-                                  {formatPrice(tierAmount)}/mo
-                                </span>
-                                <div className="flex items-center gap-1.5 py-[3px]">
-                                  <div className="flex-1 h-[5px] bg-slate-200 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-[width] duration-200 ease-linear ${projectedTotal > tierAmount ? "bg-rose-500" : "bg-emerald-500"}`}
-                                      style={{
-                                        width: `${Math.min((projectedTotal / tierAmount) * 100, 100)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <span
-                                    className={`shrink-0 text-[0.625rem] ${projectedTotal > tierAmount ? "text-rose-600 font-semibold" : "text-slate-600"}`}
-                                    style={fontMono}
-                                  >
-                                    {formatPrice(projectedTotal)} /{" "}
-                                    {formatPrice(tierAmount)}
-                                    {projectedTotal > tierAmount && (
-                                      <span className="text-rose-500 font-bold">
-                                        {" "}
-                                        +
-                                        {formatPrice(
-                                          projectedTotal - tierAmount,
-                                        )}
-                                      </span>
-                                    )}
+                            {tierAmount > 0 &&
+                              activeTier.pricingMode !== "CALCULATED" && (
+                                <div className="mt-2 p-2 px-2.5 bg-slate-50 border border-slate-200 rounded-md">
+                                  <span className="block text-[0.6875rem] font-semibold text-slate-700 mb-1.5">
+                                    {activeTier.name} budget:{" "}
+                                    {formatPrice(projectedTotal)}/mo of{" "}
+                                    {formatPrice(tierAmount)}/mo
                                   </span>
+                                  <div className="flex items-center gap-1.5 py-[3px]">
+                                    <div className="flex-1 h-[5px] bg-slate-200 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-[width] duration-200 ease-linear ${projectedTotal > tierAmount ? "bg-rose-500" : "bg-emerald-500"}`}
+                                        style={{
+                                          width: `${Math.min((projectedTotal / tierAmount) * 100, 100)}%`,
+                                        }}
+                                      />
+                                    </div>
+                                    <span
+                                      className={`shrink-0 text-[0.625rem] ${projectedTotal > tierAmount ? "text-rose-600 font-semibold" : "text-slate-600"}`}
+                                      style={fontMono}
+                                    >
+                                      {formatPrice(projectedTotal)} /{" "}
+                                      {formatPrice(tierAmount)}
+                                      {projectedTotal > tierAmount && (
+                                        <span className="text-rose-500 font-bold">
+                                          {" "}
+                                          +
+                                          {formatPrice(
+                                            projectedTotal - tierAmount,
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
                             {/* Setup Cost for this tier */}
                             <div className="flex flex-col gap-1.5">
@@ -989,8 +1169,10 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                                         QUARTERLY: "Quarterly",
                                         SEMI_ANNUAL: "Semi-Annual",
                                         ANNUAL: "Annual",
+                                        ONE_TIME: "One-Time",
                                       }[cycle];
 
+                                      // Percentage discount from user input (always editable)
                                       const discountPct =
                                         parseFloat(
                                           editTierDiscounts[activeTier.id]?.[
@@ -1198,6 +1380,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                               QUARTERLY: "Quarterly",
                               SEMI_ANNUAL: "Semi-Annual",
                               ANNUAL: "Annual",
+                              ONE_TIME: "One-Time",
                             }[cycle];
                             const shortLabel = `${months}mo`;
 
@@ -1930,7 +2113,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                           >
                             {tier.name}
                           </span>
-                          {tier.pricing?.amount != null && (
+                          {tier.pricing.amount !== null && (
                             <span
                               className={`text-xs font-medium whitespace-nowrap ${isSelected ? "text-emerald-600" : "text-slate-500"}`}
                             >
@@ -2204,8 +2387,12 @@ function GroupButton({
             !group.isAddOn &&
             (() => {
               const monthlyPrice =
-                group.tierDependentPricing?.[0]?.amount ??
-                group.standalonePricing?.amount;
+                group.tierDependentPricing?.[0]?.recurringPricing?.find(
+                  (p) => p.billingCycle === "MONTHLY",
+                )?.amount ??
+                group.standalonePricing?.recurringPricing?.find(
+                  (p) => p.billingCycle === "MONTHLY",
+                )?.amount;
               return monthlyPrice != null && monthlyPrice > 0 ? (
                 <span className="text-amber-600">
                   {formatPrice(monthlyPrice, "USD")}/mo
@@ -2500,7 +2687,7 @@ function ServiceCard({
                       >
                         {tier.name}
                       </span>
-                      {tier.pricing?.amount != null && (
+                      {tier.pricing.amount !== null && (
                         <span
                           className={`text-xs font-medium whitespace-nowrap ${isIncluded ? "text-emerald-600" : "text-slate-500"}`}
                         >

@@ -68,10 +68,11 @@ export function CustomerInfo({ document, dispatch, mode }: CustomerInfoProps) {
     dispatch(
       setCustomerType({
         customerType: editType,
+        teamMemberCount: editType === "TEAM" ? editMemberCount : undefined,
       }),
     );
     setIsEditingType(false);
-  }, [dispatch, editType]);
+  }, [dispatch, editType, editMemberCount]);
 
   const handleCancelType = useCallback(() => {
     setEditType(state.customerType || "INDIVIDUAL");
@@ -266,7 +267,7 @@ export function CustomerInfo({ document, dispatch, mode }: CustomerInfoProps) {
             <div className="si-customer-info__row">
               <span className="si-customer-info__label">Budget Category</span>
               <span className="si-customer-info__value">
-                {state.budget.name}
+                {state.budget.label}
               </span>
             </div>
           </div>

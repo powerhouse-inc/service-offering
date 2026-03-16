@@ -1,5 +1,5 @@
 {
-    "name": "v6-service-offering",
+    "name": "@powerhousedao/service-offering",
     "description": "",
     "category": "",
     "publisher": {
@@ -28,8 +28,34 @@
             "name": "SubscriptionInstance"
         }
     ],
-    "editors": [],
+    "editors": [
+        {
+            "id": "resource-instance-editor",
+            "name": "Resource Instance Editor",
+            "documentTypes": ["powerhouse/resource-instance"]
+        },
+        {
+            "id": "resource-template-editor",
+            "name": "Resource Template Editor",
+            "documentTypes": ["powerhouse/resource-template"]
+        },
+        {
+            "id": "service-offering-editor",
+            "name": "Service Offering Editor",
+            "documentTypes": ["powerhouse/service-offering"]
+        },
+        {
+            "id": "subscription-instance-editor",
+            "name": "Subscription Instance Editor",
+            "documentTypes": ["powerhouse/subscription-instance"]
+        }
+    ],
     "apps": [],
-    "subgraphs": [],
+    "subgraphs": [
+        {
+            "id": "resources-services",
+            "name": "Resources & Services"
+        }
+    ],
     "importScripts": []
 }

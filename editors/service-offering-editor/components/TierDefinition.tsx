@@ -134,6 +134,7 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
       addTier({
         id: generateId(),
         name: newTier.name.trim(),
+        currency: newTier.currency,
         isCustomPricing: newTier.isCustomPricing,
         lastModified: new Date().toISOString(),
       }),
@@ -170,6 +171,7 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
         addTier({
           id: generateId(),
           name: tierConfig.name,
+          currency: "USD",
           isCustomPricing: tierConfig.isCustomPricing,
           lastModified: now,
         }),

@@ -406,6 +406,34 @@ type TodoListLocalState {
 - Simple, specific fields over complex nested types
 - System auto-generates `OID` for new objects (users don't provide manually)
 
+## Dual Reactor Architecture & Codegen
+
+The switchboard runs **two reactors simultaneously** with separate storage:
+
+1. **Legacy Reactor** — uses document-drive file-based storage (`.ph/` folder). This is where drives created via `ph vetra` live (e.g. `vetra-b69d8910`).
+2. **New Reactor** (`storageV2`) — uses PGlite/Postgres (`.ph/reactor-storage/`). Has its own independent set of drives.
+
+### Which tools/endpoints target which reactor
+
+| Tool / Endpoint | Reactor | Notes |
+|---|---|---|
+| `switchboard` CLI (`docs list`, `docs mutate`, etc.) | Legacy | Queries the legacy `DriveSubgraph` |
+| GraphQL `/d/:drive` endpoints (e.g. `/d/vetra-b69d8910`) | Legacy | `DriveSubgraph` uses `this.reactor` (legacy) |
+| GraphQL `/graphql` main endpoint | Legacy | Despite `ReactorSubgraph` using `reactorClient`, the data shown is from the legacy reactor |
+| MCP tools (`getDrives`, `getDrive`, `addActions`, etc.) | **New** | Uses `reactorClient` directly — shows different drives/data |
+| Connect Studio at `:3001/d/vetra-b69d8910` | Legacy | Syncs via legacy drive subgraph |
+
+### CodegenProcessor registration
+
+The **CodegenProcessor** (from `@powerhousedao/vetra`) is registered on whichever reactor is active based on the `REACTOR_STORAGE_V2` feature flag (env var, default: `true`).
+
+- When `REACTOR_STORAGE_V2=true` (default): processors run on the **new reactor**. Document models must be in the new reactor's vetra drive for codegen to trigger. Use **MCP tools** to manage document models.
+- When `REACTOR_STORAGE_V2=false`: processors run on the **legacy reactor**. Document models in the legacy `vetra-{hash}` drive will trigger codegen. Use **`switchboard` CLI** to manage document models.
+
+### Bug: `processorConfig` not passed
+
+In `@powerhousedao/ph-cli`, `startLocalVetraSwitchboard` creates a `processorConfig` Map (with interactive mode and drive ID settings) but **does not pass it** to `startSwitchboard()`. This means `module.config` is always `undefined` for processors. The codegen factory falls back to pattern-matching drive slugs/IDs against `vetra*`. This is a known upstream issue.
+
 ## Working with Drives
 
 **MANDATORY**: Check the document-drive schema before performing drive operations.

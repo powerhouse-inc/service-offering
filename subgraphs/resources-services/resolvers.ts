@@ -1,5 +1,6 @@
-import { BaseSubgraph } from "@powerhousedao/reactor-api";
+import type { BaseSubgraph } from "@powerhousedao/reactor-api";
 import type { PHDocument } from "document-model";
+import type { IReactorClient } from "@powerhousedao/reactor";
 import type {
   ResourceTemplateDocument,
   TemplateStatus,
@@ -9,13 +10,19 @@ import type {
   ServiceStatus,
   BillingCycle,
 } from "@powerhousedao/service-offering/document-models/service-offering";
-import { createAction, generateId } from "document-model/core";
-import { addFile } from "document-drive";
-import type { FileNode } from "document-drive";
 import {
-  ResourceInstanceV1,
-  SubscriptionInstanceV1,
+  getUserSelectionPriceBreakdown,
+  type UserSelection,
+  type PriceBreakdown,
+} from "@powerhousedao/service-offering/document-models/service-offering";
+import { createAction } from "document-model/core";
+import { addFile, driveCreateDocument } from "document-drive";
+import type { DocumentDriveDocument, FileNode, Node } from "document-drive";
+import {
+  ResourceInstanceV1 as ResourceInstance,
+  SubscriptionInstanceV1 as SubscriptionInstance,
 } from "@powerhousedao/service-offering/document-models";
+import { mapOfferingToSubscription } from "../../editors/subscription-instance-editor/components/mapOfferingToSubscription.js";
 
 // Filter types
 interface ResourceTemplatesFilter {
@@ -52,8 +59,9 @@ interface CreateProductInstancesInput {
   userSelection: UserSelectionInput;
 }
 
-export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> => {
-  const reactor = subgraph.reactor;
+export const getResolvers = (
+  subgraph: BaseSubgraph,
+): Record<string, unknown> => {
   const reactorClient = subgraph.reactorClient;
 
   return {
@@ -64,39 +72,54 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
       ) => {
         const { id, status, operatorId } = args.filter || {};
 
-        // If filtering by specific id, fetch directly
+        // If filtering by specific id, try to fetch directly
         if (id) {
           try {
-            const result = await reactorClient.find({ type: "powerhouse/resource-template", ids: [id] });
-            const docs = result.results as ResourceTemplateDocument[];
-            if (docs.length === 0) return [];
-
-            const doc = docs[0];
-            const state = doc.state.global;
-            if (status && status.length > 0 && !status.includes(state.status)) {
-              return [];
+            const doc = await reactorClient.get<ResourceTemplateDocument>(id);
+            if (
+              doc &&
+              doc.header.documentType === "powerhouse/resource-template"
+            ) {
+              const state = doc.state.global;
+              if (
+                status &&
+                status.length > 0 &&
+                !status.includes(state.status)
+              ) {
+                return [];
+              }
+              if (operatorId && state.operatorId !== operatorId) {
+                return [];
+              }
+              return [mapResourceTemplateState(state, doc)];
             }
-            if (operatorId && state.operatorId !== operatorId) {
-              return [];
-            }
-            return [mapResourceTemplateState(state, doc)];
           } catch {
-            return [];
+            // Document not found
           }
+          return [];
         }
 
         // Find all resource template documents
-        const result = await reactorClient.find({ type: "powerhouse/resource-template" });
-        const docs = result.results as ResourceTemplateDocument[];
+        const { results: docs } = await reactorClient.find({
+          type: "powerhouse/resource-template",
+        });
 
-        const resourceTemplates: ReturnType<typeof mapResourceTemplateState>[] = [];
+        const resourceTemplates: ReturnType<typeof mapResourceTemplateState>[] =
+          [];
 
         for (const doc of docs) {
-          const state = doc.state.global;
+          const resourceDoc = doc as ResourceTemplateDocument;
+          const state = resourceDoc.state.global;
 
+          // Skip documents missing required fields
+          if (!state.operatorId) continue;
+
+          // Apply status filter if provided
           if (status && status.length > 0 && !status.includes(state.status)) {
             continue;
           }
+
+          // Apply operatorId filter if provided
           if (operatorId && state.operatorId !== operatorId) {
             continue;
           }
@@ -114,48 +137,65 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
         const { id, status, operatorId, resourceTemplateId } =
           args.filter || {};
 
-        // If filtering by specific id, fetch directly
+        // If filtering by specific id, try to fetch directly
         if (id) {
           try {
-            const result = await reactorClient.find({ type: "powerhouse/service-offering", ids: [id] });
-            const docs = result.results as ServiceOfferingDocument[];
-            if (docs.length === 0) return [];
-
-            const doc = docs[0];
-            const state = doc.state.global;
-            if (status && status.length > 0 && !status.includes(state.status)) {
-              return [];
-            }
-            if (operatorId && state.operatorId !== operatorId) {
-              return [];
-            }
+            const doc = await reactorClient.get<ServiceOfferingDocument>(id);
             if (
-              resourceTemplateId &&
-              state.resourceTemplateId !== resourceTemplateId
+              doc &&
+              doc.header.documentType === "powerhouse/service-offering"
             ) {
-              return [];
+              const state = doc.state.global;
+              if (
+                status &&
+                status.length > 0 &&
+                !status.includes(state.status)
+              ) {
+                return [];
+              }
+              if (operatorId && state.operatorId !== operatorId) {
+                return [];
+              }
+              if (
+                resourceTemplateId &&
+                state.resourceTemplateId !== resourceTemplateId
+              ) {
+                return [];
+              }
+              return [mapServiceOfferingState(state, doc)];
             }
-            return [mapServiceOfferingState(state, doc)];
           } catch {
-            return [];
+            // Document not found
           }
+          return [];
         }
 
         // Find all service offering documents
-        const result = await reactorClient.find({ type: "powerhouse/service-offering" });
-        const docs = result.results as ServiceOfferingDocument[];
+        const { results: docs } = await reactorClient.find({
+          type: "powerhouse/service-offering",
+        });
 
-        const serviceOfferings: ReturnType<typeof mapServiceOfferingState>[] = [];
+        const serviceOfferings: ReturnType<typeof mapServiceOfferingState>[] =
+          [];
 
         for (const doc of docs) {
-          const state = doc.state.global;
+          const offeringDoc = doc as ServiceOfferingDocument;
+          const state = offeringDoc.state.global;
 
+          // Skip documents missing required fields
+          if (!state.operatorId) continue;
+
+          // Apply status filter if provided
           if (status && status.length > 0 && !status.includes(state.status)) {
             continue;
           }
+
+          // Apply operatorId filter if provided
           if (operatorId && state.operatorId !== operatorId) {
             continue;
           }
+
+          // Apply resourceTemplateId filter if provided
           if (
             resourceTemplateId &&
             state.resourceTemplateId !== resourceTemplateId
@@ -266,7 +306,7 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
 
         // Fetch the service offering
         const serviceOfferingDoc =
-          await reactor.getDocument<ServiceOfferingDocument>(serviceOfferingId);
+          await reactorClient.get<ServiceOfferingDocument>(serviceOfferingId);
         if (!serviceOfferingDoc) {
           return {
             success: false,
@@ -285,15 +325,42 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
           };
         }
 
-        // Find the selected tier
-        const selectedTier = serviceOfferingState.tiers.find(
-          (t) => t.id === userSelection.tierId,
-        );
-        if (!selectedTier) {
+        // Convert GraphQL overrides to Record<string, BillingCycle>
+        const groupBillingCycleOverrides: Record<string, BillingCycle> = {};
+        for (const o of userSelection.groupBillingCycleOverrides ?? []) {
+          groupBillingCycleOverrides[o.groupId] =
+            o.billingCycle as BillingCycle;
+        }
+        const addonBillingCycleOverrides: Record<string, BillingCycle> = {};
+        for (const o of userSelection.addonBillingCycleOverrides ?? []) {
+          addonBillingCycleOverrides[o.groupId] =
+            o.billingCycle as BillingCycle;
+        }
+
+        // Compute price breakdown from user selection
+        const selection: UserSelection = {
+          tierId: userSelection.tierId,
+          billingCycle: userSelection.billingCycle as BillingCycle,
+          optionGroupIds: userSelection.optionGroupIds ?? [],
+          groupBillingCycleOverrides,
+          addonBillingCycleOverrides,
+        };
+
+        let priceBreakdown: PriceBreakdown;
+        try {
+          priceBreakdown = getUserSelectionPriceBreakdown(
+            serviceOfferingDoc.state,
+            selection,
+          );
+        } catch (error) {
           return {
             success: false,
             data: null,
-            errors: ["Selected tier not found in service offering"],
+            errors: [
+              error instanceof Error
+                ? error.message
+                : "Failed to compute price breakdown from user selection",
+            ],
           };
         }
 
@@ -303,43 +370,38 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
           .toLowerCase()
           .replace(/\s+/g, "-")
           .replace(/_/g, "-");
-        const parsedName = name
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/_/g, "-");
 
         try {
           // create team-builder-admin drive
-          const teamBuilderAdminDrive = await reactor.addDrive({
-            global: {
-              name: teamName,
-              icon: "https://cdn-icons-png.flaticon.com/512/6020/6020347.png",
-            },
-            id: generateId(),
-            slug: parsedTeamName,
-            preferredEditor: "builder-team-admin",
-          });
+          const driveDoc = driveCreateDocument();
+          driveDoc.state.global.name = teamName;
+          driveDoc.state.global.icon =
+            "https://cdn-icons-png.flaticon.com/512/6020/6020347.png";
+          driveDoc.header.slug = parsedTeamName;
+          if (!driveDoc.header.meta) driveDoc.header.meta = {};
+          driveDoc.header.meta.preferredEditor = "builder-team-admin";
+          const teamBuilderAdminDrive =
+            await reactorClient.create<DocumentDriveDocument>(driveDoc);
 
           // create builder-profile doc inside the team-builder-admin drive
-          const builderProfileDoc = await reactor.addDocument(
+          const builderProfileDoc = await reactorClient.createEmpty(
             "powerhouse/builder-profile",
           );
 
-          await reactor.addAction(
-            teamBuilderAdminDrive.header.id,
+          const teamRootFolder = teamBuilderAdminDrive.state.global.nodes.find(
+            (node: Node) => node.kind === "folder",
+          )?.parentFolder;
+
+          await reactorClient.execute(teamBuilderAdminDrive.header.id, "main", [
             addFile({
               documentType: "powerhouse/builder-profile",
               id: builderProfileDoc.header.id,
               name: `${parsedTeamName} Builder Profile`,
-              parentFolder: teamBuilderAdminDrive.state.global.nodes?.find(
-                (node) => node.kind === "folder",
-              )?.parentFolder,
+              parentFolder: teamRootFolder,
             }),
-          );
+          ]);
 
-          await reactor.addAction(
-            builderProfileDoc.header.id,
+          await reactorClient.execute(builderProfileDoc.header.id, "main", [
             createAction(
               "UPDATE_PROFILE",
               { name: parsedTeamName },
@@ -347,20 +409,20 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
               undefined,
               "global",
             ),
-          );
+          ]);
 
           // create resource-instance and subscription-instance docs
-          const resourceInstanceDoc = await reactor.addDocument(
+          const resourceInstanceDoc = await reactorClient.createEmpty(
             "powerhouse/resource-instance",
           );
-          const subscriptionInstanceDoc = await reactor.addDocument(
+          const subscriptionInstanceDoc = await reactorClient.createEmpty(
             "powerhouse/subscription-instance",
           );
 
           // resolve parent folders for both drives
           const teamParentFolder =
-            teamBuilderAdminDrive.state.global.nodes?.find(
-              (node) => node.kind === "folder",
+            teamBuilderAdminDrive.state.global.nodes.find(
+              (node: Node) => node.kind === "folder",
             )?.parentFolder;
 
           const operatorDrive = await getOperatorDrive(
@@ -375,9 +437,10 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
 
           // get operator profile id from operator drive
           const operatorProfileId = operatorDrive.state.global.nodes
-            .filter((node): node is FileNode => node.kind === "file")
+            .filter((node: Node): node is FileNode => node.kind === "file")
             .find(
-              (node) => node.documentType === "powerhouse/builder-profile",
+              (node: FileNode) =>
+                node.documentType === "powerhouse/builder-profile",
             )?.id;
 
           if (!operatorProfileId) {
@@ -387,11 +450,11 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
           }
 
           const operatorParentFolder = operatorDrive.state.global.nodes.find(
-            (node) => node.kind === "folder",
+            (node: Node) => node.kind === "folder",
           )?.parentFolder;
 
           // batch add resource-instance and subscription-instance to team-builder-admin drive
-          await reactor.addActions(teamBuilderAdminDrive.header.id, [
+          await reactorClient.execute(teamBuilderAdminDrive.header.id, "main", [
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
@@ -407,7 +470,7 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
           ]);
 
           // batch add resource-instance and subscription-instance to operator drive
-          await reactor.addActions(operatorDrive.header.id, [
+          await reactorClient.execute(operatorDrive.header.id, "main", [
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
@@ -424,7 +487,7 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
 
           // populate documents after all files are added to both drives
           await populateResourceInstance(
-            reactor,
+            reactorClient,
             resourceInstanceDoc.header.id,
             resourceTemplateId,
             operatorProfileId, // operator profile id
@@ -434,32 +497,43 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
 
           const now = new Date().toISOString();
 
-          await reactor.addAction(
+          const subscriptionInput = mapOfferingToSubscription({
+            offering: serviceOfferingState,
+            tierId: selection.tierId,
+            selectedBillingCycle: selection.billingCycle,
+            customerId: builderProfileDoc.header.id,
+            customerName: name,
+            customerEmail,
+            createdAt: now,
+            priceBreakdown,
+          });
+
+          await reactorClient.execute(
             subscriptionInstanceDoc.header.id,
-            SubscriptionInstanceV1.actions.initializeSubscription({
-              createdAt: now,
-              customerId: builderProfileDoc.header.id,
-              customerName: name,
-              customerEmail,
-              serviceOfferingId,
-              tierName: selectedTier.name,
-              tierPricingOptionId: selectedTier.id,
-              tierPrice: selectedTier.pricing?.amount ?? undefined,
-              tierCurrency: selectedTier.pricing?.currency ?? "USD",
-              tierPricingMode: selectedTier.pricingMode,
-              selectedBillingCycle: userSelection.billingCycle as BillingCycle,
-              globalCurrency: selectedTier.pricing?.currency ?? "USD",
-            }),
+            "main",
+            [
+              SubscriptionInstance.actions.initializeSubscription({
+                ...subscriptionInput,
+                resourceId: resourceInstanceDoc.header.id,
+                resourceLabel: parsedTeamName,
+                resourceThumbnailUrl: serviceOfferingState.thumbnailUrl,
+              }),
+            ],
           );
 
-          const projectedAmount = selectedTier.pricing?.amount;
+          // Set billing projection from tier price
+          const projectedAmount =
+            subscriptionInput.tierPrice ?? priceBreakdown.tierCycleTotal;
           if (projectedAmount != null) {
-            await reactor.addAction(
+            await reactorClient.execute(
               subscriptionInstanceDoc.header.id,
-              SubscriptionInstanceV1.actions.updateBillingProjection({
-                projectedBillAmount: projectedAmount,
-                projectedBillCurrency: selectedTier.pricing?.currency || "USD",
-              }),
+              "main",
+              [
+                SubscriptionInstance.actions.updateBillingProjection({
+                  projectedBillAmount: projectedAmount,
+                  projectedBillCurrency: priceBreakdown.tierCurrency || "USD",
+                }),
+              ],
             );
           }
 
@@ -492,7 +566,8 @@ export const getResolvers = (subgraph: BaseSubgraph): Record<string, unknown> =>
  * Uses the drive slug in the switchboard URL path.
  */
 function getDriveLink(driveSlug: string): string {
-  const baseUri = process.env.BASE_URI || "";
+  const baseUri =
+    typeof process !== "undefined" ? process.env.BASE_URI || "" : "";
 
   if (baseUri.includes("-dev.")) {
     return `https://connect-dev.powerhouse.xyz/?driveUrl=https://switchboard-dev.powerhouse.xyz/d/${driveSlug}`;
@@ -526,18 +601,18 @@ function mapResourceTemplateState(
     infoLink: state.infoLink || null,
     status: state.status,
     lastModified: state.lastModified,
-    targetAudiences: state.targetAudiences.map((audience) => ({
+    targetAudiences: (state.targetAudiences || []).map((audience) => ({
       id: audience.id,
       label: audience.label,
       color: audience.color || null,
     })),
-    setupServices: state.setupServices,
-    recurringServices: state.recurringServices,
-    facetTargets: state.facetTargets.map((facet) => ({
+    setupServices: state.setupServices || [],
+    recurringServices: state.recurringServices || [],
+    facetTargets: (state.facetTargets || []).map((facet) => ({
       id: facet.id,
       categoryKey: facet.categoryKey,
       categoryLabel: facet.categoryLabel,
-      selectedOptions: facet.selectedOptions,
+      selectedOptions: facet.selectedOptions || [],
     })),
     services: (state.services || []).map((service) => ({
       id: service.id,
@@ -551,7 +626,7 @@ function mapResourceTemplateState(
         id: binding.id,
         facetName: binding.facetName,
         facetType: binding.facetType,
-        supportedOptions: binding.supportedOptions,
+        supportedOptions: binding.supportedOptions || [],
       })),
     })),
     optionGroups: (state.optionGroups || []).map((group) => ({
@@ -567,7 +642,7 @@ function mapResourceTemplateState(
       answer: faq.answer || null,
       displayOrder: faq.displayOrder,
     })),
-    contentSections: state.contentSections.map((section) => ({
+    contentSections: (state.contentSections || []).map((section) => ({
       id: section.id,
       title: section.title,
       content: section.content,
@@ -581,7 +656,7 @@ function mapResourceTemplateState(
  * Initializes basic info and sets facet configuration from template facetTargets.
  */
 async function populateResourceInstance(
-  reactor: BaseSubgraph["reactor"],
+  reactorClient: IReactorClient,
   resourceInstanceDocId: string,
   resourceTemplateId: string,
   operatorId: string,
@@ -589,15 +664,14 @@ async function populateResourceInstance(
   customerName: string,
 ) {
   const resourceTemplateDoc =
-    await reactor.getDocument<ResourceTemplateDocument>(resourceTemplateId);
+    await reactorClient.get<ResourceTemplateDocument>(resourceTemplateId);
   if (!resourceTemplateDoc) return;
 
   const templateState = resourceTemplateDoc.state.global;
 
   // Initialize instance with basic info from template
-  await reactor.addAction(
-    resourceInstanceDocId,
-    ResourceInstanceV1.actions.initializeInstance({
+  await reactorClient.execute(resourceInstanceDocId, "main", [
+    ResourceInstance.actions.initializeInstance({
       operatorId,
       operatorDocumentType: "powerhouse/builder-profile",
       resourceTemplateId,
@@ -608,22 +682,34 @@ async function populateResourceInstance(
       infoLink: templateState.infoLink,
       description: templateState.description,
     }),
-  );
+  ]);
 
   // Populate facet configuration from template's facetTargets
   for (const facetTarget of templateState.facetTargets) {
     if (facetTarget.selectedOptions.length > 0) {
-      await reactor.addAction(
-        resourceInstanceDocId,
-        ResourceInstanceV1.actions.setInstanceFacet({
+      await reactorClient.execute(resourceInstanceDocId, "main", [
+        ResourceInstance.actions.setInstanceFacet({
           id: facetTarget.id,
           categoryKey: facetTarget.categoryKey,
           categoryLabel: facetTarget.categoryLabel,
           selectedOption: facetTarget.selectedOptions[0],
         }),
-      );
+      ]);
     }
   }
+}
+
+/**
+ * Map a DiscountRule to the GraphQL shape, or null
+ */
+function mapDiscountRule(
+  rule: { discountType: string; discountValue: number } | null | undefined,
+) {
+  if (!rule) return null;
+  return {
+    discountType: rule.discountType,
+    discountValue: rule.discountValue,
+  };
 }
 
 /**
@@ -644,14 +730,14 @@ function mapServiceOfferingState(
     infoLink: state.infoLink || null,
     status: state.status,
     lastModified: state.lastModified,
-    availableBillingCycles: state.availableBillingCycles,
-    facetTargets: state.facetTargets.map((facet) => ({
+    availableBillingCycles: state.availableBillingCycles || [],
+    facetTargets: (state.facetTargets || []).map((facet) => ({
       id: facet.id,
       categoryKey: facet.categoryKey,
       categoryLabel: facet.categoryLabel,
-      selectedOptions: facet.selectedOptions,
+      selectedOptions: facet.selectedOptions || [],
     })),
-    services: state.services.map((service) => ({
+    services: (state.services || []).map((service) => ({
       id: service.id,
       title: service.title,
       description: service.description || null,
@@ -659,61 +745,106 @@ function mapServiceOfferingState(
       isSetupFormation: service.isSetupFormation,
       optionGroupId: service.optionGroupId || null,
     })),
-    tiers: state.tiers.map((tier) => ({
+    tiers: (state.tiers || []).map((tier) => ({
       id: tier.id,
       name: tier.name,
       description: tier.description || null,
       isCustomPricing: tier.isCustomPricing,
-      pricingMode: tier.pricingMode,
-      pricing: tier.pricing
-        ? {
-            amount: tier.pricing.amount,
-            currency: tier.pricing.currency,
-          }
-        : null,
+      pricingMode: tier.pricingMode || null,
+      pricing: {
+        amount: tier.pricing?.amount ?? null,
+        currency: tier.pricing?.currency ?? "USD",
+      },
       defaultBillingCycle: tier.defaultBillingCycle || null,
-      billingCycleDiscounts: tier.billingCycleDiscounts.map((d) => ({
-        cycle: d.cycle,
-        discountType: d.discountType,
-        discountValue: d.discountValue,
+      billingCycleDiscounts: (tier.billingCycleDiscounts || []).map((d) => ({
+        billingCycle: d.billingCycle,
+        discountRule: {
+          discountType: d.discountRule?.discountType,
+          discountValue: d.discountRule?.discountValue,
+        },
       })),
-      serviceLevels: tier.serviceLevels.map((level) => ({
+      serviceLevels: (tier.serviceLevels || []).map((level) => ({
         id: level.id,
         serviceId: level.serviceId,
         level: level.level,
-        description: level.description || null,
+        customValue: level.customValue || null,
+        optionGroupId: level.optionGroupId || null,
       })),
-      usageLimits: tier.usageLimits.map((limit) => ({
+      usageLimits: (tier.usageLimits || []).map((limit) => ({
         id: limit.id,
-        name: limit.name,
-        limit: limit.limit,
-        unit: limit.unit || null,
+        serviceId: limit.serviceId,
+        metric: limit.metric,
+        unitName: limit.unitName || null,
+        freeLimit: limit.freeLimit ?? null,
+        paidLimit: limit.paidLimit ?? null,
+        resetCycle: limit.resetCycle || null,
+        notes: limit.notes || null,
+        unitPrice: limit.unitPrice ?? null,
+        unitPriceCurrency: limit.unitPriceCurrency || null,
       })),
     })),
-    optionGroups: state.optionGroups.map((group) => ({
+    optionGroups: (state.optionGroups || []).map((group) => ({
       id: group.id,
       name: group.name,
       description: group.description || null,
       isAddOn: group.isAddOn,
       defaultSelected: group.defaultSelected,
-      pricingMode: group.pricingMode,
+      pricingMode: group.pricingMode || null,
       standalonePricing: group.standalonePricing
         ? {
-            amount: group.standalonePricing.amount,
-            currency: group.standalonePricing.currency,
+            setupCost: group.standalonePricing.setupCost
+              ? {
+                  amount: group.standalonePricing.setupCost.amount,
+                  currency: group.standalonePricing.setupCost.currency,
+                  discount: mapDiscountRule(
+                    group.standalonePricing.setupCost.discount,
+                  ),
+                }
+              : null,
+            recurringPricing: (
+              group.standalonePricing.recurringPricing || []
+            ).map((rp) => ({
+              id: rp.id,
+              billingCycle: rp.billingCycle,
+              amount: rp.amount,
+              currency: rp.currency,
+              discount: mapDiscountRule(rp.discount),
+            })),
           }
         : null,
       tierDependentPricing: (group.tierDependentPricing || []).map((tp) => ({
+        id: tp.id,
         tierId: tp.tierId,
-        amount: tp.amount,
-        currency: tp.currency,
+        setupCost: tp.setupCost
+          ? {
+              amount: tp.setupCost.amount,
+              currency: tp.setupCost.currency,
+              discount: mapDiscountRule(tp.setupCost.discount),
+            }
+          : null,
+        setupCostDiscounts: (tp.setupCostDiscounts || []).map((d) => ({
+          billingCycle: d.billingCycle,
+          discountRule: {
+            discountType: d.discountRule?.discountType,
+            discountValue: d.discountRule?.discountValue,
+          },
+        })),
+        recurringPricing: (tp.recurringPricing || []).map((rp) => ({
+          id: rp.id,
+          billingCycle: rp.billingCycle,
+          amount: rp.amount,
+          currency: rp.currency,
+          discount: mapDiscountRule(rp.discount),
+        })),
       })),
       costType: group.costType || null,
       availableBillingCycles: group.availableBillingCycles || [],
-      billingCycleDiscounts: group.billingCycleDiscounts.map((d) => ({
-        cycle: d.cycle,
-        discountType: d.discountType,
-        discountValue: d.discountValue,
+      billingCycleDiscounts: (group.billingCycleDiscounts || []).map((d) => ({
+        billingCycle: d.billingCycle,
+        discountRule: {
+          discountType: d.discountRule?.discountType,
+          discountValue: d.discountRule?.discountValue,
+        },
       })),
       discountMode: group.discountMode || null,
       price: group.price ?? null,
@@ -722,19 +853,28 @@ function mapServiceOfferingState(
   };
 }
 
-/**
- * Find the drive that contains a given resource template document.
- * Uses reactorClient to find the parent drive.
- */
 async function getOperatorDrive(
-  reactorClient: BaseSubgraph["reactorClient"],
+  reactorClient: IReactorClient,
   resourceTemplateId: string,
-) {
-  const result = await reactorClient.getParents(resourceTemplateId);
-  const parentDrive = result.results.find(
-    (doc) => doc.header.documentType === "powerhouse/document-drive",
-  );
-  return parentDrive as
-    | (PHDocument & { state: { global: { nodes: FileNode[] } } })
-    | undefined;
+): Promise<DocumentDriveDocument | undefined> {
+  // Find all drives
+  const { results: drives } = await reactorClient.find({
+    type: "powerhouse/document-drive",
+  });
+
+  for (const drive of drives) {
+    const driveDoc = drive as DocumentDriveDocument;
+    // Check if this drive contains the resource template as a child
+    const { results: children } = await reactorClient.getChildren(
+      driveDoc.header.id,
+    );
+    const hasTemplate = children.some(
+      (child: PHDocument) => child.header.id === resourceTemplateId,
+    );
+    if (hasTemplate) {
+      return driveDoc;
+    }
+  }
+
+  return undefined;
 }

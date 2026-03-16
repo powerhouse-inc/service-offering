@@ -1,3 +1,10 @@
+import {
+  RemoveFacetTargetNotFoundError,
+  AddFacetOptionTargetNotFoundError,
+  RemoveFacetOptionTargetNotFoundError,
+  ChangeResourceTemplateMismatchError,
+  NoBillingCyclesSelectedError,
+} from "../../gen/offering/error.js";
 import type { ServiceOfferingOfferingOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
 
 export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperations =
@@ -46,31 +53,40 @@ export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperation
       const index = state.facetTargets.findIndex(
         (ft) => ft.categoryKey === action.input.categoryKey,
       );
-      if (index !== -1) {
-        state.facetTargets.splice(index, 1);
+      if (index === -1) {
+        throw new RemoveFacetTargetNotFoundError(
+          `Facet target with category key ${action.input.categoryKey} not found`,
+        );
       }
+      state.facetTargets.splice(index, 1);
       state.lastModified = action.input.lastModified;
     },
     addFacetOptionOperation(state, action) {
       const facetTarget = state.facetTargets.find(
         (ft) => ft.categoryKey === action.input.categoryKey,
       );
-      if (facetTarget) {
-        facetTarget.selectedOptions.push(action.input.optionId);
+      if (!facetTarget) {
+        throw new AddFacetOptionTargetNotFoundError(
+          `Facet target with category key ${action.input.categoryKey} not found`,
+        );
       }
+      facetTarget.selectedOptions.push(action.input.optionId);
       state.lastModified = action.input.lastModified;
     },
     removeFacetOptionOperation(state, action) {
       const facetTarget = state.facetTargets.find(
         (ft) => ft.categoryKey === action.input.categoryKey,
       );
-      if (facetTarget) {
-        const optIndex = facetTarget.selectedOptions.indexOf(
-          action.input.optionId,
+      if (!facetTarget) {
+        throw new RemoveFacetOptionTargetNotFoundError(
+          `Facet target with category key ${action.input.categoryKey} not found`,
         );
-        if (optIndex !== -1) {
-          facetTarget.selectedOptions.splice(optIndex, 1);
-        }
+      }
+      const optIndex = facetTarget.selectedOptions.indexOf(
+        action.input.optionId,
+      );
+      if (optIndex !== -1) {
+        facetTarget.selectedOptions.splice(optIndex, 1);
       }
       state.lastModified = action.input.lastModified;
     },
@@ -79,13 +95,21 @@ export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperation
       state.lastModified = action.input.lastModified;
     },
     changeResourceTemplateOperation(state, action) {
-      state.resourceTemplateId = action.input.resourceTemplateId;
+      if (state.resourceTemplateId !== action.input.previousTemplateId) {
+        throw new ChangeResourceTemplateMismatchError(
+          `Current template ${state.resourceTemplateId} does not match previous template ${action.input.previousTemplateId}`,
+        );
+      }
+      state.resourceTemplateId = action.input.newTemplateId;
       state.lastModified = action.input.lastModified;
     },
     setAvailableBillingCyclesOperation(state, action) {
-      if (action.input.billingCycles.length > 0) {
-        state.availableBillingCycles = action.input.billingCycles;
+      if (action.input.billingCycles.length === 0) {
+        throw new NoBillingCyclesSelectedError(
+          "At least one billing cycle must be selected",
+        );
       }
+      state.availableBillingCycles = action.input.billingCycles;
       state.lastModified = action.input.lastModified;
     },
   };

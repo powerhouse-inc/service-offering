@@ -36,7 +36,7 @@ export const initialGlobalState: SubscriptionInstanceGlobalState = {
   selectedBillingCycle: null,
   globalCurrency: null,
   resource: null,
-  status: "DRAFT",
+  status: "PENDING",
   createdAt: null,
   activatedSince: null,
   pausedSince: null,
@@ -56,7 +56,7 @@ export const initialGlobalState: SubscriptionInstanceGlobalState = {
 export const initialLocalState: SubscriptionInstanceLocalState = {};
 
 export const utils: DocumentModelUtils<SubscriptionInstancePHState> = {
-  fileExtension: "phsi",
+  fileExtension: "",
   createState(state) {
     return {
       ...defaultBaseState(),

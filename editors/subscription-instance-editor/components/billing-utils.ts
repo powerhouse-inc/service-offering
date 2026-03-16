@@ -1,6 +1,7 @@
 import type {
   SubscriptionInstanceState,
   ServiceMetric,
+  DiscountInfo,
 } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
 
 // ─── Formatting ─────────────────────────────────────────────
@@ -46,10 +47,7 @@ export const BILLING_CYCLE_LABELS: Record<string, string> = {
 
 // ─── Discount display ───────────────────────────────────────
 
-export function formatDiscountBadge(discount: {
-  discountType: string;
-  discountValue: number;
-}): string {
+export function formatDiscountBadge(discount: DiscountInfo): string {
   if (discount.discountType === "PERCENTAGE") {
     return `${discount.discountValue}% off`;
   }
@@ -86,28 +84,27 @@ export interface MetricOverage {
 
 export function computeMetricOverage(
   metric: ServiceMetric,
-  currency: string = "USD",
 ): MetricOverage | null {
   const freeLimit = metric.freeLimit ?? metric.limit ?? 0;
   const paidLimit = metric.paidLimit ?? null;
 
   if (freeLimit <= 0 && paidLimit == null) return null;
   if (metric.currentUsage <= freeLimit) return null;
-  if (metric.unitCost == null) return null;
+  if (!metric.unitCost) return null;
 
   const excess = metric.currentUsage - freeLimit;
-  const projectedCost = excess * metric.unitCost;
+  const projectedCost = excess * metric.unitCost.amount;
 
   return {
     metricId: metric.id,
     metricName: metric.name,
-    unitName: metric.unitName ?? "units",
+    unitName: metric.unitName,
     currentUsage: metric.currentUsage,
     freeLimit,
     paidLimit,
     excess,
-    unitCostAmount: metric.unitCost,
-    unitCostCurrency: currency,
+    unitCostAmount: metric.unitCost.amount,
+    unitCostCurrency: metric.unitCost.currency,
     projectedCost,
   };
 }
@@ -118,8 +115,12 @@ export interface GroupBillingBreakdown {
   groupId: string;
   groupName: string;
   optional: boolean;
+  /** Group-level recurring cost (fixed cost) */
   recurringAmount: number | null;
   recurringCurrency: string;
+  recurringCycle: string | null;
+  discount: DiscountInfo | null;
+  /** Dynamic costs from service metrics */
   metricOverages: MetricOverage[];
   dynamicTotal: number;
 }
@@ -134,12 +135,19 @@ export interface SetupCostLine {
 
 export interface BillingBreakdown {
   currency: string;
+  /** Sum of group recurring costs */
   fixedTotal: number;
+  /** Sum of metric overage projections */
   dynamicTotal: number;
+  /** fixedTotal + dynamicTotal */
   projectedTotal: number;
+  /** Standalone service recurring costs (not in groups) */
   standaloneFixedTotal: number;
+  /** Breakdown per service group */
   groupBreakdowns: GroupBillingBreakdown[];
+  /** Standalone services with metrics */
   standaloneOverages: MetricOverage[];
+  /** All setup costs */
   setupLines: SetupCostLine[];
   setupTotal: number;
   billingCycle: string | null;
@@ -151,26 +159,15 @@ export function computeBillingBreakdown(
   const currency = state.globalCurrency || state.tierCurrency || "USD";
   const billingCycle = state.selectedBillingCycle || null;
 
+  // Group breakdowns
   const groupBreakdowns: GroupBillingBreakdown[] = [];
   const setupLines: SetupCostLine[] = [];
 
-  const allGroupedServiceIds = new Set<string>();
-  for (const group of state.serviceGroups) {
-    for (const svcId of group.services) {
-      allGroupedServiceIds.add(svcId);
-    }
-  }
-
   for (const group of state.serviceGroups) {
     const metricOverages: MetricOverage[] = [];
-    const groupServiceIds = new Set(group.services);
-    const groupServices = state.services.filter((svc) =>
-      groupServiceIds.has(svc.id),
-    );
-
-    for (const svc of groupServices) {
+    for (const svc of group.services) {
       for (const metric of svc.metrics) {
-        const overage = computeMetricOverage(metric, currency);
+        const overage = computeMetricOverage(metric);
         if (overage) metricOverages.push(overage);
       }
     }
@@ -186,43 +183,47 @@ export function computeBillingBreakdown(
       optional: group.optional,
       recurringAmount: group.recurringCost?.amount ?? null,
       recurringCurrency: group.recurringCost?.currency ?? currency,
+      recurringCycle: group.recurringCost?.billingCycle ?? billingCycle,
+      discount: group.recurringCost?.discount ?? null,
       metricOverages,
       dynamicTotal,
     });
 
+    // Collect setup costs from group level
     if (group.setupCost) {
       setupLines.push({
         name: group.name,
         amount: group.setupCost.amount,
         currency: group.setupCost.currency,
-        paid: !!group.setupCost.paidAt,
+        paid: !!group.setupCost.paymentDate,
         source: "group",
       });
     }
 
-    for (const svc of groupServices) {
+    // Collect setup costs from services in group
+    for (const svc of group.services) {
       if (svc.setupCost) {
         setupLines.push({
           name: `${svc.name || "Service"} (${group.name})`,
           amount: svc.setupCost.amount,
           currency: svc.setupCost.currency,
-          paid: !!svc.setupCost.paidAt,
+          paid: !!svc.setupCost.paymentDate,
           source: "service",
         });
       }
     }
   }
 
+  // Standalone services (not in groups)
   const standaloneOverages: MetricOverage[] = [];
   let standaloneFixedTotal = 0;
 
   for (const svc of state.services) {
-    if (allGroupedServiceIds.has(svc.id)) continue;
     if (svc.recurringCost) {
       standaloneFixedTotal += svc.recurringCost.amount;
     }
     for (const metric of svc.metrics) {
-      const overage = computeMetricOverage(metric, currency);
+      const overage = computeMetricOverage(metric);
       if (overage) standaloneOverages.push(overage);
     }
     if (svc.setupCost) {
@@ -230,7 +231,7 @@ export function computeBillingBreakdown(
         name: svc.name || "Service",
         amount: svc.setupCost.amount,
         currency: svc.setupCost.currency,
-        paid: !!svc.setupCost.paidAt,
+        paid: !!svc.setupCost.paymentDate,
         source: "service",
       });
     }

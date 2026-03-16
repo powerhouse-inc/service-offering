@@ -4,6 +4,7 @@ export const subscriptionInstanceCustomerOperations: SubscriptionInstanceCustome
   {
     setCustomerTypeOperation(state, action) {
       state.customerType = action.input.customerType;
+      state.teamMemberCount = action.input.teamMemberCount || null;
     },
     updateTeamMemberCountOperation(state, action) {
       state.teamMemberCount = action.input.teamMemberCount;

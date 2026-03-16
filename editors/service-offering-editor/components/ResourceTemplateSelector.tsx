@@ -259,7 +259,8 @@ export function ResourceTemplateSelector({
       if (currentTemplateId === template.id) {
         dispatch(
           changeResourceTemplate({
-            resourceTemplateId: "",
+            previousTemplateId: currentTemplateId,
+            newTemplateId: "",
             lastModified: now,
           }),
         );
@@ -269,7 +270,8 @@ export function ResourceTemplateSelector({
       if (currentTemplateId) {
         dispatch(
           changeResourceTemplate({
-            resourceTemplateId: template.id,
+            previousTemplateId: currentTemplateId,
+            newTemplateId: template.id,
             lastModified: now,
           }),
         );
