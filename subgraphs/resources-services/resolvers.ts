@@ -477,6 +477,9 @@ export const getResolvers = (
             ]);
           }
 
+          // create a team folder inside "Service Subscriptions" for this team's docs
+          const teamFolderId = generateId();
+
           // add reactor-level relationships so Connect syncs the child documents
           // (createEmpty guarantees CREATE_DOCUMENT is persisted before this runs)
           await reactorClient.addChildren(operatorDrive.header.id, [
@@ -484,19 +487,24 @@ export const getResolvers = (
             subscriptionInstanceDoc.header.id,
           ]);
 
-          // add file references to operator drive under "Service Subscriptions"
+          // add team folder and file references to operator drive
           await reactorClient.execute(operatorDrive.header.id, "main", [
+            addFolder({
+              id: teamFolderId,
+              name: teamName,
+              parentFolder: serviceSubscriptionsFolderId,
+            }),
             addFile({
               documentType: "powerhouse/resource-instance",
               id: resourceInstanceDoc.header.id,
               name: `${parsedTeamName} Resource Instance`,
-              parentFolder: serviceSubscriptionsFolderId,
+              parentFolder: teamFolderId,
             }),
             addFile({
               documentType: "powerhouse/subscription-instance",
               id: subscriptionInstanceDoc.header.id,
               name: `${parsedTeamName} Subscription Instance`,
-              parentFolder: serviceSubscriptionsFolderId,
+              parentFolder: teamFolderId,
             }),
           ]);
 
