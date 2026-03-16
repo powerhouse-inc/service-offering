@@ -1,4 +1,5 @@
 import type { SubscriptionInstanceMetricsOperations } from "@powerhousedao/service-offering/document-models/subscription-instance/v1";
+import { findService } from "./utils.js";
 import {
   AddServiceMetricServiceNotFoundError,
   UpdateMetricServiceNotFoundError,
@@ -16,7 +17,7 @@ import {
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
   {
     addServiceMetricOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findService(state, action.input.serviceId);
       if (!svc) {
         throw new AddServiceMetricServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
@@ -48,7 +49,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       });
     },
     updateMetricOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findService(state, action.input.serviceId);
       if (!svc) {
         throw new UpdateMetricServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
@@ -70,7 +71,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         metric.nextUsageReset = action.input.nextUsageReset || null;
     },
     updateMetricUsageOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findService(state, action.input.serviceId);
       if (!svc) {
         throw new UpdateMetricUsageServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
@@ -85,7 +86,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       metric.currentUsage = action.input.currentUsage;
     },
     removeServiceMetricOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findService(state, action.input.serviceId);
       if (!svc) {
         throw new RemoveServiceMetricServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
@@ -102,7 +103,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       svc.metrics.splice(index, 1);
     },
     incrementMetricUsageOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findService(state, action.input.serviceId);
       if (!svc) {
         throw new IncrementMetricUsageServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
@@ -117,7 +118,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       metric.currentUsage += action.input.incrementBy;
     },
     decrementMetricUsageOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findService(state, action.input.serviceId);
       if (!svc) {
         throw new DecrementMetricUsageServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
