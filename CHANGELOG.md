@@ -1,3 +1,10 @@
+# [1.0.0-dev.6](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.5...v1.0.0-dev.6) (2026-03-16)
+
+
+### Bug Fixes
+
+* **subgraph:** use relative imports to avoid PHDocumentController barrel export crash ([cf03030](https://github.com/powerhouse-inc/service-offering/commit/cf03030bd35e90597f728c810979045cfd4d0bbc))
+
 # [1.0.0-dev.5](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.4...v1.0.0-dev.5) (2026-03-16)
 
 
