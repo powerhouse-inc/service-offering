@@ -1,3 +1,10 @@
+# [1.0.0-dev.7](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.6...v1.0.0-dev.7) (2026-03-16)
+
+
+### Bug Fixes
+
+* comment controller imports ([96f3d25](https://github.com/powerhouse-inc/service-offering/commit/96f3d2598e6f93904988ee087fe7c21d86bb5a7b))
+
 # [1.0.0-dev.6](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.5...v1.0.0-dev.6) (2026-03-16)
 
 
