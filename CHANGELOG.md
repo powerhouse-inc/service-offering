@@ -1,3 +1,15 @@
+# [1.0.0-dev.8](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.7...v1.0.0-dev.8) (2026-03-17)
+
+
+### Bug Fixes
+
+* mostPopular tier uniqueness, circular dep, and subscription service filtering ([36067a8](https://github.com/powerhouse-inc/service-offering/commit/36067a8c07d4a5982a5fd1bcc3039e0f0fef43be))
+* place instance docs in correct folders in the resolver ([a932811](https://github.com/powerhouse-inc/service-offering/commit/a93281154a96d4e616d20a31ac9b21f3b58c140b))
+* **subgraph:** clarify addChildren comment on CREATE_DOCUMENT guarantee ([681ceb8](https://github.com/powerhouse-inc/service-offering/commit/681ceb8a7f7b270ff694280f984238e868c8ecac))
+* **subgraph:** organize operator drive instance docs under team folder ([0e8f1c2](https://github.com/powerhouse-inc/service-offering/commit/0e8f1c2875a98c271083734a86593fd4827b64e2))
+* **subgraph:** register instance docs as children of operator drive ([3670a77](https://github.com/powerhouse-inc/service-offering/commit/3670a7708ae346c0e382788da4bb7d949dc4c3bf))
+* **subscription-instance:** search service groups when adjusting metric usage ([bafade2](https://github.com/powerhouse-inc/service-offering/commit/bafade222d96e2a9c8fa2f670b725a4e0fb6d196))
+
 # [1.0.0-dev.7](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.6...v1.0.0-dev.7) (2026-03-16)
 
 
