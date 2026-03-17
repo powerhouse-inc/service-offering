@@ -327,6 +327,7 @@ export type ServiceSubscriptionTier = {
   description: Maybe<Scalars["String"]["output"]>;
   id: Scalars["OID"]["output"];
   isCustomPricing: Scalars["Boolean"]["output"];
+  mostPopular: Scalars["Boolean"]["output"];
   name: Scalars["String"]["output"];
   pricing: ServicePricing;
   pricingMode: Maybe<TierPricingMode>;
@@ -481,6 +482,7 @@ export type UpdateTierInput = {
   id: Scalars["OID"]["input"];
   isCustomPricing?: InputMaybe<Scalars["Boolean"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
+  mostPopular?: InputMaybe<Scalars["Boolean"]["input"]>;
   name?: InputMaybe<Scalars["String"]["input"]>;
 };
 

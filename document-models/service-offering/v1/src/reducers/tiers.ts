@@ -29,6 +29,7 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
         currency: action.input.currency,
       },
       defaultBillingCycle: null,
+      mostPopular: false,
       billingCycleDiscounts: [],
       serviceLevels: [],
       usageLimits: [],
@@ -51,6 +52,17 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
     )
       tier.isCustomPricing = action.input.isCustomPricing;
     state.lastModified = action.input.lastModified;
+    if (
+      action.input.mostPopular !== undefined &&
+      action.input.mostPopular !== null
+    ) {
+      if (action.input.mostPopular) {
+        for (const t of state.tiers) {
+          t.mostPopular = false;
+        }
+      }
+      tier.mostPopular = action.input.mostPopular;
+    }
   },
   updateTierPricingOperation(state, action) {
     const tier = state.tiers.find((t) => t.id === action.input.tierId);

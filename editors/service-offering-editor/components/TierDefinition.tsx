@@ -23,15 +23,6 @@ interface TierDefinitionProps {
   dispatch: DocumentDispatch<ServiceOfferingAction>;
 }
 
-// Determine which tier should show "Most Popular" badge
-// Uses middle-tier heuristic (Good-Better-Best psychology)
-function getRecommendedTierIndex(tiers: ServiceSubscriptionTier[]): number {
-  if (tiers.length < 2) return -1;
-  if (tiers.length === 2) return 1; // Second tier for 2-tier setup
-  // For 3+ tiers, recommend the middle tier (or middle-right for even counts)
-  return Math.floor(tiers.length / 2);
-}
-
 const TIER_ACCENTS = [
   {
     color: "var(--so-emerald-500)",
@@ -182,8 +173,6 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
   const getTierAccent = (index: number) =>
     TIER_ACCENTS[index % TIER_ACCENTS.length];
 
-  const recommendedTierIndex = getRecommendedTierIndex(tiers);
-
   return (
     <>
       <div className="flex flex-col gap-6">
@@ -319,7 +308,7 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
               accent={getTierAccent(index)}
               dispatch={dispatch}
               onDelete={() => handleDeleteTier(tier.id)}
-              isRecommended={index === recommendedTierIndex}
+              isRecommended={tier.mostPopular}
               regularGroups={regularGroups}
             />
           ))}
@@ -537,10 +526,10 @@ const TierCard = memo(function TierCard({
         animation: "tier-slide-up 0.3s ease-out",
       }}
     >
-      {/* Most Popular Badge - Social Proof */}
-      {isRecommended && (
+      {/* Most Popular Badge or Set Button — positioned top-right */}
+      {isRecommended ? (
         <div
-          className="absolute top-[-1px] left-1/2 -translate-x-1/2 flex items-center gap-1 py-1 px-3.5 text-white text-[0.6875rem] font-semibold uppercase tracking-wide rounded-b-lg z-[2]"
+          className="absolute top-[-1px] right-4 flex items-center gap-1 py-1 px-3.5 text-white text-[0.6875rem] font-semibold uppercase tracking-wide rounded-b-lg z-[2]"
           style={{
             background:
               "linear-gradient(135deg, rgb(124 58 237) 0%, rgb(109 40 217) 100%)",
@@ -551,8 +540,31 @@ const TierCard = memo(function TierCard({
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
           Most Popular
-          <InfoIcon content="Automatically assigned to the middle tier. This badge helps guide client decisions toward the recommended option." />
         </div>
+      ) : (
+        <button
+          className="absolute top-2 right-3 flex items-center gap-1 py-1 px-3 text-slate-400 text-[0.625rem] font-medium uppercase tracking-wide rounded-full z-[2] bg-transparent border border-transparent cursor-pointer transition-all duration-150 hover:border-violet-300 hover:text-violet-500 hover:bg-violet-50"
+          onClick={() => {
+            dispatch(
+              updateTier({
+                id: tier.id,
+                mostPopular: true,
+                lastModified: new Date().toISOString(),
+              }),
+            );
+          }}
+        >
+          <svg
+            className="w-3 h-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          Set as Popular
+        </button>
       )}
       <div className="h-1 w-full" style={{ background: accent.color }} />
 

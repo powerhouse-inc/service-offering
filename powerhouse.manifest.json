@@ -32,22 +32,30 @@
         {
             "id": "resource-instance-editor",
             "name": "Resource Instance Editor",
-            "documentTypes": ["powerhouse/resource-instance"]
+            "documentTypes": [
+                "powerhouse/resource-instance"
+            ]
         },
         {
             "id": "resource-template-editor",
             "name": "Resource Template Editor",
-            "documentTypes": ["powerhouse/resource-template"]
+            "documentTypes": [
+                "powerhouse/resource-template"
+            ]
         },
         {
             "id": "service-offering-editor",
             "name": "Service Offering Editor",
-            "documentTypes": ["powerhouse/service-offering"]
+            "documentTypes": [
+                "powerhouse/service-offering"
+            ]
         },
         {
             "id": "subscription-instance-editor",
             "name": "Subscription Instance Editor",
-            "documentTypes": ["powerhouse/subscription-instance"]
+            "documentTypes": [
+                "powerhouse/subscription-instance"
+            ]
         }
     ],
     "apps": [],

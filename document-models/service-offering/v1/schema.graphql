@@ -97,6 +97,7 @@ type ServiceSubscriptionTier {
     pricingMode: TierPricingMode
     pricing: ServicePricing!
     defaultBillingCycle: BillingCycle
+    mostPopular: Boolean!
     billingCycleDiscounts: [BillingCycleDiscount!]!
     serviceLevels: [ServiceLevelBinding!]!
     usageLimits: [ServiceUsageLimit!]!
@@ -318,6 +319,7 @@ input UpdateTierInput {
     description: String
     isCustomPricing: Boolean
     lastModified: DateTime!
+    mostPopular: Boolean
 }
 
 input UpdateTierPricingInput {

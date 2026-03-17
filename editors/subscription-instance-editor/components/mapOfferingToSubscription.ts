@@ -96,9 +96,7 @@ export function mapOfferingToSubscription(
   // into the subscription when the user didn't select that addon.
   const standaloneServices = offering.services
     .filter((s) => !groupedServiceIds.has(s.id))
-    .filter(
-      (s) => !s.optionGroupId || breakdownGroupIds.has(s.optionGroupId),
-    )
+    .filter((s) => !s.optionGroupId || breakdownGroupIds.has(s.optionGroupId))
     .filter((svc) => {
       const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
       return (

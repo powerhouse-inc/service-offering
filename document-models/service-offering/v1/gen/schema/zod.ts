@@ -493,6 +493,7 @@ export function ServiceSubscriptionTierSchema(): z.ZodObject<
     description: z.string().nullish(),
     id: z.string(),
     isCustomPricing: z.boolean(),
+    mostPopular: z.boolean(),
     name: z.string(),
     pricing: z.lazy(() => ServicePricingSchema()),
     pricingMode: TierPricingModeSchema.nullish(),
@@ -732,6 +733,7 @@ export function UpdateTierInputSchema(): z.ZodObject<
     id: z.string(),
     isCustomPricing: z.boolean().nullish(),
     lastModified: z.iso.datetime(),
+    mostPopular: z.boolean().nullish(),
     name: z.string().nullish(),
   });
 }
