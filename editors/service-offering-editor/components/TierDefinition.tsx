@@ -528,19 +528,29 @@ const TierCard = memo(function TierCard({
     >
       {/* Most Popular Badge or Set Button — positioned top-right */}
       {isRecommended ? (
-        <div
-          className="absolute top-[-1px] right-4 flex items-center gap-1 py-1 px-3.5 text-white text-[0.6875rem] font-semibold uppercase tracking-wide rounded-b-lg z-[2]"
+        <button
+          className="absolute top-[-1px] right-4 flex items-center gap-1 py-1 px-3.5 text-white text-[0.6875rem] font-semibold uppercase tracking-wide rounded-b-lg z-[2] border-none cursor-pointer transition-opacity duration-150 hover:opacity-80"
           style={{
             background:
               "linear-gradient(135deg, rgb(124 58 237) 0%, rgb(109 40 217) 100%)",
             boxShadow: "0 2px 8px rgba(124, 58, 237, 0.3)",
+          }}
+          title="Click to remove Most Popular"
+          onClick={() => {
+            dispatch(
+              updateTier({
+                id: tier.id,
+                mostPopular: false,
+                lastModified: new Date().toISOString(),
+              }),
+            );
           }}
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
           Most Popular
-        </div>
+        </button>
       ) : (
         <button
           className="absolute top-2 right-3 flex items-center gap-1 py-1 px-3 text-slate-400 text-[0.625rem] font-medium uppercase tracking-wide rounded-full z-[2] bg-transparent border border-transparent cursor-pointer transition-all duration-150 hover:border-violet-300 hover:text-violet-500 hover:bg-violet-50"
