@@ -463,8 +463,7 @@ export const getResolvers = (
           let serviceSubscriptionsFolderId =
             operatorDrive.state.global.nodes.find(
               (node: Node) =>
-                node.kind === "folder" &&
-                node.name === "Service Subscriptions",
+                node.kind === "folder" && node.name === "Service Subscriptions",
             )?.id;
 
           if (!serviceSubscriptionsFolderId) {

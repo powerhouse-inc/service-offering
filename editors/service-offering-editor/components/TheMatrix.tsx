@@ -225,6 +225,15 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setGroupBillingCycles({});
   }, []);
 
+  // All non-addon group IDs (always included) + user-toggled addon IDs
+  const allSelectedGroupIds = useMemo(() => {
+    const nonAddonIds = optionGroups.filter((g) => !g.isAddOn).map((g) => g.id);
+    const addonIds = [...enabledOptionalGroups].filter((id) =>
+      optionGroups.some((g) => g.id === id && g.isAddOn),
+    );
+    return [...nonAddonIds, ...addonIds];
+  }, [optionGroups, enabledOptionalGroups]);
+
   // Copy current UserSelectionInput to clipboard for mutation testing
   const handleCopyUserSelection = useCallback(() => {
     const selectedTier = tiers[selectedTierIdx];
@@ -242,7 +251,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     const userSelection = {
       tierId: selectedTier.id,
       billingCycle: activeBillingCycle,
-      optionGroupIds: [...enabledOptionalGroups],
+      optionGroupIds: allSelectedGroupIds,
       ...(groupOverrides.length > 0 && {
         groupBillingCycleOverrides: groupOverrides,
       }),
@@ -261,7 +270,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     tiers,
     selectedTierIdx,
     activeBillingCycle,
-    enabledOptionalGroups,
+    allSelectedGroupIds,
     groupBillingCycles,
     addonBillingCycles,
     toast,
@@ -375,12 +384,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
 
   // Precompute price breakdowns for all tiers using the centralized utility
   const tierBreakdowns = useMemo((): PriceBreakdown[] => {
-    const addonIds = [...enabledOptionalGroups];
     return tiers.map((tier) =>
       getUserSelectionPriceBreakdown(state, {
         tierId: tier.id,
         billingCycle: activeBillingCycle,
-        optionGroupIds: addonIds,
+        optionGroupIds: allSelectedGroupIds,
         groupBillingCycleOverrides: groupBillingCycles,
         addonBillingCycleOverrides: addonBillingCycles,
       }),
@@ -389,7 +397,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     tiers,
     optionGroups,
     activeBillingCycle,
-    enabledOptionalGroups,
+    allSelectedGroupIds,
     groupBillingCycles,
     addonBillingCycles,
   ]);

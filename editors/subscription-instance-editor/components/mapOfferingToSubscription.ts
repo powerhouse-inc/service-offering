@@ -83,9 +83,22 @@ export function mapOfferingToSubscription(
     serviceGroups,
   );
 
-  // 3. Map remaining standalone services (not in any group or option group)
+  // Build set of option group IDs that are part of the breakdown (user-selected)
+  const breakdownGroupIds = new Set<string>([
+    ...priceBreakdown.optionGroupBreakdowns.map((b) => b.optionGroupId),
+    ...priceBreakdown.setupGroupBreakdowns.map((b) => b.optionGroupId),
+    ...priceBreakdown.addOnBreakdowns.map((b) => b.optionGroupId),
+  ]);
+
+  // 3. Map remaining standalone services (not in any group breakdown)
+  // Only include services that either have no optionGroupId (truly standalone)
+  // or belong to a selected option group — prevents addon services from leaking
+  // into the subscription when the user didn't select that addon.
   const standaloneServices = offering.services
     .filter((s) => !groupedServiceIds.has(s.id))
+    .filter(
+      (s) => !s.optionGroupId || breakdownGroupIds.has(s.optionGroupId),
+    )
     .filter((svc) => {
       const level = tier.serviceLevels.find((sl) => sl.serviceId === svc.id);
       return (
@@ -151,7 +164,16 @@ function mapBreakdownGroups(
     );
     if (!og || og.isAddOn) continue;
 
-    const services = offering.services.filter((s) => s.optionGroupId === og.id);
+    const services = offering.services
+      .filter((s) => s.optionGroupId === og.id)
+      .filter((s) => {
+        const level = tier.serviceLevels.find((sl) => sl.serviceId === s.id);
+        return (
+          level &&
+          level.level !== "NOT_INCLUDED" &&
+          level.level !== "NOT_APPLICABLE"
+        );
+      });
     if (services.length === 0) continue;
     services.forEach((s) => groupedServiceIds.add(s.id));
 
@@ -190,7 +212,16 @@ function mapBreakdownGroups(
     );
     if (!og) continue;
 
-    const services = offering.services.filter((s) => s.optionGroupId === og.id);
+    const services = offering.services
+      .filter((s) => s.optionGroupId === og.id)
+      .filter((s) => {
+        const level = tier.serviceLevels.find((sl) => sl.serviceId === s.id);
+        return (
+          level &&
+          level.level !== "NOT_INCLUDED" &&
+          level.level !== "NOT_APPLICABLE"
+        );
+      });
     if (services.length === 0) continue;
     services.forEach((s) => groupedServiceIds.add(s.id));
 

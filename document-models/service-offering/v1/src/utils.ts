@@ -284,9 +284,12 @@ export function getUserSelectionPriceBreakdown(
   const tierMonthlyAmount = tier.pricing.amount ?? 0;
   const tierCycleTotal = tierMonthlyAmount * (months || 1);
 
-  // Sum of monthly base prices across all regular (non-setup, non-addon) option groups
+  // Only include option groups explicitly selected by the user
+  const selectedGroupSet = new Set(optionGroupIds);
+
+  // Sum of monthly base prices across selected regular (non-setup, non-addon) option groups
   const regularGroups = globalState.optionGroups.filter(
-    (g) => g.costType !== "SETUP" && !g.isAddOn,
+    (g) => g.costType !== "SETUP" && !g.isAddOn && selectedGroupSet.has(g.id),
   );
   const tierMonthlyBase = regularGroups.reduce((sum, group) => {
     const tierPricing = group.tierDependentPricing?.find(
@@ -300,12 +303,12 @@ export function getUserSelectionPriceBreakdown(
     return sum + (monthlyOption?.amount ?? 0);
   }, 0);
 
-  // Separate option groups by type
+  // Separate option groups by type (all filtered by user selection)
   const setupGroups = globalState.optionGroups.filter(
-    (g) => g.costType === "SETUP",
+    (g) => g.costType === "SETUP" && selectedGroupSet.has(g.id),
   );
   const addonGroups = globalState.optionGroups.filter(
-    (g) => g.isAddOn && optionGroupIds.includes(g.id),
+    (g) => g.isAddOn && selectedGroupSet.has(g.id),
   );
 
   const optionGroupBreakdowns = regularGroups.map((group) =>
