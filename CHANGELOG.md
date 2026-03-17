@@ -1,3 +1,10 @@
+# [1.0.0-dev.9](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.8...v1.0.0-dev.9) (2026-03-17)
+
+
+### Features
+
+* make Most Popular badge toggleable and bump version ([b4904a1](https://github.com/powerhouse-inc/service-offering/commit/b4904a12c6df65cc99bb6abd05c617d82fd4bf2e))
+
 # [1.0.0-dev.8](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.7...v1.0.0-dev.8) (2026-03-17)
 
 
