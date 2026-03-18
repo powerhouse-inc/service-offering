@@ -12,7 +12,7 @@
   "packages": [
     {
       "packageName": "@powerhousedao/vetra",
-      "version": "6.0.0-dev.90",
+      "version": "6.0.0-dev.98",
       "provider": "npm"
     }
   ]

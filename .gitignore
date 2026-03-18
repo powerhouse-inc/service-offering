@@ -4,6 +4,7 @@ coverage
 node_modules
 .eslintcache
 .env.local
-
+.env
 .ph
 projects-import.js
+.keypair.json
