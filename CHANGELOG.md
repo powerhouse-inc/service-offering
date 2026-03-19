@@ -1,3 +1,11 @@
+# [1.0.0-dev.17](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.16...v1.0.0-dev.17) (2026-03-19)
+
+
+### Bug Fixes
+
+* add missing types ([f81f332](https://github.com/powerhouse-inc/service-offering/commit/f81f332bf38fb1bfd8548df5f80ad6f422578e34))
+* gql client ([b54e4cb](https://github.com/powerhouse-inc/service-offering/commit/b54e4cb6624db46911d6ef9c59dff22a83370c9b))
+
 # [1.0.0-dev.16](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.15...v1.0.0-dev.16) (2026-03-19)
 
 # [1.0.0-dev.12](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.11...v1.0.0-dev.12) (2026-03-19)
