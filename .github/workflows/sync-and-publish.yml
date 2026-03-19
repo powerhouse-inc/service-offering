@@ -23,11 +23,12 @@ on:
           - dev
           - staging
           - latest
-        default: 'staging'
-      version:
-        description: 'Powerhouse version (e.g., 5.3.0-staging.6)'
+        default: 'dev'
+      sync:
+        description: 'Sync powerhouse dependencies first'
         required: false
-        type: string
+        type: boolean
+        default: true
       dry-run:
         description: 'Dry run (skip publishing)'
         required: false
@@ -44,9 +45,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: '22'
   BUN_VERSION: 'latest'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ==========================================================================
@@ -87,9 +87,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
-    outputs:
-      new_version: ${{ steps.version.outputs.new_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

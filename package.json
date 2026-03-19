@@ -100,7 +100,6 @@
     "@powerhousedao/config": "6.0.0-staging.0",
     "@powerhousedao/connect": "6.0.0-staging.0",
     "@powerhousedao/ph-cli": "6.0.0-staging.0",
-    "@powerhousedao/powerhouse-vetra-packages": "6.0.0-dev.97",
     "@powerhousedao/reactor-api": "6.0.0-staging.0",
     "@powerhousedao/reactor-browser": "6.0.0-staging.0",
     "@powerhousedao/reactor-local": "6.0.0-staging.0",
