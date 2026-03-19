@@ -1,3 +1,5 @@
+# [1.0.0-dev.11](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.10...v1.0.0-dev.11) (2026-03-19)
+
 # [1.0.0-dev.10](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.9...v1.0.0-dev.10) (2026-03-18)
 
 # [1.0.0-dev.9](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.8...v1.0.0-dev.9) (2026-03-17)
