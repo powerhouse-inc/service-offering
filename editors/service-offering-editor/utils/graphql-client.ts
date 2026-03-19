@@ -277,3 +277,175 @@ export async function setOpHubMemberOnBuilderProfile(
     return false;
   }
 }
+
+// ── Resource Template queries ──
+
+const FIND_RESOURCE_TEMPLATES_QUERY = `
+  query FindResourceTemplates {
+    ResourceTemplate_findDocuments(search: {}) {
+      items {
+        id
+        name
+        state {
+          global {
+            id
+            operatorId
+            title
+            summary
+            description
+            thumbnailUrl
+            infoLink
+            status
+            lastModified
+            targetAudiences {
+              id
+              label
+              color
+            }
+            setupServices
+            recurringServices
+            facetTargets {
+              id
+              categoryKey
+              categoryLabel
+              selectedOptions
+            }
+            services {
+              id
+              title
+              isSetupFormation
+              description
+              displayOrder
+              optionGroupId
+            }
+          }
+        }
+      }
+      totalCount
+    }
+  }
+`;
+
+interface RemoteResourceTemplateService {
+  id: string;
+  title: string;
+  isSetupFormation: boolean;
+  description: string | null;
+  displayOrder: number | null;
+  optionGroupId: string | null;
+}
+
+export interface RemoteResourceTemplate {
+  id: string;
+  name: string | null;
+  operatorName?: string | null;
+  state: {
+    id: string | null;
+    operatorId: string | null;
+    title: string | null;
+    summary: string | null;
+    description: string | null;
+    thumbnailUrl: string | null;
+    infoLink: string | null;
+    status: string | null;
+    lastModified: string | null;
+    targetAudiences: Array<{
+      id: string;
+      label: string;
+      color: string | null;
+    }>;
+    setupServices: string[];
+    recurringServices: string[];
+    facetTargets: Array<{
+      id: string;
+      categoryKey: string;
+      categoryLabel: string;
+      selectedOptions: string[];
+    }>;
+    services: RemoteResourceTemplateService[];
+  };
+}
+
+interface FindResourceTemplatesItem {
+  id: string;
+  name: string;
+  state: {
+    global: {
+      id: string | null;
+      operatorId: string | null;
+      title: string | null;
+      summary: string | null;
+      description: string | null;
+      thumbnailUrl: string | null;
+      infoLink: string | null;
+      status: string | null;
+      lastModified: string | null;
+      targetAudiences: Array<{
+        id: string;
+        label: string;
+        color: string | null;
+      }>;
+      setupServices: string[];
+      recurringServices: string[];
+      facetTargets: Array<{
+        id: string;
+        categoryKey: string;
+        categoryLabel: string;
+        selectedOptions: string[];
+      }>;
+      services: RemoteResourceTemplateService[];
+    };
+  };
+}
+
+interface FindResourceTemplatesResponse {
+  ResourceTemplate_findDocuments: {
+    items: FindResourceTemplatesItem[];
+    totalCount: number;
+  };
+}
+
+function toRemoteResourceTemplate(
+  item: FindResourceTemplatesItem,
+): RemoteResourceTemplate {
+  const g = item.state.global;
+  return {
+    id: item.id,
+    name: item.name,
+    state: {
+      id: g.id,
+      operatorId: g.operatorId,
+      title: g.title,
+      summary: g.summary,
+      description: g.description,
+      thumbnailUrl: g.thumbnailUrl,
+      infoLink: g.infoLink,
+      status: g.status,
+      lastModified: g.lastModified,
+      targetAudiences: g.targetAudiences ?? [],
+      setupServices: g.setupServices ?? [],
+      recurringServices: g.recurringServices ?? [],
+      facetTargets: g.facetTargets ?? [],
+      services: g.services ?? [],
+    },
+  };
+}
+
+/**
+ * Fetches all resource template documents from the remote Switchboard.
+ */
+export async function fetchAllRemoteResourceTemplates(): Promise<
+  RemoteResourceTemplate[]
+> {
+  try {
+    const data = await graphqlRequest<FindResourceTemplatesResponse>(
+      FIND_RESOURCE_TEMPLATES_QUERY,
+      undefined,
+      { silent: true },
+    );
+    const items = data?.ResourceTemplate_findDocuments?.items ?? [];
+    return items.map(toRemoteResourceTemplate);
+  } catch {
+    return [];
+  }
+}
