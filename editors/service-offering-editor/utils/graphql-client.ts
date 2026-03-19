@@ -78,59 +78,48 @@ async function graphqlRequest<T>(
   }
 }
 
-// Query to get all available drives
-const GET_DRIVES_QUERY = `
-  query GetDrives {
-    drives
-  }
-`;
-
-// Query to get drive ID by slug
-const GET_DRIVE_ID_BY_SLUG_QUERY = `
-  query GetDriveIdBySlug($slug: String!) {
-    driveIdBySlug(slug: $slug)
-  }
-`;
-
-// Query to get builder profile documents from a drive
-const GET_BUILDER_PROFILES_QUERY = `
-  query GetBuilderProfiles($driveId: String!) {
-    BuilderProfile {
-      getDocuments(driveId: $driveId) {
+// Query to find all builder profile documents
+const FIND_BUILDER_PROFILES_QUERY = `
+  query FindBuilderProfiles {
+    BuilderProfile_findDocuments(search: {}) {
+      items {
         id
+        name
         state {
-          name
-          slug
-          icon
+          global {
+            id
+            name
+            slug
+            icon
+            description
+          }
         }
       }
+      totalCount
     }
   }
 `;
 
-// Query to get a single builder profile by ID
+// Query to get a single builder profile by identifier
 const GET_BUILDER_PROFILE_QUERY = `
-  query GetBuilderProfile($docId: PHID!, $driveId: PHID) {
-    BuilderProfile {
-      getDocument(docId: $docId, driveId: $driveId) {
+  query GetBuilderProfile($identifier: String!) {
+    BuilderProfile_document(identifier: $identifier) {
+      document {
         id
+        name
         state {
-          name
-          slug
-          icon
+          global {
+            id
+            name
+            slug
+            icon
+            description
+          }
         }
       }
     }
   }
 `;
-
-interface DrivesResponse {
-  drives: string[];
-}
-
-interface DriveIdBySlugResponse {
-  driveIdBySlug: string;
-}
 
 export interface RemoteBuilderProfile {
   id: string;
@@ -138,53 +127,47 @@ export interface RemoteBuilderProfile {
     name: string | null;
     slug: string | null;
     icon: string | null;
+    description: string | null;
   };
 }
 
-interface BuilderProfilesResponse {
-  BuilderProfile: {
-    getDocuments: RemoteBuilderProfile[];
+interface FindBuilderProfilesItem {
+  id: string;
+  name: string;
+  state: {
+    global: {
+      id: string | null;
+      name: string | null;
+      slug: string | null;
+      icon: string | null;
+      description: string | null;
+    };
+  };
+}
+
+interface FindBuilderProfilesResponse {
+  BuilderProfile_findDocuments: {
+    items: FindBuilderProfilesItem[];
+    totalCount: number;
   };
 }
 
 interface SingleBuilderProfileResponse {
-  BuilderProfile: {
-    getDocument: RemoteBuilderProfile | null;
+  BuilderProfile_document: {
+    document: FindBuilderProfilesItem;
+  } | null;
+}
+
+function toRemoteProfile(item: FindBuilderProfilesItem): RemoteBuilderProfile {
+  return {
+    id: item.id,
+    state: {
+      name: item.state.global.name,
+      slug: item.state.global.slug,
+      icon: item.state.global.icon,
+      description: item.state.global.description,
+    },
   };
-}
-
-/**
- * Fetches all available remote drives
- */
-export async function fetchRemoteDrives(): Promise<string[]> {
-  const data = await graphqlRequest<DrivesResponse>(GET_DRIVES_QUERY);
-  return data?.drives ?? [];
-}
-
-/**
- * Fetches drive ID by slug
- */
-export async function fetchDriveIdBySlug(slug: string): Promise<string | null> {
-  const data = await graphqlRequest<DriveIdBySlugResponse>(
-    GET_DRIVE_ID_BY_SLUG_QUERY,
-    { slug },
-  );
-  return data?.driveIdBySlug ?? null;
-}
-
-/**
- * Fetches all builder profiles from a specific drive
- */
-export async function fetchBuilderProfilesFromDrive(
-  driveId: string,
-  options?: { silent?: boolean },
-): Promise<RemoteBuilderProfile[]> {
-  const data = await graphqlRequest<BuilderProfilesResponse>(
-    GET_BUILDER_PROFILES_QUERY,
-    { driveId },
-    options,
-  );
-  return data?.BuilderProfile?.getDocuments ?? [];
 }
 
 /**
@@ -192,48 +175,27 @@ export async function fetchBuilderProfilesFromDrive(
  */
 export async function fetchBuilderProfileById(
   docId: string,
-  driveId?: string,
 ): Promise<RemoteBuilderProfile | null> {
   const data = await graphqlRequest<SingleBuilderProfileResponse>(
     GET_BUILDER_PROFILE_QUERY,
-    { docId, driveId },
+    { identifier: docId },
   );
-  return data?.BuilderProfile?.getDocument ?? null;
+  const item = data?.BuilderProfile_document?.document;
+  return item ? toRemoteProfile(item) : null;
 }
 
 /**
- * Fetches all builder profiles from all available remote drives.
- * This aggregates profiles from multiple drives into a single list.
+ * Fetches all builder profiles using BuilderProfile_findDocuments.
  */
 export async function fetchAllRemoteBuilderProfiles(): Promise<
   RemoteBuilderProfile[]
 > {
   try {
-    const drives = await fetchRemoteDrives();
-    if (!drives.length) {
-      return [];
-    }
-
-    // Fetch profiles from all drives in parallel (silent to avoid console spam)
-    const profilePromises = drives.map((driveSlug) =>
-      fetchBuilderProfilesFromDrive(driveSlug, { silent: true }).catch(
-        () => [],
-      ),
+    const data = await graphqlRequest<FindBuilderProfilesResponse>(
+      FIND_BUILDER_PROFILES_QUERY,
     );
-
-    const profileArrays = await Promise.all(profilePromises);
-
-    // Flatten and dedupe by ID
-    const profileMap = new Map<string, RemoteBuilderProfile>();
-    for (const profiles of profileArrays) {
-      for (const profile of profiles) {
-        if (!profileMap.has(profile.id)) {
-          profileMap.set(profile.id, profile);
-        }
-      }
-    }
-
-    return Array.from(profileMap.values());
+    const items = data?.BuilderProfile_findDocuments?.items ?? [];
+    return items.map(toRemoteProfile);
   } catch {
     return [];
   }
@@ -241,7 +203,6 @@ export async function fetchAllRemoteBuilderProfiles(): Promise<
 
 /**
  * Fetches multiple builder profiles by their IDs.
- * Tries to find them across all available remote drives.
  */
 export async function fetchRemoteBuilderProfilesByIds(
   phids: string[],
@@ -251,10 +212,8 @@ export async function fetchRemoteBuilderProfilesByIds(
   }
 
   try {
-    // First, get all profiles from all drives
     const allProfiles = await fetchAllRemoteBuilderProfiles();
 
-    // Filter to only the ones we need
     const result = new Map<string, RemoteBuilderProfile>();
     for (const profile of allProfiles) {
       if (phids.includes(profile.id)) {
@@ -280,173 +239,41 @@ export async function fetchRemoteBuilderProfilesByIds(
   }
 }
 
-// ============================================================
-// Resource Template queries
-// ============================================================
-
-const GET_RESOURCE_TEMPLATES_QUERY = `
-  query GetResourceTemplates($driveId: String!) {
-    ResourceTemplate {
-      getDocuments(driveId: $driveId) {
-        id
-        name
-        documentType
-        state {
-          id
-          operatorId
-          title
-          summary
-          description
-          thumbnailUrl
-          infoLink
-          status
-          lastModified
-          targetAudiences {
-            id
-            label
-            color
-          }
-          setupServices
-          recurringServices
-          facetTargets {
-            id
-            categoryKey
-            categoryLabel
-            selectedOptions
-          }
-          services {
-            id
-            title
-            description
-            displayOrder
-            isSetupFormation
-            optionGroupId
-          }
-        }
-      }
-    }
+// Mutation to set operational hub member on a builder profile
+const SET_OP_HUB_MEMBER_MUTATION = `
+  mutation BuilderProfile_setOpHubMember($docId: PHID!, $input: BuilderProfile_SetOpHubMemberInput!) {
+    BuilderProfile_setOpHubMember(docId: $docId, input: $input)
   }
 `;
 
-export interface RemoteResourceTemplate {
-  id: string;
-  name: string;
-  documentType: string;
-  /** Resolved operator/builder name (from builder profile in the same drive) */
-  operatorName: string | null;
-  state: {
-    id: string | null;
-    operatorId: string | null;
-    title: string;
-    summary: string;
-    description: string | null;
-    thumbnailUrl: string | null;
-    infoLink: string | null;
-    status: string;
-    lastModified: string | null;
-    targetAudiences: Array<{
-      id: string;
-      label: string;
-      color: string | null;
-    }>;
-    setupServices: string[];
-    recurringServices: string[];
-    facetTargets: Array<{
-      id: string;
-      categoryKey: string;
-      categoryLabel: string;
-      selectedOptions: string[];
-    }>;
-    services: Array<{
-      id: string;
-      title: string;
-      description: string | null;
-      displayOrder: number | null;
-      isSetupFormation: boolean;
-      optionGroupId: string | null;
-    }>;
-  };
+export interface SetOpHubMemberInput {
+  name: string | null;
+  phid: string | null;
 }
 
-/** Raw response shape from GraphQL (without enriched operatorName) */
-type RawRemoteResourceTemplate = Omit<RemoteResourceTemplate, "operatorName">;
-
-interface ResourceTemplatesResponse {
-  ResourceTemplate: {
-    getDocuments: RawRemoteResourceTemplate[];
-  };
+interface SetOpHubMemberResponse {
+  BuilderProfile_setOpHubMember: boolean;
 }
 
 /**
- * Fetches resource template documents from a specific drive
+ * Sets the operational hub member on a builder profile document.
+ *
+ * @param docId - The builder profile document ID (PHID)
+ * @param input - The operational hub member data (name and phid of the op hub)
+ * @returns true if successful, false otherwise
  */
-export async function fetchResourceTemplatesFromDrive(
-  driveId: string,
-  options?: { silent?: boolean },
-): Promise<RawRemoteResourceTemplate[]> {
-  const data = await graphqlRequest<ResourceTemplatesResponse>(
-    GET_RESOURCE_TEMPLATES_QUERY,
-    { driveId },
-    options,
-  );
-  return data?.ResourceTemplate?.getDocuments ?? [];
-}
-
-/**
- * Fetches all resource templates from all available remote drives.
- * Also resolves operator names by fetching builder profiles from each drive.
- */
-export async function fetchAllRemoteResourceTemplates(): Promise<
-  RemoteResourceTemplate[]
-> {
+export async function setOpHubMemberOnBuilderProfile(
+  docId: string,
+  input: SetOpHubMemberInput,
+): Promise<boolean> {
   try {
-    const drives = await fetchRemoteDrives();
-    if (!drives.length) {
-      return [];
-    }
-
-    // For each drive, fetch templates AND builder profiles in parallel
-    const perDrivePromises = drives.map(async (driveSlug) => {
-      const [templates, profiles] = await Promise.all([
-        fetchResourceTemplatesFromDrive(driveSlug, { silent: true }).catch(
-          () => [] as RawRemoteResourceTemplate[],
-        ),
-        fetchBuilderProfilesFromDrive(driveSlug, { silent: true }).catch(
-          () => [] as RemoteBuilderProfile[],
-        ),
-      ]);
-
-      // Build a profileId → name map for this drive
-      const profileNameMap = new Map<string, string>();
-      for (const profile of profiles) {
-        if (profile.state.name) {
-          profileNameMap.set(profile.id, profile.state.name);
-        }
-      }
-
-      // Enrich templates with operator name
-      return templates.map((t) => ({
-        ...t,
-        operatorName: t.state.operatorId
-          ? (profileNameMap.get(t.state.operatorId) ?? null)
-          : null,
-      }));
-    });
-
-    const templateArrays = await Promise.all(perDrivePromises);
-
-    // Flatten and dedupe by ID
-    const templateMap = new Map<string, RemoteResourceTemplate>();
-    for (const templates of templateArrays) {
-      for (const template of templates) {
-        if (!templateMap.has(template.id)) {
-          templateMap.set(template.id, template);
-        }
-      }
-    }
-
-    return Array.from(templateMap.values());
-  } catch {
-    return [];
+    const data = await graphqlRequest<SetOpHubMemberResponse>(
+      SET_OP_HUB_MEMBER_MUTATION,
+      { docId, input },
+    );
+    return data?.BuilderProfile_setOpHubMember ?? false;
+  } catch (error) {
+    console.warn("[graphql-client] Failed to set op hub member:", error);
+    return false;
   }
 }
