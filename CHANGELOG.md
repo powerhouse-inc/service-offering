@@ -1,3 +1,10 @@
+# [1.0.0-dev.18](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.17...v1.0.0-dev.18) (2026-03-20)
+
+
+### Bug Fixes
+
+* filter out soft-deleted drives and documents from subgraph queries ([ed54990](https://github.com/powerhouse-inc/service-offering/commit/ed54990572722ebb891fc817ec3fa455ed31f396))
+
 # [1.0.0-dev.17](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.16...v1.0.0-dev.17) (2026-03-19)
 
 
