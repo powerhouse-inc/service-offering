@@ -67,6 +67,7 @@ export const getResolvers = (
         args: { filter?: ResourceTemplatesFilter },
       ) => {
         const { id, status, operatorId } = args.filter || {};
+        const deletedDriveDocIds = await getDeletedDriveDocIds(reactorClient);
 
         // If filtering by specific id, try to fetch directly
         if (id) {
@@ -74,7 +75,9 @@ export const getResolvers = (
             const doc = await reactorClient.get<ResourceTemplateDocument>(id);
             if (
               doc &&
-              doc.header.documentType === "powerhouse/resource-template"
+              doc.header.documentType === "powerhouse/resource-template" &&
+              !doc.state.document.isDeleted &&
+              !deletedDriveDocIds.has(doc.header.id)
             ) {
               const state = doc.state.global;
               if (
@@ -104,6 +107,10 @@ export const getResolvers = (
           [];
 
         for (const doc of docs) {
+          // Skip docs from soft-deleted drives or soft-deleted documents
+          if (deletedDriveDocIds.has(doc.header.id)) continue;
+          if (doc.state.document.isDeleted) continue;
+
           const resourceDoc = doc as ResourceTemplateDocument;
           const state = resourceDoc.state.global;
 
@@ -132,6 +139,7 @@ export const getResolvers = (
       ) => {
         const { id, status, operatorId, resourceTemplateId } =
           args.filter || {};
+        const deletedDriveDocIds = await getDeletedDriveDocIds(reactorClient);
 
         // If filtering by specific id, try to fetch directly
         if (id) {
@@ -139,7 +147,9 @@ export const getResolvers = (
             const doc = await reactorClient.get<ServiceOfferingDocument>(id);
             if (
               doc &&
-              doc.header.documentType === "powerhouse/service-offering"
+              doc.header.documentType === "powerhouse/service-offering" &&
+              !doc.state.document.isDeleted &&
+              !deletedDriveDocIds.has(doc.header.id)
             ) {
               const state = doc.state.global;
               if (
@@ -175,6 +185,10 @@ export const getResolvers = (
           [];
 
         for (const doc of docs) {
+          // Skip docs from soft-deleted drives or soft-deleted documents
+          if (deletedDriveDocIds.has(doc.header.id)) continue;
+          if (doc.state.document.isDeleted) continue;
+
           const offeringDoc = doc as ServiceOfferingDocument;
           const state = offeringDoc.state.global;
 
@@ -301,9 +315,14 @@ export const getResolvers = (
         }
 
         // Fetch the service offering
+        const deletedDriveDocIds = await getDeletedDriveDocIds(reactorClient);
         const serviceOfferingDoc =
           await reactorClient.get<ServiceOfferingDocument>(serviceOfferingId);
-        if (!serviceOfferingDoc) {
+        if (
+          !serviceOfferingDoc ||
+          (serviceOfferingDoc as PHDocument).state.document.isDeleted ||
+          deletedDriveDocIds.has(serviceOfferingDoc.header.id)
+        ) {
           return {
             success: false,
             data: null,
@@ -875,6 +894,30 @@ function mapServiceOfferingState(
   };
 }
 
+/**
+ * Returns a Set of document IDs that belong to soft-deleted drives.
+ * Documents inside a deleted drive should not be returned by queries.
+ */
+async function getDeletedDriveDocIds(
+  reactorClient: IReactorClient,
+): Promise<Set<string>> {
+  const { results: drives } = await reactorClient.find({
+    type: "powerhouse/document-drive",
+  });
+
+  const ids = new Set<string>();
+  for (const drive of drives) {
+    if (!drive.state.document.isDeleted) continue;
+    const driveDoc = drive as DocumentDriveDocument;
+    for (const node of driveDoc.state.global.nodes) {
+      if (node.kind === "file") {
+        ids.add(node.id);
+      }
+    }
+  }
+  return ids;
+}
+
 async function getOperatorDrive(
   reactorClient: IReactorClient,
   resourceTemplateId: string,
@@ -885,6 +928,9 @@ async function getOperatorDrive(
   });
 
   for (const drive of drives) {
+    // Skip soft-deleted drives
+    if (drive.state.document.isDeleted) continue;
+
     const driveDoc = drive as DocumentDriveDocument;
     // Check if this drive contains the resource template as a child
     const { results: children } = await reactorClient.getChildren(
