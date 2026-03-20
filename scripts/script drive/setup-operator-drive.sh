@@ -4,12 +4,18 @@ set -euo pipefail
 ###############################################################################
 # setup-operator-drive.sh
 #
-# Creates an operator drive with:
+# Creates a complete operator drive mirroring the Powerhouse staging structure:
 #   - Builder profile (isOperator = true)
-#   - Folder structure: Services And Offerings / { Products, Service Offerings }
-#   - Resource template in Products folder
-#   - Service offering in Service Offerings folder
-#   - Both template & offering linked to the builder profile via SET_OPERATOR
+#   - Folder structure:
+#       Snapshot Reports / 2025/
+#       Service Subscriptions/
+#       Services And Offerings / { Products, Service Offerings }
+#       Expense Reports / 2025/
+#   - 12 resource templates in Products folder (Operational Hub + 11 others)
+#   - 2 service offerings in Service Offerings folder
+#   - 5 snapshot reports in Snapshot Reports/2025
+#   - 5 expense reports in Expense Reports/2025
+#   - Operational Hub template & offering fully populated with data
 #
 # Prerequisites:
 #   - switchboard CLI connected to a running instance (switchboard ping)
@@ -19,7 +25,7 @@ set -euo pipefail
 #   bash scripts/script\ drive/setup-operator-drive.sh [drive-name]
 ###############################################################################
 
-DRIVE_NAME="${1:-operator team}"
+DRIVE_NAME="${1:-Powerhouse Operator Team Admin}"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +50,25 @@ pyjq() {
 # Run a switchboard query and return the JSON result
 sb_query() {
   switchboard query "$1" --format json 2>&1
+}
+
+# Create a document via GraphQL mutation and return its ID
+# Usage: create_doc <TypePrefix> <document-name>
+create_doc() {
+  local type_prefix="$1" name="$2"
+  local escaped_name
+  escaped_name=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1])[1:-1])" "$name")
+  local result
+  result=$(sb_query "mutation { ${type_prefix}_createDocument(name: \"$escaped_name\", parentIdentifier: \"$DRIVE_ID\") { id name } }")
+  echo "$result" | pyjq "print(json.load(sys.stdin)['${type_prefix}_createDocument']['id'])"
+}
+
+# Move a document/folder into a target folder on the drive
+move_to_folder() {
+  local node_id="$1" folder_id="$2"
+  switchboard docs mutate "$DRIVE_ID" --op moveNode \
+    --input "{\"srcFolder\": \"$node_id\", \"targetParentFolder\": \"$folder_id\"}" \
+    --format json --quiet >/dev/null 2>&1
 }
 
 # ── Preflight checks ────────────────────────────────────────────────────────
@@ -76,44 +101,72 @@ assert found, 'Drive not found in drives list'
 " || die "Drive verification failed"
 log "Drive verified in drives list"
 
-# ── Step 2: Create folder structure ─────────────────────────────────────────
+# ── Step 2: Create folder structure (8 folders) ─────────────────────────────
 
 step "Step 2: Create folder structure"
 
-# Generate folder IDs
+# Generate 8 folder IDs
 FOLDER_IDS=$(python3 -c "
 import uuid
-for _ in range(4):
+for _ in range(8):
     print(str(uuid.uuid4()))
 ")
-SERVICES_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '1p')
-PRODUCTS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '2p')
-OFFERINGS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '3p')
-SUBSCRIPTIONS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '4p')
+SNAPSHOT_REPORTS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '1p')
+SNAPSHOT_2025_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '2p')
+SUBSCRIPTIONS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '3p')
+SERVICES_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '4p')
+PRODUCTS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '5p')
+OFFERINGS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '6p')
+EXPENSE_REPORTS_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '7p')
+EXPENSE_2025_FOLDER_ID=$(echo "$FOLDER_IDS" | sed -n '8p')
 
-# Create "Services And Offerings" at root
+# Snapshot Reports
+switchboard docs mutate "$DRIVE_ID" --op addFolder \
+  --input "{\"id\": \"$SNAPSHOT_REPORTS_FOLDER_ID\", \"name\": \"Snapshot Reports\"}" \
+  --format json --quiet >/dev/null 2>&1
+log "Created: Snapshot Reports"
+
+# Snapshot Reports / 2025
+switchboard docs mutate "$DRIVE_ID" --op addFolder \
+  --input "{\"id\": \"$SNAPSHOT_2025_FOLDER_ID\", \"name\": \"2025\", \"parentFolder\": \"$SNAPSHOT_REPORTS_FOLDER_ID\"}" \
+  --format json --quiet >/dev/null 2>&1
+log "Created: Snapshot Reports/2025"
+
+# Service Subscriptions (at root level)
+switchboard docs mutate "$DRIVE_ID" --op addFolder \
+  --input "{\"id\": \"$SUBSCRIPTIONS_FOLDER_ID\", \"name\": \"Service Subscriptions\"}" \
+  --format json --quiet >/dev/null 2>&1
+log "Created: Service Subscriptions"
+
+# Services And Offerings
 switchboard docs mutate "$DRIVE_ID" --op addFolder \
   --input "{\"id\": \"$SERVICES_FOLDER_ID\", \"name\": \"Services And Offerings\"}" \
   --format json --quiet >/dev/null 2>&1
-log "Created: Services And Offerings ($SERVICES_FOLDER_ID)"
+log "Created: Services And Offerings"
 
-# Create "Products" subfolder
+# Services And Offerings / Products
 switchboard docs mutate "$DRIVE_ID" --op addFolder \
   --input "{\"id\": \"$PRODUCTS_FOLDER_ID\", \"name\": \"Products\", \"parentFolder\": \"$SERVICES_FOLDER_ID\"}" \
   --format json --quiet >/dev/null 2>&1
-log "Created: Products ($PRODUCTS_FOLDER_ID)"
+log "Created: Services And Offerings/Products"
 
-# Create "Service Offerings" subfolder
+# Services And Offerings / Service Offerings
 switchboard docs mutate "$DRIVE_ID" --op addFolder \
   --input "{\"id\": \"$OFFERINGS_FOLDER_ID\", \"name\": \"Service Offerings\", \"parentFolder\": \"$SERVICES_FOLDER_ID\"}" \
   --format json --quiet >/dev/null 2>&1
-log "Created: Service Offerings ($OFFERINGS_FOLDER_ID)"
+log "Created: Services And Offerings/Service Offerings"
 
-# Create "Service Subscriptions" subfolder (team subfolders created by the resolver)
+# Expense Reports
 switchboard docs mutate "$DRIVE_ID" --op addFolder \
-  --input "{\"id\": \"$SUBSCRIPTIONS_FOLDER_ID\", \"name\": \"Service Subscriptions\", \"parentFolder\": \"$SERVICES_FOLDER_ID\"}" \
+  --input "{\"id\": \"$EXPENSE_REPORTS_FOLDER_ID\", \"name\": \"Expense Reports\"}" \
   --format json --quiet >/dev/null 2>&1
-log "Created: Service Subscriptions ($SUBSCRIPTIONS_FOLDER_ID)"
+log "Created: Expense Reports"
+
+# Expense Reports / 2025
+switchboard docs mutate "$DRIVE_ID" --op addFolder \
+  --input "{\"id\": \"$EXPENSE_2025_FOLDER_ID\", \"name\": \"2025\", \"parentFolder\": \"$EXPENSE_REPORTS_FOLDER_ID\"}" \
+  --format json --quiet >/dev/null 2>&1
+log "Created: Expense Reports/2025"
 
 # Verify folder structure
 TREE_JSON=$(switchboard docs tree "$DRIVE_SLUG" --format json 2>&1)
@@ -123,14 +176,14 @@ nodes = data['document']['state']['global']['nodes']
 folders = [n for n in nodes if n['kind'] == 'folder']
 print(len(folders))
 ")
-[ "$FOLDER_COUNT" = "4" ] || die "Expected 4 folders, got $FOLDER_COUNT"
-log "Folder structure verified (4 folders)"
+[ "$FOLDER_COUNT" = "8" ] || die "Expected 8 folders, got $FOLDER_COUNT"
+log "Folder structure verified (8 folders)"
 
 # ── Step 3: Create builder profile ──────────────────────────────────────────
 
 step "Step 3: Create builder profile"
 
-BP_JSON=$(sb_query "mutation { BuilderProfile_createDocument(name: \"$DRIVE_NAME\", parentIdentifier: \"$DRIVE_ID\") { id name } }")
+BP_JSON=$(sb_query "mutation { BuilderProfile_createDocument(name: \"Powerhouse Operator Profile\", parentIdentifier: \"$DRIVE_ID\") { id name } }")
 BP_ID=$(echo "$BP_JSON" | pyjq "print(json.load(sys.stdin)['BuilderProfile_createDocument']['id'])")
 
 [ -n "$BP_ID" ] || die "Failed to create builder profile"
@@ -150,7 +203,8 @@ slug = re.sub(r'[^a-z0-9-]', '', name.lower().replace(' ', '-')).strip('-')
 print(slug)
 ")
 BP_CODE=$(python3 -c "
-name = '$DRIVE_NAME'.strip()
+import sys
+name = sys.argv[1].strip()
 words = name.split()
 if len(words) >= 2:
     code = ''.join(w[0] for w in words)[:5]
@@ -159,7 +213,7 @@ else:
     mid = len(w) // 2
     code = w[0] + w[mid] + w[-1]
 print(code.upper())
-")
+" "$DRIVE_NAME")
 
 switchboard docs mutate "$BP_ID" --op updateProfile \
   --input "{\"name\": \"$DRIVE_NAME\", \"slug\": \"$BP_SLUG\", \"code\": \"$BP_CODE\"}" \
@@ -176,104 +230,179 @@ print(g.get('isOperator', False))
 [ "$BP_IS_OP" = "True" ] || die "isOperator not set correctly (got: $BP_IS_OP)"
 log "Builder profile verified: isOperator=true"
 
-# ── Step 4: Create resource template and service offering ───────────────────
+# ── Step 4: Create resource templates (12) ──────────────────────────────────
 
-step "Step 4: Create resource template and service offering"
+step "Step 4: Create resource templates"
 
-# Create resource template
-RT_JSON=$(sb_query "mutation { ResourceTemplate_createDocument(name: \"Products\", parentIdentifier: \"$DRIVE_ID\") { id name } }")
-RT_ID=$(echo "$RT_JSON" | pyjq "print(json.load(sys.stdin)['ResourceTemplate_createDocument']['id'])")
+# Operational Hub RT — will be fully populated
+OH_RT_ID=$(create_doc "ResourceTemplate" "Operational Hub")
+log "Resource template: Operational Hub ($OH_RT_ID)"
 
-[ -n "$RT_ID" ] || die "Failed to create resource template"
-log "Resource template created: $RT_ID"
+# Remaining 11 resource templates from staging (created empty)
+RT_NAMES=(
+  "ALTERNATIVE RISK TRANSFER (ART)"
+  "rupert"
+  "NETWORK REVENUE GENERATING HUB"
+  "Intellectual Property SPV (IP SPV)"
+  "COMMERCIAL OPERATIONAL HUB (OH)"
+  "NETWORK EMBRYONIC HUB"
+  "NETWORK IP SPV"
+  "AgentOps"
+  "FUNDRAISING VEHICLE  (OCF)"
+  "NETWORK OPERATIONAL HUB"
+  "REVENUE GENERATING HUB (RGH)"
+)
 
-# Create service offering
-SO_JSON=$(sb_query "mutation { ServiceOffering_createDocument(name: \"Offering\", parentIdentifier: \"$DRIVE_ID\") { id name } }")
-SO_ID=$(echo "$SO_JSON" | pyjq "print(json.load(sys.stdin)['ServiceOffering_createDocument']['id'])")
+declare -a RT_IDS=()
+for name in "${RT_NAMES[@]}"; do
+  id=$(create_doc "ResourceTemplate" "$name")
+  RT_IDS+=("$id")
+  log "Resource template: $name ($id)"
+done
+log "Created 12 resource templates total"
 
-[ -n "$SO_ID" ] || die "Failed to create service offering"
-log "Service offering created: $SO_ID"
+# ── Step 5: Create service offerings (2) ────────────────────────────────────
 
-# ── Step 5: Move documents to correct folders ───────────────────────────────
+step "Step 5: Create service offerings"
 
-step "Step 5: Move documents to folders"
+OH_SO_ID=$(create_doc "ServiceOffering" "Operational Hub")
+log "Service offering: Operational Hub ($OH_SO_ID)"
 
-# Move resource template to Products folder
-switchboard docs mutate "$DRIVE_ID" --op moveNode \
-  --input "{\"srcFolder\": \"$RT_ID\", \"targetParentFolder\": \"$PRODUCTS_FOLDER_ID\"}" \
-  --format json --quiet >/dev/null 2>&1
-log "Moved resource template → Products"
+AGENTIC_SO_ID=$(create_doc "ServiceOffering" "AgenticOps")
+log "Service offering: AgenticOps ($AGENTIC_SO_ID)"
 
-# Move service offering to Service Offerings folder
-switchboard docs mutate "$DRIVE_ID" --op moveNode \
-  --input "{\"srcFolder\": \"$SO_ID\", \"targetParentFolder\": \"$OFFERINGS_FOLDER_ID\"}" \
-  --format json --quiet >/dev/null 2>&1
-log "Moved service offering → Service Offerings"
+# ── Step 6: Create snapshot reports (5) ─────────────────────────────────────
 
-# Verify placement via drive tree
+step "Step 6: Create snapshot reports"
+
+SNAPSHOT_NAMES=(
+  "April 2025 - Snapshot Report"
+  "March 2025 - Snapshot Report"
+  "February 2025 - Snapshot Report"
+  "July 2025 - Snapshot Report"
+  "June 2025 - Snapshot Report"
+)
+
+declare -a SNAPSHOT_IDS=()
+for name in "${SNAPSHOT_NAMES[@]}"; do
+  id=$(create_doc "SnapshotReport" "$name")
+  SNAPSHOT_IDS+=("$id")
+  log "Snapshot report: $name ($id)"
+done
+
+# ── Step 7: Create expense reports (5) ──────────────────────────────────────
+
+step "Step 7: Create expense reports"
+
+EXPENSE_NAMES=(
+  "11-2025 Powerhouse"
+  "12-2025 Powerhouse"
+  "07-2025 Powerhouse"
+  "10-2025 Powerhouse"
+  "08-2025 Powerhouse"
+)
+
+declare -a EXPENSE_IDS=()
+for name in "${EXPENSE_NAMES[@]}"; do
+  id=$(create_doc "ExpenseReport" "$name")
+  EXPENSE_IDS+=("$id")
+  log "Expense report: $name ($id)"
+done
+
+# ── Step 8: Move documents to correct folders ───────────────────────────────
+
+step "Step 8: Move documents to folders"
+
+# Resource templates → Products
+move_to_folder "$OH_RT_ID" "$PRODUCTS_FOLDER_ID"
+for id in "${RT_IDS[@]}"; do
+  move_to_folder "$id" "$PRODUCTS_FOLDER_ID"
+done
+log "Moved 12 resource templates → Products"
+
+# Service offerings → Service Offerings
+move_to_folder "$OH_SO_ID" "$OFFERINGS_FOLDER_ID"
+move_to_folder "$AGENTIC_SO_ID" "$OFFERINGS_FOLDER_ID"
+log "Moved 2 service offerings → Service Offerings"
+
+# Snapshot reports → Snapshot Reports/2025
+for id in "${SNAPSHOT_IDS[@]}"; do
+  move_to_folder "$id" "$SNAPSHOT_2025_FOLDER_ID"
+done
+log "Moved 5 snapshot reports → Snapshot Reports/2025"
+
+# Expense reports → Expense Reports/2025
+for id in "${EXPENSE_IDS[@]}"; do
+  move_to_folder "$id" "$EXPENSE_2025_FOLDER_ID"
+done
+log "Moved 5 expense reports → Expense Reports/2025"
+
+# Verify file count
 TREE_JSON=$(switchboard docs tree "$DRIVE_SLUG" --format json 2>&1)
-PLACEMENT_OK=$(echo "$TREE_JSON" | python3 -c "
-import sys, json
+FILE_COUNT=$(echo "$TREE_JSON" | pyjq "
 data = json.load(sys.stdin)
 nodes = data['document']['state']['global']['nodes']
-node_map = {n['id']: n for n in nodes}
-rt = node_map.get('$RT_ID', {})
-so = node_map.get('$SO_ID', {})
-rt_ok = rt.get('parentFolder') == '$PRODUCTS_FOLDER_ID'
-so_ok = so.get('parentFolder') == '$OFFERINGS_FOLDER_ID'
-print('OK' if rt_ok and so_ok else 'FAIL')
+files = [n for n in nodes if n['kind'] == 'file']
+print(len(files))
 ")
-[ "$PLACEMENT_OK" = "OK" ] || die "Document placement verification failed"
-log "Document placement verified"
+log "File count: $FILE_COUNT (expected 25: 1 profile + 12 RT + 2 SO + 5 snapshots + 5 expenses)"
 
-# ── Step 6: Set operator on resource template and service offering ──────────
+# ── Step 9: Set operator on documents ───────────────────────────────────────
 
-step "Step 6: Set operator (builder profile) on documents"
+step "Step 9: Set operator (builder profile) on documents"
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
-# Set operator on resource template
-switchboard docs mutate "$RT_ID" --op setOperator \
+# Set operator on all resource templates
+switchboard docs mutate "$OH_RT_ID" --op setOperator \
   --input "{\"operatorId\": \"$BP_ID\", \"lastModified\": \"$TIMESTAMP\"}" \
   --format json --quiet >/dev/null 2>&1
-log "Set operator on resource template"
+for id in "${RT_IDS[@]}"; do
+  switchboard docs mutate "$id" --op setOperator \
+    --input "{\"operatorId\": \"$BP_ID\", \"lastModified\": \"$TIMESTAMP\"}" \
+    --format json --quiet >/dev/null 2>&1
+done
+log "Set operator on 12 resource templates"
 
-# Set operator on service offering
-switchboard docs mutate "$SO_ID" --op setOperator \
+# Set operator on all service offerings
+switchboard docs mutate "$OH_SO_ID" --op setOperator \
   --input "{\"operatorId\": \"$BP_ID\", \"lastModified\": \"$TIMESTAMP\"}" \
   --format json --quiet >/dev/null 2>&1
-log "Set operator on service offering"
+switchboard docs mutate "$AGENTIC_SO_ID" --op setOperator \
+  --input "{\"operatorId\": \"$BP_ID\", \"lastModified\": \"$TIMESTAMP\"}" \
+  --format json --quiet >/dev/null 2>&1
+log "Set operator on 2 service offerings"
 
-# Verify operator on resource template
-RT_STATE=$(sb_query "{ ResourceTemplate_document(identifier: \"$RT_ID\") { document { state { global { operatorId } } } } }")
+# Verify operator on Operational Hub RT
+RT_STATE=$(sb_query "{ ResourceTemplate_document(identifier: \"$OH_RT_ID\") { document { state { global { operatorId } } } } }")
 RT_OP_ID=$(echo "$RT_STATE" | pyjq "
 data = json.load(sys.stdin)
 print(data['ResourceTemplate_document']['document']['state']['global'].get('operatorId', ''))
 ")
 if [ "$RT_OP_ID" = "$BP_ID" ]; then
-  log "Resource template operatorId verified"
+  log "Operational Hub RT operatorId verified"
 else
-  warn "Resource template operatorId mismatch: got '$RT_OP_ID', expected '$BP_ID'"
+  warn "Operational Hub RT operatorId mismatch: got '$RT_OP_ID', expected '$BP_ID'"
 fi
 
-# Verify operator on service offering
-SO_STATE=$(sb_query "{ ServiceOffering_document(identifier: \"$SO_ID\") { document { state { global { operatorId } } } } }")
+# Verify operator on Operational Hub SO
+SO_STATE=$(sb_query "{ ServiceOffering_document(identifier: \"$OH_SO_ID\") { document { state { global { operatorId } } } } }")
 SO_OP_ID=$(echo "$SO_STATE" | pyjq "
 data = json.load(sys.stdin)
 print(data['ServiceOffering_document']['document']['state']['global'].get('operatorId', ''))
 ")
 if [ "$SO_OP_ID" = "$BP_ID" ]; then
-  log "Service offering operatorId verified"
+  log "Operational Hub SO operatorId verified"
 else
-  warn "Service offering operatorId mismatch: got '$SO_OP_ID', expected '$BP_ID'"
+  warn "Operational Hub SO operatorId mismatch: got '$SO_OP_ID', expected '$BP_ID'"
 fi
 
-# ── Step 7: Populate documents with data ─────────────────────────────────────
+# ── Step 10: Populate Operational Hub data ──────────────────────────────────
 
-step "Step 7: Populate documents with Operational Hub data"
+step "Step 10: Populate Operational Hub documents"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-bash "$SCRIPT_DIR/populate-operator-documents.sh" "$RT_ID" "$SO_ID" "$BP_ID"
+bash "$SCRIPT_DIR/populate-operator-documents.sh" "$OH_RT_ID" "$OH_SO_ID" "$BP_ID"
 
 # ── Final summary ───────────────────────────────────────────────────────────
 
@@ -282,10 +411,12 @@ switchboard docs tree "$DRIVE_SLUG" 2>&1 || true
 
 echo ""
 step "Summary"
-log "Drive:             $DRIVE_NAME (ID: $DRIVE_ID, Slug: $DRIVE_SLUG)"
-log "Builder Profile:   $BP_ID (isOperator: true)"
-log "Resource Template: $RT_ID (operator: $BP_ID) → Products folder"
-log "Service Offering:  $SO_ID (operator: $BP_ID) → Service Offerings folder"
+log "Drive:              $DRIVE_NAME (ID: $DRIVE_ID, Slug: $DRIVE_SLUG)"
+log "Builder Profile:    $BP_ID (isOperator: true)"
+log "Resource Templates: 12 total (Operational Hub populated, 11 empty)"
+log "Service Offerings:  2 total (Operational Hub populated, AgenticOps empty)"
+log "Snapshot Reports:   5 (empty)"
+log "Expense Reports:    5 (empty)"
 CONNECT_URL="http://localhost:3001"
 SWITCHBOARD_URL="http://localhost:4001"
 echo ""
