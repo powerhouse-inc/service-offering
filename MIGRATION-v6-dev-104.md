@@ -164,6 +164,8 @@ Below is the minimal set of dependencies for a v6 project. Add only what your pr
 ```json
 {
   "@eslint/js": "^9.38.0",
+  "@semantic-release/changelog": "^6.0.3",
+  "@semantic-release/git": "^10.0.1",
   "@powerhousedao/analytics-engine-core": "6.0.0-dev.104",
   "@powerhousedao/config": "6.0.0-dev.104",
   "@powerhousedao/connect": "6.0.0-dev.104",
@@ -226,6 +228,8 @@ These were commonly included in older projects but are no longer needed by the v
 | `react-router-dom` | Not used by project code |
 
 > **Note:** Audit your own imports before removing. Some projects may genuinely use packages like `lucide-react`, `rehype-slug`, or `@uiw/react-md-editor` — keep those if imported.
+>
+> **Warning:** If your `package.json` has a `release` config using semantic-release plugins (e.g. `@semantic-release/changelog`, `@semantic-release/git`), you **must keep those in devDependencies**. CI runs `npx semantic-release` which resolves plugins from the project's `node_modules` — removing them will break your release pipeline.
 
 ### Scripts
 
