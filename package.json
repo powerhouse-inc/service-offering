@@ -55,7 +55,8 @@
     "./style.css": "./dist/style.css"
   },
   "scripts": {
-    "build": "npm run tsc && npm run tailwind",
+    "build": "bun run tsc && bun run tailwind && bun run copy-assets",
+    "copy-assets": "mkdir -p dist/editors/service-offering-editor && cp editors/service-offering-editor/editor.css dist/editors/service-offering-editor/editor.css",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint --config eslint.config.js --cache --cache-strategy content",
