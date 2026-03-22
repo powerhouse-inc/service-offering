@@ -1,3 +1,10 @@
+# [1.0.0-dev.20](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.19...v1.0.0-dev.20) (2026-03-22)
+
+
+### Bug Fixes
+
+* copy editor.css to dist during build ([f1a9bf8](https://github.com/powerhouse-inc/service-offering/commit/f1a9bf832f909323496cd60eb976c8ab2a156cb2))
+
 # [1.0.0-dev.19](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.18...v1.0.0-dev.19) (2026-03-22)
 
 
