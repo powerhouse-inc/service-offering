@@ -1,3 +1,10 @@
+# [1.0.0-dev.19](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.18...v1.0.0-dev.19) (2026-03-22)
+
+
+### Bug Fixes
+
+* restore semantic-release plugins needed by CI ([15c9f21](https://github.com/powerhouse-inc/service-offering/commit/15c9f21e35cb4bbb5ca528209b7653926bd65a46))
+
 # [1.0.0-dev.18](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.17...v1.0.0-dev.18) (2026-03-20)
 
 
