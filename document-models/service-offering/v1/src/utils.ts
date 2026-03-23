@@ -140,9 +140,10 @@ function resolveGroupPricing(
   const monthlyOption = pricing.find((p) => p.billingCycle === "MONTHLY");
   const monthlyBase = monthlyOption?.amount ?? 0;
 
-  // Price for effective cycle
+  // Price for effective cycle — amounts represent monthly rates,
+  // so multiply by months to get the total for the billing period
   const cycleOption = pricing.find((p) => p.billingCycle === effectiveCycle);
-  const cycleAmount = cycleOption?.amount ?? monthlyBase * (months || 1);
+  const cycleAmount = (cycleOption?.amount ?? monthlyBase) * (months || 1);
 
   let discount: DiscountBreakdown | null = null;
   let recurringAmount = cycleAmount;

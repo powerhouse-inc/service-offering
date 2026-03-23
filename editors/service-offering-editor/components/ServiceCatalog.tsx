@@ -946,7 +946,7 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                 tiers.length > 0 && (
                   <>
                     {/* Tier Tab Bar */}
-                    <div className="flex gap-0 border-b border-slate-200 mb-3 overflow-x-auto">
+                    <div className="flex gap-0 border-b border-slate-200 mb-3 overflow-x-auto sticky top-0 bg-white z-10">
                       {tiers.map((tier) => (
                         <button
                           key={tier.id}
