@@ -38,7 +38,17 @@ export function useRemoteResourceTemplates(
     try {
       const templates = await fetchAllRemoteResourceTemplates();
       hasFetchedRef.current = true;
-      setAllTemplates(templates);
+      // Deduplicate by ID — findDocuments can return the same document
+      // multiple times when it is referenced from multiple drives
+      const seen = new Set<string>();
+      const unique: RemoteResourceTemplate[] = [];
+      for (const t of templates) {
+        if (!seen.has(t.id)) {
+          seen.add(t.id);
+          unique.push(t);
+        }
+      }
+      setAllTemplates(unique);
     } catch {
       // Silently fail — remote data is a fallback
     } finally {

@@ -119,13 +119,23 @@ export function ResourceTemplateSelector({
   const { templates: remoteTemplates, isLoading: isLoadingRemote } =
     useRemoteResourceTemplates(localTemplateIds);
 
-  // Normalize and merge local + remote templates
+  // Normalize, merge, and deduplicate local + remote templates
   const allTemplates = useMemo(() => {
-    const normalized: NormalizedTemplate[] = (localTemplates ?? []).map(
-      normalizeLocalTemplate,
-    );
+    const seen = new Set<string>();
+    const normalized: NormalizedTemplate[] = [];
+    // Local templates take priority
+    for (const doc of localTemplates ?? []) {
+      if (!seen.has(doc.header.id)) {
+        seen.add(doc.header.id);
+        normalized.push(normalizeLocalTemplate(doc));
+      }
+    }
+    // Add remote templates only if not already present
     for (const remote of remoteTemplates) {
-      normalized.push(normalizeRemoteTemplate(remote));
+      if (!seen.has(remote.id)) {
+        seen.add(remote.id);
+        normalized.push(normalizeRemoteTemplate(remote));
+      }
     }
     return normalized;
   }, [localTemplates, remoteTemplates]);
@@ -736,6 +746,23 @@ function TemplateCard({
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
           Recommended
+        </div>
+      )}
+      {!template.isRemote && (
+        <div
+          className="absolute top-2.5 right-2.5 flex items-center gap-1 py-1 px-2.5 text-[0.625rem] font-bold uppercase tracking-[0.04em] rounded-full z-[4] text-emerald-600 bg-emerald-50"
+          style={{ backdropFilter: "blur(8px)" }}
+        >
+          <svg
+            className="w-3 h-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          This Drive
         </div>
       )}
       {template.isRemote && (
