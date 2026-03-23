@@ -1,3 +1,10 @@
+# [1.0.0-dev.21](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.20...v1.0.0-dev.21) (2026-03-23)
+
+
+### Bug Fixes
+
+* deduplicate resource templates and add source tags ([777b037](https://github.com/powerhouse-inc/service-offering/commit/777b0373fc4606579edfe8ed3c33e95215135253))
+
 # [1.0.0-dev.20](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.19...v1.0.0-dev.20) (2026-03-22)
 
 
