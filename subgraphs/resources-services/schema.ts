@@ -243,6 +243,7 @@ export const schema: DocumentNode = gql`
     pricingMode: RSTierPricingMode
     pricing: RSServicePricing!
     defaultBillingCycle: RSBillingCycle
+    mostPopular: Boolean!
     billingCycleDiscounts: [RSBillingCycleDiscount!]!
     serviceLevels: [RSServiceLevelBinding!]!
     usageLimits: [RSServiceUsageLimit!]!

@@ -791,6 +791,7 @@ function mapServiceOfferingState(
       name: tier.name,
       description: tier.description || null,
       isCustomPricing: tier.isCustomPricing,
+      mostPopular: tier.mostPopular,
       pricingMode: tier.pricingMode || null,
       pricing: {
         amount: tier.pricing?.amount ?? null,
