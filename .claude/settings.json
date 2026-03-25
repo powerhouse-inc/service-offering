@@ -8,5 +8,45 @@
     "staging-switchboard": {
       "url": "https://switchboard-staging.powerhouse.xyz/mcp"
     }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-orient.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/validate-note.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/auto-commit.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-capture.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }
