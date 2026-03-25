@@ -1,3 +1,10 @@
+# [1.0.0-dev.24](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.23...v1.0.0-dev.24) (2026-03-25)
+
+
+### Features
+
+* add Ars Contexta knowledge system for project intelligence ([54e67ad](https://github.com/powerhouse-inc/service-offering/commit/54e67adcf59e4bc77a717b82b958dfb9a3a66e2a))
+
 # [1.0.0-dev.23](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.22...v1.0.0-dev.23) (2026-03-24)
 
 # [1.0.0-dev.22](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.21...v1.0.0-dev.22) (2026-03-23)
