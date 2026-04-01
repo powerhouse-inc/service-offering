@@ -1,7 +1,7 @@
 {
   "name": "@powerhousedao/service-offering",
   "description": "service offering document models",
-  "version": "1.0.0-dev.24",
+  "version": "1.0.0-dev.25",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",

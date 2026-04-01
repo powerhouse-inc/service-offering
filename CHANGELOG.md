@@ -1,3 +1,10 @@
+# [1.0.0-dev.25](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.24...v1.0.0-dev.25) (2026-04-01)
+
+
+### Features
+
+* **resource-template,service-offering:** add Acra catalog enhancements ([81dbd2d](https://github.com/powerhouse-inc/service-offering/commit/81dbd2db409b4d6ab5ed154a212098b591d6035a))
+
 # [1.0.0-dev.24](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.23...v1.0.0-dev.24) (2026-03-25)
 
 
