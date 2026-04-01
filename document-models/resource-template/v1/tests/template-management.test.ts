@@ -12,6 +12,8 @@ import {
   UpdateTemplateStatusInputSchema,
   SetOperatorInputSchema,
   SetTemplateIdInputSchema,
+  setWeight,
+  SetWeightInputSchema,
 } from "@powerhousedao/service-offering/document-models/resource-template/v1";
 
 describe("TemplateManagementOperations", () => {
@@ -77,6 +79,21 @@ describe("TemplateManagementOperations", () => {
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_TEMPLATE_ID",
     );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle setWeight operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SetWeightInputSchema());
+
+    const updatedDocument = reducer(document, setWeight(input));
+
+    expect(isResourceTemplateDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe("SET_WEIGHT");
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,
     );

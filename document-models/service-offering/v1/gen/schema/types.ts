@@ -114,6 +114,7 @@ export type AddTierInput = {
   amount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   currency: Scalars["Currency"]["input"];
   description?: InputMaybe<Scalars["String"]["input"]>;
+  excludeFromSetupFee?: InputMaybe<Scalars["Boolean"]["input"]>;
   id: Scalars["OID"]["input"];
   isCustomPricing?: InputMaybe<Scalars["Boolean"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
@@ -266,6 +267,11 @@ export type RemoveUsageLimitInput = {
   tierId: Scalars["OID"]["input"];
 };
 
+export type ReorderTiersInput = {
+  lastModified: Scalars["DateTime"]["input"];
+  tierIds: Array<Scalars["OID"]["input"]>;
+};
+
 export type SelectResourceTemplateInput = {
   lastModified: Scalars["DateTime"]["input"];
   resourceTemplateId: Scalars["PHID"]["input"];
@@ -325,6 +331,7 @@ export type ServiceSubscriptionTier = {
   billingCycleDiscounts: Array<BillingCycleDiscount>;
   defaultBillingCycle: Maybe<BillingCycle>;
   description: Maybe<Scalars["String"]["output"]>;
+  excludeFromSetupFee: Scalars["Boolean"]["output"];
   id: Scalars["OID"]["output"];
   isCustomPricing: Scalars["Boolean"]["output"];
   mostPopular: Scalars["Boolean"]["output"];
@@ -479,6 +486,7 @@ export type UpdateServiceLevelInput = {
 
 export type UpdateTierInput = {
   description?: InputMaybe<Scalars["String"]["input"]>;
+  excludeFromSetupFee?: InputMaybe<Scalars["Boolean"]["input"]>;
   id: Scalars["OID"]["input"];
   isCustomPricing?: InputMaybe<Scalars["Boolean"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];

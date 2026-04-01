@@ -18,6 +18,9 @@ export const resourceTemplateTemplateManagementOperations: ResourceTemplateTempl
       if (action.input.infoLink !== undefined) {
         state.infoLink = action.input.infoLink || null;
       }
+      if (action.input.subtitle !== undefined) {
+        state.subtitle = action.input.subtitle || null;
+      }
       state.lastModified = action.input.lastModified;
     },
     updateTemplateStatusOperation(state, action) {
@@ -30,6 +33,10 @@ export const resourceTemplateTemplateManagementOperations: ResourceTemplateTempl
     },
     setTemplateIdOperation(state, action) {
       state.id = action.input.id;
+      state.lastModified = action.input.lastModified;
+    },
+    setWeightOperation(state, action) {
+      state.weight = action.input.weight ?? null;
       state.lastModified = action.input.lastModified;
     },
   };

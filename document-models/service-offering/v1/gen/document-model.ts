@@ -20,7 +20,7 @@ export const documentModel: DocumentModelGlobalState = {
         },
         global: {
           schema:
-            "type ServiceOfferingState {\n    id: PHID\n    operatorId: PHID\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime\n    availableBillingCycles: [BillingCycle!]!\n    facetTargets: [FacetTarget!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype DiscountRule {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\ntype BillingCycleDiscount {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRule!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype RecurringPriceOption {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricingMode: TierPricingMode\n    pricing: ServicePricing!\n    defaultBillingCycle: BillingCycle\n    mostPopular: Boolean!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    pricingMode: AddOnPricingMode\n    standalonePricing: StandalonePricing\n    tierDependentPricing: [OptionGroupTierPricing!]\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    discountMode: DiscountMode\n    price: Amount_Money\n    currency: Currency\n}\n\nenum AddOnPricingMode {\n    TIER_DEPENDENT\n    STANDALONE\n}\n\nenum DiscountMode {\n    INHERIT_TIER\n    INDEPENDENT\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\ntype StandalonePricing {\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype OptionGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCost: SetupCost\n    setupCostDiscounts: [BillingCycleDiscount!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}",
+            "type ServiceOfferingState {\n    id: PHID\n    operatorId: PHID\n    resourceTemplateId: PHID\n    title: String!\n    summary: String!\n    description: String\n    thumbnailUrl: URL\n    infoLink: URL\n    status: ServiceStatus!\n    lastModified: DateTime\n    availableBillingCycles: [BillingCycle!]!\n    facetTargets: [FacetTarget!]!\n    services: [Service!]!\n    tiers: [ServiceSubscriptionTier!]!\n    optionGroups: [OptionGroup!]!\n}\n\nenum ServiceStatus {\n    DRAFT\n    COMING_SOON\n    ACTIVE\n    DEPRECATED\n}\n\ntype FacetTarget {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOptions: [String!]!\n}\n\ntype DiscountRule {\n    discountType: DiscountType!\n    discountValue: Float!\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\ntype BillingCycleDiscount {\n    billingCycle: BillingCycle!\n    discountRule: DiscountRule!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype RecurringPriceOption {\n    id: OID!\n    billingCycle: BillingCycle!\n    amount: Amount_Money!\n    currency: Currency!\n    discount: DiscountRule\n}\n\ntype Service {\n    id: OID!\n    title: String!\n    description: String\n    displayOrder: Int\n    isSetupFormation: Boolean!\n    optionGroupId: OID\n}\n\ntype ServiceSubscriptionTier {\n    id: OID!\n    name: String!\n    description: String\n    isCustomPricing: Boolean!\n    pricingMode: TierPricingMode\n    pricing: ServicePricing!\n    defaultBillingCycle: BillingCycle\n    mostPopular: Boolean!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    serviceLevels: [ServiceLevelBinding!]!\n    usageLimits: [ServiceUsageLimit!]!\n    excludeFromSetupFee: Boolean!\n}\n\ntype ServicePricing {\n    amount: Amount_Money\n    currency: Currency!\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\ntype ServiceLevelBinding {\n    id: OID!\n    serviceId: OID!\n    level: ServiceLevel!\n    customValue: String\n    optionGroupId: OID\n}\n\nenum ServiceLevel {\n    INCLUDED\n    NOT_INCLUDED\n    OPTIONAL\n    CUSTOM\n    VARIABLE\n    NOT_APPLICABLE\n}\n\ntype ServiceUsageLimit {\n    id: OID!\n    serviceId: OID!\n    metric: String!\n    unitName: String\n    freeLimit: Int\n    paidLimit: Int\n    resetCycle: UsageResetCycle\n    notes: String\n    unitPrice: Amount_Money\n    unitPriceCurrency: Currency\n}\n\nenum UsageResetCycle {\n    NONE\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype OptionGroup {\n    id: OID!\n    name: String!\n    description: String\n    isAddOn: Boolean!\n    defaultSelected: Boolean!\n    pricingMode: AddOnPricingMode\n    standalonePricing: StandalonePricing\n    tierDependentPricing: [OptionGroupTierPricing!]\n    costType: GroupCostType\n    availableBillingCycles: [BillingCycle!]!\n    billingCycleDiscounts: [BillingCycleDiscount!]!\n    discountMode: DiscountMode\n    price: Amount_Money\n    currency: Currency\n}\n\nenum AddOnPricingMode {\n    TIER_DEPENDENT\n    STANDALONE\n}\n\nenum DiscountMode {\n    INHERIT_TIER\n    INDEPENDENT\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\ntype StandalonePricing {\n    setupCost: SetupCost\n    recurringPricing: [RecurringPriceOption!]!\n}\n\ntype OptionGroupTierPricing {\n    id: OID!\n    tierId: OID!\n    setupCost: SetupCost\n    setupCostDiscounts: [BillingCycleDiscount!]!\n    recurringPricing: [RecurringPriceOption!]!\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}",
           examples: [],
           initialValue:
             '{\n  "id": null,\n  "operatorId": null,\n  "resourceTemplateId": null,\n  "title": "",\n  "summary": "",\n  "description": null,\n  "thumbnailUrl": null,\n  "infoLink": null,\n  "status": "DRAFT",\n  "lastModified": null,\n  "availableBillingCycles": [],\n  "facetTargets": [],\n  "services": [],\n  "tiers": [],\n  "optionGroups": []\n}',
@@ -291,9 +291,9 @@ export const documentModel: DocumentModelGlobalState = {
               scope: "global",
               errors: [],
               schema:
-                "input AddTierInput {\n    id: OID!\n    name: String!\n    description: String\n    amount: Amount_Money\n    currency: Currency!\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n}",
+                "input AddTierInput {\n    id: OID!\n    name: String!\n    description: String\n    amount: Amount_Money\n    currency: Currency!\n    isCustomPricing: Boolean\n    excludeFromSetupFee: Boolean\n    lastModified: DateTime!\n}",
               reducer:
-                "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isCustomPricing: action.input.isCustomPricing || false,\n    pricingMode: null,\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency,\n    },\n    defaultBillingCycle: null,\n    billingCycleDiscounts: [],\n    serviceLevels: [],\n    usageLimits: [],\n});\nstate.lastModified = action.input.lastModified;",
+                "state.tiers.push({\n    id: action.input.id,\n    name: action.input.name,\n    description: action.input.description || null,\n    isCustomPricing: action.input.isCustomPricing || false,\n    pricingMode: null,\n    pricing: {\n        amount: action.input.amount || null,\n        currency: action.input.currency,\n    },\n    defaultBillingCycle: null,\n    mostPopular: false,\n    billingCycleDiscounts: [],\n    serviceLevels: [],\n    usageLimits: [],\n    excludeFromSetupFee: action.input.excludeFromSetupFee || false,\n});\nstate.lastModified = action.input.lastModified;",
               examples: [],
               template: "Add a subscription tier",
               description: "Add a subscription tier",
@@ -312,9 +312,9 @@ export const documentModel: DocumentModelGlobalState = {
                 },
               ],
               schema:
-                "input UpdateTierInput {\n    id: OID!\n    name: String\n    description: String\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n    mostPopular: Boolean\n}",
+                "input UpdateTierInput {\n    id: OID!\n    name: String\n    description: String\n    isCustomPricing: Boolean\n    lastModified: DateTime!\n    mostPopular: Boolean\n    excludeFromSetupFee: Boolean\n}",
               reducer:
-                "const tier = state.tiers.find(t => t.id === action.input.id);\nif (!tier) {\n    throw new UpdateTierNotFoundError(`Tier with ID ${action.input.id} not found`);\n}\nif (action.input.name) tier.name = action.input.name;\nif (action.input.description !== undefined) tier.description = action.input.description || null;\nif (action.input.isCustomPricing !== undefined && action.input.isCustomPricing !== null) tier.isCustomPricing = action.input.isCustomPricing;\nstate.lastModified = action.input.lastModified;",
+                "const tier = state.tiers.find(t => t.id === action.input.id);\nif (!tier) {\n    throw new UpdateTierNotFoundError(`Tier with ID ${action.input.id} not found`);\n}\nif (action.input.name) tier.name = action.input.name;\nif (action.input.description !== undefined) tier.description = action.input.description || null;\nif (action.input.isCustomPricing !== undefined && action.input.isCustomPricing !== null) tier.isCustomPricing = action.input.isCustomPricing;\nif (action.input.excludeFromSetupFee !== undefined && action.input.excludeFromSetupFee !== null) tier.excludeFromSetupFee = action.input.excludeFromSetupFee;\nstate.lastModified = action.input.lastModified;\nif (action.input.mostPopular !== undefined && action.input.mostPopular !== null) {\n    if (action.input.mostPopular) {\n        for (const t of state.tiers) {\n            t.mostPopular = false;\n        }\n    }\n    tier.mostPopular = action.input.mostPopular;\n}",
               examples: [],
               template: "Update tier metadata",
               description: "Update tier metadata",
@@ -563,6 +563,36 @@ export const documentModel: DocumentModelGlobalState = {
               examples: [],
               template: "Set the pricing mode for a tier",
               description: "Set the pricing mode for a tier",
+            },
+            {
+              id: "op-reorder-tiers",
+              name: "REORDER_TIERS",
+              description:
+                "Reorder the tiers array to match the provided tier ID order",
+              schema:
+                "input ReorderTiersInput {\n    tierIds: [OID!]!\n    lastModified: DateTime!\n}",
+              template: "Reorder tiers by providing ordered tier IDs",
+              reducer:
+                'const currentIds = state.tiers.map(t => t.id);\nconst inputIds = action.input.tierIds;\nif (inputIds.length !== currentIds.length) {\n    throw new TierIdsMismatchError("Input tier IDs count does not match existing tiers count");\n}\nconst inputSet = new Set(inputIds);\nif (inputSet.size !== inputIds.length) {\n    throw new DuplicateTierIdError("Input contains duplicate tier IDs");\n}\nfor (const id of currentIds) {\n    if (!inputSet.has(id)) {\n        throw new TierIdsMismatchError(`Tier ID ${id} exists but was not included in reorder input`);\n    }\n}\nconst tierMap = new Map(state.tiers.map(t => [t.id, t]));\nstate.tiers = inputIds.map(id => tierMap.get(id));\nstate.lastModified = action.input.lastModified;',
+              errors: [
+                {
+                  id: "err-tier-ids-mismatch",
+                  name: "TierIdsMismatchError",
+                  code: "TIER_IDS_MISMATCH",
+                  description:
+                    "Input tier IDs don't match the current set of tier IDs",
+                  template: "",
+                },
+                {
+                  id: "err-duplicate-tier-id",
+                  name: "DuplicateTierIdError",
+                  code: "DUPLICATE_TIER_ID",
+                  description: "Input contains duplicate tier IDs",
+                  template: "",
+                },
+              ],
+              examples: [],
+              scope: "global",
             },
           ],
           description:

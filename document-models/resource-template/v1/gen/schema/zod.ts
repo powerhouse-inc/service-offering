@@ -29,6 +29,7 @@ import type {
   SetRecurringServicesInput,
   SetSetupServicesInput,
   SetTemplateIdInput,
+  SetWeightInput,
   TargetAudience,
   TemplateStatus,
   UpdateContentSectionInput,
@@ -306,10 +307,12 @@ export function ResourceTemplateStateSchema(): z.ZodObject<
     services: z.array(z.lazy(() => ServiceSchema())),
     setupServices: z.array(z.string()),
     status: TemplateStatusSchema,
+    subtitle: z.string().nullish(),
     summary: z.string(),
     targetAudiences: z.array(z.lazy(() => TargetAudienceSchema())),
     thumbnailUrl: z.url().nullish(),
     title: z.string(),
+    weight: z.number().nullish(),
   });
 }
 
@@ -372,6 +375,15 @@ export function SetTemplateIdInputSchema(): z.ZodObject<
   return z.object({
     id: z.string(),
     lastModified: z.iso.datetime(),
+  });
+}
+
+export function SetWeightInputSchema(): z.ZodObject<
+  Properties<SetWeightInput>
+> {
+  return z.object({
+    lastModified: z.iso.datetime(),
+    weight: z.number().nullish(),
   });
 }
 
@@ -443,6 +455,7 @@ export function UpdateTemplateInfoInputSchema(): z.ZodObject<
     description: z.string().nullish(),
     infoLink: z.url().nullish(),
     lastModified: z.iso.datetime(),
+    subtitle: z.string().nullish(),
     summary: z.string().nullish(),
     thumbnailUrl: z.url().nullish(),
     title: z.string().nullish(),

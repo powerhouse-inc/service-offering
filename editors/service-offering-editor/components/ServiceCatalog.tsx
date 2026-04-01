@@ -1524,6 +1524,11 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             style={fontSans}
                           >
                             {tier.name}
+                            {tier.excludeFromSetupFee && (
+                              <span className="text-[0.5625rem] font-semibold uppercase tracking-[0.04em] text-teal-600 bg-teal-50 px-[5px] py-px rounded-full">
+                                No Fee
+                              </span>
+                            )}
                             {tier.isCustomPricing && (
                               <span className="text-[0.5625rem] font-semibold uppercase tracking-[0.04em] text-amber-600 bg-amber-50 px-[5px] py-px rounded-full">
                                 Custom
@@ -1539,6 +1544,27 @@ export function ServiceCatalog({ document, dispatch }: ServiceCatalogProps) {
                             (t) => t.id === editTierTab,
                           );
                           if (!activeTier) return null;
+
+                          if (activeTier.excludeFromSetupFee) {
+                            return (
+                              <div className="flex items-center gap-2 p-3 bg-teal-50 border border-dashed border-teal-300 rounded-md text-xs text-teal-700 italic">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  width="16"
+                                  height="16"
+                                >
+                                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>
+                                  No setup fee — this tier is excluded from
+                                  setup fees.
+                                </span>
+                              </div>
+                            );
+                          }
 
                           if (activeTier.isCustomPricing) {
                             return (

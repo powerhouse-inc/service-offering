@@ -13,6 +13,7 @@ import type {
   SetTierDefaultBillingCycleAction,
   SetTierBillingCycleDiscountsAction,
   SetTierPricingModeAction,
+  ReorderTiersAction,
 } from "./actions.js";
 import type { ServiceOfferingState } from "../types.js";
 
@@ -80,6 +81,11 @@ export interface ServiceOfferingTiersOperations {
   setTierPricingModeOperation: (
     state: ServiceOfferingState,
     action: SetTierPricingModeAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  reorderTiersOperation: (
+    state: ServiceOfferingState,
+    action: ReorderTiersAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

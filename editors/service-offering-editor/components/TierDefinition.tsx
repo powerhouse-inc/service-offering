@@ -13,6 +13,7 @@ import {
   updateTier,
   deleteTier,
   setAvailableBillingCycles,
+  reorderTiers,
 } from "../../../document-models/service-offering/v1/gen/creators.js";
 import { calculateTierRecurringPrice, formatPrice } from "./pricing-utils.js";
 import { InfoIcon } from "./InfoIcon.js";
@@ -170,6 +171,25 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
     });
   };
 
+  const handleMoveTier = useCallback(
+    (tierIndex: number, direction: "left" | "right") => {
+      const newIndex = direction === "left" ? tierIndex - 1 : tierIndex + 1;
+      if (newIndex < 0 || newIndex >= tiers.length) return;
+      const reordered = tiers.map((t) => t.id);
+      [reordered[tierIndex], reordered[newIndex]] = [
+        reordered[newIndex],
+        reordered[tierIndex],
+      ];
+      dispatch(
+        reorderTiers({
+          tierIds: reordered,
+          lastModified: new Date().toISOString(),
+        }),
+      );
+    },
+    [tiers, dispatch],
+  );
+
   const getTierAccent = (index: number) =>
     TIER_ACCENTS[index % TIER_ACCENTS.length];
 
@@ -310,6 +330,10 @@ export function TierDefinition({ document, dispatch }: TierDefinitionProps) {
               onDelete={() => handleDeleteTier(tier.id)}
               isRecommended={tier.mostPopular}
               regularGroups={regularGroups}
+              onMoveLeft={() => handleMoveTier(index, "left")}
+              onMoveRight={() => handleMoveTier(index, "right")}
+              isFirst={index === 0}
+              isLast={index === tiers.length - 1}
             />
           ))}
 
@@ -469,6 +493,10 @@ interface TierCardProps {
   onDelete: () => void;
   isRecommended?: boolean;
   regularGroups: OptionGroup[];
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
 const TierCard = memo(function TierCard({
@@ -478,6 +506,10 @@ const TierCard = memo(function TierCard({
   onDelete,
   isRecommended,
   regularGroups,
+  onMoveLeft,
+  onMoveRight,
+  isFirst,
+  isLast,
 }: TierCardProps) {
   const [localName, setLocalName] = useState(tier.name);
   const [localDescription, setLocalDescription] = useState(
@@ -643,6 +675,27 @@ const TierCard = memo(function TierCard({
           </div>
         )}
 
+        <label className="flex items-center gap-2.5 mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={tier.excludeFromSetupFee ?? false}
+            onChange={(e) => {
+              dispatch(
+                updateTier({
+                  id: tier.id,
+                  excludeFromSetupFee: e.target.checked,
+                  lastModified: new Date().toISOString(),
+                }),
+              );
+            }}
+            className="w-[1.125rem] h-[1.125rem] cursor-pointer"
+            style={{ accentColor: "#0d9488" }}
+          />
+          <span className="text-[0.8125rem] text-slate-600">
+            Exclude from setup fee
+          </span>
+        </label>
+
         {!isCustomPricing && (
           <div className="mb-4">
             <div className="mb-1.5">
@@ -748,22 +801,53 @@ const TierCard = memo(function TierCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 py-4 px-6 bg-slate-50 border-t border-slate-100">
-        <svg
-          className="w-4 h-4 text-slate-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span className="text-xs text-slate-500">
-          Configure service levels in the Matrix view
+      <div className="flex items-center justify-between py-3 px-6 bg-slate-50 border-t border-slate-100">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onMoveLeft}
+            disabled={isFirst}
+            className="p-1.5 rounded-md border-none cursor-pointer transition-all duration-150 bg-transparent text-slate-400 hover:enabled:text-violet-600 hover:enabled:bg-violet-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Move left"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={onMoveRight}
+            disabled={isLast}
+            className="p-1.5 rounded-md border-none cursor-pointer transition-all duration-150 bg-transparent text-slate-400 hover:enabled:text-violet-600 hover:enabled:bg-violet-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Move right"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+        <span className="text-[0.6875rem] text-slate-400">
+          Matrix view for service levels
         </span>
       </div>
     </div>

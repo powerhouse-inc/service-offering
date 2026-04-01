@@ -37,6 +37,8 @@ type ResourceTemplateState {
     optionGroups: [OptionGroup!]!
     faqFields: [FaqField!]
     contentSections: [ContentSection!]!
+    weight: Int
+    subtitle: String
 }
 
 enum TemplateStatus {
@@ -107,6 +109,7 @@ input UpdateTemplateInfoInput {
     description: String
     thumbnailUrl: URL
     infoLink: URL
+    subtitle: String
     lastModified: DateTime!
 }
 
@@ -122,6 +125,11 @@ input SetOperatorInput {
 
 input SetTemplateIdInput {
     id: PHID!
+    lastModified: DateTime!
+}
+
+input SetWeightInput {
+    weight: Int
     lastModified: DateTime!
 }
 

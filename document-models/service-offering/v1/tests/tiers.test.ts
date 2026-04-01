@@ -30,6 +30,8 @@ import {
   SetTierDefaultBillingCycleInputSchema,
   SetTierBillingCycleDiscountsInputSchema,
   SetTierPricingModeInputSchema,
+  reorderTiers,
+  ReorderTiersInputSchema,
 } from "@powerhousedao/service-offering/document-models/service-offering/v1";
 
 describe("TiersOperations", () => {
@@ -251,6 +253,23 @@ describe("TiersOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_TIER_PRICING_MODE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle reorderTiers operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(ReorderTiersInputSchema());
+
+    const updatedDocument = reducer(document, reorderTiers(input));
+
+    expect(isServiceOfferingDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "REORDER_TIERS",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

@@ -30,6 +30,8 @@ export function defaultGlobalState(): ResourceTemplateGlobalState {
     optionGroups: [],
     faqFields: [],
     contentSections: [],
+    weight: null,
+    subtitle: null,
   };
 }
 

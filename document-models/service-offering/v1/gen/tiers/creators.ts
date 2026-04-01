@@ -13,6 +13,7 @@ import {
   SetTierDefaultBillingCycleInputSchema,
   SetTierBillingCycleDiscountsInputSchema,
   SetTierPricingModeInputSchema,
+  ReorderTiersInputSchema,
 } from "../schema/zod.js";
 import type {
   AddTierInput,
@@ -28,6 +29,7 @@ import type {
   SetTierDefaultBillingCycleInput,
   SetTierBillingCycleDiscountsInput,
   SetTierPricingModeInput,
+  ReorderTiersInput,
 } from "../types.js";
 import type {
   AddTierAction,
@@ -43,6 +45,7 @@ import type {
   SetTierDefaultBillingCycleAction,
   SetTierBillingCycleDiscountsAction,
   SetTierPricingModeAction,
+  ReorderTiersAction,
 } from "./actions.js";
 
 export const addTier = (input: AddTierInput) =>
@@ -163,5 +166,14 @@ export const setTierPricingMode = (input: SetTierPricingModeInput) =>
     { ...input },
     undefined,
     SetTierPricingModeInputSchema,
+    "global",
+  );
+
+export const reorderTiers = (input: ReorderTiersInput) =>
+  createAction<ReorderTiersAction>(
+    "REORDER_TIERS",
+    { ...input },
+    undefined,
+    ReorderTiersInputSchema,
     "global",
   );

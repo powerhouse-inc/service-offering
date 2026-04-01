@@ -18,6 +18,7 @@ import {
   UpdateTemplateStatusInputSchema,
   SetOperatorInputSchema,
   SetTemplateIdInputSchema,
+  SetWeightInputSchema,
   AddTargetAudienceInputSchema,
   RemoveTargetAudienceInputSchema,
   SetFacetTargetInputSchema,
@@ -93,6 +94,18 @@ const stateReducer: StateReducer<ResourceTemplatePHState> = (
       SetTemplateIdInputSchema().parse(action.input);
 
       resourceTemplateTemplateManagementOperations.setTemplateIdOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "SET_WEIGHT": {
+      SetWeightInputSchema().parse(action.input);
+
+      resourceTemplateTemplateManagementOperations.setWeightOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

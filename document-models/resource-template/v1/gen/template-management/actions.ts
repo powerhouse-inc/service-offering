@@ -4,6 +4,7 @@ import type {
   UpdateTemplateStatusInput,
   SetOperatorInput,
   SetTemplateIdInput,
+  SetWeightInput,
 } from "../types.js";
 
 export type UpdateTemplateInfoAction = Action & {
@@ -22,9 +23,14 @@ export type SetTemplateIdAction = Action & {
   type: "SET_TEMPLATE_ID";
   input: SetTemplateIdInput;
 };
+export type SetWeightAction = Action & {
+  type: "SET_WEIGHT";
+  input: SetWeightInput;
+};
 
 export type ResourceTemplateTemplateManagementAction =
   | UpdateTemplateInfoAction
   | UpdateTemplateStatusAction
   | SetOperatorAction
-  | SetTemplateIdAction;
+  | SetTemplateIdAction
+  | SetWeightAction;

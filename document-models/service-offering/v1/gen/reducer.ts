@@ -38,6 +38,7 @@ import {
   SetTierDefaultBillingCycleInputSchema,
   SetTierBillingCycleDiscountsInputSchema,
   SetTierPricingModeInputSchema,
+  ReorderTiersInputSchema,
   AddOptionGroupInputSchema,
   UpdateOptionGroupInputSchema,
   DeleteOptionGroupInputSchema,
@@ -373,6 +374,18 @@ const stateReducer: StateReducer<ServiceOfferingPHState> = (
       SetTierPricingModeInputSchema().parse(action.input);
 
       serviceOfferingTiersOperations.setTierPricingModeOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REORDER_TIERS": {
+      ReorderTiersInputSchema().parse(action.input);
+
+      serviceOfferingTiersOperations.reorderTiersOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

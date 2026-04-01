@@ -12,6 +12,7 @@ import {
   updateTemplateInfo,
   updateTemplateStatus,
   setOperator,
+  setWeight,
   addTargetAudience,
   removeTargetAudience,
   setSetupServices,
@@ -126,6 +127,7 @@ export function TemplateInfo({ document, dispatch }: TemplateInfoProps) {
 
   const [formData, setFormData] = useState({
     title: globalState.title || "",
+    subtitle: globalState.subtitle || "",
     summary: globalState.summary || "",
     description: globalState.description || "",
     operatorId: globalState.operatorId || "",
@@ -159,6 +161,7 @@ export function TemplateInfo({ document, dispatch }: TemplateInfoProps) {
   useEffect(() => {
     setFormData({
       title: globalState.title || "",
+      subtitle: globalState.subtitle || "",
       summary: globalState.summary || "",
       description: globalState.description || "",
       operatorId: globalState.operatorId || "",
@@ -168,6 +171,7 @@ export function TemplateInfo({ document, dispatch }: TemplateInfoProps) {
     });
   }, [
     globalState.title,
+    globalState.subtitle,
     globalState.summary,
     globalState.description,
     globalState.operatorId,
@@ -202,6 +206,10 @@ export function TemplateInfo({ document, dispatch }: TemplateInfoProps) {
     }
     if (formData.infoLink !== (globalState.infoLink || "")) {
       changes.infoLink = formData.infoLink || null;
+      hasChanges = true;
+    }
+    if (formData.subtitle !== (globalState.subtitle || "")) {
+      changes.subtitle = formData.subtitle || null;
       hasChanges = true;
     }
 
@@ -631,6 +639,21 @@ export function TemplateInfo({ document, dispatch }: TemplateInfoProps) {
               </div>
             </div>
 
+            <input
+              type="text"
+              value={formData.subtitle}
+              onChange={(e) => handleFieldChange("subtitle", e.target.value)}
+              onBlur={handleInfoBlur}
+              className="template-editor__title-input"
+              placeholder="Subtitle / Tagline"
+              style={{
+                fontSize: "0.95rem",
+                fontWeight: 400,
+                color: "var(--rt-slate-600, #475569)",
+                marginTop: "-4px",
+              }}
+            />
+
             {/* Target Audiences */}
             <div className="template-editor__audiences">
               {globalState.targetAudiences.map((audience: TargetAudience) => (
@@ -726,6 +749,61 @@ export function TemplateInfo({ document, dispatch }: TemplateInfoProps) {
               placeholder="Brief summary of your product..."
               rows={2}
             />
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "8px",
+              }}
+            >
+              <label
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "var(--rt-slate-500, #64748b)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Sort Weight
+              </label>
+              <input
+                type="number"
+                value={globalState.weight ?? ""}
+                onChange={(e) => {
+                  const val =
+                    e.target.value === "" ? null : parseInt(e.target.value, 10);
+                  dispatch(
+                    setWeight({
+                      weight: Number.isNaN(val) ? null : val,
+                      lastModified: new Date().toISOString(),
+                    }),
+                  );
+                }}
+                placeholder="—"
+                style={{
+                  width: "72px",
+                  padding: "4px 8px",
+                  fontSize: "0.8125rem",
+                  border: "1px solid var(--rt-slate-200, #e2e8f0)",
+                  borderRadius: "6px",
+                  outline: "none",
+                  textAlign: "center",
+                  fontFamily: "var(--rt-font-mono, monospace)",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "0.6875rem",
+                  color: "var(--rt-slate-400, #94a3b8)",
+                }}
+              >
+                Lower = higher priority
+              </span>
+            </div>
           </div>
         </section>
 

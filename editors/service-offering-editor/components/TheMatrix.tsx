@@ -1896,10 +1896,12 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           }}
                         >
                           {idx === selectedTierIdx
-                            ? `${formatPrice(
-                                ab.setupCost!,
-                                ab.setupCostCurrency || "USD",
-                              )} one-time`
+                            ? tier.excludeFromSetupFee
+                              ? "No setup fee"
+                              : `${formatPrice(
+                                  ab.setupCost!,
+                                  ab.setupCostCurrency || "USD",
+                                )} one-time`
                             : null}
                         </td>
                       ))}
@@ -1944,9 +1946,11 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                           }}
                         >
                           {idx === selectedTierIdx
-                            ? hasDiscount
-                              ? `${formatPrice(totalSetupEffective, "USD")} one-time`
-                              : `${formatPrice(totalSetupBase, "USD")} one-time`
+                            ? tier.excludeFromSetupFee
+                              ? "No setup fee"
+                              : hasDiscount
+                                ? `${formatPrice(totalSetupEffective, "USD")} one-time`
+                                : `${formatPrice(totalSetupBase, "USD")} one-time`
                             : null}
                         </td>
                       ))}
@@ -2900,7 +2904,11 @@ function ServiceGroupSection({
             <tr className="bg-slate-50 [&>td]:py-2.5 [&>td]:px-4 [&>td]:font-semibold [&>td]:text-slate-700 [&>td]:border-b [&>td]:border-slate-200 [&>td:first-child]:sticky [&>td:first-child]:left-0 [&>td:first-child]:z-10 [&>td:first-child]:bg-slate-50">
               <td>TOTAL SETUP FEE</td>
               <td colSpan={tiers.length} style={{ textAlign: "center" }}>
-                {hasDiscount ? (
+                {selectedTier?.excludeFromSetupFee ? (
+                  <span className="text-slate-400 italic">
+                    No setup fee for this tier
+                  </span>
+                ) : hasDiscount ? (
                   <>
                     <span
                       style={{

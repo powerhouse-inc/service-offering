@@ -12,7 +12,9 @@ export type ErrorCode =
   | "RemoveUsageLimitTierNotFoundError"
   | "SetTierDefaultBillingCycleTierNotFoundError"
   | "SetTierBillingCycleDiscountsTierNotFoundError"
-  | "SetTierPricingModeTierNotFoundError";
+  | "SetTierPricingModeTierNotFoundError"
+  | "TierIdsMismatchError"
+  | "DuplicateTierIdError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -152,6 +154,20 @@ export class SetTierPricingModeTierNotFoundError
   }
 }
 
+export class TierIdsMismatchError extends Error implements ReducerError {
+  errorCode = "TierIdsMismatchError" as ErrorCode;
+  constructor(message = "TierIdsMismatchError") {
+    super(message);
+  }
+}
+
+export class DuplicateTierIdError extends Error implements ReducerError {
+  errorCode = "DuplicateTierIdError" as ErrorCode;
+  constructor(message = "DuplicateTierIdError") {
+    super(message);
+  }
+}
+
 export const errors = {
   UpdateTier: { UpdateTierNotFoundError },
   UpdateTierPricing: { UpdateTierPricingNotFoundError },
@@ -173,4 +189,5 @@ export const errors = {
     SetTierBillingCycleDiscountsTierNotFoundError,
   },
   SetTierPricingMode: { SetTierPricingModeTierNotFoundError },
+  ReorderTiers: { TierIdsMismatchError, DuplicateTierIdError },
 };

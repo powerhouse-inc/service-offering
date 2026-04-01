@@ -4,6 +4,7 @@ import type {
   UpdateTemplateStatusAction,
   SetOperatorAction,
   SetTemplateIdAction,
+  SetWeightAction,
 } from "./actions.js";
 import type { ResourceTemplateState } from "../types.js";
 
@@ -26,6 +27,11 @@ export interface ResourceTemplateTemplateManagementOperations {
   setTemplateIdOperation: (
     state: ResourceTemplateState,
     action: SetTemplateIdAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  setWeightOperation: (
+    state: ResourceTemplateState,
+    action: SetWeightAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

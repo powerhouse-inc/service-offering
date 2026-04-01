@@ -101,6 +101,7 @@ type ServiceSubscriptionTier {
     billingCycleDiscounts: [BillingCycleDiscount!]!
     serviceLevels: [ServiceLevelBinding!]!
     usageLimits: [ServiceUsageLimit!]!
+    excludeFromSetupFee: Boolean!
 }
 
 type ServicePricing {
@@ -310,6 +311,7 @@ input AddTierInput {
     amount: Amount_Money
     currency: Currency!
     isCustomPricing: Boolean
+    excludeFromSetupFee: Boolean
     lastModified: DateTime!
 }
 
@@ -320,6 +322,7 @@ input UpdateTierInput {
     isCustomPricing: Boolean
     lastModified: DateTime!
     mostPopular: Boolean
+    excludeFromSetupFee: Boolean
 }
 
 input UpdateTierPricingInput {
@@ -419,6 +422,11 @@ input SetTierBillingCycleDiscountsInput {
 input SetTierPricingModeInput {
     tierId: OID!
     pricingMode: TierPricingMode!
+    lastModified: DateTime!
+}
+
+input ReorderTiersInput {
+    tierIds: [OID!]!
     lastModified: DateTime!
 }
 

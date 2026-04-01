@@ -4,18 +4,21 @@ import {
   UpdateTemplateStatusInputSchema,
   SetOperatorInputSchema,
   SetTemplateIdInputSchema,
+  SetWeightInputSchema,
 } from "../schema/zod.js";
 import type {
   UpdateTemplateInfoInput,
   UpdateTemplateStatusInput,
   SetOperatorInput,
   SetTemplateIdInput,
+  SetWeightInput,
 } from "../types.js";
 import type {
   UpdateTemplateInfoAction,
   UpdateTemplateStatusAction,
   SetOperatorAction,
   SetTemplateIdAction,
+  SetWeightAction,
 } from "./actions.js";
 
 export const updateTemplateInfo = (input: UpdateTemplateInfoInput) =>
@@ -51,5 +54,14 @@ export const setTemplateId = (input: SetTemplateIdInput) =>
     { ...input },
     undefined,
     SetTemplateIdInputSchema,
+    "global",
+  );
+
+export const setWeight = (input: SetWeightInput) =>
+  createAction<SetWeightAction>(
+    "SET_WEIGHT",
+    { ...input },
+    undefined,
+    SetWeightInputSchema,
     "global",
   );

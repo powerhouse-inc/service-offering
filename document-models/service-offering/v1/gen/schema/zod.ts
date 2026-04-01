@@ -30,6 +30,7 @@ import type {
   RemoveOptionGroupTierPricingInput,
   RemoveServiceLevelInput,
   RemoveUsageLimitInput,
+  ReorderTiersInput,
   SelectResourceTemplateInput,
   Service,
   ServiceLevel,
@@ -198,6 +199,7 @@ export function AddTierInputSchema(): z.ZodObject<Properties<AddTierInput>> {
     amount: z.number().nullish(),
     currency: z.string(),
     description: z.string().nullish(),
+    excludeFromSetupFee: z.boolean().nullish(),
     id: z.string(),
     isCustomPricing: z.boolean().nullish(),
     lastModified: z.iso.datetime(),
@@ -416,6 +418,15 @@ export function RemoveUsageLimitInputSchema(): z.ZodObject<
   });
 }
 
+export function ReorderTiersInputSchema(): z.ZodObject<
+  Properties<ReorderTiersInput>
+> {
+  return z.object({
+    lastModified: z.iso.datetime(),
+    tierIds: z.array(z.string()),
+  });
+}
+
 export function SelectResourceTemplateInputSchema(): z.ZodObject<
   Properties<SelectResourceTemplateInput>
 > {
@@ -491,6 +502,7 @@ export function ServiceSubscriptionTierSchema(): z.ZodObject<
     billingCycleDiscounts: z.array(z.lazy(() => BillingCycleDiscountSchema())),
     defaultBillingCycle: BillingCycleSchema.nullish(),
     description: z.string().nullish(),
+    excludeFromSetupFee: z.boolean(),
     id: z.string(),
     isCustomPricing: z.boolean(),
     mostPopular: z.boolean(),
@@ -730,6 +742,7 @@ export function UpdateTierInputSchema(): z.ZodObject<
 > {
   return z.object({
     description: z.string().nullish(),
+    excludeFromSetupFee: z.boolean().nullish(),
     id: z.string(),
     isCustomPricing: z.boolean().nullish(),
     lastModified: z.iso.datetime(),

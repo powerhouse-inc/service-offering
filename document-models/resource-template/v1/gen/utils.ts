@@ -38,6 +38,8 @@ export const initialGlobalState: ResourceTemplateGlobalState = {
   optionGroups: [],
   faqFields: [],
   contentSections: [],
+  weight: null,
+  subtitle: null,
 };
 export const initialLocalState: ResourceTemplateLocalState = {};
 

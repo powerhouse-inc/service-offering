@@ -88,6 +88,8 @@ function normalizeRemoteTemplate(
         optionGroups: [],
         faqFields: [],
         contentSections: [],
+        weight: null,
+        subtitle: null,
       },
     },
   };

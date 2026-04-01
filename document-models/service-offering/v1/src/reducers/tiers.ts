@@ -13,6 +13,8 @@ import {
   SetTierDefaultBillingCycleTierNotFoundError,
   SetTierBillingCycleDiscountsTierNotFoundError,
   SetTierPricingModeTierNotFoundError,
+  TierIdsMismatchError,
+  DuplicateTierIdError,
 } from "../../gen/tiers/error.js";
 import type { ServiceOfferingTiersOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
 
@@ -33,6 +35,7 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       billingCycleDiscounts: [],
       serviceLevels: [],
       usageLimits: [],
+      excludeFromSetupFee: action.input.excludeFromSetupFee || false,
     });
     state.lastModified = action.input.lastModified;
   },
@@ -51,6 +54,11 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       action.input.isCustomPricing !== null
     )
       tier.isCustomPricing = action.input.isCustomPricing;
+    if (
+      action.input.excludeFromSetupFee !== undefined &&
+      action.input.excludeFromSetupFee !== null
+    )
+      tier.excludeFromSetupFee = action.input.excludeFromSetupFee;
     state.lastModified = action.input.lastModified;
     if (
       action.input.mostPopular !== undefined &&
@@ -238,6 +246,29 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       );
     }
     tier.pricingMode = action.input.pricingMode;
+    state.lastModified = action.input.lastModified;
+  },
+  reorderTiersOperation(state, action) {
+    const currentIds = state.tiers.map((t) => t.id);
+    const inputIds = action.input.tierIds;
+    if (inputIds.length !== currentIds.length) {
+      throw new TierIdsMismatchError(
+        "Input tier IDs count does not match existing tiers count",
+      );
+    }
+    const inputSet = new Set(inputIds);
+    if (inputSet.size !== inputIds.length) {
+      throw new DuplicateTierIdError("Input contains duplicate tier IDs");
+    }
+    for (const id of currentIds) {
+      if (!inputSet.has(id)) {
+        throw new TierIdsMismatchError(
+          `Tier ID ${id} exists but was not included in reorder input`,
+        );
+      }
+    }
+    const tierMap = new Map(state.tiers.map((t) => [t.id, t]));
+    state.tiers = inputIds.map((id) => tierMap.get(id)!);
     state.lastModified = action.input.lastModified;
   },
 };

@@ -13,6 +13,7 @@ import type {
   SetTierDefaultBillingCycleInput,
   SetTierBillingCycleDiscountsInput,
   SetTierPricingModeInput,
+  ReorderTiersInput,
 } from "../types.js";
 
 export type AddTierAction = Action & { type: "ADD_TIER"; input: AddTierInput };
@@ -64,6 +65,10 @@ export type SetTierPricingModeAction = Action & {
   type: "SET_TIER_PRICING_MODE";
   input: SetTierPricingModeInput;
 };
+export type ReorderTiersAction = Action & {
+  type: "REORDER_TIERS";
+  input: ReorderTiersInput;
+};
 
 export type ServiceOfferingTiersAction =
   | AddTierAction
@@ -78,4 +83,5 @@ export type ServiceOfferingTiersAction =
   | RemoveUsageLimitAction
   | SetTierDefaultBillingCycleAction
   | SetTierBillingCycleDiscountsAction
-  | SetTierPricingModeAction;
+  | SetTierPricingModeAction
+  | ReorderTiersAction;

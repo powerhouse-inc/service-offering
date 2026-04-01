@@ -217,10 +217,12 @@ export type ResourceTemplateState = {
   services: Array<Service>;
   setupServices: Array<Scalars["String"]["output"]>;
   status: TemplateStatus;
+  subtitle: Maybe<Scalars["String"]["output"]>;
   summary: Scalars["String"]["output"];
   targetAudiences: Array<TargetAudience>;
   thumbnailUrl: Maybe<Scalars["URL"]["output"]>;
   title: Scalars["String"]["output"];
+  weight: Maybe<Scalars["Int"]["output"]>;
 };
 
 export type Service = {
@@ -260,6 +262,11 @@ export type SetSetupServicesInput = {
 export type SetTemplateIdInput = {
   id: Scalars["PHID"]["input"];
   lastModified: Scalars["DateTime"]["input"];
+};
+
+export type SetWeightInput = {
+  lastModified: Scalars["DateTime"]["input"];
+  weight?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
 export type TargetAudience = {
@@ -308,6 +315,7 @@ export type UpdateTemplateInfoInput = {
   description?: InputMaybe<Scalars["String"]["input"]>;
   infoLink?: InputMaybe<Scalars["URL"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
+  subtitle?: InputMaybe<Scalars["String"]["input"]>;
   summary?: InputMaybe<Scalars["String"]["input"]>;
   thumbnailUrl?: InputMaybe<Scalars["URL"]["input"]>;
   title?: InputMaybe<Scalars["String"]["input"]>;
