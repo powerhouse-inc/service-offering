@@ -1,7 +1,5 @@
 @import "tailwindcss";
 @import "@powerhousedao/design-system/theme.css";
-@import './node_modules/@powerhousedao/contributor-billing/dist/style.css';
-@import './node_modules/@powerhousedao/builder-profile/dist/style.css';
 
 @theme {
   /* You can customize the theme by overriding the theme variables here */
