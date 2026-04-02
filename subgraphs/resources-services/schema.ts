@@ -85,6 +85,8 @@ export const schema: DocumentNode = gql`
     optionGroups: [RSOptionGroup!]!
     faqFields: [RSFaqField!]
     contentSections: [RSContentSection!]!
+    weight: Int
+    subtitle: String
   }
 
   enum RSTemplateStatus {
@@ -247,6 +249,7 @@ export const schema: DocumentNode = gql`
     billingCycleDiscounts: [RSBillingCycleDiscount!]!
     serviceLevels: [RSServiceLevelBinding!]!
     usageLimits: [RSServiceUsageLimit!]!
+    excludeFromSetupFee: Boolean!
   }
 
   type RSServicePricing {

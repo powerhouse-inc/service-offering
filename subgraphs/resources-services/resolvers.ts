@@ -689,6 +689,8 @@ function mapResourceTemplateState(
       content: section.content,
       displayOrder: section.displayOrder,
     })),
+    weight: state.weight ?? null,
+    subtitle: state.subtitle || null,
   };
 }
 
@@ -792,6 +794,7 @@ function mapServiceOfferingState(
       description: tier.description || null,
       isCustomPricing: tier.isCustomPricing,
       mostPopular: tier.mostPopular,
+      excludeFromSetupFee: tier.excludeFromSetupFee ?? false,
       pricingMode: tier.pricingMode || null,
       pricing: {
         amount: tier.pricing?.amount ?? null,
