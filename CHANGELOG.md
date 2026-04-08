@@ -1,3 +1,10 @@
+# [1.0.0-dev.26](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.25...v1.0.0-dev.26) (2026-04-08)
+
+
+### Bug Fixes
+
+* upgrade to 6.0.0-dev.161 ([703e296](https://github.com/powerhouse-inc/service-offering/commit/703e296b85d899d5b22cf18714080b18af16d032))
+
 # [1.0.0-dev.25](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.24...v1.0.0-dev.25) (2026-04-01)
 
 
