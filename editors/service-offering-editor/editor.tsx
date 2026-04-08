@@ -35,6 +35,27 @@ const TAB_LABELS: Record<TabId, string> = {
 export default function ServiceOfferingEditor() {
   const [document, dispatch] = useSelectedServiceOfferingDocument();
   const [activeTab, setActiveTab] = useState<TabId>("scope-facets");
+  const nextBarRef = useRef<HTMLDivElement>(null);
+  const [nextBarVisible, setNextBarVisible] = useState(true);
+
+  const currentIndex = TAB_ORDER.indexOf(activeTab);
+  const nextTab =
+    currentIndex < TAB_ORDER.length - 1 ? TAB_ORDER[currentIndex + 1] : null;
+
+  useEffect(() => {
+    const el = nextBarRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setNextBarVisible(entry.isIntersecting),
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab]);
+
+  const goNext = useCallback(() => {
+    if (nextTab) setActiveTab(nextTab);
+  }, [nextTab]);
 
   if (!document) {
     return (
@@ -77,26 +98,6 @@ export default function ServiceOfferingEditor() {
   }
 
   const state = document.state.global;
-  const currentIndex = TAB_ORDER.indexOf(activeTab);
-  const nextTab =
-    currentIndex < TAB_ORDER.length - 1 ? TAB_ORDER[currentIndex + 1] : null;
-  const nextBarRef = useRef<HTMLDivElement>(null);
-  const [nextBarVisible, setNextBarVisible] = useState(true);
-
-  useEffect(() => {
-    const el = nextBarRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setNextBarVisible(entry.isIntersecting),
-      { threshold: 0.5 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [activeTab]);
-
-  const goNext = useCallback(() => {
-    if (nextTab) setActiveTab(nextTab);
-  }, [nextTab]);
   const existingGroupIds = new Set(state.optionGroups?.map((g) => g.id) ?? []);
   const isCurrentStepComplete: boolean = {
     "scope-facets": !!state.resourceTemplateId,

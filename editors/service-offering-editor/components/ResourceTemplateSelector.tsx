@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   type DocumentDispatch,
   usePHToast,
@@ -938,6 +938,50 @@ function TemplateDetailView({
 }: TemplateDetailViewProps) {
   const globalState = template.state.global;
   const statusStyle = getStatusStyle(globalState.status);
+
+  // Sync template info to the offering document.
+  // Compares the resource template's current values against the offering's
+  // persisted state. If the template has newer data (e.g. updated description),
+  // dispatch updateOfferingInfo so the offering document catches up.
+  const offeringState = offeringDocument.state.global;
+  const hasSyncedRef = useRef(false);
+
+  useEffect(() => {
+    const drifted =
+      (globalState.title && offeringState.title !== globalState.title) ||
+      (globalState.summary && offeringState.summary !== globalState.summary) ||
+      (globalState.description ?? null) !==
+        (offeringState.description ?? null) ||
+      (globalState.thumbnailUrl ?? null) !==
+        (offeringState.thumbnailUrl ?? null) ||
+      (globalState.infoLink ?? null) !== (offeringState.infoLink ?? null);
+
+    if (drifted) {
+      hasSyncedRef.current = true;
+      dispatch(
+        updateOfferingInfo({
+          title: globalState.title || undefined,
+          summary: globalState.summary || undefined,
+          description: globalState.description || undefined,
+          thumbnailUrl: globalState.thumbnailUrl || undefined,
+          infoLink: globalState.infoLink || undefined,
+          lastModified: new Date().toISOString(),
+        }),
+      );
+    }
+  }, [
+    globalState.title,
+    globalState.summary,
+    globalState.description,
+    globalState.thumbnailUrl,
+    globalState.infoLink,
+    offeringState.title,
+    offeringState.summary,
+    offeringState.description,
+    offeringState.thumbnailUrl,
+    offeringState.infoLink,
+    dispatch,
+  ]);
 
   // Operator ID from the offering document (may have come from template or manual input)
   const offeringOperatorId = offeringDocument.state.global.operatorId;
