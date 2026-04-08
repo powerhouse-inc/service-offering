@@ -1,4 +1,4 @@
-import type { SubscriptionInstanceCustomerOperations } from "@powerhousedao/service-offering/document-models/subscription-instance/v1";
+import type { SubscriptionInstanceCustomerOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceCustomerOperations: SubscriptionInstanceCustomerOperations =
   {

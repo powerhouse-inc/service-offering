@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -8,13 +8,13 @@ import {
   updateTemplateStatus,
   setOperator,
   setTemplateId,
+  setWeight,
   UpdateTemplateInfoInputSchema,
   UpdateTemplateStatusInputSchema,
   SetOperatorInputSchema,
   SetTemplateIdInputSchema,
-  setWeight,
   SetWeightInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template/v1";
+} from "document-models/resource-template/v1";
 
 describe("TemplateManagementOperations", () => {
   it("should handle updateTemplateInfo operation", () => {

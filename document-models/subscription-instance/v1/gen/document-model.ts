@@ -9,7 +9,7 @@ export const documentModel: DocumentModelGlobalState = {
   },
   extension: "",
   description:
-    "Tracks an individual subscription instance for a service offering, including customer info, tier selection, billing, services, service groups, and usage metrics",
+    "Tracks an individual subscription instance for a service offering, including customer info, tier selection, billing, services, service groups, and usage metrics.",
   specifications: [
     {
       state: {
@@ -30,783 +30,783 @@ export const documentModel: DocumentModelGlobalState = {
         {
           id: "mod-subscription",
           name: "subscription",
-          description:
-            "Subscription lifecycle, customer info, tier, billing, and general management operations",
           operations: [
             {
               id: "op-initialize-subscription",
               name: "INITIALIZE_SUBSCRIPTION",
-              description: "Initialize a subscription from a service offering",
+              scope: "global",
+              errors: [],
               schema:
                 "input InitializeFacetSelectionInput {\n    id: OID!\n    facetName: String!\n    selectedOption: String!\n}\n\ninput DiscountInfoInitInput {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ninput InitializeMetricInput {\n    id: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    freeLimit: Int\n    paidLimit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n}\n\ninput InitializeServiceInput {\n    id: OID!\n    name: String\n    description: String\n    customValue: String\n    facetSelections: [InitializeFacetSelectionInput!]\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringDiscount: DiscountInfoInitInput\n    metrics: [InitializeMetricInput!]\n}\n\ninput InitializeServiceGroupInput {\n    id: OID!\n    name: String!\n    optional: Boolean!\n    costType: GroupCostType\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringDiscount: DiscountInfoInitInput\n    services: [InitializeServiceInput!]\n}\n\ninput InitializeSubscriptionInput {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    serviceOfferingId: PHID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    tierPricingMode: TierPricingMode\n    selectedBillingCycle: BillingCycle\n    globalCurrency: Currency\n    resourceId: PHID\n    resourceLabel: String\n    resourceThumbnailUrl: URL\n    autoRenew: Boolean\n    createdAt: DateTime!\n    services: [InitializeServiceInput!]\n    serviceGroups: [InitializeServiceGroupInput!]\n}",
-              template: "Initialize a subscription from a service offering",
               reducer:
                 'state.customerId = action.input.customerId || null;\nstate.customerName = action.input.customerName || null;\nstate.customerEmail = action.input.customerEmail || null;\nstate.serviceOfferingId = action.input.serviceOfferingId || null;\nstate.tierName = action.input.tierName || null;\nstate.tierPricingOptionId = action.input.tierPricingOptionId || null;\nstate.tierPrice = action.input.tierPrice || null;\nstate.tierCurrency = action.input.tierCurrency || null;\nstate.tierPricingMode = action.input.tierPricingMode || null;\nstate.selectedBillingCycle = action.input.selectedBillingCycle || null;\nstate.globalCurrency = action.input.globalCurrency || null;\nif (action.input.resourceId) {\n  state.resource = {\n    id: action.input.resourceId,\n    label: action.input.resourceLabel || null,\n    thumbnailUrl: action.input.resourceThumbnailUrl || null,\n  };\n}\nstate.autoRenew = action.input.autoRenew || false;\nstate.createdAt = action.input.createdAt;\nstate.status = "PENDING";\nstate.services = (action.input.services || []).map((s) => ({\n  id: s.id,\n  name: s.name || null,\n  description: s.description || null,\n  customValue: s.customValue || null,\n  facetSelections: (s.facetSelections || []).map((fs) => ({\n    id: fs.id,\n    facetName: fs.facetName,\n    selectedOption: fs.selectedOption,\n  })),\n  setupCost: s.setupAmount && s.setupCurrency ? {\n    amount: s.setupAmount,\n    currency: s.setupCurrency,\n    billingDate: null,\n    paymentDate: null,\n  } : null,\n  recurringCost: s.recurringAmount && s.recurringCurrency && s.recurringBillingCycle ? {\n    amount: s.recurringAmount,\n    currency: s.recurringCurrency,\n    billingCycle: s.recurringBillingCycle,\n    nextBillingDate: null,\n    lastPaymentDate: null,\n    discount: s.recurringDiscount ? {\n      originalAmount: s.recurringDiscount.originalAmount,\n      discountType: s.recurringDiscount.discountType,\n      discountValue: s.recurringDiscount.discountValue,\n      source: s.recurringDiscount.source,\n    } : null,\n  } : null,\n  metrics: (s.metrics || []).map((m) => ({\n    id: m.id,\n    name: m.name,\n    unitName: m.unitName,\n    limit: m.limit || null,\n    freeLimit: m.freeLimit || null,\n    paidLimit: m.paidLimit || null,\n    unitCost: m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle ? {\n      amount: m.unitCostAmount,\n      currency: m.unitCostCurrency,\n      billingCycle: m.unitCostBillingCycle,\n      nextBillingDate: null,\n      lastPaymentDate: null,\n      discount: null,\n    } : null,\n    currentUsage: m.currentUsage,\n    usageResetPeriod: m.usageResetPeriod || null,\n    nextUsageReset: null,\n  })),\n}));\nstate.serviceGroups = (action.input.serviceGroups || []).map((sg) => ({\n  id: sg.id,\n  name: sg.name,\n  optional: sg.optional,\n  costType: sg.costType || null,\n  setupCost: sg.setupAmount && sg.setupCurrency ? {\n    amount: sg.setupAmount,\n    currency: sg.setupCurrency,\n    billingDate: sg.setupBillingDate || null,\n    paymentDate: null,\n  } : null,\n  recurringCost: sg.recurringAmount && sg.recurringCurrency && sg.recurringBillingCycle ? {\n    amount: sg.recurringAmount,\n    currency: sg.recurringCurrency,\n    billingCycle: sg.recurringBillingCycle,\n    nextBillingDate: null,\n    lastPaymentDate: null,\n    discount: sg.recurringDiscount ? {\n      originalAmount: sg.recurringDiscount.originalAmount,\n      discountType: sg.recurringDiscount.discountType,\n      discountValue: sg.recurringDiscount.discountValue,\n      source: sg.recurringDiscount.source,\n    } : null,\n  } : null,\n  services: (sg.services || []).map((s) => ({\n    id: s.id,\n    name: s.name || null,\n    description: s.description || null,\n    customValue: s.customValue || null,\n    facetSelections: (s.facetSelections || []).map((fs) => ({\n      id: fs.id,\n      facetName: fs.facetName,\n      selectedOption: fs.selectedOption,\n    })),\n    setupCost: s.setupAmount && s.setupCurrency ? {\n      amount: s.setupAmount,\n      currency: s.setupCurrency,\n      billingDate: null,\n      paymentDate: null,\n    } : null,\n    recurringCost: s.recurringAmount && s.recurringCurrency && s.recurringBillingCycle ? {\n      amount: s.recurringAmount,\n      currency: s.recurringCurrency,\n      billingCycle: s.recurringBillingCycle,\n      nextBillingDate: null,\n      lastPaymentDate: null,\n      discount: s.recurringDiscount ? {\n        originalAmount: s.recurringDiscount.originalAmount,\n        discountType: s.recurringDiscount.discountType,\n        discountValue: s.recurringDiscount.discountValue,\n        source: s.recurringDiscount.source,\n      } : null,\n    } : null,\n    metrics: (s.metrics || []).map((m) => ({\n      id: m.id,\n      name: m.name,\n      unitName: m.unitName,\n      limit: m.limit || null,\n      freeLimit: m.freeLimit || null,\n      paidLimit: m.paidLimit || null,\n      unitCost: m.unitCostAmount && m.unitCostCurrency && m.unitCostBillingCycle ? {\n        amount: m.unitCostAmount,\n        currency: m.unitCostCurrency,\n        billingCycle: m.unitCostBillingCycle,\n        nextBillingDate: null,\n        lastPaymentDate: null,\n        discount: null,\n      } : null,\n      currentUsage: m.currentUsage,\n      usageResetPeriod: m.usageResetPeriod || null,\n      nextUsageReset: null,\n    })),\n  })),\n}));',
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Initialize a subscription from a service offering",
+              description: "Initialize a subscription from a service offering",
             },
             {
               id: "op-set-resource-document",
               name: "SET_RESOURCE_DOCUMENT",
-              description: "Link a resource document to the subscription",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetResourceDocumentInput {\n    resourceId: PHID!\n    resourceLabel: String\n    resourceThumbnailUrl: URL\n}",
-              template: "Link a resource document to the subscription",
               reducer:
                 "state.resource = {\n  id: action.input.resourceId,\n  label: action.input.resourceLabel || null,\n  thumbnailUrl: action.input.resourceThumbnailUrl || null,\n};",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Link a resource document to the subscription",
+              description: "Link a resource document to the subscription",
             },
             {
               id: "op-update-subscription-status",
               name: "UPDATE_SUBSCRIPTION_STATUS",
-              description: "Directly update the subscription status",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateSubscriptionStatusInput {\n    status: SubscriptionStatus!\n}",
-              template: "Directly update the subscription status",
               reducer: "state.status = action.input.status;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Directly update the subscription status",
+              description: "Directly update the subscription status",
             },
             {
               id: "op-activate-subscription",
               name: "ACTIVATE_SUBSCRIPTION",
-              description: "Activate a pending subscription",
-              schema:
-                "input ActivateSubscriptionInput {\n    activatedSince: DateTime!\n}",
-              template: "Activate a pending subscription",
-              reducer:
-                'if (state.status !== "PENDING") {\n  throw new ActivateNotPendingError(`Cannot activate subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.activatedSince = action.input.activatedSince;',
+              scope: "global",
               errors: [
                 {
                   id: "err-activate-not-pending",
-                  name: "ActivateNotPendingError",
                   code: "ACTIVATE_NOT_PENDING",
+                  name: "ActivateNotPendingError",
+                  template: "",
                   description:
                     "Subscription must be in PENDING status to activate",
-                  template: "",
                 },
               ],
+              schema:
+                "input ActivateSubscriptionInput {\n    activatedSince: DateTime!\n}",
+              reducer:
+                'if (state.status !== "PENDING") {\n  throw new ActivateNotPendingError(`Cannot activate subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.activatedSince = action.input.activatedSince;',
               examples: [],
-              scope: "global",
+              template: "Activate a pending subscription",
+              description: "Activate a pending subscription",
             },
             {
               id: "op-pause-subscription",
               name: "PAUSE_SUBSCRIPTION",
-              description: "Pause an active subscription",
-              schema:
-                "input PauseSubscriptionInput {\n    pausedSince: DateTime!\n}",
-              template: "Pause an active subscription",
-              reducer:
-                'if (state.status !== "ACTIVE") {\n  throw new PauseNotActiveError(`Cannot pause subscription with status ${state.status}`);\n}\nstate.status = "PAUSED";\nstate.pausedSince = action.input.pausedSince;',
+              scope: "global",
               errors: [
                 {
                   id: "err-pause-not-active",
-                  name: "PauseNotActiveError",
                   code: "PAUSE_NOT_ACTIVE",
-                  description: "Subscription must be in ACTIVE status to pause",
+                  name: "PauseNotActiveError",
                   template: "",
+                  description: "Subscription must be in ACTIVE status to pause",
                 },
               ],
+              schema:
+                "input PauseSubscriptionInput {\n    pausedSince: DateTime!\n}",
+              reducer:
+                'if (state.status !== "ACTIVE") {\n  throw new PauseNotActiveError(`Cannot pause subscription with status ${state.status}`);\n}\nstate.status = "PAUSED";\nstate.pausedSince = action.input.pausedSince;',
               examples: [],
-              scope: "global",
+              template: "Pause an active subscription",
+              description: "Pause an active subscription",
             },
             {
               id: "op-set-expiring",
               name: "SET_EXPIRING",
-              description: "Mark subscription as expiring",
-              schema:
-                "input SetExpiringInput {\n    expiringSince: DateTime!\n}",
-              template: "Mark subscription as expiring",
-              reducer:
-                'if (state.status !== "ACTIVE") {\n  throw new SetExpiringNotActiveError(`Cannot set expiring on subscription with status ${state.status}`);\n}\nstate.status = "EXPIRING";\nstate.expiringSince = action.input.expiringSince;',
+              scope: "global",
               errors: [
                 {
                   id: "err-set-expiring-not-active",
-                  name: "SetExpiringNotActiveError",
                   code: "SET_EXPIRING_NOT_ACTIVE",
-                  description: "",
+                  name: "SetExpiringNotActiveError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input SetExpiringInput {\n    expiringSince: DateTime!\n}",
+              reducer:
+                'if (state.status !== "ACTIVE") {\n  throw new SetExpiringNotActiveError(`Cannot set expiring on subscription with status ${state.status}`);\n}\nstate.status = "EXPIRING";\nstate.expiringSince = action.input.expiringSince;',
               examples: [],
-              scope: "global",
+              template: "Mark subscription as expiring",
+              description: "Mark subscription as expiring",
             },
             {
               id: "op-cancel-subscription",
               name: "CANCEL_SUBSCRIPTION",
-              description: "Cancel a subscription with optional reason",
-              schema:
-                "input CancelSubscriptionInput {\n    cancelledSince: DateTime!\n    cancellationReason: String\n}",
-              template: "Cancel a subscription with optional reason",
-              reducer:
-                'if (state.status === "CANCELLED") {\n  throw new CancelAlreadyCancelledError("Subscription is already cancelled");\n}\nstate.status = "CANCELLED";\nstate.cancelledSince = action.input.cancelledSince;\nstate.cancellationReason = action.input.cancellationReason || null;',
+              scope: "global",
               errors: [
                 {
                   id: "err-cancel-already-cancelled",
-                  name: "CancelAlreadyCancelledError",
                   code: "CANCEL_ALREADY_CANCELLED",
-                  description: "",
+                  name: "CancelAlreadyCancelledError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input CancelSubscriptionInput {\n    cancelledSince: DateTime!\n    cancellationReason: String\n}",
+              reducer:
+                'if (state.status === "CANCELLED") {\n  throw new CancelAlreadyCancelledError("Subscription is already cancelled");\n}\nstate.status = "CANCELLED";\nstate.cancelledSince = action.input.cancelledSince;\nstate.cancellationReason = action.input.cancellationReason || null;',
               examples: [],
-              scope: "global",
+              template: "Cancel a subscription with optional reason",
+              description: "Cancel a subscription with optional reason",
             },
             {
               id: "op-resume-subscription",
               name: "RESUME_SUBSCRIPTION",
-              description: "Resume a paused subscription",
-              schema:
-                "input ResumeSubscriptionInput {\n    timestamp: DateTime!\n}",
-              template: "Resume a paused subscription",
-              reducer:
-                'if (state.status !== "PAUSED") {\n  throw new ResumeNotPausedError(`Cannot resume subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.pausedSince = null;',
+              scope: "global",
               errors: [
                 {
                   id: "err-resume-not-paused",
-                  name: "ResumeNotPausedError",
                   code: "RESUME_NOT_PAUSED",
-                  description: "",
+                  name: "ResumeNotPausedError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input ResumeSubscriptionInput {\n    timestamp: DateTime!\n}",
+              reducer:
+                'if (state.status !== "PAUSED") {\n  throw new ResumeNotPausedError(`Cannot resume subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.pausedSince = null;',
               examples: [],
-              scope: "global",
+              template: "Resume a paused subscription",
+              description: "Resume a paused subscription",
             },
             {
               id: "op-renew-expiring-subscription",
               name: "RENEW_EXPIRING_SUBSCRIPTION",
-              description: "Renew an expiring subscription",
-              schema:
-                "input RenewExpiringSubscriptionInput {\n    timestamp: DateTime!\n    newRenewalDate: DateTime\n}",
-              template: "Renew an expiring subscription",
-              reducer:
-                'if (state.status !== "EXPIRING") {\n  throw new RenewNotExpiringError(`Cannot renew subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.expiringSince = null;\nstate.renewalDate = action.input.newRenewalDate || null;',
+              scope: "global",
               errors: [
                 {
                   id: "err-renew-not-expiring",
-                  name: "RenewNotExpiringError",
                   code: "RENEW_NOT_EXPIRING",
-                  description: "",
+                  name: "RenewNotExpiringError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input RenewExpiringSubscriptionInput {\n    timestamp: DateTime!\n    newRenewalDate: DateTime\n}",
+              reducer:
+                'if (state.status !== "EXPIRING") {\n  throw new RenewNotExpiringError(`Cannot renew subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.expiringSince = null;\nstate.renewalDate = action.input.newRenewalDate || null;',
               examples: [],
-              scope: "global",
+              template: "Renew an expiring subscription",
+              description: "Renew an expiring subscription",
             },
             {
               id: "op-set-budget-category",
               name: "SET_BUDGET_CATEGORY",
-              description: "Assign a budget category",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetBudgetCategoryInput {\n    budgetId: OID!\n    budgetLabel: String!\n}",
-              template: "Assign a budget category",
               reducer:
                 "state.budget = {\n  id: action.input.budgetId,\n  label: action.input.budgetLabel,\n};",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Assign a budget category",
+              description: "Assign a budget category",
             },
             {
               id: "op-remove-budget-category",
               name: "REMOVE_BUDGET_CATEGORY",
-              description: "Remove budget category",
-              schema:
-                "input RemoveBudgetCategoryInput {\n    budgetId: OID!\n}",
-              template: "Remove budget category",
-              reducer:
-                "if (!state.budget || state.budget.id !== action.input.budgetId) {\n  throw new RemoveBudgetNotFoundError(`Budget category with ID ${action.input.budgetId} not found`);\n}\nstate.budget = null;",
+              scope: "global",
               errors: [
                 {
                   id: "err-remove-budget-not-found",
-                  name: "RemoveBudgetNotFoundError",
                   code: "REMOVE_BUDGET_NOT_FOUND",
-                  description: "",
+                  name: "RemoveBudgetNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input RemoveBudgetCategoryInput {\n    budgetId: OID!\n}",
+              reducer:
+                "if (!state.budget || state.budget.id !== action.input.budgetId) {\n  throw new RemoveBudgetNotFoundError(`Budget category with ID ${action.input.budgetId} not found`);\n}\nstate.budget = null;",
               examples: [],
-              scope: "global",
+              template: "Remove budget category",
+              description: "Remove budget category",
             },
             {
               id: "op-update-customer-info",
               name: "UPDATE_CUSTOMER_INFO",
-              description: "Update customer details",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateCustomerInfoInput {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n}",
-              template: "Update customer details",
               reducer:
                 "if (action.input.customerId !== undefined) state.customerId = action.input.customerId || null;\nif (action.input.customerName !== undefined) state.customerName = action.input.customerName || null;\nif (action.input.customerEmail !== undefined) state.customerEmail = action.input.customerEmail || null;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Update customer details",
+              description: "Update customer details",
             },
             {
               id: "op-update-tier-info",
               name: "UPDATE_TIER_INFO",
-              description: "Update tier selection and pricing",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateTierInfoInput {\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    tierPricingMode: TierPricingMode\n}",
-              template: "Update tier selection and pricing",
               reducer:
                 "if (action.input.tierName !== undefined) state.tierName = action.input.tierName || null;\nif (action.input.tierPricingOptionId !== undefined) state.tierPricingOptionId = action.input.tierPricingOptionId || null;\nif (action.input.tierPrice !== undefined) state.tierPrice = action.input.tierPrice || null;\nif (action.input.tierCurrency !== undefined) state.tierCurrency = action.input.tierCurrency || null;\nif (action.input.tierPricingMode !== undefined) state.tierPricingMode = action.input.tierPricingMode || null;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Update tier selection and pricing",
+              description: "Update tier selection and pricing",
             },
             {
               id: "op-set-operator-notes",
               name: "SET_OPERATOR_NOTES",
-              description: "Set operator notes",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetOperatorNotesInput {\n    operatorNotes: String\n}",
-              template: "Set operator notes",
               reducer:
                 "state.operatorNotes = action.input.operatorNotes || null;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Set operator notes",
+              description: "Set operator notes",
             },
             {
               id: "op-set-auto-renew",
               name: "SET_AUTO_RENEW",
-              description: "Toggle auto-renewal",
-              schema: "input SetAutoRenewInput {\n    autoRenew: Boolean!\n}",
-              template: "Toggle auto-renewal",
-              reducer: "state.autoRenew = action.input.autoRenew;",
-              errors: [],
-              examples: [],
               scope: "global",
+              errors: [],
+              schema: "input SetAutoRenewInput {\n    autoRenew: Boolean!\n}",
+              reducer: "state.autoRenew = action.input.autoRenew;",
+              examples: [],
+              template: "Toggle auto-renewal",
+              description: "Toggle auto-renewal",
             },
             {
               id: "op-set-renewal-date",
               name: "SET_RENEWAL_DATE",
-              description: "Set renewal date",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetRenewalDateInput {\n    renewalDate: DateTime!\n}",
-              template: "Set renewal date",
               reducer: "state.renewalDate = action.input.renewalDate;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Set renewal date",
+              description: "Set renewal date",
             },
             {
               id: "op-update-billing-projection",
               name: "UPDATE_BILLING_PROJECTION",
-              description: "Update billing projections",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateBillingProjectionInput {\n    nextBillingDate: DateTime\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n}",
-              template: "Update billing projections",
               reducer:
                 "if (action.input.nextBillingDate !== undefined) state.nextBillingDate = action.input.nextBillingDate || null;\nif (action.input.projectedBillAmount !== undefined) state.projectedBillAmount = action.input.projectedBillAmount || null;\nif (action.input.projectedBillCurrency !== undefined) state.projectedBillCurrency = action.input.projectedBillCurrency || null;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Update billing projections",
+              description: "Update billing projections",
             },
           ],
+          description:
+            "Subscription lifecycle, customer info, tier, billing, and general management operations",
         },
         {
           id: "mod-service",
           name: "service",
-          description:
-            "Standalone service CRUD, cost management, facet selections, and payment tracking",
           operations: [
             {
               id: "op-add-service",
               name: "ADD_SERVICE",
-              description: "Add a standalone service",
+              scope: "global",
+              errors: [],
               schema:
                 "input DiscountServiceInfoInput {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ninput AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    recurringDiscount: DiscountServiceInfoInput\n}",
-              template: "Add a standalone service",
               reducer:
                 "const service = {\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  metrics: [],\n};\nstate.services.push(service);",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Add a standalone service",
+              description: "Add a standalone service",
             },
             {
               id: "op-remove-service",
               name: "REMOVE_SERVICE",
-              description: "Remove a standalone service",
-              schema: "input RemoveServiceInput {\n    serviceId: OID!\n}",
-              template: "Remove a standalone service",
-              reducer:
-                "const index = state.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nstate.services.splice(index, 1);",
+              scope: "global",
               errors: [
                 {
                   id: "err-remove-service-not-found",
-                  name: "RemoveServiceNotFoundError",
                   code: "REMOVE_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema: "input RemoveServiceInput {\n    serviceId: OID!\n}",
+              reducer:
+                "const index = state.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nstate.services.splice(index, 1);",
               examples: [],
-              scope: "global",
+              template: "Remove a standalone service",
+              description: "Remove a standalone service",
             },
             {
               id: "op-update-service-setup-cost",
               name: "UPDATE_SERVICE_SETUP_COST",
-              description: "Update setup cost for a service",
-              schema:
-                "input UpdateServiceSetupCostInput {\n    serviceId: OID!\n    amount: Amount_Money\n    currency: Currency\n    billingDate: DateTime\n    paymentDate: DateTime\n}",
-              template: "Update setup cost for a service",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateServiceSetupCostNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (action.input.amount && action.input.currency) {\n  svc.setupCost = {\n    amount: action.input.amount,\n    currency: action.input.currency,\n    billingDate: action.input.billingDate || null,\n    paymentDate: action.input.paymentDate || null,\n  };\n} else if (svc.setupCost) {\n  if (action.input.amount) svc.setupCost.amount = action.input.amount;\n  if (action.input.currency) svc.setupCost.currency = action.input.currency;\n  if (action.input.billingDate !== undefined) svc.setupCost.billingDate = action.input.billingDate || null;\n  if (action.input.paymentDate !== undefined) svc.setupCost.paymentDate = action.input.paymentDate || null;\n}",
+              scope: "global",
               errors: [
                 {
                   id: "err-update-service-setup-cost-not-found",
-                  name: "UpdateServiceSetupCostNotFoundError",
                   code: "UPDATE_SERVICE_SETUP_COST_NOT_FOUND",
-                  description: "",
+                  name: "UpdateServiceSetupCostNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input UpdateServiceSetupCostInput {\n    serviceId: OID!\n    amount: Amount_Money\n    currency: Currency\n    billingDate: DateTime\n    paymentDate: DateTime\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateServiceSetupCostNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (action.input.amount && action.input.currency) {\n  svc.setupCost = {\n    amount: action.input.amount,\n    currency: action.input.currency,\n    billingDate: action.input.billingDate || null,\n    paymentDate: action.input.paymentDate || null,\n  };\n} else if (svc.setupCost) {\n  if (action.input.amount) svc.setupCost.amount = action.input.amount;\n  if (action.input.currency) svc.setupCost.currency = action.input.currency;\n  if (action.input.billingDate !== undefined) svc.setupCost.billingDate = action.input.billingDate || null;\n  if (action.input.paymentDate !== undefined) svc.setupCost.paymentDate = action.input.paymentDate || null;\n}",
               examples: [],
-              scope: "global",
+              template: "Update setup cost for a service",
+              description: "Update setup cost for a service",
             },
             {
               id: "op-update-service-recurring-cost",
               name: "UPDATE_SERVICE_RECURRING_COST",
-              description: "Update recurring cost for a service",
-              schema:
-                "input UpdateServiceRecurringCostInput {\n    serviceId: OID!\n    amount: Amount_Money\n    currency: Currency\n    billingCycle: BillingCycle\n    nextBillingDate: DateTime\n    lastPaymentDate: DateTime\n}",
-              template: "Update recurring cost for a service",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateServiceRecurringCostNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (action.input.amount && action.input.currency && action.input.billingCycle) {\n  svc.recurringCost = {\n    amount: action.input.amount,\n    currency: action.input.currency,\n    billingCycle: action.input.billingCycle,\n    nextBillingDate: action.input.nextBillingDate || null,\n    lastPaymentDate: action.input.lastPaymentDate || null,\n    discount: svc.recurringCost?.discount || null,\n  };\n} else if (svc.recurringCost) {\n  if (action.input.amount) svc.recurringCost.amount = action.input.amount;\n  if (action.input.currency) svc.recurringCost.currency = action.input.currency;\n  if (action.input.billingCycle) svc.recurringCost.billingCycle = action.input.billingCycle;\n  if (action.input.nextBillingDate !== undefined) svc.recurringCost.nextBillingDate = action.input.nextBillingDate || null;\n  if (action.input.lastPaymentDate !== undefined) svc.recurringCost.lastPaymentDate = action.input.lastPaymentDate || null;\n}",
+              scope: "global",
               errors: [
                 {
                   id: "err-update-service-recurring-cost-not-found",
-                  name: "UpdateServiceRecurringCostNotFoundError",
                   code: "UPDATE_SERVICE_RECURRING_COST_NOT_FOUND",
-                  description: "",
+                  name: "UpdateServiceRecurringCostNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input UpdateServiceRecurringCostInput {\n    serviceId: OID!\n    amount: Amount_Money\n    currency: Currency\n    billingCycle: BillingCycle\n    nextBillingDate: DateTime\n    lastPaymentDate: DateTime\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateServiceRecurringCostNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (action.input.amount && action.input.currency && action.input.billingCycle) {\n  svc.recurringCost = {\n    amount: action.input.amount,\n    currency: action.input.currency,\n    billingCycle: action.input.billingCycle,\n    nextBillingDate: action.input.nextBillingDate || null,\n    lastPaymentDate: action.input.lastPaymentDate || null,\n    discount: svc.recurringCost?.discount || null,\n  };\n} else if (svc.recurringCost) {\n  if (action.input.amount) svc.recurringCost.amount = action.input.amount;\n  if (action.input.currency) svc.recurringCost.currency = action.input.currency;\n  if (action.input.billingCycle) svc.recurringCost.billingCycle = action.input.billingCycle;\n  if (action.input.nextBillingDate !== undefined) svc.recurringCost.nextBillingDate = action.input.nextBillingDate || null;\n  if (action.input.lastPaymentDate !== undefined) svc.recurringCost.lastPaymentDate = action.input.lastPaymentDate || null;\n}",
               examples: [],
-              scope: "global",
+              template: "Update recurring cost for a service",
+              description: "Update recurring cost for a service",
             },
             {
               id: "op-report-setup-payment",
               name: "REPORT_SETUP_PAYMENT",
-              description: "Record a setup payment",
-              schema:
-                "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
-              template: "Record a setup payment",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}",
+              scope: "global",
               errors: [
                 {
                   id: "err-report-setup-payment-not-found",
-                  name: "ReportSetupPaymentServiceNotFoundError",
                   code: "REPORT_SETUP_PAYMENT_NOT_FOUND",
-                  description: "",
+                  name: "ReportSetupPaymentServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}",
               examples: [],
-              scope: "global",
+              template: "Record a setup payment",
+              description: "Record a setup payment",
             },
             {
               id: "op-report-recurring-payment",
               name: "REPORT_RECURRING_PAYMENT",
-              description: "Record a recurring payment",
-              schema:
-                "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
-              template: "Record a recurring payment",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}",
+              scope: "global",
               errors: [
                 {
                   id: "err-report-recurring-payment-not-found",
-                  name: "ReportRecurringPaymentServiceNotFoundError",
                   code: "REPORT_RECURRING_PAYMENT_NOT_FOUND",
-                  description: "",
+                  name: "ReportRecurringPaymentServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}",
               examples: [],
-              scope: "global",
+              template: "Record a recurring payment",
+              description: "Record a recurring payment",
             },
             {
               id: "op-update-service-info",
               name: "UPDATE_SERVICE_INFO",
-              description: "Update service name, description, custom value",
-              schema:
-                "input UpdateServiceInfoInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n}",
-              template: "Update service name, description, custom value",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateServiceInfoNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (action.input.name !== undefined) svc.name = action.input.name || null;\nif (action.input.description !== undefined) svc.description = action.input.description || null;\nif (action.input.customValue !== undefined) svc.customValue = action.input.customValue || null;",
+              scope: "global",
               errors: [
                 {
                   id: "err-update-service-info-not-found",
-                  name: "UpdateServiceInfoNotFoundError",
                   code: "UPDATE_SERVICE_INFO_NOT_FOUND",
-                  description: "",
+                  name: "UpdateServiceInfoNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input UpdateServiceInfoInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateServiceInfoNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (action.input.name !== undefined) svc.name = action.input.name || null;\nif (action.input.description !== undefined) svc.description = action.input.description || null;\nif (action.input.customValue !== undefined) svc.customValue = action.input.customValue || null;",
               examples: [],
-              scope: "global",
+              template: "Update service name, description, custom value",
+              description: "Update service name, description, custom value",
             },
             {
               id: "op-add-service-facet-selection",
               name: "ADD_SERVICE_FACET_SELECTION",
-              description: "Add facet selection to a service",
-              schema:
-                "input AddServiceFacetSelectionInput {\n    serviceId: OID!\n    facetSelectionId: OID!\n    facetName: String!\n    selectedOption: String!\n}",
-              template: "Add facet selection to a service",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new AddServiceFacetSelectionServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nsvc.facetSelections.push({\n  id: action.input.facetSelectionId,\n  facetName: action.input.facetName,\n  selectedOption: action.input.selectedOption,\n});",
+              scope: "global",
               errors: [
                 {
                   id: "err-add-facet-service-not-found",
-                  name: "AddServiceFacetSelectionServiceNotFoundError",
                   code: "ADD_FACET_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "AddServiceFacetSelectionServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input AddServiceFacetSelectionInput {\n    serviceId: OID!\n    facetSelectionId: OID!\n    facetName: String!\n    selectedOption: String!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new AddServiceFacetSelectionServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nsvc.facetSelections.push({\n  id: action.input.facetSelectionId,\n  facetName: action.input.facetName,\n  selectedOption: action.input.selectedOption,\n});",
               examples: [],
-              scope: "global",
+              template: "Add facet selection to a service",
+              description: "Add facet selection to a service",
             },
             {
               id: "op-remove-service-facet-selection",
               name: "REMOVE_SERVICE_FACET_SELECTION",
-              description: "Remove facet selection from a service",
-              schema:
-                "input RemoveServiceFacetSelectionInput {\n    serviceId: OID!\n    facetSelectionId: OID!\n}",
-              template: "Remove facet selection from a service",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new RemoveServiceFacetSelectionServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst index = svc.facetSelections.findIndex((fs) => fs.id === action.input.facetSelectionId);\nif (index !== -1) {\n  svc.facetSelections.splice(index, 1);\n}",
+              scope: "global",
               errors: [
                 {
                   id: "err-remove-facet-service-not-found",
-                  name: "RemoveServiceFacetSelectionServiceNotFoundError",
                   code: "REMOVE_FACET_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceFacetSelectionServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input RemoveServiceFacetSelectionInput {\n    serviceId: OID!\n    facetSelectionId: OID!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new RemoveServiceFacetSelectionServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst index = svc.facetSelections.findIndex((fs) => fs.id === action.input.facetSelectionId);\nif (index !== -1) {\n  svc.facetSelections.splice(index, 1);\n}",
               examples: [],
-              scope: "global",
+              template: "Remove facet selection from a service",
+              description: "Remove facet selection from a service",
             },
           ],
+          description:
+            "Standalone service CRUD, cost management, facet selections, and payment tracking",
         },
         {
           id: "mod-service-group",
           name: "service-group",
-          description:
-            "Service group management and grouped service operations",
           operations: [
             {
               id: "op-add-service-group",
               name: "ADD_SERVICE_GROUP",
-              description: "Add a service group",
+              scope: "global",
+              errors: [],
               schema:
                 "input AddServiceGroupInput {\n    groupId: OID!\n    name: String!\n    optional: Boolean!\n    costType: GroupCostType\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringDiscount: DiscountServiceInfoInput\n}",
-              template: "Add a service group",
               reducer:
                 "state.serviceGroups.push({\n  id: action.input.groupId,\n  name: action.input.name,\n  optional: action.input.optional,\n  costType: action.input.costType || null,\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: null,\n    lastPaymentDate: null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  services: [],\n});",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Add a service group",
+              description: "Add a service group",
             },
             {
               id: "op-remove-service-group",
               name: "REMOVE_SERVICE_GROUP",
-              description: "Remove a service group",
-              schema: "input RemoveServiceGroupInput {\n    groupId: OID!\n}",
-              template: "Remove a service group",
-              reducer:
-                "const index = state.serviceGroups.findIndex((g) => g.id === action.input.groupId);\nif (index === -1) {\n  throw new RemoveServiceGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nstate.serviceGroups.splice(index, 1);",
+              scope: "global",
               errors: [
                 {
                   id: "err-remove-group-not-found",
-                  name: "RemoveServiceGroupNotFoundError",
                   code: "REMOVE_GROUP_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceGroupNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema: "input RemoveServiceGroupInput {\n    groupId: OID!\n}",
+              reducer:
+                "const index = state.serviceGroups.findIndex((g) => g.id === action.input.groupId);\nif (index === -1) {\n  throw new RemoveServiceGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nstate.serviceGroups.splice(index, 1);",
               examples: [],
-              scope: "global",
+              template: "Remove a service group",
+              description: "Remove a service group",
             },
             {
               id: "op-add-service-to-group",
               name: "ADD_SERVICE_TO_GROUP",
-              description: "Add a service to a group",
-              schema:
-                "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
-              template: "Add a service to a group",
-              reducer:
-                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new AddServiceToGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\ngroup.services.push({\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: null,\n  } : null,\n  metrics: [],\n});",
+              scope: "global",
               errors: [
                 {
                   id: "err-add-to-group-not-found",
-                  name: "AddServiceToGroupGroupNotFoundError",
                   code: "ADD_TO_GROUP_NOT_FOUND",
-                  description: "",
+                  name: "AddServiceToGroupGroupNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
+              reducer:
+                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new AddServiceToGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\ngroup.services.push({\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: null,\n  } : null,\n  metrics: [],\n});",
               examples: [],
-              scope: "global",
+              template: "Add a service to a group",
+              description: "Add a service to a group",
             },
             {
               id: "op-remove-service-from-group",
               name: "REMOVE_SERVICE_FROM_GROUP",
-              description: "Remove a service from a group",
-              schema:
-                "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n}",
-              template: "Remove a service from a group",
-              reducer:
-                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new RemoveServiceFromGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nconst index = group.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceFromGroupServiceNotFoundError(`Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`);\n}\ngroup.services.splice(index, 1);",
+              scope: "global",
               errors: [
                 {
                   id: "err-remove-from-group-not-found",
-                  name: "RemoveServiceFromGroupGroupNotFoundError",
                   code: "REMOVE_FROM_GROUP_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceFromGroupGroupNotFoundError",
                   template: "",
+                  description: "",
                 },
                 {
                   id: "err-remove-from-group-service-not-found",
-                  name: "RemoveServiceFromGroupServiceNotFoundError",
                   code: "REMOVE_FROM_GROUP_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceFromGroupServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n}",
+              reducer:
+                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new RemoveServiceFromGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nconst index = group.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceFromGroupServiceNotFoundError(`Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`);\n}\ngroup.services.splice(index, 1);",
               examples: [],
-              scope: "global",
+              template: "Remove a service from a group",
+              description: "Remove a service from a group",
             },
             {
               id: "op-update-service-group-cost",
               name: "UPDATE_SERVICE_GROUP_COST",
-              description: "Update group setup and recurring costs",
-              schema:
-                "input UpdateServiceGroupCostInput {\n    groupId: OID!\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n}",
-              template: "Update group setup and recurring costs",
-              reducer:
-                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new UpdateServiceGroupCostNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nif (action.input.setupAmount && action.input.setupCurrency) {\n  group.setupCost = {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: group.setupCost?.paymentDate || null,\n  };\n} else if (group.setupCost) {\n  if (action.input.setupAmount) group.setupCost.amount = action.input.setupAmount;\n  if (action.input.setupCurrency) group.setupCost.currency = action.input.setupCurrency;\n  if (action.input.setupBillingDate !== undefined) group.setupCost.billingDate = action.input.setupBillingDate || null;\n}\nif (action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle) {\n  group.recurringCost = {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: group.recurringCost?.nextBillingDate || null,\n    lastPaymentDate: group.recurringCost?.lastPaymentDate || null,\n    discount: group.recurringCost?.discount || null,\n  };\n} else if (group.recurringCost) {\n  if (action.input.recurringAmount) group.recurringCost.amount = action.input.recurringAmount;\n  if (action.input.recurringCurrency) group.recurringCost.currency = action.input.recurringCurrency;\n  if (action.input.recurringBillingCycle) group.recurringCost.billingCycle = action.input.recurringBillingCycle;\n}",
+              scope: "global",
               errors: [
                 {
                   id: "err-update-group-cost-not-found",
-                  name: "UpdateServiceGroupCostNotFoundError",
                   code: "UPDATE_GROUP_COST_NOT_FOUND",
-                  description: "",
+                  name: "UpdateServiceGroupCostNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input UpdateServiceGroupCostInput {\n    groupId: OID!\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n}",
+              reducer:
+                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new UpdateServiceGroupCostNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nif (action.input.setupAmount && action.input.setupCurrency) {\n  group.setupCost = {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: group.setupCost?.paymentDate || null,\n  };\n} else if (group.setupCost) {\n  if (action.input.setupAmount) group.setupCost.amount = action.input.setupAmount;\n  if (action.input.setupCurrency) group.setupCost.currency = action.input.setupCurrency;\n  if (action.input.setupBillingDate !== undefined) group.setupCost.billingDate = action.input.setupBillingDate || null;\n}\nif (action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle) {\n  group.recurringCost = {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: group.recurringCost?.nextBillingDate || null,\n    lastPaymentDate: group.recurringCost?.lastPaymentDate || null,\n    discount: group.recurringCost?.discount || null,\n  };\n} else if (group.recurringCost) {\n  if (action.input.recurringAmount) group.recurringCost.amount = action.input.recurringAmount;\n  if (action.input.recurringCurrency) group.recurringCost.currency = action.input.recurringCurrency;\n  if (action.input.recurringBillingCycle) group.recurringCost.billingCycle = action.input.recurringBillingCycle;\n}",
               examples: [],
-              scope: "global",
+              template: "Update group setup and recurring costs",
+              description: "Update group setup and recurring costs",
             },
           ],
+          description:
+            "Service group management and grouped service operations",
         },
         {
           id: "mod-metrics",
           name: "metrics",
-          description: "Service metric tracking and usage management",
           operations: [
             {
               id: "op-add-service-metric",
               name: "ADD_SERVICE_METRIC",
-              description: "Add a metric to a service",
-              schema:
-                "input AddServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    freeLimit: Int\n    paidLimit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n    unitCostNextBillingDate: DateTime\n    unitCostLastPaymentDate: DateTime\n}",
-              template: "Add a metric to a service",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new AddServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nsvc.metrics.push({\n  id: action.input.metricId,\n  name: action.input.name,\n  unitName: action.input.unitName,\n  limit: action.input.limit || null,\n  freeLimit: action.input.freeLimit || null,\n  paidLimit: action.input.paidLimit || null,\n  unitCost: action.input.unitCostAmount && action.input.unitCostCurrency && action.input.unitCostBillingCycle ? {\n    amount: action.input.unitCostAmount,\n    currency: action.input.unitCostCurrency,\n    billingCycle: action.input.unitCostBillingCycle,\n    nextBillingDate: action.input.unitCostNextBillingDate || null,\n    lastPaymentDate: action.input.unitCostLastPaymentDate || null,\n    discount: null,\n  } : null,\n  currentUsage: action.input.currentUsage,\n  usageResetPeriod: action.input.usageResetPeriod || null,\n  nextUsageReset: action.input.nextUsageReset || null,\n});",
+              scope: "global",
               errors: [
                 {
                   id: "err-add-metric-service-not-found",
-                  name: "AddServiceMetricServiceNotFoundError",
                   code: "ADD_METRIC_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "AddServiceMetricServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input AddServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    freeLimit: Int\n    paidLimit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n    unitCostNextBillingDate: DateTime\n    unitCostLastPaymentDate: DateTime\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new AddServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nsvc.metrics.push({\n  id: action.input.metricId,\n  name: action.input.name,\n  unitName: action.input.unitName,\n  limit: action.input.limit || null,\n  freeLimit: action.input.freeLimit || null,\n  paidLimit: action.input.paidLimit || null,\n  unitCost: action.input.unitCostAmount && action.input.unitCostCurrency && action.input.unitCostBillingCycle ? {\n    amount: action.input.unitCostAmount,\n    currency: action.input.unitCostCurrency,\n    billingCycle: action.input.unitCostBillingCycle,\n    nextBillingDate: action.input.unitCostNextBillingDate || null,\n    lastPaymentDate: action.input.unitCostLastPaymentDate || null,\n    discount: null,\n  } : null,\n  currentUsage: action.input.currentUsage,\n  usageResetPeriod: action.input.usageResetPeriod || null,\n  nextUsageReset: action.input.nextUsageReset || null,\n});",
               examples: [],
-              scope: "global",
+              template: "Add a metric to a service",
+              description: "Add a metric to a service",
             },
             {
               id: "op-update-metric",
               name: "UPDATE_METRIC",
-              description: "Update metric configuration",
-              schema:
-                "input UpdateMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String\n    unitName: String\n    limit: Int\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}",
-              template: "Update metric configuration",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nif (action.input.name) metric.name = action.input.name;\nif (action.input.unitName) metric.unitName = action.input.unitName;\nif (action.input.limit !== undefined) metric.limit = action.input.limit || null;\nif (action.input.usageResetPeriod !== undefined) metric.usageResetPeriod = action.input.usageResetPeriod || null;\nif (action.input.nextUsageReset !== undefined) metric.nextUsageReset = action.input.nextUsageReset || null;",
+              scope: "global",
               errors: [
                 {
                   id: "err-update-metric-service-not-found",
-                  name: "UpdateMetricServiceNotFoundError",
                   code: "UPDATE_METRIC_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "UpdateMetricServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
                 {
                   id: "err-update-metric-not-found",
-                  name: "UpdateMetricNotFoundError",
                   code: "UPDATE_METRIC_NOT_FOUND",
-                  description: "",
+                  name: "UpdateMetricNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input UpdateMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String\n    unitName: String\n    limit: Int\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nif (action.input.name) metric.name = action.input.name;\nif (action.input.unitName) metric.unitName = action.input.unitName;\nif (action.input.limit !== undefined) metric.limit = action.input.limit || null;\nif (action.input.usageResetPeriod !== undefined) metric.usageResetPeriod = action.input.usageResetPeriod || null;\nif (action.input.nextUsageReset !== undefined) metric.nextUsageReset = action.input.nextUsageReset || null;",
               examples: [],
-              scope: "global",
+              template: "Update metric configuration",
+              description: "Update metric configuration",
             },
             {
               id: "op-update-metric-usage",
               name: "UPDATE_METRIC_USAGE",
-              description: "Set metric usage directly",
-              schema:
-                "input UpdateMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    currentUsage: Int!\n}",
-              template: "Set metric usage directly",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage = action.input.currentUsage;",
+              scope: "global",
               errors: [
                 {
                   id: "err-update-usage-service-not-found",
-                  name: "UpdateMetricUsageServiceNotFoundError",
                   code: "UPDATE_USAGE_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "UpdateMetricUsageServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
                 {
                   id: "err-update-usage-metric-not-found",
-                  name: "UpdateMetricUsageNotFoundError",
                   code: "UPDATE_USAGE_METRIC_NOT_FOUND",
-                  description: "",
+                  name: "UpdateMetricUsageNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input UpdateMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    currentUsage: Int!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage = action.input.currentUsage;",
               examples: [],
-              scope: "global",
+              template: "Set metric usage directly",
+              description: "Set metric usage directly",
             },
             {
               id: "op-remove-service-metric",
               name: "REMOVE_SERVICE_METRIC",
-              description: "Remove a metric from a service",
-              schema:
-                "input RemoveServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n}",
-              template: "Remove a metric from a service",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new RemoveServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst index = svc.metrics.findIndex((m) => m.id === action.input.metricId);\nif (index === -1) {\n  throw new RemoveServiceMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nsvc.metrics.splice(index, 1);",
+              scope: "global",
               errors: [
                 {
                   id: "err-remove-metric-service-not-found",
-                  name: "RemoveServiceMetricServiceNotFoundError",
                   code: "REMOVE_METRIC_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceMetricServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
                 {
                   id: "err-remove-metric-not-found",
-                  name: "RemoveServiceMetricNotFoundError",
                   code: "REMOVE_METRIC_NOT_FOUND",
-                  description: "",
+                  name: "RemoveServiceMetricNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input RemoveServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new RemoveServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst index = svc.metrics.findIndex((m) => m.id === action.input.metricId);\nif (index === -1) {\n  throw new RemoveServiceMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nsvc.metrics.splice(index, 1);",
               examples: [],
-              scope: "global",
+              template: "Remove a metric from a service",
+              description: "Remove a metric from a service",
             },
             {
               id: "op-increment-metric-usage",
               name: "INCREMENT_METRIC_USAGE",
-              description: "Increment usage counter",
-              schema:
-                "input IncrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    incrementBy: Int!\n}",
-              template: "Increment usage counter",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new IncrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new IncrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage += action.input.incrementBy;",
+              scope: "global",
               errors: [
                 {
                   id: "err-increment-service-not-found",
-                  name: "IncrementMetricUsageServiceNotFoundError",
                   code: "INCREMENT_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "IncrementMetricUsageServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
                 {
                   id: "err-increment-metric-not-found",
-                  name: "IncrementMetricUsageNotFoundError",
                   code: "INCREMENT_METRIC_NOT_FOUND",
-                  description: "",
+                  name: "IncrementMetricUsageNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input IncrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    incrementBy: Int!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new IncrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new IncrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage += action.input.incrementBy;",
               examples: [],
-              scope: "global",
+              template: "Increment usage counter",
+              description: "Increment usage counter",
             },
             {
               id: "op-decrement-metric-usage",
               name: "DECREMENT_METRIC_USAGE",
-              description: "Decrement usage counter",
-              schema:
-                "input DecrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    decrementBy: Int!\n}",
-              template: "Decrement usage counter",
-              reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new DecrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new DecrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage -= action.input.decrementBy;",
+              scope: "global",
               errors: [
                 {
                   id: "err-decrement-service-not-found",
-                  name: "DecrementMetricUsageServiceNotFoundError",
                   code: "DECREMENT_SERVICE_NOT_FOUND",
-                  description: "",
+                  name: "DecrementMetricUsageServiceNotFoundError",
                   template: "",
+                  description: "",
                 },
                 {
                   id: "err-decrement-metric-not-found",
-                  name: "DecrementMetricUsageNotFoundError",
                   code: "DECREMENT_METRIC_NOT_FOUND",
-                  description: "",
+                  name: "DecrementMetricUsageNotFoundError",
                   template: "",
+                  description: "",
                 },
               ],
+              schema:
+                "input DecrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    decrementBy: Int!\n}",
+              reducer:
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new DecrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new DecrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage -= action.input.decrementBy;",
               examples: [],
-              scope: "global",
+              template: "Decrement usage counter",
+              description: "Decrement usage counter",
             },
           ],
+          description: "Service metric tracking and usage management",
         },
         {
           id: "mod-customer",
           name: "customer",
-          description: "Customer type and team member management",
           operations: [
             {
               id: "op-set-customer-type",
               name: "SET_CUSTOMER_TYPE",
-              description: "Set customer type (individual/team)",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetCustomerTypeInput {\n    customerType: CustomerType!\n    teamMemberCount: Int\n}",
-              template: "Set customer type (individual/team)",
               reducer:
                 "state.customerType = action.input.customerType;\nstate.teamMemberCount = action.input.teamMemberCount || null;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Set customer type (individual/team)",
+              description: "Set customer type (individual/team)",
             },
             {
               id: "op-update-team-member-count",
               name: "UPDATE_TEAM_MEMBER_COUNT",
-              description: "Update team member count",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateTeamMemberCountInput {\n    teamMemberCount: Int!\n}",
-              template: "Update team member count",
               reducer: "state.teamMemberCount = action.input.teamMemberCount;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Update team member count",
+              description: "Update team member count",
             },
           ],
+          description: "Customer type and team member management",
         },
       ],
       version: 1,

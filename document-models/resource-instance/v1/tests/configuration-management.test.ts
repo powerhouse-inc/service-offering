@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -12,7 +12,7 @@ import {
   RemoveInstanceFacetInputSchema,
   UpdateInstanceFacetInputSchema,
   ApplyConfigurationChangesInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-instance/v1";
+} from "document-models/resource-instance/v1";
 
 describe("ConfigurationManagementOperations", () => {
   it("should handle setInstanceFacet operation", () => {

@@ -4,7 +4,7 @@ import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
   ServiceStatus,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import { updateOfferingStatus } from "../../../document-models/service-offering/v1/gen/offering/creators.js";
 import type { TabId } from "../editor.js";
 

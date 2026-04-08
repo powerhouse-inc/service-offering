@@ -9,11 +9,5 @@
   "reactor": {
     "port": 4001
   },
-  "packages": [
-    {
-      "packageName": "@powerhousedao/vetra",
-      "version": "6.0.0-dev.105",
-      "provider": "npm"
-    }
-  ]
+  "packages": []
 }

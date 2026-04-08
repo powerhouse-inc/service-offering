@@ -5,20 +5,20 @@ import {
   baseLoadFromInput,
   defaultBaseState,
   generateId,
-} from "document-model/core";
-import type {
-  ResourceInstanceGlobalState,
-  ResourceInstanceLocalState,
-} from "./types.js";
-import type { ResourceInstancePHState } from "./types.js";
+} from "document-model";
 import { reducer } from "./reducer.js";
 import { resourceInstanceDocumentType } from "./document-type.js";
 import {
-  isResourceInstanceDocument,
   assertIsResourceInstanceDocument,
-  isResourceInstanceState,
   assertIsResourceInstanceState,
+  isResourceInstanceDocument,
+  isResourceInstanceState,
 } from "./document-schema.js";
+import type {
+  ResourceInstanceGlobalState,
+  ResourceInstanceLocalState,
+  ResourceInstancePHState,
+} from "./types.js";
 
 export const initialGlobalState: ResourceInstanceGlobalState = {
   resourceTemplateId: null,
@@ -84,12 +84,3 @@ export const utils: DocumentModelUtils<ResourceInstancePHState> = {
     return assertIsResourceInstanceDocument(document);
   },
 };
-
-export const createDocument = utils.createDocument;
-export const createState = utils.createState;
-export const saveToFileHandle = utils.saveToFileHandle;
-export const loadFromInput = utils.loadFromInput;
-export const isStateOfType = utils.isStateOfType;
-export const assertIsStateOfType = utils.assertIsStateOfType;
-export const isDocumentOfType = utils.isDocumentOfType;
-export const assertIsDocumentOfType = utils.assertIsDocumentOfType;

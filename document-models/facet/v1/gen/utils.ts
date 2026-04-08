@@ -5,17 +5,20 @@ import {
   baseLoadFromInput,
   defaultBaseState,
   generateId,
-} from "document-model/core";
-import type { FacetGlobalState, FacetLocalState } from "./types.js";
-import type { FacetPHState } from "./types.js";
+} from "document-model";
 import { reducer } from "./reducer.js";
 import { facetDocumentType } from "./document-type.js";
 import {
-  isFacetDocument,
   assertIsFacetDocument,
-  isFacetState,
   assertIsFacetState,
+  isFacetDocument,
+  isFacetState,
 } from "./document-schema.js";
+import type {
+  FacetGlobalState,
+  FacetLocalState,
+  FacetPHState,
+} from "./types.js";
 
 export const initialGlobalState: FacetGlobalState = {
   id: null,
@@ -64,12 +67,3 @@ export const utils: DocumentModelUtils<FacetPHState> = {
     return assertIsFacetDocument(document);
   },
 };
-
-export const createDocument = utils.createDocument;
-export const createState = utils.createState;
-export const saveToFileHandle = utils.saveToFileHandle;
-export const loadFromInput = utils.loadFromInput;
-export const isStateOfType = utils.isStateOfType;
-export const assertIsStateOfType = utils.assertIsStateOfType;
-export const isDocumentOfType = utils.isDocumentOfType;
-export const assertIsDocumentOfType = utils.assertIsDocumentOfType;

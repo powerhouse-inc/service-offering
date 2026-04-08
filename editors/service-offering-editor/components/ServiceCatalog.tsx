@@ -9,7 +9,7 @@ import type {
   BillingCycle,
   GroupCostType,
   DiscountType,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
   BILLING_CYCLE_MONTHS,

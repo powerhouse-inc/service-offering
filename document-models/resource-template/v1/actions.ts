@@ -1,23 +1,23 @@
 import { baseActions } from "document-model";
 import {
-  templateManagementActions,
-  audienceManagementActions,
-  facetTargetingActions,
-  serviceCategoryManagementActions,
-  serviceManagementActions,
-  optionGroupManagementActions,
-  contentSectionManagementActions,
+  resourceTemplateTemplateManagementActions,
+  resourceTemplateAudienceManagementActions,
+  resourceTemplateFacetTargetingActions,
+  resourceTemplateServiceCategoryManagementActions,
+  resourceTemplateServiceManagementActions,
+  resourceTemplateOptionGroupManagementActions,
+  resourceTemplateContentSectionManagementActions,
 } from "./gen/creators.js";
 
 /** Actions for the ResourceTemplate document model */
 
 export const actions = {
   ...baseActions,
-  ...templateManagementActions,
-  ...audienceManagementActions,
-  ...facetTargetingActions,
-  ...serviceCategoryManagementActions,
-  ...serviceManagementActions,
-  ...optionGroupManagementActions,
-  ...contentSectionManagementActions,
+  ...resourceTemplateTemplateManagementActions,
+  ...resourceTemplateAudienceManagementActions,
+  ...resourceTemplateFacetTargetingActions,
+  ...resourceTemplateServiceCategoryManagementActions,
+  ...resourceTemplateServiceManagementActions,
+  ...resourceTemplateOptionGroupManagementActions,
+  ...resourceTemplateContentSectionManagementActions,
 };

@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -17,6 +17,7 @@ import {
   setTierDefaultBillingCycle,
   setTierBillingCycleDiscounts,
   setTierPricingMode,
+  reorderTiers,
   AddTierInputSchema,
   UpdateTierInputSchema,
   UpdateTierPricingInputSchema,
@@ -30,9 +31,8 @@ import {
   SetTierDefaultBillingCycleInputSchema,
   SetTierBillingCycleDiscountsInputSchema,
   SetTierPricingModeInputSchema,
-  reorderTiers,
   ReorderTiersInputSchema,
-} from "@powerhousedao/service-offering/document-models/service-offering/v1";
+} from "document-models/service-offering/v1";
 
 describe("TiersOperations", () => {
   it("should handle addTier operation", () => {

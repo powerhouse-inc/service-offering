@@ -16,7 +16,7 @@ import {
   TierIdsMismatchError,
   DuplicateTierIdError,
 } from "../../gen/tiers/error.js";
-import type { ServiceOfferingTiersOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
+import type { ServiceOfferingTiersOperations } from "document-models/service-offering/v1";
 
 export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
   addTierOperation(state, action) {
@@ -268,7 +268,7 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       }
     }
     const tierMap = new Map(state.tiers.map((t) => [t.id, t]));
-    state.tiers = inputIds.map((id) => tierMap.get(id)!);
+    state.tiers = inputIds.map((id) => tierMap.get(id));
     state.lastModified = action.input.lastModified;
   },
 };

@@ -1,4 +1,4 @@
-import type { ResourceTemplateOptionGroupManagementOperations } from "@powerhousedao/service-offering/document-models/resource-template/v1";
+import type { ResourceTemplateOptionGroupManagementOperations } from "document-models/resource-template/v1";
 
 export const resourceTemplateOptionGroupManagementOperations: ResourceTemplateOptionGroupManagementOperations =
   {
@@ -63,10 +63,16 @@ export const resourceTemplateOptionGroupManagementOperations: ResourceTemplateOp
         displayOrder: action.input.displayOrder,
       });
     },
-    updateFaqOperation(state, action) {},
-    deleteFaqOperation(state, action) {},
+    updateFaqOperation(state, action) {
+      // TODO: implement updateFaqOperation reducer
+      throw new Error("Reducer for 'updateFaqOperation' not implemented.");
+    },
+    deleteFaqOperation(state, action) {
+      // TODO: implement deleteFaqOperation reducer
+      throw new Error("Reducer for 'deleteFaqOperation' not implemented.");
+    },
     reorderFaqsOperation(state, action) {
-      action.input.faqIds.forEach((id: string, index: number) => {
+      action.input.faqIds.forEach((id, index) => {
         const faq = state.faqFields?.find((f) => f.id === id);
         if (faq) {
           faq.displayOrder = index;

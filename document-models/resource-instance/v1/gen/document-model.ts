@@ -30,426 +30,426 @@ export const documentModel: DocumentModelGlobalState = {
         {
           id: "instance-management",
           name: "Instance Management",
-          description: "Operations for managing resource instance lifecycle",
           operations: [
             {
               id: "initialize-instance",
               name: "INITIALIZE_INSTANCE",
-              description: "Initializes a new resource instance",
+              scope: "global",
+              errors: [],
               schema:
                 "input InitializeInstanceInput {\n    operatorId: PHID!\n    operatorDocumentType: String!\n    resourceTemplateId: PHID\n    customerId: PHID\n    customerName: String\n    templateName: String\n    operatorName: String\n    thumbnailUrl: URL\n    infoLink: URL\n    description: String\n}",
-              template: "Initializes a new resource instance",
               reducer:
                 'state.operatorProfile = {\n    id: action.input.operatorId,\n    documentType: action.input.operatorDocumentType\n};\nstate.resourceTemplateId = action.input.resourceTemplateId || null;\nstate.customerId = action.input.customerId || null;\nstate.customerName = action.input.customerName || null;\nstate.templateName = action.input.templateName || null;\nstate.operatorName = action.input.operatorName || null;\nstate.name = action.input.name || null;\nstate.thumbnailUrl = action.input.thumbnailUrl || null;\nstate.infoLink = action.input.infoLink || null;\nstate.description = action.input.description || null;\nstate.status = "DRAFT";',
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Initializes a new resource instance",
+              description: "Initializes a new resource instance",
             },
             {
               id: "update-instance-info",
               name: "UPDATE_INSTANCE_INFO",
-              description: "Updates instance information fields",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateInstanceInfoInput {\n    name: String\n    thumbnailUrl: URL\n    infoLink: URL\n    description: String\n}",
-              template: "Updates instance information fields",
               reducer:
                 "if (action.input.name) state.name = action.input.name;\nif (action.input.thumbnailUrl) state.thumbnailUrl = action.input.thumbnailUrl;\nif (action.input.infoLink) state.infoLink = action.input.infoLink;\nif (action.input.description) state.description = action.input.description;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Updates instance information fields",
+              description: "Updates instance information fields",
             },
             {
               id: "set-resource-profile",
               name: "SET_OPERATOR_PROFILE",
-              description:
-                "Sets the operator profile reference for this resource instance",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetOperatorProfileInput {\n    operatorId: PHID!\n    operatorName: String\n}",
-              template: "Sets the resource profile reference",
               reducer:
                 "state.operatorProfile = {\n    id: action.input.operatorId,\n    documentType: action.input.operatorDocumentType\n};",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Sets the resource profile reference",
+              description:
+                "Sets the operator profile reference for this resource instance",
             },
             {
               id: "update-instance-status",
               name: "UPDATE_INSTANCE_STATUS",
-              description: "Updates the instance status",
+              scope: "global",
+              errors: [],
               schema:
                 "input UpdateInstanceStatusInput {\n    status: InstanceStatus!\n}",
-              template: "Updates the instance status",
               reducer: "state.status = action.input.status;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Updates the instance status",
+              description: "Updates the instance status",
             },
             {
               id: "confirm-instance",
               name: "CONFIRM_INSTANCE",
-              description:
-                "Confirms the instance configuration and moves to provisioning",
-              schema:
-                "input ConfirmInstanceInput {\n    confirmedAt: DateTime!\n}",
-              template:
-                "Confirms the instance configuration and moves to provisioning",
-              reducer:
-                'if (state.status !== "DRAFT") {\n    throw new InvalidStatusTransitionError("Can only confirm instances in DRAFT status");\n}\nstate.status = "PROVISIONING";\nstate.confirmedAt = action.input.confirmedAt;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-transition-error",
-                  name: "InvalidStatusTransitionError",
                   code: "INVALID_STATUS_TRANSITION",
-                  description: "Can only confirm instances in DRAFT status",
+                  name: "InvalidStatusTransitionError",
                   template: "",
+                  description: "Can only confirm instances in DRAFT status",
                 },
               ],
+              schema:
+                "input ConfirmInstanceInput {\n    confirmedAt: DateTime!\n}",
+              reducer:
+                'if (state.status !== "DRAFT") {\n    throw new InvalidStatusTransitionError("Can only confirm instances in DRAFT status");\n}\nstate.status = "PROVISIONING";\nstate.confirmedAt = action.input.confirmedAt;',
               examples: [],
-              scope: "global",
+              template:
+                "Confirms the instance configuration and moves to provisioning",
+              description:
+                "Confirms the instance configuration and moves to provisioning",
             },
             {
               id: "report-provisioning-started",
               name: "REPORT_PROVISIONING_STARTED",
-              description: "Reports that provisioning has started",
-              schema:
-                "input ReportProvisioningStartedInput {\n    startedAt: DateTime!\n}",
-              template: "Reports that provisioning has started",
-              reducer:
-                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionReportProvisioningStartedError("Can only report provisioning started for instances in PROVISIONING status");\n}\nstate.provisioningStartedAt = action.input.startedAt;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-report-prov-started",
-                  name: "InvalidStatusTransitionReportProvisioningStartedError",
                   code: "INVALID_STATUS_TRANSITION_REPORT_PROVISIONING_STARTED",
+                  name: "InvalidStatusTransitionReportProvisioningStartedError",
+                  template: "",
                   description:
                     "Can only report provisioning started for instances in PROVISIONING status",
-                  template: "",
                 },
               ],
+              schema:
+                "input ReportProvisioningStartedInput {\n    startedAt: DateTime!\n}",
+              reducer:
+                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionReportProvisioningStartedError("Can only report provisioning started for instances in PROVISIONING status");\n}\nstate.provisioningStartedAt = action.input.startedAt;',
               examples: [],
-              scope: "global",
+              template: "Reports that provisioning has started",
+              description: "Reports that provisioning has started",
             },
             {
               id: "report-provisioning-completed",
               name: "REPORT_PROVISIONING_COMPLETED",
-              description:
-                "Reports that provisioning has completed successfully",
-              schema:
-                "input ReportProvisioningCompletedInput {\n    completedAt: DateTime!\n}",
-              template: "Reports that provisioning has completed successfully",
-              reducer:
-                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionReportProvisioningCompletedError("Can only report provisioning completed for instances in PROVISIONING status");\n}\nstate.provisioningCompletedAt = action.input.completedAt;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-report-prov-completed",
-                  name: "InvalidStatusTransitionReportProvisioningCompletedError",
                   code: "INVALID_STATUS_TRANSITION_REPORT_PROVISIONING_COMPLETED",
+                  name: "InvalidStatusTransitionReportProvisioningCompletedError",
+                  template: "",
                   description:
                     "Can only report provisioning completed for instances in PROVISIONING status",
-                  template: "",
                 },
               ],
+              schema:
+                "input ReportProvisioningCompletedInput {\n    completedAt: DateTime!\n}",
+              reducer:
+                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionReportProvisioningCompletedError("Can only report provisioning completed for instances in PROVISIONING status");\n}\nstate.provisioningCompletedAt = action.input.completedAt;',
               examples: [],
-              scope: "global",
+              template: "Reports that provisioning has completed successfully",
+              description:
+                "Reports that provisioning has completed successfully",
             },
             {
               id: "report-provisioning-failed",
               name: "REPORT_PROVISIONING_FAILED",
-              description: "Reports that provisioning has failed",
-              schema:
-                "input ReportProvisioningFailedInput {\n    failedAt: DateTime!\n    failureReason: String!\n}",
-              template: "Reports that provisioning has failed",
-              reducer:
-                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionReportProvisioningFailedError("Can only report provisioning failed for instances in PROVISIONING status");\n}\nstate.provisioningFailureReason = action.input.failureReason;\nstate.status = "DRAFT";',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-report-prov-failed",
-                  name: "InvalidStatusTransitionReportProvisioningFailedError",
                   code: "INVALID_STATUS_TRANSITION_REPORT_PROVISIONING_FAILED",
+                  name: "InvalidStatusTransitionReportProvisioningFailedError",
+                  template: "",
                   description:
                     "Can only report provisioning failed for instances in PROVISIONING status",
-                  template: "",
                 },
               ],
+              schema:
+                "input ReportProvisioningFailedInput {\n    failedAt: DateTime!\n    failureReason: String!\n}",
+              reducer:
+                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionReportProvisioningFailedError("Can only report provisioning failed for instances in PROVISIONING status");\n}\nstate.provisioningFailureReason = action.input.failureReason;\nstate.status = "DRAFT";',
               examples: [],
-              scope: "global",
+              template: "Reports that provisioning has failed",
+              description: "Reports that provisioning has failed",
             },
             {
               id: "activate-instance",
               name: "ACTIVATE_INSTANCE",
-              description: "Marks the instance as active/ready",
-              schema:
-                "input ActivateInstanceInput {\n    activatedAt: DateTime!\n}",
-              template: "Marks the instance as active/ready",
-              reducer:
-                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionActivateInstanceError("Can only activate instances in PROVISIONING status");\n}\nif (!state.provisioningCompletedAt) {\n    throw new ProvisioningNotCompletedError("Must report provisioning completed before activating");\n}\nstate.status = "ACTIVE";\nstate.activatedAt = action.input.activatedAt;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-activate",
-                  name: "InvalidStatusTransitionActivateInstanceError",
                   code: "INVALID_STATUS_TRANSITION_ACTIVATE_INSTANCE",
+                  name: "InvalidStatusTransitionActivateInstanceError",
+                  template: "",
                   description:
                     "Can only activate instances in PROVISIONING status",
-                  template: "",
                 },
                 {
                   id: "provisioning-not-completed",
-                  name: "ProvisioningNotCompletedError",
                   code: "PROVISIONING_NOT_COMPLETED",
+                  name: "ProvisioningNotCompletedError",
+                  template: "",
                   description:
                     "Must report provisioning completed before activating",
-                  template: "",
                 },
               ],
+              schema:
+                "input ActivateInstanceInput {\n    activatedAt: DateTime!\n}",
+              reducer:
+                'if (state.status !== "PROVISIONING") {\n    throw new InvalidStatusTransitionActivateInstanceError("Can only activate instances in PROVISIONING status");\n}\nif (!state.provisioningCompletedAt) {\n    throw new ProvisioningNotCompletedError("Must report provisioning completed before activating");\n}\nstate.status = "ACTIVE";\nstate.activatedAt = action.input.activatedAt;',
               examples: [],
-              scope: "global",
+              template: "Marks the instance as active/ready",
+              description: "Marks the instance as active/ready",
             },
             {
               id: "suspend-for-non-payment",
               name: "SUSPEND_FOR_NON_PAYMENT",
-              description: "Suspends an active instance due to non-payment",
-              schema:
-                "input SuspendForNonPaymentInput {\n    suspendedAt: DateTime!\n    outstandingAmount: Amount_Money\n    daysPastDue: Int\n}",
-              template: "Suspends an active instance due to non-payment",
-              reducer:
-                'if (state.status !== "ACTIVE") {\n    throw new InvalidStatusTransitionSuspendForNonPaymentError("Can only suspend ACTIVE instances");\n}\nstate.status = "SUSPENDED";\nstate.suspendedAt = action.input.suspendedAt;\nstate.suspensionType = "NON_PAYMENT";\nstate.suspensionReason = "Non-payment";\nconst details = [];\nif (action.input.outstandingAmount) {\n    details.push(`Outstanding: ${action.input.outstandingAmount}`);\n}\nif (action.input.daysPastDue) {\n    details.push(`Days past due: ${action.input.daysPastDue}`);\n}\nstate.suspensionDetails = details.join(", ") || null;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-suspend-nonpay",
-                  name: "InvalidStatusTransitionSuspendForNonPaymentError",
                   code: "INVALID_STATUS_TRANSITION_SUSPEND_FOR_NON_PAYMENT",
-                  description: "Can only suspend ACTIVE instances",
+                  name: "InvalidStatusTransitionSuspendForNonPaymentError",
                   template: "",
+                  description: "Can only suspend ACTIVE instances",
                 },
               ],
+              schema:
+                "input SuspendForNonPaymentInput {\n    suspendedAt: DateTime!\n    outstandingAmount: Amount_Money\n    daysPastDue: Int\n}",
+              reducer:
+                'if (state.status !== "ACTIVE") {\n    throw new InvalidStatusTransitionSuspendForNonPaymentError("Can only suspend ACTIVE instances");\n}\nstate.status = "SUSPENDED";\nstate.suspendedAt = action.input.suspendedAt;\nstate.suspensionType = "NON_PAYMENT";\nstate.suspensionReason = "Non-payment";\nconst details = [];\nif (action.input.outstandingAmount) {\n    details.push(`Outstanding: ${action.input.outstandingAmount}`);\n}\nif (action.input.daysPastDue) {\n    details.push(`Days past due: ${action.input.daysPastDue}`);\n}\nstate.suspensionDetails = details.join(", ") || null;',
               examples: [],
-              scope: "global",
+              template: "Suspends an active instance due to non-payment",
+              description: "Suspends an active instance due to non-payment",
             },
             {
               id: "suspend-for-maintenance",
               name: "SUSPEND_FOR_MAINTENANCE",
-              description: "Suspends an active instance for maintenance",
-              schema:
-                "input SuspendForMaintenanceInput {\n    suspendedAt: DateTime!\n    estimatedDuration: String\n    maintenanceType: String\n}",
-              template: "Suspends an active instance for maintenance",
-              reducer:
-                'if (state.status !== "ACTIVE") {\n    throw new InvalidStatusTransitionSuspendForMaintenanceError("Can only suspend ACTIVE instances");\n}\nstate.status = "SUSPENDED";\nstate.suspendedAt = action.input.suspendedAt;\nstate.suspensionType = "MAINTENANCE";\nstate.suspensionReason = "Scheduled maintenance";\nconst details = [];\nif (action.input.maintenanceType) {\n    details.push(`Type: ${action.input.maintenanceType}`);\n}\nif (action.input.estimatedDuration) {\n    details.push(`Duration: ${action.input.estimatedDuration}`);\n}\nstate.suspensionDetails = details.join(", ") || null;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-suspend-maintenance",
-                  name: "InvalidStatusTransitionSuspendForMaintenanceError",
                   code: "INVALID_STATUS_TRANSITION_SUSPEND_FOR_MAINTENANCE",
-                  description: "Can only suspend ACTIVE instances",
+                  name: "InvalidStatusTransitionSuspendForMaintenanceError",
                   template: "",
+                  description: "Can only suspend ACTIVE instances",
                 },
               ],
+              schema:
+                "input SuspendForMaintenanceInput {\n    suspendedAt: DateTime!\n    estimatedDuration: String\n    maintenanceType: String\n}",
+              reducer:
+                'if (state.status !== "ACTIVE") {\n    throw new InvalidStatusTransitionSuspendForMaintenanceError("Can only suspend ACTIVE instances");\n}\nstate.status = "SUSPENDED";\nstate.suspendedAt = action.input.suspendedAt;\nstate.suspensionType = "MAINTENANCE";\nstate.suspensionReason = "Scheduled maintenance";\nconst details = [];\nif (action.input.maintenanceType) {\n    details.push(`Type: ${action.input.maintenanceType}`);\n}\nif (action.input.estimatedDuration) {\n    details.push(`Duration: ${action.input.estimatedDuration}`);\n}\nstate.suspensionDetails = details.join(", ") || null;',
               examples: [],
-              scope: "global",
+              template: "Suspends an active instance for maintenance",
+              description: "Suspends an active instance for maintenance",
             },
             {
               id: "resume-after-payment",
               name: "RESUME_AFTER_PAYMENT",
-              description:
-                "Resumes a suspended instance after payment received",
-              schema:
-                "input ResumeAfterPaymentInput {\n    resumedAt: DateTime!\n    paymentReference: String\n}",
-              template: "Resumes a suspended instance after payment received",
-              reducer:
-                'if (state.status !== "SUSPENDED") {\n    throw new InvalidStatusTransitionResumeAfterPaymentError("Can only resume SUSPENDED instances");\n}\nif (state.suspensionType !== "NON_PAYMENT") {\n    throw new InvalidSuspensionTypeError("This operation is for NON_PAYMENT suspensions only");\n}\nstate.status = "ACTIVE";\nstate.resumedAt = action.input.resumedAt;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-resume-payment",
-                  name: "InvalidStatusTransitionResumeAfterPaymentError",
                   code: "INVALID_STATUS_TRANSITION_RESUME_AFTER_PAYMENT",
-                  description: "Can only resume SUSPENDED instances",
+                  name: "InvalidStatusTransitionResumeAfterPaymentError",
                   template: "",
+                  description: "Can only resume SUSPENDED instances",
                 },
                 {
                   id: "invalid-suspension-type",
-                  name: "InvalidSuspensionTypeError",
                   code: "INVALID_SUSPENSION_TYPE",
+                  name: "InvalidSuspensionTypeError",
+                  template: "",
                   description:
                     "This operation is for NON_PAYMENT suspensions only",
-                  template: "",
                 },
               ],
+              schema:
+                "input ResumeAfterPaymentInput {\n    resumedAt: DateTime!\n    paymentReference: String\n}",
+              reducer:
+                'if (state.status !== "SUSPENDED") {\n    throw new InvalidStatusTransitionResumeAfterPaymentError("Can only resume SUSPENDED instances");\n}\nif (state.suspensionType !== "NON_PAYMENT") {\n    throw new InvalidSuspensionTypeError("This operation is for NON_PAYMENT suspensions only");\n}\nstate.status = "ACTIVE";\nstate.resumedAt = action.input.resumedAt;',
               examples: [],
-              scope: "global",
+              template: "Resumes a suspended instance after payment received",
+              description:
+                "Resumes a suspended instance after payment received",
             },
             {
               id: "resume-after-maintenance",
               name: "RESUME_AFTER_MAINTENANCE",
-              description:
-                "Resumes a suspended instance after maintenance completed",
-              schema:
-                "input ResumeAfterMaintenanceInput {\n    resumedAt: DateTime!\n}",
-              template:
-                "Resumes a suspended instance after maintenance completed",
-              reducer:
-                'if (state.status !== "SUSPENDED") {\n    throw new InvalidStatusTransitionResumeAfterMaintenanceError("Can only resume SUSPENDED instances");\n}\nif (state.suspensionType !== "MAINTENANCE") {\n    throw new InvalidSuspensionTypeResumeAfterMaintenanceError("This operation is for MAINTENANCE suspensions only");\n}\nstate.status = "ACTIVE";\nstate.resumedAt = action.input.resumedAt;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-resume-maintenance",
-                  name: "InvalidStatusTransitionResumeAfterMaintenanceError",
                   code: "INVALID_STATUS_TRANSITION_RESUME_AFTER_MAINTENANCE",
-                  description: "Can only resume SUSPENDED instances",
+                  name: "InvalidStatusTransitionResumeAfterMaintenanceError",
                   template: "",
+                  description: "Can only resume SUSPENDED instances",
                 },
                 {
                   id: "invalid-suspension-type-maintenance",
-                  name: "InvalidSuspensionTypeResumeAfterMaintenanceError",
                   code: "INVALID_SUSPENSION_TYPE_RESUME_AFTER_MAINTENANCE",
+                  name: "InvalidSuspensionTypeResumeAfterMaintenanceError",
+                  template: "",
                   description:
                     "This operation is for MAINTENANCE suspensions only",
-                  template: "",
                 },
               ],
+              schema:
+                "input ResumeAfterMaintenanceInput {\n    resumedAt: DateTime!\n}",
+              reducer:
+                'if (state.status !== "SUSPENDED") {\n    throw new InvalidStatusTransitionResumeAfterMaintenanceError("Can only resume SUSPENDED instances");\n}\nif (state.suspensionType !== "MAINTENANCE") {\n    throw new InvalidSuspensionTypeResumeAfterMaintenanceError("This operation is for MAINTENANCE suspensions only");\n}\nstate.status = "ACTIVE";\nstate.resumedAt = action.input.resumedAt;',
               examples: [],
-              scope: "global",
+              template:
+                "Resumes a suspended instance after maintenance completed",
+              description:
+                "Resumes a suspended instance after maintenance completed",
             },
             {
               id: "suspend-instance",
               name: "SUSPEND_INSTANCE",
-              description:
-                "Suspends the resource instance (deprecated - use specific suspension operations)",
-              schema:
-                "input SuspendInstanceInput {\n    suspendedAt: DateTime!\n    reason: String\n}",
-              template:
-                "Suspends the resource instance (deprecated - use specific suspension operations)",
-              reducer:
-                'if (state.status !== "ACTIVE") {\n    throw new InvalidStatusTransitionSuspendInstanceError("Can only suspend ACTIVE instances");\n}\nstate.status = "SUSPENDED";\nstate.suspendedAt = action.input.suspendedAt;\nstate.suspensionType = "OTHER";\nstate.suspensionReason = action.input.reason || null;',
+              scope: "global",
               errors: [
                 {
                   id: "invalid-status-suspend-instance",
-                  name: "InvalidStatusTransitionSuspendInstanceError",
                   code: "INVALID_STATUS_TRANSITION_SUSPEND_INSTANCE",
-                  description: "Can only suspend ACTIVE instances",
+                  name: "InvalidStatusTransitionSuspendInstanceError",
                   template: "",
+                  description: "Can only suspend ACTIVE instances",
                 },
               ],
+              schema:
+                "input SuspendInstanceInput {\n    suspendedAt: DateTime!\n    reason: String\n}",
+              reducer:
+                'if (state.status !== "ACTIVE") {\n    throw new InvalidStatusTransitionSuspendInstanceError("Can only suspend ACTIVE instances");\n}\nstate.status = "SUSPENDED";\nstate.suspendedAt = action.input.suspendedAt;\nstate.suspensionType = "OTHER";\nstate.suspensionReason = action.input.reason || null;',
               examples: [],
-              scope: "global",
+              template:
+                "Suspends the resource instance (deprecated - use specific suspension operations)",
+              description:
+                "Suspends the resource instance (deprecated - use specific suspension operations)",
             },
             {
               id: "terminate-instance",
               name: "TERMINATE_INSTANCE",
-              description: "Terminates the resource instance (not reversible)",
-              schema:
-                "input TerminateInstanceInput {\n    terminatedAt: DateTime!\n    reason: String!\n}",
-              template: "Terminates the resource instance (not reversible)",
-              reducer:
-                'if (state.status === "TERMINATED") {\n    throw new AlreadyTerminatedError("Instance is already terminated and cannot be terminated again");\n}\nstate.status = "TERMINATED";\nstate.terminatedAt = action.input.terminatedAt;\nstate.terminationReason = action.input.reason;',
+              scope: "global",
               errors: [
                 {
                   id: "already-terminated",
-                  name: "AlreadyTerminatedError",
                   code: "ALREADY_TERMINATED",
+                  name: "AlreadyTerminatedError",
+                  template: "",
                   description:
                     "Instance is already terminated and cannot be terminated again",
-                  template: "",
                 },
               ],
+              schema:
+                "input TerminateInstanceInput {\n    terminatedAt: DateTime!\n    reason: String!\n}",
+              reducer:
+                'if (state.status === "TERMINATED") {\n    throw new AlreadyTerminatedError("Instance is already terminated and cannot be terminated again");\n}\nstate.status = "TERMINATED";\nstate.terminatedAt = action.input.terminatedAt;\nstate.terminationReason = action.input.reason;',
               examples: [],
-              scope: "global",
+              template: "Terminates the resource instance (not reversible)",
+              description: "Terminates the resource instance (not reversible)",
             },
           ],
+          description: "Operations for managing resource instance lifecycle",
         },
         {
           id: "configuration-management",
           name: "Configuration Management",
-          description: "Operations for managing instance facet configuration",
           operations: [
             {
               id: "set-instance-facet",
               name: "SET_INSTANCE_FACET",
-              description: "Sets a facet selection for the instance",
-              schema:
-                "input SetInstanceFacetInput {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOption: String!\n}",
-              template: "Sets a facet selection for the instance",
-              reducer:
-                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedError("Cannot modify configuration while instance is ACTIVE");\n}\nconst existingIndex = state.configuration.findIndex(c => c.categoryKey === action.input.categoryKey);\nif (existingIndex !== -1) {\n    state.configuration[existingIndex] = {\n        id: action.input.id,\n        categoryKey: action.input.categoryKey,\n        categoryLabel: action.input.categoryLabel,\n        selectedOption: action.input.selectedOption\n    };\n} else {\n    state.configuration.push({\n        id: action.input.id,\n        categoryKey: action.input.categoryKey,\n        categoryLabel: action.input.categoryLabel,\n        selectedOption: action.input.selectedOption\n    });\n}',
+              scope: "global",
               errors: [
                 {
                   id: "config-locked",
-                  name: "ConfigurationLockedError",
                   code: "CONFIGURATION_LOCKED",
+                  name: "ConfigurationLockedError",
+                  template: "",
                   description:
                     "Cannot modify configuration while instance is ACTIVE",
-                  template: "",
                 },
               ],
+              schema:
+                "input SetInstanceFacetInput {\n    id: OID!\n    categoryKey: String!\n    categoryLabel: String!\n    selectedOption: String!\n}",
+              reducer:
+                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedError("Cannot modify configuration while instance is ACTIVE");\n}\nconst existingIndex = state.configuration.findIndex(c => c.categoryKey === action.input.categoryKey);\nif (existingIndex !== -1) {\n    state.configuration[existingIndex] = {\n        id: action.input.id,\n        categoryKey: action.input.categoryKey,\n        categoryLabel: action.input.categoryLabel,\n        selectedOption: action.input.selectedOption\n    };\n} else {\n    state.configuration.push({\n        id: action.input.id,\n        categoryKey: action.input.categoryKey,\n        categoryLabel: action.input.categoryLabel,\n        selectedOption: action.input.selectedOption\n    });\n}',
               examples: [],
-              scope: "global",
+              template: "Sets a facet selection for the instance",
+              description: "Sets a facet selection for the instance",
             },
             {
               id: "remove-instance-facet",
               name: "REMOVE_INSTANCE_FACET",
-              description: "Removes a facet selection from the instance",
-              schema:
-                "input RemoveInstanceFacetInput {\n    categoryKey: String!\n}",
-              template: "Removes a facet selection from the instance",
-              reducer:
-                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedRemoveInstanceFacetError("Cannot modify configuration while instance is ACTIVE");\n}\nconst facetIndex = state.configuration.findIndex(c => c.categoryKey === action.input.categoryKey);\nif (facetIndex !== -1) {\n    state.configuration.splice(facetIndex, 1);\n}',
+              scope: "global",
               errors: [
                 {
                   id: "config-locked-remove",
-                  name: "ConfigurationLockedRemoveInstanceFacetError",
                   code: "CONFIGURATION_LOCKED_REMOVE_INSTANCE_FACET",
+                  name: "ConfigurationLockedRemoveInstanceFacetError",
+                  template: "",
                   description:
                     "Cannot modify configuration while instance is ACTIVE",
-                  template: "",
                 },
               ],
+              schema:
+                "input RemoveInstanceFacetInput {\n    categoryKey: String!\n}",
+              reducer:
+                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedRemoveInstanceFacetError("Cannot modify configuration while instance is ACTIVE");\n}\nconst facetIndex = state.configuration.findIndex(c => c.categoryKey === action.input.categoryKey);\nif (facetIndex !== -1) {\n    state.configuration.splice(facetIndex, 1);\n}',
               examples: [],
-              scope: "global",
+              template: "Removes a facet selection from the instance",
+              description: "Removes a facet selection from the instance",
             },
             {
               id: "update-instance-facet",
               name: "UPDATE_INSTANCE_FACET",
-              description: "Updates an existing facet selection",
-              schema:
-                "input UpdateInstanceFacetInput {\n    categoryKey: String!\n    selectedOption: String\n    categoryLabel: String\n}",
-              template: "Updates an existing facet selection",
-              reducer:
-                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedUpdateInstanceFacetError("Cannot modify configuration while instance is ACTIVE");\n}\nconst facetIndex = state.configuration.findIndex(c => c.categoryKey === action.input.categoryKey);\nif (facetIndex !== -1) {\n    if (action.input.selectedOption) {\n        state.configuration[facetIndex].selectedOption = action.input.selectedOption;\n    }\n    if (action.input.categoryLabel) {\n        state.configuration[facetIndex].categoryLabel = action.input.categoryLabel;\n    }\n}',
+              scope: "global",
               errors: [
                 {
                   id: "config-locked-update",
-                  name: "ConfigurationLockedUpdateInstanceFacetError",
                   code: "CONFIGURATION_LOCKED_UPDATE_INSTANCE_FACET",
+                  name: "ConfigurationLockedUpdateInstanceFacetError",
+                  template: "",
                   description:
                     "Cannot modify configuration while instance is ACTIVE",
-                  template: "",
                 },
               ],
+              schema:
+                "input UpdateInstanceFacetInput {\n    categoryKey: String!\n    selectedOption: String\n    categoryLabel: String\n}",
+              reducer:
+                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedUpdateInstanceFacetError("Cannot modify configuration while instance is ACTIVE");\n}\nconst facetIndex = state.configuration.findIndex(c => c.categoryKey === action.input.categoryKey);\nif (facetIndex !== -1) {\n    if (action.input.selectedOption) {\n        state.configuration[facetIndex].selectedOption = action.input.selectedOption;\n    }\n    if (action.input.categoryLabel) {\n        state.configuration[facetIndex].categoryLabel = action.input.categoryLabel;\n    }\n}',
               examples: [],
-              scope: "global",
+              template: "Updates an existing facet selection",
+              description: "Updates an existing facet selection",
             },
             {
               id: "apply-configuration-changes",
               name: "APPLY_CONFIGURATION_CHANGES",
-              description:
-                "Applies multiple configuration changes in one operation",
-              schema:
-                "input ApplyConfigurationChangesInput {\n    appliedAt: DateTime!\n    changeDescription: String\n    addFacets: [SetInstanceFacetInput!]\n    updateFacets: [UpdateInstanceFacetInput!]\n    removeFacetKeys: [String!]\n}",
-              template:
-                "Applies multiple configuration changes in one operation",
-              reducer:
-                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedApplyConfigurationChangesError("Cannot modify configuration while instance is ACTIVE. Suspend the instance first.");\n}\naction.input.removeFacetKeys?.forEach(categoryKey => {\n    const index = state.configuration.findIndex(f => f.categoryKey === categoryKey);\n    if (index !== -1) state.configuration.splice(index, 1);\n});\naction.input.updateFacets?.forEach(update => {\n    const facet = state.configuration.find(f => f.categoryKey === update.categoryKey);\n    if (facet) {\n        if (update.selectedOption) facet.selectedOption = update.selectedOption;\n        if (update.categoryLabel) facet.categoryLabel = update.categoryLabel;\n    }\n});\naction.input.addFacets?.forEach(newFacet => {\n    state.configuration.push({\n        id: newFacet.id,\n        categoryKey: newFacet.categoryKey,\n        categoryLabel: newFacet.categoryLabel,\n        selectedOption: newFacet.selectedOption\n    });\n});',
+              scope: "global",
               errors: [
                 {
                   id: "config-locked-apply",
-                  name: "ConfigurationLockedApplyConfigurationChangesError",
                   code: "CONFIGURATION_LOCKED_APPLY_CONFIGURATION_CHANGES",
+                  name: "ConfigurationLockedApplyConfigurationChangesError",
+                  template: "",
                   description:
                     "Cannot modify configuration while instance is ACTIVE. Suspend the instance first.",
-                  template: "",
                 },
               ],
+              schema:
+                "input ApplyConfigurationChangesInput {\n    appliedAt: DateTime!\n    changeDescription: String\n    addFacets: [SetInstanceFacetInput!]\n    updateFacets: [UpdateInstanceFacetInput!]\n    removeFacetKeys: [String!]\n}",
+              reducer:
+                'if (state.status === "ACTIVE") {\n    throw new ConfigurationLockedApplyConfigurationChangesError("Cannot modify configuration while instance is ACTIVE. Suspend the instance first.");\n}\naction.input.removeFacetKeys?.forEach(categoryKey => {\n    const index = state.configuration.findIndex(f => f.categoryKey === categoryKey);\n    if (index !== -1) state.configuration.splice(index, 1);\n});\naction.input.updateFacets?.forEach(update => {\n    const facet = state.configuration.find(f => f.categoryKey === update.categoryKey);\n    if (facet) {\n        if (update.selectedOption) facet.selectedOption = update.selectedOption;\n        if (update.categoryLabel) facet.categoryLabel = update.categoryLabel;\n    }\n});\naction.input.addFacets?.forEach(newFacet => {\n    state.configuration.push({\n        id: newFacet.id,\n        categoryKey: newFacet.categoryKey,\n        categoryLabel: newFacet.categoryLabel,\n        selectedOption: newFacet.selectedOption\n    });\n});',
               examples: [],
-              scope: "global",
+              template:
+                "Applies multiple configuration changes in one operation",
+              description:
+                "Applies multiple configuration changes in one operation",
             },
           ],
+          description: "Operations for managing instance facet configuration",
         },
       ],
       version: 1,

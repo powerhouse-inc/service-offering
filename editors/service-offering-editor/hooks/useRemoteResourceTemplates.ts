@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchAllRemoteResourceTemplates,
   type RemoteResourceTemplate,
-} from "../utils/graphql-client.js";
+} from "../../utils/graphql-client.js";
 
 interface UseRemoteResourceTemplatesResult {
   /** All available remote resource templates */

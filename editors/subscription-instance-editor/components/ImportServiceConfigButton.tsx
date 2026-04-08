@@ -3,7 +3,7 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
+} from "document-models/subscription-instance";
 import { initializeSubscription } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 import type { ServiceOfferingState } from "../../../document-models/service-offering/v1/gen/schema/types.js";
 import type { ServiceOfferingPHState } from "../../../document-models/service-offering/v1/gen/types.js";

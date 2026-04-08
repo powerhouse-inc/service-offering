@@ -2,14 +2,14 @@
  * Factory methods for creating ResourceTemplateDocument instances
  */
 import type { PHAuthState, PHDocumentState, PHBaseState } from "document-model";
-import { createBaseState, defaultBaseState } from "document-model/core";
+import { createBaseState, defaultBaseState } from "document-model";
 import type {
   ResourceTemplateDocument,
-  ResourceTemplateLocalState,
   ResourceTemplateGlobalState,
+  ResourceTemplateLocalState,
   ResourceTemplatePHState,
 } from "./types.js";
-import { createDocument } from "./utils.js";
+import { utils } from "./utils.js";
 
 export function defaultGlobalState(): ResourceTemplateGlobalState {
   return {
@@ -90,7 +90,7 @@ export function createResourceTemplateDocument(
     local?: Partial<ResourceTemplateLocalState>;
   }>,
 ): ResourceTemplateDocument {
-  const document = createDocument(
+  const document = utils.createDocument(
     state
       ? createState(
           createBaseState(state.auth, state.document),

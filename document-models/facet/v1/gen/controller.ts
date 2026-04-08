@@ -1,4 +1,4 @@
-import { PHDocumentController } from "document-model/core";
+import { PHDocumentController } from "document-model";
 import { Facet } from "../module.js";
 import type { FacetAction, FacetPHState } from "./types.js";
 

@@ -2,14 +2,14 @@
  * Factory methods for creating ServiceOfferingDocument instances
  */
 import type { PHAuthState, PHDocumentState, PHBaseState } from "document-model";
-import { createBaseState, defaultBaseState } from "document-model/core";
+import { createBaseState, defaultBaseState } from "document-model";
 import type {
   ServiceOfferingDocument,
-  ServiceOfferingLocalState,
   ServiceOfferingGlobalState,
+  ServiceOfferingLocalState,
   ServiceOfferingPHState,
 } from "./types.js";
-import { createDocument } from "./utils.js";
+import { utils } from "./utils.js";
 
 export function defaultGlobalState(): ServiceOfferingGlobalState {
   return {
@@ -86,7 +86,7 @@ export function createServiceOfferingDocument(
     local?: Partial<ServiceOfferingLocalState>;
   }>,
 ): ServiceOfferingDocument {
-  const document = createDocument(
+  const document = utils.createDocument(
     state
       ? createState(
           createBaseState(state.auth, state.document),

@@ -87,15 +87,15 @@ export const documentModel: DocumentModelGlobalState = {
             {
               id: "set-weight",
               name: "SET_WEIGHT",
-              description: "Sets the catalog sorting weight for this template",
+              scope: "global",
+              errors: [],
               schema:
                 "input SetWeightInput {\n    weight: Int\n    lastModified: DateTime!\n}",
-              template: "Set the weight for catalog sorting",
               reducer:
                 "state.weight = action.input.weight || null;\nstate.lastModified = action.input.lastModified;",
-              errors: [],
               examples: [],
-              scope: "global",
+              template: "Set the weight for catalog sorting",
+              description: "Sets the catalog sorting weight for this template",
             },
           ],
           description: "Operations for managing resource template metadata",

@@ -4,7 +4,7 @@ import { utils as genUtils } from "./gen/utils.js";
 import * as customUtils from "./src/utils.js";
 
 /** Utils for the ResourceInstance document model */
-export const utils = {
+export const utils: DocumentModelUtils<ResourceInstancePHState> = {
   ...genUtils,
   ...customUtils,
-} satisfies DocumentModelUtils<ResourceInstancePHState>;
+};

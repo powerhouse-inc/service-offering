@@ -5,7 +5,7 @@ import {
   ChangeResourceTemplateMismatchError,
   NoBillingCyclesSelectedError,
 } from "../../gen/offering/error.js";
-import type { ServiceOfferingOfferingOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
+import type { ServiceOfferingOfferingOperations } from "document-models/service-offering/v1";
 
 export const serviceOfferingOfferingOperations: ServiceOfferingOfferingOperations =
   {

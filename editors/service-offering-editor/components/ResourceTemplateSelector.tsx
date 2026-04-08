@@ -6,7 +6,7 @@ import {
 import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   selectResourceTemplate,
   changeResourceTemplate,
@@ -21,12 +21,12 @@ import { useResourceTemplateDocumentsInSelectedDrive } from "../../../document-m
 import type {
   ResourceTemplateDocument,
   ResourceTemplateGlobalState,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 import { MarkdownPreview } from "./MarkdownPreview.js";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { useRemoteResourceTemplates } from "../hooks/useRemoteResourceTemplates.js";
-import type { RemoteResourceTemplate } from "../utils/graphql-client.js";
+import type { RemoteResourceTemplate } from "../../utils/graphql-client.js";
 
 /**
  * Normalized template shape used by all UI components.

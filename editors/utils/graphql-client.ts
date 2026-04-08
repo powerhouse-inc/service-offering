@@ -297,44 +297,80 @@ export interface RemoteResourceTemplate {
   };
 }
 
-function toRemoteResourceTemplate(
-  item: FindDocumentsItem,
-): RemoteResourceTemplate {
-  const g = getGlobalState(item.state);
-  return {
-    id: item.id,
-    name: item.name,
-    state: {
-      id: (g.id as string) ?? null,
-      operatorId: (g.operatorId as string) ?? null,
-      title: (g.title as string) ?? null,
-      summary: (g.summary as string) ?? null,
-      description: (g.description as string) ?? null,
-      thumbnailUrl: (g.thumbnailUrl as string) ?? null,
-      infoLink: (g.infoLink as string) ?? null,
-      status: (g.status as string) ?? null,
-      lastModified: (g.lastModified as string) ?? null,
-      targetAudiences:
-        (g.targetAudiences as RemoteResourceTemplate["state"]["targetAudiences"]) ??
-        [],
-      setupServices: (g.setupServices as string[]) ?? [],
-      recurringServices: (g.recurringServices as string[]) ?? [],
-      facetTargets:
-        (g.facetTargets as RemoteResourceTemplate["state"]["facetTargets"]) ??
-        [],
-      services: (g.services as RemoteResourceTemplateService[]) ?? [],
-    },
-  };
+const RESOURCE_TEMPLATES_QUERY = `
+  query ResourceTemplates {
+    resourceTemplates {
+      id
+      operatorId
+      title
+      summary
+      description
+      thumbnailUrl
+      infoLink
+      status
+      lastModified
+      targetAudiences { id label color }
+      setupServices
+      recurringServices
+      facetTargets { id categoryKey categoryLabel selectedOptions }
+      services { id title isSetupFormation description displayOrder optionGroupId }
+    }
+  }
+`;
+
+interface ResourceTemplatesResponse {
+  resourceTemplates: Array<{
+    id: string;
+    operatorId: string;
+    title: string;
+    summary: string;
+    description: string | null;
+    thumbnailUrl: string | null;
+    infoLink: string | null;
+    status: string;
+    lastModified: string;
+    targetAudiences: Array<{ id: string; label: string; color: string | null }>;
+    setupServices: string[];
+    recurringServices: string[];
+    facetTargets: Array<{
+      id: string;
+      categoryKey: string;
+      categoryLabel: string;
+      selectedOptions: string[];
+    }>;
+    services: RemoteResourceTemplateService[];
+  }>;
 }
 
 export async function fetchAllRemoteResourceTemplates(): Promise<
   RemoteResourceTemplate[]
 > {
   try {
-    const items = await findDocuments("powerhouse/resource-template", {
-      silent: true,
-    });
-    return items.map(toRemoteResourceTemplate);
+    const data = await graphqlRequest<ResourceTemplatesResponse>(
+      RESOURCE_TEMPLATES_QUERY,
+      undefined,
+      { silent: true },
+    );
+    return (data?.resourceTemplates ?? []).map((t) => ({
+      id: t.id,
+      name: t.title,
+      state: {
+        id: t.id,
+        operatorId: t.operatorId,
+        title: t.title,
+        summary: t.summary,
+        description: t.description,
+        thumbnailUrl: t.thumbnailUrl,
+        infoLink: t.infoLink,
+        status: t.status,
+        lastModified: t.lastModified,
+        targetAudiences: t.targetAudiences ?? [],
+        setupServices: t.setupServices ?? [],
+        recurringServices: t.recurringServices ?? [],
+        facetTargets: t.facetTargets ?? [],
+        services: t.services ?? [],
+      },
+    }));
   } catch {
     return [];
   }

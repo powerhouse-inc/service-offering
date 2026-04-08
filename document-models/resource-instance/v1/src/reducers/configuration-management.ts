@@ -4,7 +4,7 @@ import {
   ConfigurationLockedUpdateInstanceFacetError,
   ConfigurationLockedApplyConfigurationChangesError,
 } from "../../gen/configuration-management/error.js";
-import type { ResourceInstanceConfigurationManagementOperations } from "@powerhousedao/service-offering/document-models/resource-instance/v1";
+import type { ResourceInstanceConfigurationManagementOperations } from "document-models/resource-instance/v1";
 
 export const resourceInstanceConfigurationManagementOperations: ResourceInstanceConfigurationManagementOperations =
   {

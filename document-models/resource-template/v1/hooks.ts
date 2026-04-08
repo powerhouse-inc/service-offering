@@ -8,7 +8,7 @@ import {
 import type {
   ResourceTemplateAction,
   ResourceTemplateDocument,
-} from "@powerhousedao/service-offering/document-models/resource-template/v1";
+} from "document-models/resource-template/v1";
 import {
   assertIsResourceTemplateDocument,
   isResourceTemplateDocument,

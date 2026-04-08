@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -8,7 +8,7 @@ import {
   removeTargetAudience,
   AddTargetAudienceInputSchema,
   RemoveTargetAudienceInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template/v1";
+} from "document-models/resource-template/v1";
 
 describe("AudienceManagementOperations", () => {
   it("should handle addTargetAudience operation", () => {

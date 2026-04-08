@@ -1,5 +1,5 @@
 {
-    "name": "@powerhousedao/service-offering",
+    "name": "service-offering",
     "description": "",
     "category": "",
     "publisher": {
@@ -59,11 +59,6 @@
         }
     ],
     "apps": [],
-    "subgraphs": [
-        {
-            "id": "resources-services",
-            "name": "Resources & Services"
-        }
-    ],
+    "subgraphs": [],
     "importScripts": []
 }

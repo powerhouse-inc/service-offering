@@ -1,4 +1,4 @@
-import type { ResourceTemplateTemplateManagementOperations } from "@powerhousedao/service-offering/document-models/resource-template/v1";
+import type { ResourceTemplateTemplateManagementOperations } from "document-models/resource-template/v1";
 
 export const resourceTemplateTemplateManagementOperations: ResourceTemplateTemplateManagementOperations =
   {
@@ -36,7 +36,7 @@ export const resourceTemplateTemplateManagementOperations: ResourceTemplateTempl
       state.lastModified = action.input.lastModified;
     },
     setWeightOperation(state, action) {
-      state.weight = action.input.weight ?? null;
+      state.weight = action.input.weight || null;
       state.lastModified = action.input.lastModified;
     },
   };

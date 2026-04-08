@@ -1,9 +1,8 @@
-// TODO: remove eslint-disable rules once refactor is done
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import type { StateReducer } from "document-model";
-import { isDocumentAction, createReducer } from "document-model/core";
-import type { FacetPHState } from "@powerhousedao/service-offering/document-models/facet/v1";
+import type { Reducer, StateReducer } from "document-model";
+import { isDocumentAction, createReducer } from "document-model";
+import type { FacetPHState } from "document-models/facet/v1";
 
 import { facetFacetManagementOperations } from "../src/reducers/facet-management.js";
 import { facetOptionManagementOperations } from "../src/reducers/option-management.js";
@@ -99,4 +98,4 @@ const stateReducer: StateReducer<FacetPHState> = (state, action, dispatch) => {
   }
 };
 
-export const reducer = createReducer<FacetPHState>(stateReducer);
+export const reducer: Reducer<FacetPHState> = createReducer(stateReducer);

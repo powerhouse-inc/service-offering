@@ -5,20 +5,20 @@ import {
   baseLoadFromInput,
   defaultBaseState,
   generateId,
-} from "document-model/core";
-import type {
-  SubscriptionInstanceGlobalState,
-  SubscriptionInstanceLocalState,
-} from "./types.js";
-import type { SubscriptionInstancePHState } from "./types.js";
+} from "document-model";
 import { reducer } from "./reducer.js";
 import { subscriptionInstanceDocumentType } from "./document-type.js";
 import {
-  isSubscriptionInstanceDocument,
   assertIsSubscriptionInstanceDocument,
-  isSubscriptionInstanceState,
   assertIsSubscriptionInstanceState,
+  isSubscriptionInstanceDocument,
+  isSubscriptionInstanceState,
 } from "./document-schema.js";
+import type {
+  SubscriptionInstanceGlobalState,
+  SubscriptionInstanceLocalState,
+  SubscriptionInstancePHState,
+} from "./types.js";
 
 export const initialGlobalState: SubscriptionInstanceGlobalState = {
   customerId: null,
@@ -93,12 +93,3 @@ export const utils: DocumentModelUtils<SubscriptionInstancePHState> = {
     return assertIsSubscriptionInstanceDocument(document);
   },
 };
-
-export const createDocument = utils.createDocument;
-export const createState = utils.createState;
-export const saveToFileHandle = utils.saveToFileHandle;
-export const loadFromInput = utils.loadFromInput;
-export const isStateOfType = utils.isStateOfType;
-export const assertIsStateOfType = utils.assertIsStateOfType;
-export const isDocumentOfType = utils.isDocumentOfType;
-export const assertIsDocumentOfType = utils.assertIsDocumentOfType;

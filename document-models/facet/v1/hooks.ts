@@ -5,10 +5,7 @@ import {
   useDocumentsInSelectedFolder,
   useSelectedDocument,
 } from "@powerhousedao/reactor-browser";
-import type {
-  FacetAction,
-  FacetDocument,
-} from "@powerhousedao/service-offering/document-models/facet/v1";
+import type { FacetAction, FacetDocument } from "document-models/facet/v1";
 import {
   assertIsFacetDocument,
   isFacetDocument,

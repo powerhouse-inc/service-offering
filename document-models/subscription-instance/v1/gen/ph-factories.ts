@@ -2,14 +2,14 @@
  * Factory methods for creating SubscriptionInstanceDocument instances
  */
 import type { PHAuthState, PHDocumentState, PHBaseState } from "document-model";
-import { createBaseState, defaultBaseState } from "document-model/core";
+import { createBaseState, defaultBaseState } from "document-model";
 import type {
   SubscriptionInstanceDocument,
-  SubscriptionInstanceLocalState,
   SubscriptionInstanceGlobalState,
+  SubscriptionInstanceLocalState,
   SubscriptionInstancePHState,
 } from "./types.js";
-import { createDocument } from "./utils.js";
+import { utils } from "./utils.js";
 
 export function defaultGlobalState(): SubscriptionInstanceGlobalState {
   return {
@@ -102,7 +102,7 @@ export function createSubscriptionInstanceDocument(
     local?: Partial<SubscriptionInstanceLocalState>;
   }>,
 ): SubscriptionInstanceDocument {
-  const document = createDocument(
+  const document = utils.createDocument(
     state
       ? createState(
           createBaseState(state.auth, state.document),

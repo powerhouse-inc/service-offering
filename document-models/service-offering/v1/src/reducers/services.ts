@@ -2,7 +2,7 @@ import {
   UpdateServiceNotFoundError,
   DeleteServiceNotFoundError,
 } from "../../gen/services/error.js";
-import type { ServiceOfferingServicesOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
+import type { ServiceOfferingServicesOperations } from "document-models/service-offering/v1";
 
 export const serviceOfferingServicesOperations: ServiceOfferingServicesOperations =
   {

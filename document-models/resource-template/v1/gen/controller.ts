@@ -1,4 +1,4 @@
-import { PHDocumentController } from "document-model/core";
+import { PHDocumentController } from "document-model";
 import { ResourceTemplate } from "../module.js";
 import type {
   ResourceTemplateAction,

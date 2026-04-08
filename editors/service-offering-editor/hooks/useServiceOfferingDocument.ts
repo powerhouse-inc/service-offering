@@ -3,7 +3,7 @@ import { useSelectedDocument } from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingAction,
   ServiceOfferingDocument,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import { assertIsServiceOfferingDocument } from "../../../document-models/service-offering/v1/gen/document-schema.js";
 
 /**

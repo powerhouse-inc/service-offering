@@ -1,13 +1,13 @@
 import { baseActions } from "document-model";
 import {
-  facetManagementActions,
-  optionManagementActions,
+  facetFacetManagementActions,
+  facetOptionManagementActions,
 } from "./gen/creators.js";
 
 /** Actions for the Facet document model */
 
 export const actions = {
   ...baseActions,
-  ...facetManagementActions,
-  ...optionManagementActions,
+  ...facetFacetManagementActions,
+  ...facetOptionManagementActions,
 };

@@ -7,7 +7,7 @@ import {
   RemoveOptionGroupTierPricingNotFoundError,
   SetOptionGroupDiscountModeNotFoundError,
 } from "../../gen/option-groups/error.js";
-import type { ServiceOfferingOptionGroupsOperations } from "@powerhousedao/service-offering/document-models/service-offering/v1";
+import type { ServiceOfferingOptionGroupsOperations } from "document-models/service-offering/v1";
 
 export const serviceOfferingOptionGroupsOperations: ServiceOfferingOptionGroupsOperations =
   {

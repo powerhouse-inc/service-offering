@@ -8,7 +8,7 @@ import type {
   ResourceInstanceDocument,
   InstanceStatus,
   SuspensionType,
-} from "@powerhousedao/service-offering/document-models/resource-instance";
+} from "document-models/resource-instance";
 import {
   initializeInstance,
   updateInstanceInfo,

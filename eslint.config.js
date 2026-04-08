@@ -113,14 +113,6 @@ const reactConfig = {
 const javascriptConfig = {
   // disable type aware linting for js files
   files: javascriptFiles,
-  languageOptions: {
-    sourceType: "module",
-    ecmaVersion: "latest",
-    globals: {
-      ...globals.browser,
-      ...globals.node,
-    },
-  },
   extends: [tseslint.configs.disableTypeChecked],
 };
 

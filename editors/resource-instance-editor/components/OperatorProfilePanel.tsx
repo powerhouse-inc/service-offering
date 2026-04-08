@@ -3,7 +3,7 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   ResourceInstanceAction,
   ResourceInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/resource-instance";
+} from "document-models/resource-instance";
 import { setOperatorProfile } from "../../../document-models/resource-instance/v1/gen/instance-management/creators.js";
 import { useBuilderProfiles } from "../hooks/useBuilderProfiles.js";
 import type { ViewMode } from "../types.js";

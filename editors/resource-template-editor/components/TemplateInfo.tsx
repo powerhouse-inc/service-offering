@@ -7,7 +7,7 @@ import type {
   TargetAudience,
   FaqField,
   ContentSection,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 import {
   updateTemplateInfo,
   updateTemplateStatus,

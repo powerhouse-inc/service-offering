@@ -567,32 +567,32 @@ export const documentModel: DocumentModelGlobalState = {
             {
               id: "op-reorder-tiers",
               name: "REORDER_TIERS",
-              description:
-                "Reorder the tiers array to match the provided tier ID order",
-              schema:
-                "input ReorderTiersInput {\n    tierIds: [OID!]!\n    lastModified: DateTime!\n}",
-              template: "Reorder tiers by providing ordered tier IDs",
-              reducer:
-                'const currentIds = state.tiers.map(t => t.id);\nconst inputIds = action.input.tierIds;\nif (inputIds.length !== currentIds.length) {\n    throw new TierIdsMismatchError("Input tier IDs count does not match existing tiers count");\n}\nconst inputSet = new Set(inputIds);\nif (inputSet.size !== inputIds.length) {\n    throw new DuplicateTierIdError("Input contains duplicate tier IDs");\n}\nfor (const id of currentIds) {\n    if (!inputSet.has(id)) {\n        throw new TierIdsMismatchError(`Tier ID ${id} exists but was not included in reorder input`);\n    }\n}\nconst tierMap = new Map(state.tiers.map(t => [t.id, t]));\nstate.tiers = inputIds.map(id => tierMap.get(id));\nstate.lastModified = action.input.lastModified;',
+              scope: "global",
               errors: [
                 {
                   id: "err-tier-ids-mismatch",
-                  name: "TierIdsMismatchError",
                   code: "TIER_IDS_MISMATCH",
+                  name: "TierIdsMismatchError",
+                  template: "",
                   description:
                     "Input tier IDs don't match the current set of tier IDs",
-                  template: "",
                 },
                 {
                   id: "err-duplicate-tier-id",
-                  name: "DuplicateTierIdError",
                   code: "DUPLICATE_TIER_ID",
-                  description: "Input contains duplicate tier IDs",
+                  name: "DuplicateTierIdError",
                   template: "",
+                  description: "Input contains duplicate tier IDs",
                 },
               ],
+              schema:
+                "input ReorderTiersInput {\n    tierIds: [OID!]!\n    lastModified: DateTime!\n}",
+              reducer:
+                'const currentIds = state.tiers.map(t => t.id);\nconst inputIds = action.input.tierIds;\nif (inputIds.length !== currentIds.length) {\n    throw new TierIdsMismatchError("Input tier IDs count does not match existing tiers count");\n}\nconst inputSet = new Set(inputIds);\nif (inputSet.size !== inputIds.length) {\n    throw new DuplicateTierIdError("Input contains duplicate tier IDs");\n}\nfor (const id of currentIds) {\n    if (!inputSet.has(id)) {\n        throw new TierIdsMismatchError(`Tier ID ${id} exists but was not included in reorder input`);\n    }\n}\nconst tierMap = new Map(state.tiers.map(t => [t.id, t]));\nstate.tiers = inputIds.map(id => tierMap.get(id));\nstate.lastModified = action.input.lastModified;',
               examples: [],
-              scope: "global",
+              template: "Reorder tiers by providing ordered tier IDs",
+              description:
+                "Reorder the tiers array to match the provided tier ID order",
             },
           ],
           description:

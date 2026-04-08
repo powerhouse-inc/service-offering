@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -8,19 +8,19 @@ import {
   updateOptionGroup,
   deleteOptionGroup,
   setOptionGroupStandalonePricing,
-  AddOptionGroupInputSchema,
-  UpdateOptionGroupInputSchema,
-  DeleteOptionGroupInputSchema,
-  SetOptionGroupStandalonePricingInputSchema,
   addOptionGroupTierPricing,
   updateOptionGroupTierPricing,
   removeOptionGroupTierPricing,
   setOptionGroupDiscountMode,
+  AddOptionGroupInputSchema,
+  UpdateOptionGroupInputSchema,
+  DeleteOptionGroupInputSchema,
+  SetOptionGroupStandalonePricingInputSchema,
   AddOptionGroupTierPricingInputSchema,
   UpdateOptionGroupTierPricingInputSchema,
   RemoveOptionGroupTierPricingInputSchema,
   SetOptionGroupDiscountModeInputSchema,
-} from "@powerhousedao/service-offering/document-models/service-offering/v1";
+} from "document-models/service-offering/v1";
 
 describe("OptionGroupsOperations", () => {
   it("should handle addOptionGroup operation", () => {

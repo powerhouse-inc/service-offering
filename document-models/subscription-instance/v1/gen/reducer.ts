@@ -1,9 +1,8 @@
-// TODO: remove eslint-disable rules once refactor is done
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import type { StateReducer } from "document-model";
-import { isDocumentAction, createReducer } from "document-model/core";
-import type { SubscriptionInstancePHState } from "@powerhousedao/service-offering/document-models/subscription-instance/v1";
+import type { Reducer, StateReducer } from "document-model";
+import { isDocumentAction, createReducer } from "document-model";
+import type { SubscriptionInstancePHState } from "document-models/subscription-instance/v1";
 
 import { subscriptionInstanceSubscriptionOperations } from "../src/reducers/subscription.js";
 import { subscriptionInstanceServiceOperations } from "../src/reducers/service.js";
@@ -535,4 +534,5 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
   }
 };
 
-export const reducer = createReducer<SubscriptionInstancePHState>(stateReducer);
+export const reducer: Reducer<SubscriptionInstancePHState> =
+  createReducer(stateReducer);

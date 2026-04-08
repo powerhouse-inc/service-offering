@@ -1,3 +1,4 @@
+import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 import {
   ActivateNotPendingError,
   PauseNotActiveError,
@@ -7,7 +8,6 @@ import {
   RenewNotExpiringError,
   RemoveBudgetNotFoundError,
 } from "../../gen/subscription/error.js";
-import type { SubscriptionInstanceSubscriptionOperations } from "@powerhousedao/service-offering/document-models/subscription-instance/v1";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {

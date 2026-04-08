@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -34,7 +34,7 @@ import {
   ResumeAfterMaintenanceInputSchema,
   SuspendInstanceInputSchema,
   TerminateInstanceInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-instance/v1";
+} from "document-models/resource-instance/v1";
 
 describe("InstanceManagementOperations", () => {
   it("should handle initializeInstance operation", () => {

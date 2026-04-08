@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -22,7 +22,7 @@ import {
   UpdateServiceInfoInputSchema,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
-} from "@powerhousedao/service-offering/document-models/subscription-instance/v1";
+} from "document-models/subscription-instance/v1";
 
 describe("ServiceOperations", () => {
   it("should handle addService operation", () => {

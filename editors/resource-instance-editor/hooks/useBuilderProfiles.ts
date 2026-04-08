@@ -5,7 +5,7 @@ import { useDrives, useGetDocuments } from "@powerhousedao/reactor-browser";
 import {
   fetchAllRemoteBuilderProfiles,
   type RemoteBuilderProfile,
-} from "../utils/graphql-client.js";
+} from "../../utils/graphql-client.js";
 
 export interface BuilderProfile {
   id: string;

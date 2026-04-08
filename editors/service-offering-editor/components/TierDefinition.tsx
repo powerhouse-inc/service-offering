@@ -7,7 +7,7 @@ import type {
   ServiceSubscriptionTier,
   OptionGroup,
   BillingCycle,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   addTier,
   updateTier,

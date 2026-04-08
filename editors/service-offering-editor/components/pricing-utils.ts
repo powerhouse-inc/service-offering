@@ -1,7 +1,7 @@
 import type {
   BillingCycle,
   OptionGroup,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 
 export const BILLING_CYCLE_MONTHS: Record<BillingCycle, number> = {
   MONTHLY: 1,

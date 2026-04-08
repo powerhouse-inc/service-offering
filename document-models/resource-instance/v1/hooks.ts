@@ -8,7 +8,7 @@ import {
 import type {
   ResourceInstanceAction,
   ResourceInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/resource-instance/v1";
+} from "document-models/resource-instance/v1";
 import {
   assertIsResourceInstanceDocument,
   isResourceInstanceDocument,

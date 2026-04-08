@@ -5,20 +5,20 @@ import {
   baseLoadFromInput,
   defaultBaseState,
   generateId,
-} from "document-model/core";
-import type {
-  ServiceOfferingGlobalState,
-  ServiceOfferingLocalState,
-} from "./types.js";
-import type { ServiceOfferingPHState } from "./types.js";
+} from "document-model";
 import { reducer } from "./reducer.js";
 import { serviceOfferingDocumentType } from "./document-type.js";
 import {
-  isServiceOfferingDocument,
   assertIsServiceOfferingDocument,
-  isServiceOfferingState,
   assertIsServiceOfferingState,
+  isServiceOfferingDocument,
+  isServiceOfferingState,
 } from "./document-schema.js";
+import type {
+  ServiceOfferingGlobalState,
+  ServiceOfferingLocalState,
+  ServiceOfferingPHState,
+} from "./types.js";
 
 export const initialGlobalState: ServiceOfferingGlobalState = {
   id: null,
@@ -77,12 +77,3 @@ export const utils: DocumentModelUtils<ServiceOfferingPHState> = {
     return assertIsServiceOfferingDocument(document);
   },
 };
-
-export const createDocument = utils.createDocument;
-export const createState = utils.createState;
-export const saveToFileHandle = utils.saveToFileHandle;
-export const loadFromInput = utils.loadFromInput;
-export const isStateOfType = utils.isStateOfType;
-export const assertIsStateOfType = utils.assertIsStateOfType;
-export const isDocumentOfType = utils.isDocumentOfType;
-export const assertIsDocumentOfType = utils.assertIsDocumentOfType;

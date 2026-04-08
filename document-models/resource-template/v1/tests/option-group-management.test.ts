@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/common/utils";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -18,7 +18,7 @@ import {
   UpdateFaqInputSchema,
   DeleteFaqInputSchema,
   ReorderFaqsInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template/v1";
+} from "document-models/resource-template/v1";
 
 describe("OptionGroupManagementOperations", () => {
   it("should handle addOptionGroup operation", () => {
