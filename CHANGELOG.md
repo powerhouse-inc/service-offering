@@ -1,3 +1,10 @@
+# [1.0.0-dev.27](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.26...v1.0.0-dev.27) (2026-04-08)
+
+
+### Bug Fixes
+
+* resolve subgraphs ([afe9d5d](https://github.com/powerhouse-inc/service-offering/commit/afe9d5d192f8314dbf0cd16a193d20defa3272c9))
+
 # [1.0.0-dev.26](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.25...v1.0.0-dev.26) (2026-04-08)
 
 
