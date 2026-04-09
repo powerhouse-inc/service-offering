@@ -1,3 +1,10 @@
+# [1.0.0-dev.30](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.29...v1.0.0-dev.30) (2026-04-09)
+
+
+### Bug Fixes
+
+* added build ([2e169b1](https://github.com/powerhouse-inc/service-offering/commit/2e169b10e98635e3f5e18918663bb5ee0b6dcff4))
+
 # [1.0.0-dev.29](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.28...v1.0.0-dev.29) (2026-04-09)
 
 # [1.0.0-dev.28](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.27...v1.0.0-dev.28) (2026-04-09)
