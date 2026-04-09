@@ -1,3 +1,10 @@
+# [1.0.0-dev.31](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.30...v1.0.0-dev.31) (2026-04-09)
+
+
+### Bug Fixes
+
+* add build script for npm publishing ([029079c](https://github.com/powerhouse-inc/service-offering/commit/029079caabb27d339ce71d4e8e560ad46ecf9ebb))
+
 # [1.0.0-dev.30](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.29...v1.0.0-dev.30) (2026-04-09)
 
 
