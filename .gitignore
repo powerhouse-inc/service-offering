@@ -1,5 +1,7 @@
 
 dist
+browser
+style.css
 coverage
 node_modules
 .eslintcache
