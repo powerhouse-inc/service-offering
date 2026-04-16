@@ -11,11 +11,11 @@ flowchart LR
     VAL_STRIPE["Stripe: deferred default"]
     VAL_SLACK["Slack: deferred"]
     DECISION["Platform rule: immediate, per Wouter"]
-    RED1["addServiceOperation"]
-    RED2["addServiceToGroupOperation"]
+    RED1["addServiceGroupOperation"]
+    RED2["removeServiceGroupOperation D-2"]
     UTIL["calculateProratedCost"]
-    SCHEMA["effectiveDate: DateTime on inputs"]
-    EDITOR["Remove button + Outstanding Balance"]
+    SCHEMA["AddServiceGroupInput recurringAmount"]
+    EDITOR["Add Service Group button + Outstanding Balance"]
 
     RULE --> SRC1
     RULE --> SRC2
@@ -37,9 +37,11 @@ flowchart LR
 
 ## 1. Rule
 
-**Mid-cycle service add = immediate prorated debit to totalDebt. Not configurable per operator.**
+**Mid-cycle service group add = immediate prorated debit to totalDebt. Not configurable per operator.**
 
-This is a platform-level billing mechanic baked into the reducers. Operators don't choose — Wouter defined it explicitly.
+Pricing lives on **service groups**, not individual services. When an operator adds a service group (add-on) mid-cycle, the group's `recurringAmount` is prorated for the remaining days in the cycle and added to `totalDebt` immediately.
+
+Services within groups don't carry pricing — they're deliverables. The group is the billable unit.
 
 ---
 
@@ -68,8 +70,6 @@ This gives us:
 
 **Key quote**: "If you upgrade in the middle of a billing period, your account will be credited a prorated amount for the time remaining on your existing subscription, and you will be charged for the upgrade with the credit applied."
 
-**Screenshot**: [Take screenshot of the Zoom support page at the URL above]
-
 **Verdict**: Immediate prorated charge. Matches our rule.
 
 ---
@@ -79,8 +79,6 @@ This gives us:
 **URL**: https://docs.stripe.com/billing/subscriptions/prorations
 
 **Key quote**: "The default parameter for `proration_behavior` is `create_prorations`, which creates proration invoice items when applicable" — these are invoiced at next cycle, not immediately.
-
-**Screenshot**: [Take screenshot of the Stripe docs page at the URL above]
 
 **Verdict**: Default is deferred. Configurable to immediate via `always_invoice`. We chose immediate per Wouter's directive.
 
@@ -92,35 +90,31 @@ This gives us:
 
 **Key quote**: "We'll divide the cost per member by the number of days in the month, then multiply by the remaining number of days in the month." and "We'll calculate the prorated cost and bill you the following month for any new members added."
 
-**Screenshot**: [Take screenshot of the Slack help page at the URL above]
-
 **Verdict**: Same formula (`cost/days * remaining`), but deferred to next month. We chose immediate timing per Wouter.
 
 ---
 
 ## 4. Reducer Implementation
 
-### 4a. `addServiceOperation`
+### `addServiceGroupOperation`
 
-**File**: [service.ts:22-88](document-models/subscription-instance/v1/src/reducers/service.ts#L22-L88)
+**File**: [service-group.ts:17-80](document-models/subscription-instance/v1/src/reducers/service-group.ts#L17-L80)
 
 ```typescript
-addServiceOperation(state, action) {
-  // D-6: Status guard — PENDING or ACTIVE only
+addServiceGroupOperation(state, action) {
+  // D-6 revised: PENDING or ACTIVE — groups carry pricing, proration applies
   if (state.status !== "PENDING" && state.status !== "ACTIVE") {
-    throw new SubscriptionNotActiveAddServiceError(
-      `Cannot add service when status is ${state.status}`,
+    throw new StructuralChangeNotAllowedAddGroupError(
+      `Cannot add service group when status is ${state.status}`,
     );
   }
   
-  // ... service creation ...
-  
-  state.services.push(service);
+  // ... create group with recurringCost, setupCost ...
+  state.serviceGroups.push({ ... });
 
-  // D-1: Mid-cycle proration — add prorated cost to totalDebt
+  // D-1: Mid-cycle proration on the GROUP's recurring cost
   if (
     state.status === "ACTIVE" &&
-    action.input.effectiveDate &&
     action.input.recurringAmount &&
     state.currentBillingCycleStart &&
     state.nextBillingDate
@@ -129,58 +123,29 @@ addServiceOperation(state, action) {
       action.input.recurringAmount,
       state.currentBillingCycleStart,
       state.nextBillingDate,
-      action.input.effectiveDate,
+      new Date().toISOString(),
     );
     if (proratedCost > 0) {
       state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
     }
+  }
+  // Setup cost added to debt immediately if ACTIVE
+  if (state.status === "ACTIVE" && action.input.setupAmount) {
+    state.totalDebt = (state.totalDebt ?? 0) + action.input.setupAmount;
   }
 },
 ```
 
 **Key behaviors**:
-- Status guard: only PENDING or ACTIVE
-- Proration only when ACTIVE + effectiveDate provided
+- Status guard: PENDING or ACTIVE (revised from PENDING-only)
+- Proration only when ACTIVE + group has recurringAmount
+- Setup cost added in full immediately (one-time, not prorated)
 - PENDING = setup phase, no proration (no active cycle)
 - Prorated cost added to `totalDebt` immediately
 
-### 4b. `addServiceToGroupOperation`
+### Why services don't have proration
 
-**File**: [service-group.ts:80-144](document-models/subscription-instance/v1/src/reducers/service-group.ts#L80-L144)
-
-```typescript
-addServiceToGroupOperation(state, action) {
-  // D-6: Status guard — PENDING or ACTIVE only
-  if (state.status !== "PENDING" && state.status !== "ACTIVE") {
-    throw new SubscriptionNotActiveAddToGroupError(
-      `Cannot add service to group when status is ${state.status}`,
-    );
-  }
-  
-  // ... find group, push service ...
-
-  // D-1: Mid-cycle proration — add prorated cost to totalDebt
-  if (
-    state.status === "ACTIVE" &&
-    action.input.effectiveDate &&
-    action.input.recurringAmount &&
-    state.currentBillingCycleStart &&
-    state.nextBillingDate
-  ) {
-    const proratedCost = calculateProratedCost(
-      action.input.recurringAmount,
-      state.currentBillingCycleStart,
-      state.nextBillingDate,
-      action.input.effectiveDate,
-    );
-    if (proratedCost > 0) {
-      state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
-    }
-  }
-},
-```
-
-Same pattern — identical proration logic for grouped services.
+Individual services (`addService`, `addServiceToGroup`) don't carry pricing — they're deliverables within a group. The group's `recurringCost` covers all its services. Adding/removing a service within a group doesn't change the billing amount.
 
 ---
 
@@ -189,12 +154,6 @@ Same pattern — identical proration logic for grouped services.
 **File**: [utils.ts:58-68](document-models/subscription-instance/v1/src/utils.ts#L58-L68)
 
 ```typescript
-/**
- * Core proration formula: (remainingDays / totalCycleDays) x amount
- *
- * D-1: mid-cycle add = prorated debit
- * D-2: mid-cycle remove = prorated credit (same formula, reversed direction)
- */
 export function calculateProratedCost(
   amount: number,
   cycleStart: string,
@@ -228,48 +187,41 @@ function daysBetween(a: string, b: string): number {
 
 ## 6. Schema (Input Types)
 
-**File**: [schema.graphql:347-368](document-models/subscription-instance/v1/schema.graphql#L347-L368)
+**File**: [schema.graphql:422-434](document-models/subscription-instance/v1/schema.graphql#L422-L434)
 
 ```graphql
-input AddServiceInput {
-    serviceId: OID!
-    name: String
-    description: String
-    customValue: String
-    setupAmount: Amount_Money
+input AddServiceGroupInput {
+    groupId: OID!
+    name: String!
+    optional: Boolean!
+    costType: GroupCostType
+    setupAmount: Amount_Money          # one-time cost, added to debt immediately
     setupCurrency: Currency
     setupBillingDate: DateTime
-    setupPaymentDate: DateTime
-    recurringAmount: Amount_Money
+    recurringAmount: Amount_Money      # <-- D-1: prorated for remaining cycle
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringNextBillingDate: DateTime
-    recurringLastPaymentDate: DateTime
     recurringDiscount: DiscountServiceInfoInput
-    effectiveDate: DateTime                     # <-- D-1: proration anchor
-}
-
-input RemoveServiceInput {
-    serviceId: OID!
-    effectiveDate: DateTime                     # <-- D-2: same field, credit direction
 }
 ```
 
-`effectiveDate` is optional — when null (PENDING status), no proration. When provided (ACTIVE status), triggers the proration calculation.
+The `recurringAmount` is the billable amount that gets prorated. No `effectiveDate` needed on the input — the reducer uses `new Date().toISOString()` as the effective date since the charge is immediate.
 
 ---
 
 ## 7. Editor UI
 
-### Remove Service button (with proration)
+### "+ Add Service Group" button
 
-**File**: [ServicesPanel.tsx:192-210](editors/subscription-instance-editor/components/ServicesPanel.tsx#L192-L210)
+**File**: [ServicesPanel.tsx:221-320](editors/subscription-instance-editor/components/ServicesPanel.tsx#L221-L320)
 
-- Button visible in **operator mode** when status is ACTIVE or PENDING
-- When ACTIVE: dispatches `removeServiceFromGroup` with `effectiveDate: new Date().toISOString()` — triggers proration credit (D-2, same formula reversed)
-- When PENDING: dispatches without `effectiveDate` — no proration
-
-**Screenshot**: [Take screenshot of the service card with the "Remove" button visible in operator mode]
+- Button at the bottom of the Recurring Services panel, visible in **operator mode** when status is PENDING or ACTIVE
+- Opens modal with:
+  - Group Name (required)
+  - Recurring Amount in `globalCurrency` per `selectedBillingCycle` (e.g., "USD quarterly")
+- Dispatches `addServiceGroup({ groupId, name, optional: true, recurringAmount, ... })`
+- When ACTIVE: reducer prorates `recurringAmount` for remaining cycle → `totalDebt` increases
+- When PENDING: no proration, just configuration
 
 ### Outstanding Balance display
 
@@ -277,14 +229,54 @@ input RemoveServiceInput {
 
 - Shows `totalDebt - totalCredit` as "Outstanding Balance"
 - Updates immediately when proration adds to `totalDebt`
-- Shows overage breakdown when applicable
-
-**Screenshot**: [Take screenshot showing the Outstanding Balance section in the billing panel]
+- Red alert styling when balance > 0
 
 ---
 
-## 8. Gap
+## 8. Test Procedure
 
-**Add Service UI is missing**. The reducer and schema support `ADD_SERVICE` and `ADD_SERVICE_TO_GROUP` with `effectiveDate`, but the editor has no button to add a service to a group mid-cycle. Only removal is wired. Adding a service requires dispatching the operation via MCP or Switchboard, not via the editor UI.
+**Subscription**: `http://localhost:3001/d/preview-1e38b0a0/cb6e4e79-3198-4a01-8de1-595e492341e0`
 
-This is a known gap from the traceability audit.
+### Step 1: Activate
+
+1. Switch to **Operator View**
+2. Click **Activate**
+3. Verify:
+   - Status: ACTIVE
+   - Cycle: Apr 16 → Jul 16 (91 days quarterly)
+   - Outstanding Balance: **$3,250** ($2,500 setup + $750 recurring)
+
+### Step 2: Pay initial charges
+
+1. Click **Mark Paid** on Entity & Compliance setup ($2,500)
+2. Click **Report Payment** on Financial Ops recurring ($750)
+3. Verify:
+   - Outstanding Balance: **$0.00** (or "Paid up")
+
+### Step 3: Add a service group mid-cycle (D-1 test)
+
+1. Click **"+ Add Service Group"** at the bottom of Recurring Services
+2. Enter:
+   - Group Name: "Premium Support Add-on"
+   - Recurring Amount: **200** (USD quarterly)
+3. Click **Add Group**
+4. Verify:
+   - New group "Premium Support Add-on" appears in the services panel
+   - Outstanding Balance increases by the **prorated amount**
+   - Expected proration: if today is ~April 16 and cycle ends July 16, remaining ≈ 91 days out of 91 total → proration ≈ $200 (nearly full cycle since you just activated)
+   - The exact amount depends on when you click — later in the cycle = less proration
+
+### Step 4: Verify the math
+
+Check the operation history in Connect (click the `{}` icon). The `ADD_SERVICE_GROUP` operation should show, and the document state should show:
+- `totalDebt`: $3,250 + prorated amount (e.g., $3,450 if ~$200 proration)
+- `totalCredit`: $3,250
+- Outstanding Balance: the prorated amount
+
+### Step 5: Test D-2 (removal credit)
+
+1. The new "Premium Support Add-on" group should be removable (it has `optional: true`)
+2. Remove it — the reducer will calculate prorated credit and add to `totalCredit`
+3. Outstanding Balance should decrease by the prorated credit amount
+
+Note: the Remove button is on individual services within groups, not on groups themselves yet. To remove the group, you'd need to dispatch `REMOVE_SERVICE_GROUP` via MCP. This is an editor gap — the "remove group" UI is not yet built.

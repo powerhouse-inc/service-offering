@@ -3,6 +3,7 @@ import type {
   ServiceMetric,
   DiscountInfo,
 } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
+import { calculateOverageCost } from "../../../document-models/subscription-instance/v1/src/utils.js";
 
 // ─── Formatting ─────────────────────────────────────────────
 
@@ -92,8 +93,9 @@ export function computeMetricOverage(
   if (metric.currentUsage <= freeLimit) return null;
   if (!metric.unitCost) return null;
 
+  // Delegate to doc model util for the cost calculation
+  const projectedCost = calculateOverageCost(metric);
   const excess = metric.currentUsage - freeLimit;
-  const projectedCost = excess * metric.unitCost.amount;
 
   return {
     metricId: metric.id,

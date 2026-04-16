@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { generateId } from "document-model/core";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
@@ -14,7 +16,10 @@ import {
   formatBillingCycleSuffix,
   formatDiscountBadge,
 } from "./billing-utils.js";
-import { removeServiceFromGroup } from "../../../document-models/subscription-instance/v1/gen/service-group/creators.js";
+import {
+  removeServiceFromGroup,
+  addServiceGroup,
+} from "../../../document-models/subscription-instance/v1/gen/service-group/creators.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -213,6 +218,127 @@ function ServiceCard({
   );
 }
 
+function AddServiceGroupButton({
+  dispatch,
+  subscriptionStatus,
+  globalCurrency,
+  billingCycle,
+}: {
+  dispatch: DocumentDispatch<SubscriptionInstanceAction>;
+  subscriptionStatus: string;
+  globalCurrency: string;
+  billingCycle: string | null;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [name, setName] = useState("");
+  const [recurringAmount, setRecurringAmount] = useState("");
+
+  const canAdd =
+    subscriptionStatus === "PENDING" || subscriptionStatus === "ACTIVE";
+  if (!canAdd) return null;
+
+  const handleAdd = () => {
+    if (!name.trim()) return;
+    const amount = parseFloat(recurringAmount) || undefined;
+    dispatch(
+      addServiceGroup({
+        groupId: generateId(),
+        name: name.trim(),
+        optional: true,
+        recurringAmount: amount,
+        recurringCurrency: amount ? globalCurrency : undefined,
+        recurringBillingCycle:
+          amount && billingCycle
+            ? (billingCycle as
+                | "MONTHLY"
+                | "QUARTERLY"
+                | "SEMI_ANNUAL"
+                | "ANNUAL"
+                | "ONE_TIME")
+            : undefined,
+      }),
+    );
+    setShowModal(false);
+    setName("");
+    setRecurringAmount("");
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className="si-btn si-btn--xs si-btn--ghost"
+        style={{ marginTop: 8 }}
+        onClick={() => setShowModal(true)}
+      >
+        + Add Service Group
+      </button>
+      {showModal && (
+        <div className="si-modal-overlay" onClick={() => setShowModal(false)}>
+          <div
+            className="si-modal si-modal--sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="si-modal__header">
+              <h3 className="si-modal__title">Add Service to Group</h3>
+              {subscriptionStatus === "ACTIVE" && (
+                <span className="si-modal__subtitle">
+                  Prorated cost will be added for the remaining cycle
+                </span>
+              )}
+            </div>
+            <div className="si-modal__body">
+              <div className="si-form-group">
+                <label className="si-form-label">Service Name</label>
+                <input
+                  type="text"
+                  className="si-input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Custom reporting"
+                />
+              </div>
+              <div className="si-form-group">
+                <label className="si-form-label">
+                  Recurring Amount ({globalCurrency}
+                  {billingCycle ? ` ${billingCycle.toLowerCase()}` : ""},
+                  optional)
+                </label>
+                <input
+                  type="number"
+                  className="si-input"
+                  value={recurringAmount}
+                  onChange={(e) => setRecurringAmount(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <div className="si-modal__footer">
+              <button
+                type="button"
+                className="si-btn si-btn--ghost"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="si-btn si-btn--primary"
+                onClick={handleAdd}
+                disabled={!name.trim()}
+              >
+                Add Service
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function ServicesPanel({
   document,
   dispatch,
@@ -332,6 +458,16 @@ export function ServicesPanel({
               </div>
             </div>
           ))}
+
+          {/* Add Service Group button — at panel level, not per group */}
+          {mode === "operator" && (
+            <AddServiceGroupButton
+              dispatch={dispatch}
+              subscriptionStatus={state.status}
+              globalCurrency={state.globalCurrency || "USD"}
+              billingCycle={state.selectedBillingCycle || null}
+            />
+          )}
         </div>
       )}
 

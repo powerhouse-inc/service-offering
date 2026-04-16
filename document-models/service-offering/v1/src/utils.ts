@@ -168,29 +168,37 @@ function resolveGroupPricing(
     }
   }
 
-  // Setup cost
-  const setupCostSource =
-    tierPricing?.setupCost || group.standalonePricing?.setupCost;
-  const setupCost = setupCostSource?.amount ?? null;
-  const setupCostCurrency = setupCostSource?.currency ?? null;
-
+  // Setup cost — skip entirely when the tier is excluded from setup fees
+  let setupCost: number | null = null;
+  let setupCostCurrency: string | null = null;
   let setupCostDiscount: SetupCostDiscountBreakdown | null = null;
-  if (setupCostSource?.discount && setupCostSource.discount.discountValue > 0) {
-    const original = setupCostSource.amount;
-    const rule = setupCostSource.discount;
-    let discounted: number;
-    if (rule.discountType === "PERCENTAGE") {
-      discounted = original * (1 - rule.discountValue / 100);
-    } else {
-      discounted = original - rule.discountValue;
+
+  if (!tier.excludeFromSetupFee) {
+    const setupCostSource =
+      tierPricing?.setupCost || group.standalonePricing?.setupCost;
+    setupCost = setupCostSource?.amount ?? null;
+    setupCostCurrency = setupCostSource?.currency ?? null;
+
+    if (
+      setupCostSource?.discount &&
+      setupCostSource.discount.discountValue > 0
+    ) {
+      const original = setupCostSource.amount;
+      const rule = setupCostSource.discount;
+      let discounted: number;
+      if (rule.discountType === "PERCENTAGE") {
+        discounted = original * (1 - rule.discountValue / 100);
+      } else {
+        discounted = original - rule.discountValue;
+      }
+      discounted = Math.max(0, Math.round(discounted * 100) / 100);
+      setupCostDiscount = {
+        originalAmount: original,
+        discountedAmount: discounted,
+        discountType: rule.discountType,
+        discountValue: rule.discountValue,
+      };
     }
-    discounted = Math.max(0, Math.round(discounted * 100) / 100);
-    setupCostDiscount = {
-      originalAmount: original,
-      discountedAmount: discounted,
-      discountType: rule.discountType,
-      discountValue: rule.discountValue,
-    };
   }
 
   const priceCurrency =

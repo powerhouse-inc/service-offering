@@ -15,10 +15,10 @@ import type { SubscriptionInstanceServiceGroupOperations } from "document-models
 export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceServiceGroupOperations =
   {
     addServiceGroupOperation(state, action) {
-      // D-6: Structural changes — PENDING only
-      if (state.status !== "PENDING") {
+      // D-6 revised: PENDING or ACTIVE — groups carry pricing, proration applies
+      if (state.status !== "PENDING" && state.status !== "ACTIVE") {
         throw new StructuralChangeNotAllowedAddGroupError(
-          `Cannot add service group when status is ${state.status} — structural changes only allowed in PENDING`,
+          `Cannot add service group when status is ${state.status}`,
         );
       }
       state.serviceGroups.push({
@@ -59,12 +59,34 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
             : null,
         services: [],
       });
+
+      // D-1: Mid-cycle proration on the GROUP's recurring cost
+      if (
+        state.status === "ACTIVE" &&
+        action.input.recurringAmount &&
+        state.currentBillingCycleStart &&
+        state.nextBillingDate
+      ) {
+        const proratedCost = calculateProratedCost(
+          action.input.recurringAmount,
+          state.currentBillingCycleStart,
+          state.nextBillingDate,
+          new Date().toISOString(),
+        );
+        if (proratedCost > 0) {
+          state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
+        }
+      }
+      // Setup cost added to debt immediately if ACTIVE
+      if (state.status === "ACTIVE" && action.input.setupAmount) {
+        state.totalDebt = (state.totalDebt ?? 0) + action.input.setupAmount;
+      }
     },
     removeServiceGroupOperation(state, action) {
-      // D-6: Structural changes — PENDING only
-      if (state.status !== "PENDING") {
+      // D-6 revised: PENDING or ACTIVE — removal creates prorated credit
+      if (state.status !== "PENDING" && state.status !== "ACTIVE") {
         throw new StructuralChangeNotAllowedRemoveGroupError(
-          `Cannot remove service group when status is ${state.status} — structural changes only allowed in PENDING`,
+          `Cannot remove service group when status is ${state.status}`,
         );
       }
       const index = state.serviceGroups.findIndex(
@@ -75,6 +97,26 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           `Service group with ID ${action.input.groupId} not found`,
         );
       }
+      const group = state.serviceGroups[index];
+
+      // D-2: Mid-cycle prorated credit on the GROUP's recurring cost
+      if (
+        state.status === "ACTIVE" &&
+        group.recurringCost &&
+        state.currentBillingCycleStart &&
+        state.nextBillingDate
+      ) {
+        const proratedCredit = calculateProratedCost(
+          group.recurringCost.amount,
+          state.currentBillingCycleStart,
+          state.nextBillingDate,
+          new Date().toISOString(),
+        );
+        if (proratedCredit > 0) {
+          state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;
+        }
+      }
+
       state.serviceGroups.splice(index, 1);
     },
     addServiceToGroupOperation(state, action) {
@@ -122,25 +164,7 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
             : null,
         metrics: [],
       });
-
-      // D-1: Mid-cycle proration — add prorated cost to totalDebt
-      if (
-        state.status === "ACTIVE" &&
-        action.input.effectiveDate &&
-        action.input.recurringAmount &&
-        state.currentBillingCycleStart &&
-        state.nextBillingDate
-      ) {
-        const proratedCost = calculateProratedCost(
-          action.input.recurringAmount,
-          state.currentBillingCycleStart,
-          state.nextBillingDate,
-          action.input.effectiveDate,
-        );
-        if (proratedCost > 0) {
-          state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
-        }
-      }
+      // No proration here — services don't carry pricing, groups do (D-1 revised)
     },
     removeServiceFromGroupOperation(state, action) {
       // D-6: Status guard — PENDING or ACTIVE only
@@ -165,30 +189,12 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           `Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`,
         );
       }
-      const svc = group.services[index];
-
-      // D-2: Mid-cycle proration — add prorated credit to totalCredit
-      if (
-        state.status === "ACTIVE" &&
-        action.input.effectiveDate &&
-        svc.recurringCost &&
-        state.currentBillingCycleStart &&
-        state.nextBillingDate
-      ) {
-        const proratedCredit = calculateProratedCost(
-          svc.recurringCost.amount,
-          state.currentBillingCycleStart,
-          state.nextBillingDate,
-          action.input.effectiveDate,
-        );
-        if (proratedCredit > 0) {
-          state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;
-        }
-      }
-
+      // No proration here — services don't carry pricing, groups do (D-2 revised)
       group.services.splice(index, 1);
     },
     updateServiceGroupCostOperation(state, action) {
+      // D-6: Cost updates only in PENDING (setup phase)
+      if (state.status !== "PENDING") return;
       const group = state.serviceGroups.find(
         (g) => g.id === action.input.groupId,
       );

@@ -10,11 +10,7 @@ import {
   SubscriptionNotActiveAddServiceError,
   SubscriptionNotActiveRemoveServiceError,
 } from "../../gen/service/error.js";
-import {
-  calculateProratedCost,
-  findServiceById,
-  findGroupByServiceId,
-} from "../utils.js";
+import { findServiceById, findGroupByServiceId } from "../utils.js";
 import type { SubscriptionInstanceServiceOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceOperations =
@@ -66,25 +62,8 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         metrics: [],
       };
       state.services.push(service);
-
-      // D-1: Mid-cycle proration — add prorated cost to totalDebt
-      if (
-        state.status === "ACTIVE" &&
-        action.input.effectiveDate &&
-        action.input.recurringAmount &&
-        state.currentBillingCycleStart &&
-        state.nextBillingDate
-      ) {
-        const proratedCost = calculateProratedCost(
-          action.input.recurringAmount,
-          state.currentBillingCycleStart,
-          state.nextBillingDate,
-          action.input.effectiveDate,
-        );
-        if (proratedCost > 0) {
-          state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
-        }
-      }
+      // No proration — standalone services don't carry pricing at this level.
+      // Proration applies at the service GROUP level (D-1 revised).
     },
     removeServiceOperation(state, action) {
       // D-6: Status guard — PENDING or ACTIVE only
@@ -101,30 +80,13 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
           `Service with ID ${action.input.serviceId} not found`,
         );
       }
-      const svc = state.services[index];
-
-      // D-2: Mid-cycle proration — add prorated credit to totalCredit
-      if (
-        state.status === "ACTIVE" &&
-        action.input.effectiveDate &&
-        svc.recurringCost &&
-        state.currentBillingCycleStart &&
-        state.nextBillingDate
-      ) {
-        const proratedCredit = calculateProratedCost(
-          svc.recurringCost.amount,
-          state.currentBillingCycleStart,
-          state.nextBillingDate,
-          action.input.effectiveDate,
-        );
-        if (proratedCredit > 0) {
-          state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;
-        }
-      }
-
+      // No proration — standalone services don't carry pricing.
+      // Proration applies at the service GROUP level (D-2 revised).
       state.services.splice(index, 1);
     },
     updateServiceSetupCostOperation(state, action) {
+      // D-6: Cost updates only in PENDING (setup phase)
+      if (state.status !== "PENDING") return;
       const svc = state.services.find((s) => s.id === action.input.serviceId);
       if (!svc) {
         throw new UpdateServiceSetupCostNotFoundError(
@@ -149,6 +111,8 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       }
     },
     updateServiceRecurringCostOperation(state, action) {
+      // D-6: Cost updates only in PENDING (setup phase)
+      if (state.status !== "PENDING") return;
       const svc = state.services.find((s) => s.id === action.input.serviceId);
       if (!svc) {
         throw new UpdateServiceRecurringCostNotFoundError(
