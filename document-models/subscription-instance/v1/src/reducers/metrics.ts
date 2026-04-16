@@ -1,3 +1,4 @@
+import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 import {
   AddServiceMetricServiceNotFoundError,
   UpdateMetricServiceNotFoundError,
@@ -10,8 +11,10 @@ import {
   IncrementMetricUsageNotFoundError,
   DecrementMetricUsageServiceNotFoundError,
   DecrementMetricUsageNotFoundError,
+  SubscriptionNotActiveUpdateUsageError,
+  SubscriptionNotActiveIncrementUsageError,
+  SubscriptionNotActiveDecrementUsageError,
 } from "../../gen/metrics/error.js";
-import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
   {
@@ -70,6 +73,12 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         metric.nextUsageReset = action.input.nextUsageReset || null;
     },
     updateMetricUsageOperation(state, action) {
+      // D-6: ACTIVE only
+      if (state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveUpdateUsageError(
+          `Cannot update metric usage when status is ${state.status}`,
+        );
+      }
       const svc = state.services.find((s) => s.id === action.input.serviceId);
       if (!svc) {
         throw new UpdateMetricUsageServiceNotFoundError(
@@ -102,6 +111,12 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       svc.metrics.splice(index, 1);
     },
     incrementMetricUsageOperation(state, action) {
+      // D-6: ACTIVE only
+      if (state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveIncrementUsageError(
+          `Cannot increment metric usage when status is ${state.status}`,
+        );
+      }
       const svc = state.services.find((s) => s.id === action.input.serviceId);
       if (!svc) {
         throw new IncrementMetricUsageServiceNotFoundError(
@@ -117,6 +132,12 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       metric.currentUsage += action.input.incrementBy;
     },
     decrementMetricUsageOperation(state, action) {
+      // D-6: ACTIVE only
+      if (state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveDecrementUsageError(
+          `Cannot decrement metric usage when status is ${state.status}`,
+        );
+      }
       const svc = state.services.find((s) => s.id === action.input.serviceId);
       if (!svc) {
         throw new DecrementMetricUsageServiceNotFoundError(
