@@ -1,3 +1,4 @@
+import type { SubscriptionInstanceServiceOperations } from "document-models/subscription-instance/v1";
 import {
   RemoveServiceNotFoundError,
   UpdateServiceSetupCostNotFoundError,
@@ -7,12 +8,20 @@ import {
   UpdateServiceInfoNotFoundError,
   AddServiceFacetSelectionServiceNotFoundError,
   RemoveServiceFacetSelectionServiceNotFoundError,
+  SubscriptionNotActiveAddServiceError,
+  SubscriptionNotActiveRemoveServiceError,
 } from "../../gen/service/error.js";
-import type { SubscriptionInstanceServiceOperations } from "document-models/subscription-instance/v1";
+import { calculateProratedCost } from "../utils.js";
 
 export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceOperations =
   {
     addServiceOperation(state, action) {
+      // D-6: Status guard — PENDING or ACTIVE only
+      if (state.status !== "PENDING" && state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveAddServiceError(
+          `Cannot add service when status is ${state.status}`,
+        );
+      }
       const service = {
         id: action.input.serviceId,
         name: action.input.name || null,
@@ -53,8 +62,33 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         metrics: [],
       };
       state.services.push(service);
+
+      // D-1: Mid-cycle proration — add prorated cost to totalDebt
+      if (
+        state.status === "ACTIVE" &&
+        action.input.effectiveDate &&
+        action.input.recurringAmount &&
+        state.currentBillingCycleStart &&
+        state.nextBillingDate
+      ) {
+        const proratedCost = calculateProratedCost(
+          action.input.recurringAmount,
+          state.currentBillingCycleStart,
+          state.nextBillingDate,
+          action.input.effectiveDate,
+        );
+        if (proratedCost > 0) {
+          state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
+        }
+      }
     },
     removeServiceOperation(state, action) {
+      // D-6: Status guard — PENDING or ACTIVE only
+      if (state.status !== "PENDING" && state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveRemoveServiceError(
+          `Cannot remove service when status is ${state.status}`,
+        );
+      }
       const index = state.services.findIndex(
         (s) => s.id === action.input.serviceId,
       );
@@ -63,6 +97,27 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
           `Service with ID ${action.input.serviceId} not found`,
         );
       }
+      const svc = state.services[index];
+
+      // D-2: Mid-cycle proration — add prorated credit to totalCredit
+      if (
+        state.status === "ACTIVE" &&
+        action.input.effectiveDate &&
+        svc.recurringCost &&
+        state.currentBillingCycleStart &&
+        state.nextBillingDate
+      ) {
+        const proratedCredit = calculateProratedCost(
+          svc.recurringCost.amount,
+          state.currentBillingCycleStart,
+          state.nextBillingDate,
+          action.input.effectiveDate,
+        );
+        if (proratedCredit > 0) {
+          state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;
+        }
+      }
+
       state.services.splice(index, 1);
     },
     updateServiceSetupCostOperation(state, action) {
@@ -133,6 +188,8 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       if (svc.setupCost) {
         svc.setupCost.paymentDate = action.input.paymentDate;
       }
+      // D-3: Update totalCredit with payment amount
+      state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
     },
     reportRecurringPaymentOperation(state, action) {
       const svc = state.services.find((s) => s.id === action.input.serviceId);
@@ -144,6 +201,8 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       if (svc.recurringCost) {
         svc.recurringCost.lastPaymentDate = action.input.paymentDate;
       }
+      // D-3: Update totalCredit with payment amount
+      state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
     },
     updateServiceInfoOperation(state, action) {
       const svc = state.services.find((s) => s.id === action.input.serviceId);

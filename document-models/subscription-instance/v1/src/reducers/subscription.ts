@@ -10,6 +10,12 @@ import {
   SettlementDateBeforeCycleStartError,
 } from "../../gen/subscription/error.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
+import {
+  BILLING_CYCLE_DAYS,
+  calculateNextBillingDate,
+  calculateOverageCost,
+  shouldResetMetric,
+} from "../utils.js";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {
@@ -207,6 +213,32 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       }
       state.status = "ACTIVE";
       state.activatedSince = action.input.activatedSince;
+
+      // D-4, BA-5: Initialize billing state on activation
+      state.currentBillingCycleStart = action.input.activatedSince;
+      if (state.selectedBillingCycle) {
+        state.nextBillingDate = calculateNextBillingDate(
+          action.input.activatedSince,
+          state.selectedBillingCycle,
+        );
+      }
+
+      // Calculate initial debt: setup costs + first cycle recurring costs
+      let initialDebt = 0;
+      for (const group of state.serviceGroups) {
+        if (group.setupCost) initialDebt += group.setupCost.amount;
+        if (group.recurringCost) initialDebt += group.recurringCost.amount;
+        for (const svc of group.services) {
+          if (svc.setupCost) initialDebt += svc.setupCost.amount;
+          if (svc.recurringCost) initialDebt += svc.recurringCost.amount;
+        }
+      }
+      for (const svc of state.services) {
+        if (svc.setupCost) initialDebt += svc.setupCost.amount;
+        if (svc.recurringCost) initialDebt += svc.recurringCost.amount;
+      }
+      state.totalDebt = initialDebt;
+      state.totalCredit = 0;
     },
     pauseSubscriptionOperation(state, action) {
       if (state.status !== "ACTIVE") {
@@ -253,6 +285,29 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       }
       state.status = "ACTIVE";
       state.expiringSince = null;
+
+      // D-9: Initialize billing state for new cycle
+      // Cycle starts from nextBillingDate (fixed boundaries per D-4)
+      state.currentBillingCycleStart = state.nextBillingDate;
+      if (state.nextBillingDate && state.selectedBillingCycle) {
+        state.nextBillingDate = calculateNextBillingDate(
+          state.nextBillingDate,
+          state.selectedBillingCycle,
+        );
+      }
+
+      // Add recurring costs for the new cycle to totalDebt
+      for (const group of state.serviceGroups) {
+        if (group.recurringCost) {
+          state.totalDebt = (state.totalDebt ?? 0) + group.recurringCost.amount;
+        }
+      }
+      for (const svc of state.services) {
+        if (svc.recurringCost) {
+          state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;
+        }
+      }
+
       state.renewalDate = action.input.newRenewalDate || null;
     },
     setBudgetCategoryOperation(state, action) {
@@ -298,15 +353,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
     setRenewalDateOperation(state, action) {
       state.renewalDate = action.input.renewalDate;
     },
-    updateBillingProjectionOperation(state, action) {
-      if (action.input.nextBillingDate !== undefined)
-        state.nextBillingDate = action.input.nextBillingDate || null;
-      if (action.input.projectedBillAmount !== undefined)
-        state.projectedBillAmount = action.input.projectedBillAmount || null;
-      if (action.input.projectedBillCurrency !== undefined)
-        state.projectedBillCurrency =
-          action.input.projectedBillCurrency || null;
-    },
     settleBillingCycleOperation(state, action) {
       if (state.status !== "ACTIVE") {
         throw new NoBillingCycleActiveError(
@@ -328,43 +374,16 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           ? state.nextBillingDate
           : action.input.settlementDate;
 
-      const RESET_HIERARCHY = [
-        "HOURLY",
-        "DAILY",
-        "WEEKLY",
-        "MONTHLY",
-        "QUARTERLY",
-        "SEMI_ANNUAL",
-        "ANNUAL",
-      ];
-      const cycleIndex = state.selectedBillingCycle
-        ? RESET_HIERARCHY.indexOf(state.selectedBillingCycle)
-        : -1;
-
-      function processMetrics(metrics) {
+      // Calculate overage and reset metrics
+      const billingCycle = state.selectedBillingCycle || "MONTHLY";
+      function processMetrics(metrics: typeof state.services[0]["metrics"]) {
         for (const metric of metrics) {
-          if (metric.unitCost) {
-            const freeLimit = metric.freeLimit ?? 0;
-            let overage = Math.max(0, metric.currentUsage - freeLimit);
-            if (metric.paidLimit) {
-              overage = Math.min(overage, metric.paidLimit - freeLimit);
-            }
-            const cost = overage * metric.unitCost.amount;
-            if (cost > 0) {
-              state.totalDebt = (state.totalDebt ?? 0) + cost;
-            }
+          const cost = calculateOverageCost(metric);
+          if (cost > 0) {
+            state.totalDebt = (state.totalDebt ?? 0) + cost;
           }
-          if (metric.usageResetPeriod) {
-            const metricIndex = RESET_HIERARCHY.indexOf(
-              metric.usageResetPeriod,
-            );
-            if (
-              metricIndex !== -1 &&
-              cycleIndex !== -1 &&
-              metricIndex <= cycleIndex
-            ) {
-              metric.currentUsage = 0;
-            }
+          if (shouldResetMetric(metric, billingCycle)) {
+            metric.currentUsage = 0;
           }
         }
       }
@@ -379,6 +398,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       }
 
       if (state.autoRenew) {
+        // Add next cycle recurring costs to totalDebt
         for (const group of state.serviceGroups) {
           if (group.recurringCost) {
             state.totalDebt =
@@ -390,19 +410,13 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;
           }
         }
+        // Advance cycle boundaries (D-4: fixed boundaries)
         state.currentBillingCycleStart = state.nextBillingDate;
-        const BILLING_CYCLE_DAYS = {
-          MONTHLY: 30,
-          QUARTERLY: 91,
-          SEMI_ANNUAL: 182,
-          ANNUAL: 365,
-          ONE_TIME: 0,
-        };
-        const days = BILLING_CYCLE_DAYS[state.selectedBillingCycle] || 30;
-        if (state.nextBillingDate && days > 0) {
-          const d = new Date(state.nextBillingDate);
-          d.setDate(d.getDate() + days);
-          state.nextBillingDate = d.toISOString();
+        if (state.nextBillingDate) {
+          state.nextBillingDate = calculateNextBillingDate(
+            state.nextBillingDate,
+            billingCycle,
+          );
         }
       } else {
         state.status = "EXPIRING";
