@@ -1,15 +1,26 @@
+import type { SubscriptionInstanceServiceGroupOperations } from "document-models/subscription-instance/v1";
 import {
   RemoveServiceGroupNotFoundError,
   AddServiceToGroupGroupNotFoundError,
   RemoveServiceFromGroupGroupNotFoundError,
   RemoveServiceFromGroupServiceNotFoundError,
   UpdateServiceGroupCostNotFoundError,
+  StructuralChangeNotAllowedAddGroupError,
+  StructuralChangeNotAllowedRemoveGroupError,
+  SubscriptionNotActiveAddToGroupError,
+  SubscriptionNotActiveRemoveFromGroupError,
 } from "../../gen/service-group/error.js";
-import type { SubscriptionInstanceServiceGroupOperations } from "document-models/subscription-instance/v1";
+import { calculateProratedCost } from "../utils.js";
 
 export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceServiceGroupOperations =
   {
     addServiceGroupOperation(state, action) {
+      // D-6: Structural changes — PENDING only
+      if (state.status !== "PENDING") {
+        throw new StructuralChangeNotAllowedAddGroupError(
+          `Cannot add service group when status is ${state.status} — structural changes only allowed in PENDING`,
+        );
+      }
       state.serviceGroups.push({
         id: action.input.groupId,
         name: action.input.name,
@@ -50,6 +61,12 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
       });
     },
     removeServiceGroupOperation(state, action) {
+      // D-6: Structural changes — PENDING only
+      if (state.status !== "PENDING") {
+        throw new StructuralChangeNotAllowedRemoveGroupError(
+          `Cannot remove service group when status is ${state.status} — structural changes only allowed in PENDING`,
+        );
+      }
       const index = state.serviceGroups.findIndex(
         (g) => g.id === action.input.groupId,
       );
@@ -61,6 +78,12 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
       state.serviceGroups.splice(index, 1);
     },
     addServiceToGroupOperation(state, action) {
+      // D-6: Status guard — PENDING or ACTIVE only
+      if (state.status !== "PENDING" && state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveAddToGroupError(
+          `Cannot add service to group when status is ${state.status}`,
+        );
+      }
       const group = state.serviceGroups.find(
         (g) => g.id === action.input.groupId,
       );
@@ -99,8 +122,33 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
             : null,
         metrics: [],
       });
+
+      // D-1: Mid-cycle proration — add prorated cost to totalDebt
+      if (
+        state.status === "ACTIVE" &&
+        action.input.effectiveDate &&
+        action.input.recurringAmount &&
+        state.currentBillingCycleStart &&
+        state.nextBillingDate
+      ) {
+        const proratedCost = calculateProratedCost(
+          action.input.recurringAmount,
+          state.currentBillingCycleStart,
+          state.nextBillingDate,
+          action.input.effectiveDate,
+        );
+        if (proratedCost > 0) {
+          state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
+        }
+      }
     },
     removeServiceFromGroupOperation(state, action) {
+      // D-6: Status guard — PENDING or ACTIVE only
+      if (state.status !== "PENDING" && state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveRemoveFromGroupError(
+          `Cannot remove service from group when status is ${state.status}`,
+        );
+      }
       const group = state.serviceGroups.find(
         (g) => g.id === action.input.groupId,
       );
@@ -117,6 +165,27 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           `Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`,
         );
       }
+      const svc = group.services[index];
+
+      // D-2: Mid-cycle proration — add prorated credit to totalCredit
+      if (
+        state.status === "ACTIVE" &&
+        action.input.effectiveDate &&
+        svc.recurringCost &&
+        state.currentBillingCycleStart &&
+        state.nextBillingDate
+      ) {
+        const proratedCredit = calculateProratedCost(
+          svc.recurringCost.amount,
+          state.currentBillingCycleStart,
+          state.nextBillingDate,
+          action.input.effectiveDate,
+        );
+        if (proratedCredit > 0) {
+          state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;
+        }
+      }
+
       group.services.splice(index, 1);
     },
     updateServiceGroupCostOperation(state, action) {
