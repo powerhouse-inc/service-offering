@@ -330,6 +330,12 @@ export type ReportSetupPaymentInput = {
   serviceId: Scalars["OID"]["input"];
 };
 
+export type ResetMetricCycleInput = {
+  metricId: Scalars["OID"]["input"];
+  resetDate: Scalars["DateTime"]["input"];
+  serviceId: Scalars["OID"]["input"];
+};
+
 export type ResetPeriod =
   | "ANNUAL"
   | "DAILY"

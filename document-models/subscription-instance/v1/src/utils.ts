@@ -167,3 +167,19 @@ export function findServiceById(
   }
   return undefined;
 }
+
+/**
+ * Find the parent group of a service by service ID.
+ * Returns the group or undefined if the service is standalone.
+ */
+export function findGroupByServiceId(
+  serviceId: string,
+  serviceGroups: readonly ServiceGroup[],
+): ServiceGroup | undefined {
+  for (const group of serviceGroups) {
+    if (group.services.some((s) => s.id === serviceId)) {
+      return group;
+    }
+  }
+  return undefined;
+}

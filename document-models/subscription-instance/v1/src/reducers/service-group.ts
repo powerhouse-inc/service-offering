@@ -1,4 +1,3 @@
-import type { SubscriptionInstanceServiceGroupOperations } from "document-models/subscription-instance/v1";
 import {
   RemoveServiceGroupNotFoundError,
   AddServiceToGroupGroupNotFoundError,
@@ -11,6 +10,7 @@ import {
   SubscriptionNotActiveRemoveFromGroupError,
 } from "../../gen/service-group/error.js";
 import { calculateProratedCost } from "../utils.js";
+import type { SubscriptionInstanceServiceGroupOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceServiceGroupOperations =
   {

@@ -439,7 +439,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n    amount: Amount_Money!\n    currency: Currency!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
+                "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nfunction findGroup(serviceId) {\n  for (const group of state.serviceGroups) {\n    if (group.services.some((s) => s.id === serviceId)) return group;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}\nconst group = findGroup(action.input.serviceId);\nif (group && group.setupCost) {\n  group.setupCost.paymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
               examples: [],
               template: "Record a setup payment",
               description: "Record a setup payment",
@@ -460,7 +460,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n    amount: Amount_Money!\n    currency: Currency!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
+                "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nfunction findGroup(serviceId) {\n  for (const group of state.serviceGroups) {\n    if (group.services.some((s) => s.id === serviceId)) return group;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}\nconst group = findGroup(action.input.serviceId);\nif (group && group.recurringCost) {\n  group.recurringCost.lastPaymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
               examples: [],
               template: "Record a recurring payment",
               description: "Record a recurring payment",
@@ -696,7 +696,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input AddServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    freeLimit: Int\n    paidLimit: Int\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n    unitCostAmount: Amount_Money\n    unitCostCurrency: Currency\n    unitCostBillingCycle: BillingCycle\n    unitCostNextBillingDate: DateTime\n    unitCostLastPaymentDate: DateTime\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new AddServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nsvc.metrics.push({\n  id: action.input.metricId,\n  name: action.input.name,\n  unitName: action.input.unitName,\n  limit: action.input.limit || null,\n  freeLimit: action.input.freeLimit || null,\n  paidLimit: action.input.paidLimit || null,\n  unitCost: action.input.unitCostAmount && action.input.unitCostCurrency && action.input.unitCostBillingCycle ? {\n    amount: action.input.unitCostAmount,\n    currency: action.input.unitCostCurrency,\n    billingCycle: action.input.unitCostBillingCycle,\n    nextBillingDate: action.input.unitCostNextBillingDate || null,\n    lastPaymentDate: action.input.unitCostLastPaymentDate || null,\n    discount: null,\n  } : null,\n  currentUsage: action.input.currentUsage,\n  usageResetPeriod: action.input.usageResetPeriod || null,\n  nextUsageReset: action.input.nextUsageReset || null,\n});",
+                "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new AddServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nsvc.metrics.push({\n  id: action.input.metricId,\n  name: action.input.name,\n  unitName: action.input.unitName,\n  limit: action.input.limit || null,\n  freeLimit: action.input.freeLimit || null,\n  paidLimit: action.input.paidLimit || null,\n  unitCost: action.input.unitCostAmount && action.input.unitCostCurrency && action.input.unitCostBillingCycle ? {\n    amount: action.input.unitCostAmount,\n    currency: action.input.unitCostCurrency,\n    billingCycle: action.input.unitCostBillingCycle,\n    nextBillingDate: action.input.unitCostNextBillingDate || null,\n    lastPaymentDate: action.input.unitCostLastPaymentDate || null,\n    discount: null,\n  } : null,\n  currentUsage: action.input.currentUsage,\n  usageResetPeriod: action.input.usageResetPeriod || null,\n  nextUsageReset: action.input.nextUsageReset || null,\n});",
               examples: [],
               template: "Add a metric to a service",
               description: "Add a metric to a service",
@@ -724,7 +724,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input UpdateMetricInput {\n    serviceId: OID!\n    metricId: OID!\n    name: String\n    unitName: String\n    limit: Int\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nif (action.input.name) metric.name = action.input.name;\nif (action.input.unitName) metric.unitName = action.input.unitName;\nif (action.input.limit !== undefined) metric.limit = action.input.limit || null;\nif (action.input.usageResetPeriod !== undefined) metric.usageResetPeriod = action.input.usageResetPeriod || null;\nif (action.input.nextUsageReset !== undefined) metric.nextUsageReset = action.input.nextUsageReset || null;",
+                "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nif (action.input.name) metric.name = action.input.name;\nif (action.input.unitName) metric.unitName = action.input.unitName;\nif (action.input.limit !== undefined) metric.limit = action.input.limit || null;\nif (action.input.usageResetPeriod !== undefined) metric.usageResetPeriod = action.input.usageResetPeriod || null;\nif (action.input.nextUsageReset !== undefined) metric.nextUsageReset = action.input.nextUsageReset || null;",
               examples: [],
               template: "Update metric configuration",
               description: "Update metric configuration",
@@ -759,7 +759,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input UpdateMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    currentUsage: Int!\n}",
               reducer:
-                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveUpdateUsageError(`Cannot update metric usage when status is ${state.status}`);\n}\nconst svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage = action.input.currentUsage;',
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveUpdateUsageError(`Cannot update metric usage when status is ${state.status}`);\n}\nfunction findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage = action.input.currentUsage;',
               examples: [],
               template: "Set metric usage directly",
               description: "Set metric usage directly",
@@ -787,7 +787,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input RemoveServiceMetricInput {\n    serviceId: OID!\n    metricId: OID!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new RemoveServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst index = svc.metrics.findIndex((m) => m.id === action.input.metricId);\nif (index === -1) {\n  throw new RemoveServiceMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nsvc.metrics.splice(index, 1);",
+                "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new RemoveServiceMetricServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst index = svc.metrics.findIndex((m) => m.id === action.input.metricId);\nif (index === -1) {\n  throw new RemoveServiceMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nsvc.metrics.splice(index, 1);",
               examples: [],
               template: "Remove a metric from a service",
               description: "Remove a metric from a service",
@@ -823,7 +823,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input IncrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    incrementBy: Int!\n}",
               reducer:
-                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveIncrementUsageError(`Cannot increment metric usage when status is ${state.status}`);\n}\nconst svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new IncrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new IncrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage += action.input.incrementBy;',
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveIncrementUsageError(`Cannot increment metric usage when status is ${state.status}`);\n}\nfunction findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new IncrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new IncrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage += action.input.incrementBy;',
               examples: [],
               template: "Increment usage counter",
               description: "Increment usage counter",
@@ -859,10 +859,46 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input DecrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    decrementBy: Int!\n}",
               reducer:
-                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveDecrementUsageError(`Cannot decrement metric usage when status is ${state.status}`);\n}\nconst svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new DecrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new DecrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage -= action.input.decrementBy;',
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveDecrementUsageError(`Cannot decrement metric usage when status is ${state.status}`);\n}\nfunction findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new DecrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new DecrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage -= action.input.decrementBy;',
               examples: [],
               template: "Decrement usage counter",
               description: "Decrement usage counter",
+            },
+            {
+              id: "op-reset-metric-cycle",
+              name: "RESET_METRIC_CYCLE",
+              description:
+                "Reset a metric's usage and charge overage when its independent reset cycle elapses. Triggered by processor/cron or operator, independent of billing cycle settlement.",
+              schema:
+                "input ResetMetricCycleInput {\n    serviceId: OID!\n    metricId: OID!\n    resetDate: DateTime!\n}",
+              template: "Reset metric usage cycle and charge overage",
+              reducer:
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveResetMetricCycleError(`Cannot reset metric cycle when status is ${state.status}`);\n}\nfunction findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nif (!svc) {\n  throw new ResetMetricCycleServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new ResetMetricCycleMetricNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nif (metric.unitCost) {\n  const freeLimit = metric.freeLimit ?? 0;\n  let overage = Math.max(0, metric.currentUsage - freeLimit);\n  if (metric.paidLimit) {\n    overage = Math.min(overage, metric.paidLimit - freeLimit);\n  }\n  const cost = overage * metric.unitCost.amount;\n  if (cost > 0) {\n    state.totalDebt = (state.totalDebt ?? 0) + cost;\n  }\n}\nmetric.currentUsage = 0;',
+              errors: [
+                {
+                  id: "err-not-active-reset-metric-cycle",
+                  name: "SubscriptionNotActiveResetMetricCycleError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_RESET_METRIC_CYCLE",
+                  description: "Status must be ACTIVE to reset metric cycle",
+                  template: "",
+                },
+                {
+                  id: "err-reset-metric-service-not-found",
+                  name: "ResetMetricCycleServiceNotFoundError",
+                  code: "RESET_METRIC_CYCLE_SERVICE_NOT_FOUND",
+                  description: "Service not found",
+                  template: "",
+                },
+                {
+                  id: "err-reset-metric-not-found",
+                  name: "ResetMetricCycleMetricNotFoundError",
+                  code: "RESET_METRIC_CYCLE_METRIC_NOT_FOUND",
+                  description: "Metric not found",
+                  template: "",
+                },
+              ],
+              examples: [],
+              scope: "global",
             },
           ],
           description: "Service metric tracking and usage management",

@@ -1,4 +1,3 @@
-import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 import {
   AddServiceMetricServiceNotFoundError,
   UpdateMetricServiceNotFoundError,
@@ -14,8 +13,12 @@ import {
   SubscriptionNotActiveUpdateUsageError,
   SubscriptionNotActiveIncrementUsageError,
   SubscriptionNotActiveDecrementUsageError,
+  SubscriptionNotActiveResetMetricCycleError,
+  ResetMetricCycleServiceNotFoundError,
+  ResetMetricCycleMetricNotFoundError,
 } from "../../gen/metrics/error.js";
 import { findServiceById } from "../utils.js";
+import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
   {
@@ -176,5 +179,42 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         );
       }
       metric.currentUsage -= action.input.decrementBy;
+    },
+    resetMetricCycleOperation(state, action) {
+      // ACTIVE only — metric resets happen during an active billing cycle
+      if (state.status !== "ACTIVE") {
+        throw new SubscriptionNotActiveResetMetricCycleError(
+          `Cannot reset metric cycle when status is ${state.status}`,
+        );
+      }
+      const svc = findServiceById(
+        action.input.serviceId,
+        state.services,
+        state.serviceGroups,
+      );
+      if (!svc) {
+        throw new ResetMetricCycleServiceNotFoundError(
+          `Service with ID ${action.input.serviceId} not found`,
+        );
+      }
+      const metric = svc.metrics.find((m) => m.id === action.input.metricId);
+      if (!metric) {
+        throw new ResetMetricCycleMetricNotFoundError(
+          `Metric with ID ${action.input.metricId} not found`,
+        );
+      }
+      // Calculate and charge overage before resetting
+      if (metric.unitCost) {
+        const freeLimit = metric.freeLimit ?? 0;
+        let overage = Math.max(0, metric.currentUsage - freeLimit);
+        if (metric.paidLimit) {
+          overage = Math.min(overage, metric.paidLimit - freeLimit);
+        }
+        const cost = overage * metric.unitCost.amount;
+        if (cost > 0) {
+          state.totalDebt = (state.totalDebt ?? 0) + cost;
+        }
+      }
+      metric.currentUsage = 0;
     },
   };

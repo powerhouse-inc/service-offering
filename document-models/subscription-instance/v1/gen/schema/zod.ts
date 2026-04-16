@@ -35,6 +35,7 @@ import type {
   RenewExpiringSubscriptionInput,
   ReportRecurringPaymentInput,
   ReportSetupPaymentInput,
+  ResetMetricCycleInput,
   ResetPeriod,
   ResourceDocument,
   ResumeSubscriptionInput,
@@ -490,6 +491,16 @@ export function ReportSetupPaymentInputSchema(): z.ZodObject<
     amount: z.number(),
     currency: z.string(),
     paymentDate: z.iso.datetime(),
+    serviceId: z.string(),
+  });
+}
+
+export function ResetMetricCycleInputSchema(): z.ZodObject<
+  Properties<ResetMetricCycleInput>
+> {
+  return z.object({
+    metricId: z.string(),
+    resetDate: z.iso.datetime(),
     serviceId: z.string(),
   });
 }

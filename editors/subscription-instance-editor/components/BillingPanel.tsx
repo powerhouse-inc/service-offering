@@ -15,6 +15,10 @@ import {
   type MetricOverage,
   type SetupCostLine,
 } from "./billing-utils.js";
+import {
+  reportSetupPayment,
+  reportRecurringPayment,
+} from "../../../document-models/subscription-instance/v1/gen/service/creators.js";
 
 interface BillingPanelProps {
   document: SubscriptionInstanceDocument;
@@ -22,7 +26,7 @@ interface BillingPanelProps {
   mode: ViewMode;
 }
 
-export function BillingPanel({ document }: BillingPanelProps) {
+export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
   const state = document.state.global;
   const breakdown = computeBillingBreakdown(state);
   const [setupExpanded, setSetupExpanded] = useState(false);
@@ -64,6 +68,8 @@ export function BillingPanel({ document }: BillingPanelProps) {
   const currency = breakdown.currency;
   const hasDynamicCosts = breakdown.dynamicTotal > 0;
   const hasFixedCosts = breakdown.fixedTotal > 0;
+  // Amount owed = totalDebt - totalCredit (D-7: raw difference, no floor)
+  // Overage is only in totalDebt after settlement — don't double-count
   const amountOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
 
   return (
@@ -73,57 +79,105 @@ export function BillingPanel({ document }: BillingPanelProps) {
         <h3 className="si-panel__title">Billing Projection</h3>
       </div>
 
-      {/* Billing Cycle & Debt/Credit Summary */}
-      {(state.currentBillingCycleStart || state.totalDebt != null) && (
+      {/* Billing Status — headline for both client and operator */}
+      {state.currentBillingCycleStart && (
         <div className="si-billing-summary">
-          {state.currentBillingCycleStart && (
-            <div className="si-billing-summary__item">
-              <span className="si-billing-summary__label">Cycle Start</span>
-              <span className="si-billing-summary__value">
-                {formatDate(state.currentBillingCycleStart)}
+          {/* Amount Owed — headline number with breakdown */}
+          <div
+            className={`si-billing-summary__item${amountOwed > 0 ? " si-billing-summary__item--alert" : ""}`}
+          >
+            <span className="si-billing-summary__label">
+              {amountOwed > 0
+                ? "Outstanding Balance"
+                : amountOwed < 0
+                  ? "Credit Balance"
+                  : "Balance"}
+            </span>
+            <span
+              className={`si-billing-summary__value ${amountOwed > 0 ? "si-billing-summary__value--danger" : amountOwed < 0 ? "si-billing-summary__value--success" : ""}`}
+            >
+              {amountOwed === 0
+                ? "Paid up"
+                : formatCurrency(Math.abs(amountOwed), currency)}
+            </span>
+            {amountOwed > 0 && (
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  color: "var(--si-slate-500)",
+                  marginTop: 2,
+                }}
+              >
+                {(() => {
+                  const parts: string[] = [];
+                  // Check for unpaid setup costs
+                  const unpaidSetup = state.serviceGroups
+                    .filter((g) => g.setupCost && !g.setupCost.paymentDate)
+                    .reduce((sum, g) => sum + (g.setupCost?.amount ?? 0), 0);
+                  if (unpaidSetup > 0)
+                    parts.push(
+                      `${formatCurrency(unpaidSetup, currency)} setup`,
+                    );
+                  // Check for recurring (totalDebt includes settled recurring + overage)
+                  const totalBilled = state.totalDebt ?? 0;
+                  const totalPaid = state.totalCredit ?? 0;
+                  const settled = totalBilled - unpaidSetup - totalPaid;
+                  if (settled > 0 && unpaidSetup > 0)
+                    parts.push(
+                      `${formatCurrency(settled, currency)} recurring/overage`,
+                    );
+                  // If all from one source, show overage breakdown
+                  if (parts.length === 0 && breakdown.dynamicTotal > 0) {
+                    for (const g of breakdown.groupBreakdowns) {
+                      for (const o of g.metricOverages) {
+                        parts.push(
+                          `${o.excess} ${o.unitName} overage on ${o.metricName}`,
+                        );
+                      }
+                    }
+                    for (const o of breakdown.standaloneOverages) {
+                      parts.push(
+                        `${o.excess} ${o.unitName} overage on ${o.metricName}`,
+                      );
+                    }
+                  }
+                  return parts.length > 0 ? parts.join(" + ") : null;
+                })()}
               </span>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Current Cycle */}
           <div className="si-billing-summary__item">
-            <span className="si-billing-summary__label">Next Payment</span>
+            <span className="si-billing-summary__label">Current Cycle</span>
+            <span className="si-billing-summary__value">
+              {formatDate(state.currentBillingCycleStart)} —{" "}
+              {formatDate(state.nextBillingDate)}
+            </span>
+          </div>
+
+          {/* Next Payment Due */}
+          <div className="si-billing-summary__item">
+            <span className="si-billing-summary__label">Next Payment Due</span>
             <span className="si-billing-summary__value">
               {formatDate(state.nextBillingDate)}
             </span>
           </div>
-          {state.totalDebt != null && (
-            <div className="si-billing-summary__item">
-              <span className="si-billing-summary__label">Total Debt</span>
-              <span className="si-billing-summary__value">
-                {formatCurrency(state.totalDebt, currency)}
-              </span>
-            </div>
-          )}
-          {state.totalCredit != null && (
-            <div className="si-billing-summary__item">
-              <span className="si-billing-summary__label">Total Credit</span>
-              <span className="si-billing-summary__value si-billing-summary__value--success">
-                {formatCurrency(state.totalCredit, currency)}
-              </span>
-            </div>
-          )}
-          {state.totalDebt != null && (
-            <div
-              className={`si-billing-summary__item${amountOwed > 0 ? " si-billing-summary__item--alert" : ""}`}
-            >
-              <span className="si-billing-summary__label">
-                {amountOwed >= 0 ? "Amount Owed" : "Credit Balance"}
-              </span>
-              <span
-                className={`si-billing-summary__value ${amountOwed > 0 ? "si-billing-summary__value--danger" : amountOwed < 0 ? "si-billing-summary__value--success" : ""}`}
-              >
-                {formatCurrency(Math.abs(amountOwed), currency)}
-              </span>
-            </div>
-          )}
+
+          {/* Billing Cycle */}
+          <div className="si-billing-summary__item">
+            <span className="si-billing-summary__label">Billing Cycle</span>
+            <span className="si-billing-summary__value">
+              {breakdown.billingCycle
+                ? breakdown.billingCycle.charAt(0) +
+                  breakdown.billingCycle.slice(1).toLowerCase()
+                : "—"}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Projection Summary Cards — Fixed + Dynamic breakdown */}
+      {/* Cost Projection — what the next settlement will charge */}
       <div className="si-billing-summary">
         <div className="si-billing-summary__item">
           <span className="si-billing-summary__label">Fixed</span>
@@ -299,6 +353,161 @@ export function BillingPanel({ document }: BillingPanelProps) {
           expanded={setupExpanded}
           onToggle={() => setSetupExpanded(!setupExpanded)}
         />
+      )}
+
+      {/* ─── Payment Actions (Operator Only) ─── */}
+      {mode === "operator" && state.status !== "PENDING" && (
+        <div className="si-billing-section" style={{ marginTop: 16 }}>
+          <div className="si-billing-section-label">
+            <span className="si-billing-section-label__text">
+              Report Payments
+            </span>
+          </div>
+
+          {/* Setup cost payments per group */}
+          {state.serviceGroups
+            .filter((g) => g.setupCost && !g.setupCost.paymentDate)
+            .map((group) => (
+              <div
+                key={`setup-${group.id}`}
+                className="si-billing-line si-billing-line--setup"
+                style={{ marginBottom: 4 }}
+              >
+                <span className="si-billing-line__name">
+                  {group.name} (setup)
+                </span>
+                <span className="si-billing-line__right">
+                  <span className="si-billing-line__amount si-billing-line__amount--setup">
+                    {formatCurrency(
+                      group.setupCost!.amount,
+                      group.setupCost!.currency,
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    className="si-btn si-btn--xs si-btn--success"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      const svc = group.services[0];
+                      if (svc) {
+                        dispatch(
+                          reportSetupPayment({
+                            serviceId: svc.id,
+                            paymentDate: new Date().toISOString(),
+                            amount: group.setupCost!.amount,
+                            currency: group.setupCost!.currency,
+                          }),
+                        );
+                      }
+                    }}
+                  >
+                    Mark Paid
+                  </button>
+                </span>
+              </div>
+            ))}
+
+          {/* Recurring cost payments per group */}
+          {state.serviceGroups
+            .filter((g) => g.recurringCost)
+            .map((group) => {
+              // Check if already paid this cycle
+              const paidThisCycle =
+                group.recurringCost!.lastPaymentDate &&
+                state.currentBillingCycleStart &&
+                group.recurringCost!.lastPaymentDate >=
+                  state.currentBillingCycleStart;
+              return (
+                <div
+                  key={`recur-${group.id}`}
+                  className="si-billing-line"
+                  style={{ marginBottom: 4 }}
+                >
+                  <span className="si-billing-line__name">
+                    {group.name} (recurring{" "}
+                    {formatBillingCycleSuffix(
+                      group.recurringCost!.billingCycle,
+                    )}
+                    )
+                  </span>
+                  <span className="si-billing-line__right">
+                    <span
+                      className={`si-billing-line__amount${paidThisCycle ? " si-billing-line__amount--paid" : ""}`}
+                    >
+                      {formatCurrency(
+                        group.recurringCost!.amount,
+                        group.recurringCost!.currency,
+                      )}
+                    </span>
+                    {paidThisCycle ? (
+                      <span className="si-billing-line__paid-tag">Paid</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="si-btn si-btn--xs si-btn--success"
+                        style={{ marginLeft: 8 }}
+                        onClick={() => {
+                          const svc = group.services[0];
+                          if (svc) {
+                            dispatch(
+                              reportRecurringPayment({
+                                serviceId: svc.id,
+                                paymentDate: new Date().toISOString(),
+                                amount: group.recurringCost!.amount,
+                                currency: group.recurringCost!.currency,
+                              }),
+                            );
+                          }
+                        }}
+                      >
+                        Report Payment
+                      </button>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+
+          {/* Standalone service payments */}
+          {state.services
+            .filter((s) => s.recurringCost)
+            .map((svc) => (
+              <div
+                key={`svc-${svc.id}`}
+                className="si-billing-line"
+                style={{ marginBottom: 4 }}
+              >
+                <span className="si-billing-line__name">
+                  {svc.name || "Service"} (recurring)
+                </span>
+                <span className="si-billing-line__right">
+                  <span className="si-billing-line__amount">
+                    {formatCurrency(
+                      svc.recurringCost!.amount,
+                      svc.recurringCost!.currency,
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    className="si-btn si-btn--xs si-btn--success"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      dispatch(
+                        reportRecurringPayment({
+                          serviceId: svc.id,
+                          paymentDate: new Date().toISOString(),
+                          amount: svc.recurringCost!.amount,
+                          currency: svc.recurringCost!.currency,
+                        }),
+                      );
+                    }}
+                  >
+                    Report Payment
+                  </button>
+                </span>
+              </div>
+            ))}
+        </div>
       )}
     </div>
   );

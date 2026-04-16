@@ -14,6 +14,7 @@ import {
   formatBillingCycleSuffix,
   formatDiscountBadge,
 } from "./billing-utils.js";
+import { removeServiceFromGroup } from "../../../document-models/subscription-instance/v1/gen/service-group/creators.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -139,6 +140,8 @@ interface ServiceCardProps {
   mode: ViewMode;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   customerName?: string | null;
+  groupId?: string;
+  subscriptionStatus?: string;
 }
 
 function ServiceCard({
@@ -146,6 +149,8 @@ function ServiceCard({
   mode,
   dispatch,
   customerName,
+  groupId,
+  subscriptionStatus,
 }: ServiceCardProps) {
   return (
     <div className="si-service-card">
@@ -177,6 +182,33 @@ function ServiceCard({
           ))}
         </div>
       )}
+
+      {/* Remove service from group (operator, ACTIVE/PENDING) */}
+      {mode === "operator" &&
+        groupId &&
+        (subscriptionStatus === "ACTIVE" ||
+          subscriptionStatus === "PENDING") && (
+          <div className="si-service-card__actions">
+            <button
+              type="button"
+              className="si-btn si-btn--xs si-btn--danger-ghost"
+              onClick={() => {
+                dispatch(
+                  removeServiceFromGroup({
+                    groupId,
+                    serviceId: service.id,
+                    effectiveDate:
+                      subscriptionStatus === "ACTIVE"
+                        ? new Date().toISOString()
+                        : undefined,
+                  }),
+                );
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        )}
     </div>
   );
 }
@@ -293,6 +325,8 @@ export function ServicesPanel({
                     mode={mode}
                     dispatch={dispatch}
                     customerName={state.customerName}
+                    groupId={group.id}
+                    subscriptionStatus={state.status}
                   />
                 ))}
               </div>
@@ -349,6 +383,8 @@ export function ServicesPanel({
                     mode={mode}
                     dispatch={dispatch}
                     customerName={state.customerName}
+                    groupId={group.id}
+                    subscriptionStatus={state.status}
                   />
                 ))}
               </div>

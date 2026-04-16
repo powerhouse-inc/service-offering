@@ -1,4 +1,3 @@
-import type { SubscriptionInstanceServiceOperations } from "document-models/subscription-instance/v1";
 import {
   RemoveServiceNotFoundError,
   UpdateServiceSetupCostNotFoundError,
@@ -11,7 +10,12 @@ import {
   SubscriptionNotActiveAddServiceError,
   SubscriptionNotActiveRemoveServiceError,
 } from "../../gen/service/error.js";
-import { calculateProratedCost } from "../utils.js";
+import {
+  calculateProratedCost,
+  findServiceById,
+  findGroupByServiceId,
+} from "../utils.js";
+import type { SubscriptionInstanceServiceOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceOperations =
   {
@@ -179,27 +183,53 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       }
     },
     reportSetupPaymentOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findServiceById(
+        action.input.serviceId,
+        state.services,
+        state.serviceGroups,
+      );
       if (!svc) {
         throw new ReportSetupPaymentServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
         );
       }
+      // Mark payment on the service's setup cost if it has one
       if (svc.setupCost) {
         svc.setupCost.paymentDate = action.input.paymentDate;
+      }
+      // Also mark payment on the parent group's setup cost if applicable
+      const group = findGroupByServiceId(
+        action.input.serviceId,
+        state.serviceGroups,
+      );
+      if (group?.setupCost) {
+        group.setupCost.paymentDate = action.input.paymentDate;
       }
       // D-3: Update totalCredit with payment amount
       state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
     },
     reportRecurringPaymentOperation(state, action) {
-      const svc = state.services.find((s) => s.id === action.input.serviceId);
+      const svc = findServiceById(
+        action.input.serviceId,
+        state.services,
+        state.serviceGroups,
+      );
       if (!svc) {
         throw new ReportRecurringPaymentServiceNotFoundError(
           `Service with ID ${action.input.serviceId} not found`,
         );
       }
+      // Mark payment on the service's recurring cost if it has one
       if (svc.recurringCost) {
         svc.recurringCost.lastPaymentDate = action.input.paymentDate;
+      }
+      // Also mark payment on the parent group's recurring cost if applicable
+      const group = findGroupByServiceId(
+        action.input.serviceId,
+        state.serviceGroups,
+      );
+      if (group?.recurringCost) {
+        group.recurringCost.lastPaymentDate = action.input.paymentDate;
       }
       // D-3: Update totalCredit with payment amount
       state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;

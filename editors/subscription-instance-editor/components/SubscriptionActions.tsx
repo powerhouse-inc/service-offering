@@ -12,6 +12,7 @@ import {
   cancelSubscription,
   renewExpiringSubscription,
   settleBillingCycle,
+  setAutoRenew,
 } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 
 interface SubscriptionActionsProps {
@@ -98,6 +99,7 @@ export function SubscriptionActions({
     "pause" | "cancel" | "resume" | "renew" | "settle" | null
   >(null);
   const [reason, setReason] = useState("");
+  const [settlementDate, setSettlementDate] = useState("");
 
   // Operator direct actions
   const handleActivate = useCallback(() => {
@@ -147,13 +149,13 @@ export function SubscriptionActions({
   }, [dispatch]);
 
   const handleOperatorSettle = useCallback(() => {
-    dispatch(
-      settleBillingCycle({
-        settlementDate: new Date().toISOString(),
-      }),
-    );
+    const date = settlementDate
+      ? new Date(settlementDate).toISOString()
+      : new Date().toISOString();
+    dispatch(settleBillingCycle({ settlementDate: date }));
     setConfirmAction(null);
-  }, [dispatch]);
+    setSettlementDate("");
+  }, [dispatch, settlementDate]);
 
   const handleConfirm = useCallback(() => {
     switch (confirmAction) {
@@ -191,6 +193,29 @@ export function SubscriptionActions({
   return (
     <>
       <div className="si-actions">
+        {/* Auto-Renew Toggle */}
+        {mode === "operator" && (isActive || isPaused || isExpiring) && (
+          <div className="si-actions__row">
+            <span className="si-actions__label">Auto-Renew</span>
+            <button
+              type="button"
+              className={`si-toggle ${state.autoRenew ? "si-toggle--active" : ""}`}
+              onClick={() =>
+                dispatch(setAutoRenew({ autoRenew: !state.autoRenew }))
+              }
+              title={
+                state.autoRenew
+                  ? "Auto-renew is ON — subscription will renew at cycle end"
+                  : "Auto-renew is OFF — subscription will expire at cycle end"
+              }
+            >
+              <span className="si-toggle__track">
+                <span className="si-toggle__thumb" />
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* Status Actions - contextual based on current status */}
         {mode === "operator" && (
           <div className="si-actions__buttons">
@@ -376,15 +401,86 @@ export function SubscriptionActions({
         onCancel={() => setConfirmAction(null)}
       />
 
-      <ConfirmModal
-        isOpen={confirmAction === "settle"}
-        title="Settle Billing Cycle"
-        message="This will calculate overage charges, reset applicable metrics, and advance to the next billing cycle (if auto-renew is on). Settlement date will be set to now."
-        confirmLabel="Settle Cycle"
-        confirmVariant="primary"
-        onConfirm={handleConfirm}
-        onCancel={() => setConfirmAction(null)}
-      />
+      {confirmAction === "settle" && (
+        <div
+          className="si-modal-overlay"
+          onClick={() => {
+            setConfirmAction(null);
+            setSettlementDate("");
+          }}
+        >
+          <div
+            className="si-modal si-modal--md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="si-modal__header">
+              <h3 className="si-modal__title">Settle Billing Cycle</h3>
+              <span className="si-modal__subtitle">
+                Current cycle:{" "}
+                {state.currentBillingCycleStart
+                  ? new Date(
+                      state.currentBillingCycleStart,
+                    ).toLocaleDateString()
+                  : "—"}{" "}
+                →{" "}
+                {state.nextBillingDate
+                  ? new Date(state.nextBillingDate).toLocaleDateString()
+                  : "—"}
+              </span>
+            </div>
+            <div className="si-modal__body">
+              <p className="si-modal__message">
+                This will calculate overage charges, reset applicable metrics,
+                and advance to the next billing cycle (if auto-renew is on).
+              </p>
+              <div className="si-form-group">
+                <label className="si-form-label">Settlement Date</label>
+                <input
+                  type="date"
+                  className="si-input"
+                  value={settlementDate}
+                  onChange={(e) => setSettlementDate(e.target.value)}
+                  min={
+                    state.currentBillingCycleStart
+                      ? state.currentBillingCycleStart.split("T")[0]
+                      : undefined
+                  }
+                />
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--si-slate-500)",
+                    marginTop: 4,
+                    display: "block",
+                  }}
+                >
+                  Leave empty for today. Use a future date to simulate billing
+                  cycles.
+                </span>
+              </div>
+            </div>
+            <div className="si-modal__footer">
+              <button
+                type="button"
+                className="si-btn si-btn--ghost"
+                onClick={() => {
+                  setConfirmAction(null);
+                  setSettlementDate("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="si-btn si-btn--primary"
+                onClick={handleConfirm}
+              >
+                Settle Cycle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

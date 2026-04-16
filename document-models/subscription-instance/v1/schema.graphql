@@ -527,6 +527,12 @@ input DecrementMetricUsageInput {
     decrementBy: Int!
 }
 
+input ResetMetricCycleInput {
+    serviceId: OID!
+    metricId: OID!
+    resetDate: DateTime!
+}
+
 # customer
 
 input SetCustomerTypeInput {

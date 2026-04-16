@@ -6,6 +6,7 @@ import type {
   RemoveServiceMetricAction,
   IncrementMetricUsageAction,
   DecrementMetricUsageAction,
+  ResetMetricCycleAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -38,6 +39,11 @@ export interface SubscriptionInstanceMetricsOperations {
   decrementMetricUsageOperation: (
     state: SubscriptionInstanceState,
     action: DecrementMetricUsageAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  resetMetricCycleOperation: (
+    state: SubscriptionInstanceState,
+    action: ResetMetricCycleAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

@@ -175,20 +175,36 @@ export function SubscriptionHeader({
       {/* Quick Stats */}
       <div className="si-header__stats">
         <div className="si-header__stat">
-          <span className="si-header__stat-value">{state.services.length}</span>
+          <span className="si-header__stat-value">{state.services.length + state.serviceGroups.reduce((acc, g) => acc + g.services.length, 0)}</span>
           <span className="si-header__stat-label">Services</span>
         </div>
-        {state.totalDebt != null && (
-          <div className="si-header__stat">
-            <span className="si-header__stat-value">
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: state.globalCurrency || "USD",
-              }).format(state.totalDebt - (state.totalCredit || 0))}
-            </span>
-            <span className="si-header__stat-label">Amount Owed</span>
-          </div>
-        )}
+        {state.totalDebt != null &&
+          (() => {
+            const owed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
+            const fmt = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: state.globalCurrency || "USD",
+            });
+            return (
+              <div className="si-header__stat">
+                <span
+                  className="si-header__stat-value"
+                  style={
+                    owed > 0
+                      ? { color: "var(--si-rose-600)" }
+                      : owed < 0
+                        ? { color: "var(--si-emerald-600)" }
+                        : undefined
+                  }
+                >
+                  {owed === 0 ? "Paid up" : fmt.format(Math.abs(owed))}
+                </span>
+                <span className="si-header__stat-label">
+                  {owed > 0 ? "Outstanding" : owed < 0 ? "Credit" : "Balance"}
+                </span>
+              </div>
+            );
+          })()}
         {state.nextBillingDate && (
           <DueCountdown date={state.nextBillingDate} label="Due Date" />
         )}

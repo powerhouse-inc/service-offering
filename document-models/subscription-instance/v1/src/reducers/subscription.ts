@@ -9,12 +9,12 @@ import {
   NoBillingCycleActiveError,
   SettlementDateBeforeCycleStartError,
 } from "../../gen/subscription/error.js";
-import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 import {
   calculateNextBillingDate,
   calculateOverageCost,
   shouldResetMetric,
 } from "../utils.js";
+import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {

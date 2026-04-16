@@ -12,7 +12,10 @@ export type ErrorCode =
   | "SubscriptionNotActiveIncrementUsageError"
   | "DecrementMetricUsageServiceNotFoundError"
   | "DecrementMetricUsageNotFoundError"
-  | "SubscriptionNotActiveDecrementUsageError";
+  | "SubscriptionNotActiveDecrementUsageError"
+  | "SubscriptionNotActiveResetMetricCycleError"
+  | "ResetMetricCycleServiceNotFoundError"
+  | "ResetMetricCycleMetricNotFoundError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -155,6 +158,36 @@ export class SubscriptionNotActiveDecrementUsageError
   }
 }
 
+export class SubscriptionNotActiveResetMetricCycleError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveResetMetricCycleError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveResetMetricCycleError") {
+    super(message);
+  }
+}
+
+export class ResetMetricCycleServiceNotFoundError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ResetMetricCycleServiceNotFoundError" as ErrorCode;
+  constructor(message = "ResetMetricCycleServiceNotFoundError") {
+    super(message);
+  }
+}
+
+export class ResetMetricCycleMetricNotFoundError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ResetMetricCycleMetricNotFoundError" as ErrorCode;
+  constructor(message = "ResetMetricCycleMetricNotFoundError") {
+    super(message);
+  }
+}
+
 export const errors = {
   AddServiceMetric: { AddServiceMetricServiceNotFoundError },
   UpdateMetric: { UpdateMetricServiceNotFoundError, UpdateMetricNotFoundError },
@@ -176,5 +209,10 @@ export const errors = {
     DecrementMetricUsageServiceNotFoundError,
     DecrementMetricUsageNotFoundError,
     SubscriptionNotActiveDecrementUsageError,
+  },
+  ResetMetricCycle: {
+    SubscriptionNotActiveResetMetricCycleError,
+    ResetMetricCycleServiceNotFoundError,
+    ResetMetricCycleMetricNotFoundError,
   },
 };
