@@ -19,6 +19,7 @@ import {
 import {
   removeServiceFromGroup,
   addServiceGroup,
+  removeServiceGroup,
 } from "../../../document-models/subscription-instance/v1/gen/service-group/creators.js";
 
 interface ServicesPanelProps {
@@ -510,6 +511,20 @@ export function ServicesPanel({
                     {formatBillingCycleSuffix(group.recurringCost.billingCycle)}
                   </span>
                 )}
+                {mode === "operator" &&
+                  (state.status === "ACTIVE" || state.status === "PENDING") && (
+                    <button
+                      type="button"
+                      className="si-btn si-btn--xs si-btn--danger-ghost"
+                      style={{ marginLeft: "auto" }}
+                      onClick={() =>
+                        dispatch(removeServiceGroup({ groupId: group.id }))
+                      }
+                      title="Remove this service group (D-2: prorated credit if active)"
+                    >
+                      Remove Group
+                    </button>
+                  )}
               </div>
               <div className="si-services-grid">
                 {group.services.map((service) => (
