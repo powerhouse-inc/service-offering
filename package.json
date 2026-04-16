@@ -65,7 +65,7 @@
     "check-circular-imports": "npx dpdm -T ./index.ts",
     "generate": "ph-cli generate",
     "connect": "ph-cli connect",
-    "build": "ph-cli build && node scripts/fix-browser-build.mjs",
+    "build": "ph-cli build",
     "prepublishOnly": "npm run build",
     "reactor": "ph-cli reactor",
     "service": "ph-cli service",
