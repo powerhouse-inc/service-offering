@@ -22,7 +22,7 @@ This document is the **single source of truth** for billing lifecycle business l
 - Stripe: configurable, default deferred (verified from Stripe developer docs)
 
 **Affected doc model changes**:
-- `addService` reducer — must call proration util and create `PRORATION_DEBIT` ledger entry
+- `addService` reducer — must call proration util and add prorated amount to `totalDebt`
 - `addServiceToGroup` reducer — same
 - `addServiceGroup` reducer — same
 - `AddServiceInput` — needs `effectiveDate: DateTime` field
@@ -49,7 +49,7 @@ This document is the **single source of truth** for billing lifecycle business l
 - Stripe: credit on next invoice (verified)
 
 **Affected doc model changes**:
-- `removeService` reducer — must call proration util and create `PRORATION_CREDIT` ledger entry
+- `removeService` reducer — must call proration util and add prorated amount to `totalCredit`
 - `removeServiceFromGroup` reducer — same
 - `removeServiceGroup` reducer — same
 - `RemoveServiceInput` — needs `effectiveDate: DateTime` field
@@ -61,22 +61,33 @@ This document is the **single source of truth** for billing lifecycle business l
 
 ---
 
-### D-3: Ledger Structure
+### D-3: Ledger Structure (REVISED)
 
-**Decision**: Explicit `ledgerEntries: [LedgerEntry!]!` array at root of `SubscriptionInstanceState`. Append-only. `totalDebt` and `totalCredit` are running counters updated alongside entries.
+**Decision**: Running counters only (`totalDebt`, `totalCredit`) on SubscriptionInstanceState. No ledger entries array. Transaction detail lives in the Reactor's operation history and the downstream `account-transactions` model.
 
-**Rationale**: Wouter (00:47:38): "we need to keep a record somewhere of these changes." Considered two approaches:
-1. Minimal — just `totalDebt` / `totalCredit` counters, reconstruct breakdown from operation history — rejected, because settlement reducer needs breakdown (overage vs proration vs recurring), editors need to display what contributed to the bill, and disputes need an audit trail
-2. Explicit ledger — **selected**, each financial event appends an entry with type, amount, date, and references
+**Rationale**: Wouter (00:47:38): "we need to keep a record somewhere of these changes." Initially designed an explicit `ledgerEntries: [LedgerEntry!]!` array — **rejected after Powerhouse pattern analysis**:
 
-**Why on SubscriptionInstance**: It's the only doc model that tracks the customer's billing relationship. ServiceOffering defines prices (no customer state), ResourceInstance handles provisioning (no financial state), ResourceTemplate and Facet have no billing concern.
+1. **Anti-pattern**: No existing Powerhouse doc model uses unbounded growing arrays for transaction history. State is a snapshot, not a transaction log. Existing payment fields (`lastPaymentDate`) are single-value overwrites, not arrays.
+2. **Reactor provides the audit trail**: Since Powerhouse follows event sourcing, every operation is immutable with index, timestamp, and hash. Filter operations by type (e.g., `SETTLE_BILLING_CYCLE`, `REPORT_RECURRING_PAYMENT`) to reconstruct billing history.
+3. **Dedicated finance model exists**: `powerhouse/account-transactions` (10 ops) already tracks individual financial transactions (debits, credits). Billing statements aggregate these downstream.
+
+Vault note: [[subscription billing state should carry counters not ledger arrays]]
+
+**What the state carries**:
+- `totalDebt: Amount_Money` — running sum of all charges, updated by reducers
+- `totalCredit: Amount_Money` — running sum of all payments/credits, updated by reducers
+- `amountOwed` = `totalDebt - totalCredit` — derived by util function, not stored
+
+**Where transaction detail lives**:
+- **Operation history** — filter by type and date range for billing cycle breakdown
+- **account-transactions model** — downstream recording of individual debits/credits (separate document)
 
 **Affected doc model changes**:
-- New `LedgerEntry` type in schema
-- New `LedgerEntryType` enum
-- New `LedgerDirection` enum
-- New state fields: `ledgerEntries`, `totalDebt`, `totalCredit`
-- Every reducer that touches money must append entries AND update counters
+- New state fields: `totalDebt`, `totalCredit` (no `ledgerEntries` array)
+- ~~New `LedgerEntry` type~~ — removed
+- ~~New `LedgerEntryType` enum~~ — removed
+- ~~New `LedgerDirection` enum~~ — removed
+- Every reducer that touches money updates the running counters directly
 
 ---
 
@@ -121,6 +132,165 @@ This document is the **single source of truth** for billing lifecycle business l
 
 ---
 
+### D-5: Pause/Resume — Continue Existing Cycle
+
+**Decision**: When a paused subscription resumes, it continues the existing billing cycle. `nextBillingDate` stays as-is. Paused days are lost.
+
+**Rationale**: Consistent with D-4 (cycle boundaries stay fixed). Considered three options:
+1. Continue existing cycle — **selected**. Simplest, no recalculation. Customer paid for 30 days, got 20. Pausing is typically an operator action (non-payment, maintenance), not a customer benefit.
+2. Extend cycle by paused duration — rejected. Shifts `nextBillingDate` and all future dates, contradicts the fixed-boundary principle from D-4.
+3. Start fresh cycle — rejected. Most complex — triggers early settlement of old cycle + new recurring charge on resume. Over-engineered for a pause scenario.
+
+**Affected doc model changes**:
+- `resumeSubscription` reducer — no billing logic needed. Just transitions status back to `ACTIVE` and sets timestamp. `nextBillingDate`, `currentBillingCycleStart`, `totalDebt`, `totalCredit` all remain unchanged.
+
+**Affected utils**:
+- None — proration during remaining days after resume uses original cycle boundaries as-is.
+
+---
+
+### D-6: Operation Status Matrix and Structural Change Boundaries
+
+**Decision**: Every operation on SubscriptionInstance is gated by subscription status. Structural changes (adding/removing entire service groups) are blocked on ACTIVE subscriptions. Mid-cycle changes are limited to services within existing groups and metric usage.
+
+#### Part 1: Status Guards
+
+No reducer currently checks `state.status`. All operations execute regardless of whether the subscription is PENDING, ACTIVE, PAUSED, EXPIRING, or CANCELLED. This is a gap — e.g., you can currently add services to a CANCELLED subscription.
+
+**Operation status matrix**:
+
+| Operation | PENDING | ACTIVE | PAUSED | EXPIRING | CANCELLED |
+|-----------|---------|--------|--------|----------|-----------|
+| `initializeSubscription` | Yes | — | — | — | — |
+| `activateSubscription` | Yes | — | — | — | — |
+| `addService` | Yes (setup) | Yes + proration | No | No | No |
+| `removeService` | Yes (setup) | Yes + proration | No | No | No |
+| `addServiceGroup` | Yes (setup) | **No** | No | No | No |
+| `removeServiceGroup` | Yes (setup) | **No** | No | No | No |
+| `addServiceToGroup` | Yes (setup) | Yes + proration | No | No | No |
+| `removeServiceFromGroup` | Yes (setup) | Yes + proration | No | No | No |
+| `updateServiceGroupCost` | Yes (setup) | No | No | No | No |
+| `updateMetricUsage` | — | Yes | No | No | No |
+| `incrementMetricUsage` | — | Yes | No | No | No |
+| `decrementMetricUsage` | — | Yes | No | No | No |
+| `reportSetupPayment` | Yes | Yes | Yes | Yes | Yes |
+| `reportRecurringPayment` | — | Yes | Yes | Yes | Yes |
+| `settleBillingCycle` | — | Yes | No | No | No |
+| `pauseSubscription` | — | Yes | — | — | — |
+| `resumeSubscription` | — | — | Yes | — | — |
+| `cancelSubscription` | — | Yes | Yes | Yes | — |
+| `setAutoRenew` | — | Yes | Yes | Yes | — |
+| `setRenewalDate` | — | Yes | Yes | Yes | — |
+| `setOperatorNotes` | Yes | Yes | Yes | Yes | Yes |
+| `updateCustomerInfo` | Yes | Yes | Yes | Yes | — |
+| `updateTierInfo` | Yes | Yes | — | — | — |
+
+**Key principles**:
+- **PENDING** = setup phase, all configuration allowed, no billing impact (no active cycle)
+- **ACTIVE** = full operational state with billing, proration on service changes
+- **PAUSED** = frozen, only payments and administrative operations (per D-5 and OQ-5)
+- **EXPIRING** = winding down, no new services, payments still accepted to settle debt
+- **CANCELLED** = terminal, only payment reporting to clear outstanding balance
+
+Wouter (00:47:38): *"from the moment you cancel there can't be any additional usage. That's it."*
+
+#### Part 2: Structural Changes Blocked on ACTIVE
+
+**Decision**: `addServiceGroup` and `removeServiceGroup` are blocked when status = ACTIVE. Only `addServiceToGroup` / `removeServiceFromGroup` (within existing groups) are allowed mid-cycle.
+
+**Rationale — where do service groups come from?**
+
+The subscription instance is created as a **one-time snapshot** from the service offering via `mapOfferingToSubscription()` (see `editors/subscription-instance-editor/components/mapOfferingToSubscription.ts`). This function:
+
+1. Takes the selected tier and customer's purchase choices
+2. Maps option group breakdowns → required service groups (`optional: false`)
+3. Maps add-on breakdowns → optional service groups (`optional: true`)
+4. Maps standalone services not in any group
+5. Produces an `InitializeSubscriptionInput` — a point-in-time snapshot
+
+After creation, the subscription is **independent** — there is no back-sync with the service offering. Vault note: [[subscription import creates a one-time snapshot from service offering with no back-sync]].
+
+This means adding a service group to an ACTIVE subscription has a **sourcing problem**:
+
+| Scenario | Where does the group config come from? | Problem |
+|----------|---------------------------------------|---------|
+| Customer wants an add-on they didn't pick at purchase | Would need to re-read the service offering and run `mapOfferingToSubscription` for just that group | Offering may have changed since subscription creation — prices, services, billing cycles could all be different |
+| Operator creates a custom group | Invented from scratch, not in the catalog | Contradicts the catalog model — pricing has no basis in the offering |
+| Offering updated, customer wants new group | Re-read offering for the new group only | No back-sync mechanism exists; partial re-import is undefined |
+
+**What Wouter actually described** (00:44:40–00:47:38):
+
+Wouter's mid-cycle examples were all **within existing structure**:
+- *"you add a user, you add a seat"* — incrementing within an existing service/metric
+- *"if three days in I decide to add a third seat"* — adding capacity, not a new group
+- *"if I'm adding a new server, I'm not paying anything, it's just pure overage cost"* — usage within existing metrics
+
+He never discussed adding entirely new service groups mid-cycle. The Dropbox seat example, the AWS server example — all are changes **within** the existing subscription structure.
+
+Apeiron confirmed the current limitation (00:49:12): *"currently the subscription instance is not... except for the metrics edits. You cannot add stuff or like currently you cannot increase like per seat, we don't have this, you cannot currently add new service groups to an existing subscription."*
+
+Wouter's response was to ask for a BA on the mechanism — but the mechanism he described was proration on **service-level changes**, not group-level structural changes.
+
+**Conclusion**: Mid-cycle changes operate **within the snapshot** — add/remove services within existing groups, track usage on existing metrics, prorate costs. Adding new groups requires an upgrade flow that is a separate feature (re-reads the offering, resolves price drift, creates new group with proper sourcing). This is out of scope for the billing lifecycle BA.
+
+**Affected doc model changes**:
+- All reducers — add status guard as first check, throw specific error if status not allowed
+- New error types:
+  - `SubscriptionNotActiveError` — for operations requiring ACTIVE status
+  - `SubscriptionPausedError` — for operations blocked during PAUSED
+  - `SubscriptionCancelledError` — for operations blocked after cancellation
+  - `StructuralChangeNotAllowedError` — for `addServiceGroup`/`removeServiceGroup` on ACTIVE subscription
+- `addServiceGroup` / `removeServiceGroup` — allowed in PENDING only
+- `addServiceToGroup` / `removeServiceFromGroup` — allowed in PENDING and ACTIVE (with proration in ACTIVE)
+
+#### Future work (out of scope)
+
+- **Subscription upgrade flow** — re-read offering to add groups post-activation. Requires: offering version tracking, price drift resolution, partial re-import logic. Separate BA + PRD needed.
+- **Subscription downgrade flow** — remove groups post-activation with billing impact. Same complexity as upgrade.
+
+---
+
+### D-7: Negative Balance — Carry Forward
+
+**Decision**: When `totalDebt - totalCredit` is negative (customer overpaid), the surplus carries forward naturally. No special handling in the document model.
+
+**Rationale**: Considered three options:
+1. Carry forward — **selected**. The counters are cumulative and keep running. If credit > debt, the customer is ahead. Next cycle's recurring charge adds to `totalDebt`, bringing the balance back toward zero naturally. Zero reducer complexity — the math just works.
+2. Refund — rejected for now. Refunds are a payment layer concern (Stripe), not a document model concern. The doc model tracks what's owed, not how to move money. If a refund is needed, it's dispatched externally and reported back via `reportRecurringPayment` (which adds to `totalCredit` — or in this case, a future adjustment operation could subtract from `totalCredit`).
+3. Cap at zero — rejected. Capping hides the surplus. The operator needs to see that the customer has excess credit so they can decide whether to refund or let it apply to the next cycle.
+
+**Real-world validation**:
+- Slack: credits are non-refundable, auto-applied to future charges (verified from Slack help center)
+- Stripe: customer credit balance carries forward, applied before determining amount due on next invoice (verified from Stripe developer docs)
+
+**Affected doc model changes**:
+- None. No special handling needed in any reducer.
+- `calculateAmountOwed(state)` util returns `totalDebt - totalCredit` without floor — negative value means customer has credit surplus.
+
+**Affected utils**:
+- `calculateAmountOwed()` — returns raw difference, can be negative. Callers (editors, subgraph) decide how to display it (e.g., "Credit balance: $50" vs "Amount owed: $200").
+
+---
+
+### D-8: Outstanding Debt at Settlement — No Guard, UI Concern
+
+**Decision**: Settlement always succeeds regardless of outstanding debt. Accumulated debt is a derived value surfaced in the UI, not a reducer gate.
+
+**Rationale**: Considered three options:
+1. No guard, always succeed — **selected**. Blocking settlement because of unpaid debt is counterproductive — the current cycle's overage keeps accruing uncaptured, making the debt worse. The operator can always see `calculateAmountOwed()` in the editor/dashboard.
+2. Warn but proceed — rejected. **Powerhouse reducers have no warning mechanism.** Operations either succeed (state mutates) or throw an error (state unchanged, error recorded on the operation). There is no middle ground. No existing reducer in the codebase returns a warning alongside a successful mutation.
+3. Block with error — rejected. Would prevent operators from closing books on new cycles until old debt is cleared, creating a cascading backlog.
+
+**Powerhouse alignment**: Warnings as a concept don't exist in reducers. The `.error` property on operations is binary — it's a failure, not a warning. Derived state like "you have outstanding debt" is a UI/query concern. The editor reads `calculateAmountOwed()` and displays it. The reducer's job is to mutate state correctly, not to make business judgment calls about whether the operator should proceed.
+
+**Affected doc model changes**:
+- None. No error types, no state fields, no reducer guards.
+
+**Affected utils**:
+- `calculateAmountOwed(state)` — already defined (D-7). Returns `totalDebt - totalCredit`. Positive = debt outstanding, negative = credit surplus. The editor/dashboard uses this to show alerts, badges, or warnings — that's a presentation concern.
+
+---
+
 ## Open Questions
 
 ### OQ-2: On early settlement + renewal, does the new cycle start from `settlementDate` or original `nextBillingDate`?
@@ -133,135 +303,67 @@ This document is the **single source of truth** for billing lifecycle business l
 
 ### OQ-3: What happens to mid-cycle change records when a cycle settles?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-3 revised)
 
-**Context**: When a cycle settles, the ledger entries for that cycle (PRORATION_DEBIT, PRORATION_CREDIT, OVERAGE_CHARGE, etc.) remain in the `ledgerEntries` array. They each have a `billingCycleStart` reference. The question is whether the array grows unbounded or we need lifecycle management.
-
-**Options**:
-- A. Keep all entries forever (append-only, no cleanup) — simplest, full audit trail, but array grows
-- B. Archive entries older than N cycles — reduces state size but needs an archive mechanism
-- C. Summarize old cycles into a single `CYCLE_SUMMARY` entry — compresses history but loses detail
-
-**Affects**:
-- `LedgerEntry` type — if option C, need a `CYCLE_SUMMARY` entry type
-- `settleBillingCycle` reducer — if option B/C, needs cleanup/summary logic
-- Long-term state size of subscription documents
+**Answer**: No longer applicable. There are no ledger entries on state to manage. The Reactor's operation history is the audit trail and is managed by the platform, not by our reducers. Transaction detail for billing lives in the `account-transactions` model downstream.
 
 ---
 
 ### OQ-4: When a paused subscription resumes, does it continue the existing cycle or start a new one?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-5)
 
-**Context**: Subscription goes ACTIVE → PAUSED → ACTIVE (resumed). The billing cycle was, say, April 1–30. Subscription was paused on April 10, resumed on April 20.
-
-**Options**:
-- A. Continue existing cycle — `nextBillingDate` stays April 30, usage tracking resumes, 10 lost days are just lost
-- B. Extend cycle — `nextBillingDate` shifts to May 10 (original end + paused duration), customer gets the full paid-for period
-- C. Start fresh cycle — new cycle begins from resume date
-
-**Affects**:
-- `resumeSubscription` reducer — if B, must recalculate `nextBillingDate`; if C, must create new `RECURRING_CHARGE` ledger entry
-- `currentBillingCycleStart` — if C, must be reset to resume date
-- Proration calculations — if A, mid-cycle changes during the remaining 10 days use the original cycle boundaries
+**Answer**: Continue existing cycle. `nextBillingDate` stays as-is. Paused days are lost — no extension, no fresh cycle.
 
 ---
 
 ### OQ-5: Can services be added/removed while subscription is paused?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-6)
 
-**Context**: If paused, should the operator or customer be able to modify the service configuration?
-
-**Options**:
-- A. No changes while paused — all add/remove operations reject with error if status ≠ ACTIVE
-- B. Allow changes, but no billing impact until resumed — changes queue up, proration calculated from resume date
-- C. Allow changes with immediate billing impact — same as ACTIVE behavior
-
-**Affects**:
-- `addService`, `removeService`, `addServiceToGroup`, `removeServiceFromGroup` reducers — need status guard if A
-- Error types — need `SubscriptionPausedError` if A
-- Proration logic — if B, `effectiveDate` must be the resume date, not the change date
+**Answer**: No. All service add/remove operations are blocked when status = PAUSED. The subscription is frozen — operator must resume first, then make changes with normal proration. This is consistent with the resource instance pattern where configuration locks after activation requiring suspension to reconfigure.
 
 ---
 
-### OQ-6: Should the ledger be append-only (entries never modified/deleted) or can entries be voided/reversed?
+### OQ-6: Should the ledger be append-only or can entries be voided/reversed?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-3 revised)
 
-**Context**: What if an entry was created in error? A payment was reported incorrectly? An overage was miscalculated?
-
-**Options**:
-- A. Strict append-only — to correct an error, you add a reversing entry (e.g., negative `PAYMENT` to undo an incorrect payment). Original entry stays. This is standard accounting practice (double-entry principle).
-- B. Allow void/delete — entries can be marked as voided or removed. Simpler but loses audit trail.
-
-**Affects**:
-- `LedgerEntry` type — if A, may need a `reversesEntryId: OID` field to link corrections; if B, need a `voided: Boolean` field
-- New operations — if A, need a `REVERSE_LEDGER_ENTRY` or `CORRECTION` entry type; if B, need a `VOID_LEDGER_ENTRY` operation
-- `totalDebt` / `totalCredit` counters — must be recalculated on reversal/void
+**Answer**: No longer applicable. There is no ledger on state. Error correction for the running counters (`totalDebt`, `totalCredit`) is handled by dispatching a corrective operation (e.g., a negative payment report or an adjustment operation). The Reactor's operation history records both the original and the correction, providing the audit trail.
 
 ---
 
 ### OQ-7: Do we need a `CYCLE_SUMMARY` entry type?
 
-**Status**: OPEN (linked to OQ-3)
+**Status**: RESOLVED (see D-3 revised)
 
-**Context**: At settlement, should the reducer create a summary entry that captures the totals for that cycle? This would make it easy to display "Cycle April: $450 charged, $400 paid, $50 outstanding" without re-aggregating all entries.
-
-**Options**:
-- A. Yes — `CYCLE_SUMMARY` entry created at settlement with breakdown (total overage, total recurring, total proration, total payments for that cycle)
-- B. No — derive cycle summaries from the ledger entries on read (query function in utils)
-
-**Affects**:
-- `LedgerEntryType` enum — if A, add `CYCLE_SUMMARY`
-- `LedgerEntry` type — if A, may need additional fields for breakdown amounts
-- `settleBillingCycle` reducer — if A, must create the summary entry
-- Utils — if B, need `summarizeCycle(ledgerEntries, cycleStart)` function
+**Answer**: No ledger entries exist on state. Cycle summaries are derived on read by a util function that filters the Reactor's operation history by type and date range: `summarizeCycle(operations, cycleStart, cycleEnd)`.
 
 ---
 
 ### OQ-8: Is the ledger single-currency or per-entry?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-3 revised)
 
-**Context**: `SubscriptionInstanceState` already has `globalCurrency`. Individual services and metrics have their own `currency` fields. The ledger needs to handle amounts — in one currency or many?
-
-**Options**:
-- A. Single currency (globalCurrency) — all ledger entries use `globalCurrency`. Conversion happens before entry creation. Simpler arithmetic.
-- B. Per-entry currency — each `LedgerEntry` has its own `currency`. Requires conversion logic when summing totals. More flexible but much more complex.
-
-**Affects**:
-- `LedgerEntry` type — if A, `currency` field could be removed (implied by `globalCurrency`); if B, keep it and add conversion utils
-- `totalDebt` / `totalCredit` — if B, these must specify their currency and conversion rates become a concern
-- `calculateAmountOwed()` util — if B, needs currency conversion logic
+**Answer**: No ledger on state. The `totalDebt` and `totalCredit` counters use `globalCurrency` (already on SubscriptionInstanceState). All reducer calculations convert to `globalCurrency` before updating the counters. Currency is not a per-entry concern since there are no entries — it's a per-counter concern, and both counters share `globalCurrency`.
 
 ---
 
 ### OQ-9: What if `totalDebt - totalCredit` is negative at settlement (customer overpaid)?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-7)
 
-**Context**: Customer has more credit than debt — e.g., they made a large payment, then removed services generating more credits.
-
-**Options**:
-- A. Carry forward — negative balance (credit surplus) rolls into the next cycle, reduces next cycle's effective charge
-- B. Refund — trigger a refund mechanism (likely Stripe-side, not in doc model)
-- C. Cap at zero — `amountOwed` is `max(0, totalDebt - totalCredit)`, surplus just sits as excess credit
-
-**Affects**:
-- `calculateAmountOwed()` util — if C, add floor at zero
-- Settlement reducer — if A, no special handling needed (math just works); if B, need a new `REFUND` entry type
-- Stripe integration (downstream) — if B, refund trigger needed
+**Answer**: Carry forward. Negative balance rolls naturally into the next cycle. No special handling in the doc model.
 
 ---
 
 ### OQ-10: Should settlement fail/warn if there's unsettled debt from previous cycles?
 
-**Status**: OPEN
+**Status**: RESOLVED (see D-8)
 
-**Context**: Operator settles cycle 2, but cycle 1's debt was never fully paid (totalDebt > totalCredit from cycle 1).
+**Answer**: No guard. Settlement always succeeds. Outstanding debt is a derived value (`calculateAmountOwed()`) surfaced in the UI, not a reducer concern.
 
-**Options**:
+**Previous options considered**:
 - A. No guard — settlement always succeeds. Unpaid debt from previous cycles just accumulates. The running totals reflect the full history.
 - B. Warn but proceed — settlement succeeds but reducer adds a flag or note indicating outstanding previous debt
 - C. Block — settlement fails if there's outstanding debt from prior cycles
@@ -275,13 +377,15 @@ This document is the **single source of truth** for billing lifecycle business l
 
 ## Cross-Reference: Open Questions → Doc Model Impact
 
-| OQ | Schema Impact | Reducer Impact | Utils Impact |
-|----|--------------|----------------|--------------|
-| OQ-3 | `LedgerEntryType` (if CYCLE_SUMMARY) | `settleBillingCycle` (cleanup logic) | None |
-| OQ-4 | None | `resumeSubscription` (cycle continuation vs reset) | `calculateNextBillingDate` (if extending) |
-| OQ-5 | Error types (if blocking changes) | `addService`, `removeService` (status guard) | Proration (effectiveDate logic) |
-| OQ-6 | `LedgerEntry` (reversal fields) | New operation or entry type for corrections | Counter recalculation |
-| OQ-7 | `LedgerEntryType` (CYCLE_SUMMARY) | `settleBillingCycle` (summary creation) | `summarizeCycle()` function |
-| OQ-8 | `LedgerEntry.currency` field scope | All reducers creating entries | Conversion utils if multi-currency |
-| OQ-9 | Possibly `REFUND` entry type | Settlement (floor logic or refund trigger) | `calculateAmountOwed()` floor |
-| OQ-10 | Possibly error type | `settleBillingCycle` (balance check) | None |
+| OQ | Status | Schema Impact | Reducer Impact | Utils Impact |
+|----|--------|--------------|----------------|--------------|
+| OQ-1 | RESOLVED (D-4) | None | Settlement overage window logic | `calculateOverageCost` date range |
+| OQ-2 | RESOLVED (D-4) | None | None — cycle boundaries stay fixed | None |
+| OQ-3 | RESOLVED (D-3) | No ledger on state | No cleanup needed | None |
+| OQ-4 | RESOLVED (D-5) | None | `resumeSubscription` — no billing changes needed | None |
+| OQ-5 | RESOLVED (D-6) | Error types for status guards | All service/group reducers get status checks | None |
+| OQ-6 | RESOLVED (D-3) | No ledger on state | Corrective operations update counters | None |
+| OQ-7 | RESOLVED (D-3) | No ledger on state | None | `summarizeCycle()` reads operation history |
+| OQ-8 | RESOLVED (D-3) | No ledger — counters use globalCurrency | All counter updates in globalCurrency | None |
+| OQ-9 | RESOLVED (D-7) | None | None — math just works | `calculateAmountOwed()` returns raw difference, no floor |
+| OQ-10 | RESOLVED (D-8) | None | None — settlement always succeeds | `calculateAmountOwed()` surfaces debt in UI |

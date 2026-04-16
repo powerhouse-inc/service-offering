@@ -169,79 +169,81 @@ Define what happens financially when a subscription transitions from `PENDING` t
 
 All changes below are to `document-models/subscription-instance/v1/schema.graphql`. **Blocked on Track 1 completion.**
 
-### SC-1. New types
+Cross-reference: every change below maps to a decision in [billing-lifecycle-business-logic.md](billing-lifecycle-business-logic.md).
+
+### SC-1. New state fields on SubscriptionInstanceState
+
+No new types needed (D-3 revised: no ledger on state).
+
+| Field | Type | Purpose | Decision |
+|-------|------|---------|----------|
+| `currentBillingCycleStart` | `DateTime` | Explicit start of current billing cycle (currently implied) | D-4 |
+| `totalDebt` | `Amount_Money` | Running sum of all charges, in `globalCurrency` | D-3, D-7 |
+| `totalCredit` | `Amount_Money` | Running sum of all payments/credits, in `globalCurrency` | D-3, D-7 |
+
+**Fate of existing fields**:
+- `projectedBillAmount` / `projectedBillCurrency` — **remove**. These are now derived values: `totalDebt - totalCredit` via `calculateAmountOwed()` util. Keeping them creates dual sources of truth.
+- `nextBillingDate` — **keep**. Still needed as the cycle end boundary.
+- `renewalDate` — **keep**. Used by `setRenewalDate` operation.
+
+### SC-2. New operation
+
+| Operation | Module | Input | Decision |
+|-----------|--------|-------|----------|
+| `SETTLE_BILLING_CYCLE` | `subscription` | `{ settlementDate: DateTime! }` | D-4 |
+
+### SC-3. Updated operation inputs
+
+| Operation | Field to add | Purpose | Decision |
+|-----------|-------------|---------|----------|
+| `AddServiceInput` | `effectiveDate: DateTime` | Proration anchor for mid-cycle add | D-1 |
+| `RemoveServiceInput` | `effectiveDate: DateTime` | Proration anchor for mid-cycle remove | D-2 |
+| `AddServiceToGroupInput` | `effectiveDate: DateTime` | Proration anchor for mid-cycle add within group | D-1 |
+| `RemoveServiceFromGroupInput` | `effectiveDate: DateTime` | Proration anchor for mid-cycle remove within group | D-2 |
+| `ReportSetupPaymentInput` | `amount: Amount_Money!, currency: Currency!` | Currently only has `paymentDate` — needs amount for counter update | D-3 |
+| `ReportRecurringPaymentInput` | `amount: Amount_Money!, currency: Currency!` | Same | D-3 |
+
+**Not updated** (per D-6):
+- `AddServiceGroupInput` — no `effectiveDate` needed because `addServiceGroup` is blocked on ACTIVE subscriptions. Only allowed in PENDING (setup phase, no proration).
+- `RemoveServiceGroupInput` — same reasoning.
+
+### SC-4. Error types
+
+| Error | Operations | Condition | Decision |
+|-------|-----------|-----------|----------|
+| `NoBillingCycleActiveError` | `SETTLE_BILLING_CYCLE` | Status is not `ACTIVE` | D-4, D-6 |
+| `SettlementDateBeforeCycleStartError` | `SETTLE_BILLING_CYCLE` | `settlementDate` < `currentBillingCycleStart` | D-4 |
+| `SubscriptionNotActiveError` | `ADD_SERVICE`, `REMOVE_SERVICE`, `ADD_SERVICE_TO_GROUP`, `REMOVE_SERVICE_FROM_GROUP`, `UPDATE_METRIC_USAGE`, `INCREMENT_METRIC_USAGE`, `DECREMENT_METRIC_USAGE` | Operation requires ACTIVE status but subscription is PAUSED, EXPIRING, or CANCELLED | D-6 |
+| `SubscriptionPausedError` | `ADD_SERVICE`, `REMOVE_SERVICE`, `ADD_SERVICE_TO_GROUP`, `REMOVE_SERVICE_FROM_GROUP` | Subscription is PAUSED — must resume first | D-5, D-6 |
+| `StructuralChangeNotAllowedError` | `ADD_SERVICE_GROUP`, `REMOVE_SERVICE_GROUP` | Subscription is ACTIVE — structural changes only allowed in PENDING | D-6 |
+| `SubscriptionCancelledError` | Service/metric operations | Subscription is CANCELLED — only payment reporting allowed | D-6 |
+
+### SC-5. Summary of schema delta
 
 ```graphql
-enum LedgerEntryType {
-    SETUP_CHARGE
-    RECURRING_CHARGE
-    OVERAGE_CHARGE
-    PRORATION_DEBIT
-    PRORATION_CREDIT
-    PAYMENT
+# --- NEW FIELDS on SubscriptionInstanceState ---
+# (add after existing fields)
+currentBillingCycleStart: DateTime
+totalDebt: Amount_Money
+totalCredit: Amount_Money
+
+# --- REMOVED FIELDS from SubscriptionInstanceState ---
+# projectedBillAmount: Amount_Money    ← removed, now derived
+# projectedBillCurrency: Currency      ← removed, now derived
+
+# --- NEW OPERATION INPUT ---
+input SettleBillingCycleInput {
+    settlementDate: DateTime!
 }
 
-enum LedgerDirection {
-    DEBIT
-    CREDIT
-}
-
-type LedgerEntry {
-    id: OID!
-    type: LedgerEntryType!
-    direction: LedgerDirection!
-    amount: Amount_Money!
-    currency: Currency!
-    date: DateTime!
-    billingCycleStart: DateTime      # which cycle this entry belongs to
-    serviceId: OID                   # optional: which service
-    serviceGroupId: OID              # optional: which group
-    metricId: OID                    # optional: which metric (overage)
-    description: String
-}
+# --- UPDATED INPUTS (new optional field) ---
+# AddServiceInput: + effectiveDate: DateTime
+# RemoveServiceInput: + effectiveDate: DateTime
+# AddServiceToGroupInput: + effectiveDate: DateTime
+# RemoveServiceFromGroupInput: + effectiveDate: DateTime
+# ReportSetupPaymentInput: + amount: Amount_Money!, currency: Currency!
+# ReportRecurringPaymentInput: + amount: Amount_Money!, currency: Currency!
 ```
-
-*Pending BA: entry types and fields may change based on OQ-6, OQ-7, OQ-8*
-
-### SC-2. New fields on SubscriptionInstanceState
-
-| Field | Type | Purpose |
-|-------|------|---------|
-| `currentBillingCycleStart` | `DateTime` | Explicit cycle start (currently implied) |
-| `totalDebt` | `Amount_Money` | Sum of all debit ledger entries |
-| `totalCredit` | `Amount_Money` | Sum of all credit ledger entries |
-| `ledgerEntries` | `[LedgerEntry!]!` | Explicit financial event log |
-
-*Pending BA: decide fate of `projectedBillAmount` / `projectedBillCurrency` — keep, rename to `unsettledAmount`, or remove in favor of ledger-derived calculation*
-
-### SC-3. New operation
-
-| Operation | Module | Input |
-|-----------|--------|-------|
-| `SETTLE_BILLING_CYCLE` | `subscription` | `{ settlementDate: DateTime! }` |
-
-*Pending BA: input may grow based on OQ-1, OQ-2 decisions*
-
-### SC-4. Updated operation inputs
-
-| Operation | Field to add | Purpose |
-|-----------|-------------|---------|
-| `AddServiceInput` | `effectiveDate: DateTime` | Proration anchor |
-| `RemoveServiceInput` | `effectiveDate: DateTime` | Proration anchor |
-| `AddServiceToGroupInput` | `effectiveDate: DateTime` | Proration anchor |
-| `RemoveServiceFromGroupInput` | `effectiveDate: DateTime` | Proration anchor |
-| `AddServiceGroupInput` | `effectiveDate: DateTime` | Proration anchor |
-| `RemoveServiceGroupInput` | `effectiveDate: DateTime` | Proration anchor |
-| `ReportSetupPaymentInput` | `amount: Amount_Money!, currency: Currency!` | Currently only has `paymentDate` — needs amount for ledger |
-| `ReportRecurringPaymentInput` | `amount: Amount_Money!, currency: Currency!` | Same |
-
-### SC-5. Error types for new operation
-
-| Error | Operation | Condition |
-|-------|-----------|-----------|
-| `NoBillingCycleActiveError` | `SETTLE_BILLING_CYCLE` | Status is not `ACTIVE` |
-| `SettlementDateBeforeCycleStartError` | `SETTLE_BILLING_CYCLE` | `settlementDate` < `currentBillingCycleStart` |
-| `SubscriptionNotActiveError` | `ADD_SERVICE` (mid-cycle) | Can't add service to non-active subscription |
 
 ---
 
@@ -255,81 +257,110 @@ Implementation of business logic. **Blocked on Track 1 + Track 2 completion.**
 
 Pure functions, no state mutation. Called by reducers, editors, and subgraph resolvers.
 
-| Function | Purpose |
-|----------|---------|
-| `calculateProratedCost(amount, cycleStart, cycleEnd, effectiveDate)` | Core proration formula: `(remainingDays / totalCycleDays) × amount` |
-| `calculateOverageCost(metric)` | Per-metric: `max(0, currentUsage - freeLimit) × unitCost`, capped at paidLimit |
-| `calculateTotalOverage(services)` | Sum overage across all metrics in all services |
-| `calculateUnsettledBill(state, asOfDate)` | What is owed right now without settling — reads ledger + projects overage |
-| `calculateAmountOwed(state)` | `totalDebt - totalCredit` |
-| `calculateNextBillingDate(fromDate, billingCycle)` | Adds cycle duration to a date |
-| `shouldResetMetric(metric, settlementDate)` | Whether a metric's reset period aligns with settlement |
+| Function | Purpose | Decision |
+|----------|---------|----------|
+| `calculateProratedCost(amount, cycleStart, cycleEnd, effectiveDate)` | Core proration formula: `(remainingDays / totalCycleDays) * amount` | D-1, D-2 |
+| `calculateOverageCost(metric, cycleStart, endDate)` | Per-metric: `max(0, currentUsage - freeLimit) * unitCost`, capped at paidLimit. `endDate` = `min(settlementDate, nextBillingDate)` | D-4 |
+| `calculateTotalOverage(services, cycleStart, endDate)` | Sum overage across all metrics in all services | D-4 |
+| `calculateUnsettledBill(state, asOfDate)` | What is owed right now without settling — projects overage from current usage | D-3 |
+| `calculateAmountOwed(state)` | `totalDebt - totalCredit`. Can be negative (credit surplus, per D-7). No floor. | D-3, D-7 |
+| `calculateNextBillingDate(fromDate, billingCycle)` | Adds cycle duration to a date | D-4 |
+| `shouldResetMetric(metric, settlementDate)` | Whether a metric's `usageResetPeriod` aligns with settlement | BA-4 |
+| `summarizeCycle(operations, cycleStart, cycleEnd)` | Derives cycle breakdown from Reactor operation history (filters by type and date range) | D-3 |
 
-### PR-2. Updated Reducers
+### PR-2. Status Guards (all reducers)
 
-| Reducer | Changes |
-|---------|---------|
-| **`activateSubscription`** | Initialize `currentBillingCycleStart`, calculate `nextBillingDate`, create `SETUP_CHARGE` + `RECURRING_CHARGE` ledger entries, set `totalDebt` |
-| **`addService`** | If subscription is `ACTIVE` + has `effectiveDate`: call proration util, create `PRORATION_DEBIT` ledger entry, update `totalDebt` |
-| **`removeService`** | If subscription is `ACTIVE` + has `effectiveDate`: call proration util, create `PRORATION_CREDIT` ledger entry, update `totalCredit` |
-| **`addServiceToGroup`** | Same proration logic as `addService` |
-| **`removeServiceFromGroup`** | Same proration logic as `removeService` |
-| **`addServiceGroup`** | Same proration logic at group level |
-| **`removeServiceGroup`** | Same proration logic at group level |
-| **`reportSetupPayment`** | Create `PAYMENT` ledger entry, update `totalCredit` |
-| **`reportRecurringPayment`** | Create `PAYMENT` ledger entry, update `totalCredit` |
+**Per D-6**: Every reducer gets a status check as its first line. See the full operation status matrix in [billing-lifecycle-business-logic.md](billing-lifecycle-business-logic.md) D-6.
 
-### PR-3. New Reducer
+| Status | Allowed operations (summary) |
+|--------|------------------------------|
+| **PENDING** | All config (services, groups, metrics setup). No billing impact. No settlement, no usage tracking. |
+| **ACTIVE** | Service add/remove within groups (+ proration), metric usage, settlement, payments, pause, cancel |
+| **PAUSED** | Payments, cancel, setAutoRenew, resume only. All service/metric ops blocked. (D-5, D-6) |
+| **EXPIRING** | Payments, cancel, setAutoRenew. No service/metric changes. |
+| **CANCELLED** | Payment reporting only (to settle outstanding debt). |
 
-| Reducer | Logic |
-|---------|-------|
-| **`settleBillingCycle`** | 1. Calculate + record overage per metric → `OVERAGE_CHARGE` entries. 2. Reset applicable metrics. 3. If `autoRenew`: create `RECURRING_CHARGE` entries for next cycle, advance dates. 4. If not: set status `EXPIRING`. 5. Update `totalDebt` / `totalCredit`. |
+Structural changes (`addServiceGroup`, `removeServiceGroup`) — **PENDING only** (D-6).
 
-### PR-4. Editor Refactor
+### PR-3. Updated Reducers
+
+| Reducer | Changes | Decision |
+|---------|---------|----------|
+| **`activateSubscription`** | Set `currentBillingCycleStart` = activation date. Calculate `nextBillingDate`. Add setup costs + first cycle recurring costs to `totalDebt`. Initialize `totalCredit` = 0. | D-4, BA-5 |
+| **`addService`** | Add status guard (PENDING or ACTIVE only). If ACTIVE + `effectiveDate`: call `calculateProratedCost()`, add prorated amount to `totalDebt`. | D-1, D-6 |
+| **`removeService`** | Add status guard (PENDING or ACTIVE only). If ACTIVE + `effectiveDate`: call `calculateProratedCost()`, add prorated amount to `totalCredit`. | D-2, D-6 |
+| **`addServiceToGroup`** | Same as `addService` — status guard + proration on ACTIVE. | D-1, D-6 |
+| **`removeServiceFromGroup`** | Same as `removeService` — status guard + proration on ACTIVE. | D-2, D-6 |
+| **`addServiceGroup`** | Add status guard: **PENDING only**. Throw `StructuralChangeNotAllowedError` if ACTIVE. No proration (not allowed mid-cycle). | D-6 |
+| **`removeServiceGroup`** | Same — **PENDING only**. | D-6 |
+| **`reportSetupPayment`** | Add payment `amount` to `totalCredit`. (Now takes amount + currency in input, not just paymentDate.) | D-3 |
+| **`reportRecurringPayment`** | Add payment `amount` to `totalCredit`. Same input change. | D-3 |
+| **`resumeSubscription`** | Status guard (PAUSED only). Transition to ACTIVE. No billing state changes. | D-5 |
+| **`cancelSubscription`** | Freeze: no further usage allowed after this. Status → CANCELLED. | D-6 |
+| **`updateMetricUsage`** | Add status guard (ACTIVE only). | D-6 |
+| **`incrementMetricUsage`** | Add status guard (ACTIVE only). | D-6 |
+| **`decrementMetricUsage`** | Add status guard (ACTIVE only). | D-6 |
+
+### PR-4. New Reducer
+
+| Reducer | Logic | Decision |
+|---------|-------|----------|
+| **`settleBillingCycle`** | 1. Status guard: ACTIVE only. 2. Determine overage window: `endDate = min(settlementDate, nextBillingDate)` (D-4). 3. Calculate overage per metric via `calculateOverageCost()`, add to `totalDebt`. 4. Reset metrics where `shouldResetMetric()` returns true. 5. If `autoRenew`: add next cycle recurring costs to `totalDebt`, advance `currentBillingCycleStart` and `nextBillingDate`. 6. If not `autoRenew`: set status `EXPIRING`. 7. No debt guard — always succeeds (D-8). | D-4, D-7, D-8 |
+
+### PR-5. Editor Refactor
 
 | File | Change |
 |------|--------|
 | `editors/subscription-instance-editor/components/billing-utils.ts` | Refactor to import and delegate to `document-models/subscription-instance/v1/src/utils.ts` instead of computing independently |
+
+### PR-6. Remove `updateBillingProjection` operation
+
+**Rationale**: `projectedBillAmount` and `projectedBillCurrency` are being removed from state (SC-1). The `UPDATE_BILLING_PROJECTION` operation that sets them is now dead. The projection is a derived value via `calculateUnsettledBill()`.
+
+**Impact**: Remove operation from the `subscription` module. Remove the `updateBillingProjectionOperation` reducer. Remove the `UpdateBillingProjectionInput` input type from schema.
 
 ---
 
 ## Track Dependencies
 
 ```
-Track 1 (BA)
+Track 1 (BA)  ← ALL OPEN QUESTIONS RESOLVED (D-1 through D-8)
   ├─ BA-1 Billing Cycle Lifecycle Rules
-  ├─ BA-2 Ledger Entry Model
+  ├─ BA-2 Debt/Credit Counter Model (revised from Ledger)
   ├─ BA-3 Proration Rules
   ├─ BA-4 Settlement Mechanics
   └─ BA-5 Activation Billing Rules
        │
        ▼
-Track 2 (Schema)  ← blocked on Track 1
-  ├─ SC-1 New types (LedgerEntry, enums)
-  ├─ SC-2 New state fields
-  ├─ SC-3 New operation (SETTLE_BILLING_CYCLE)
-  ├─ SC-4 Updated operation inputs
-  └─ SC-5 Error types
+Track 2 (Schema)
+  ├─ SC-1 New state fields (currentBillingCycleStart, totalDebt, totalCredit)
+  │       + Remove projectedBillAmount/projectedBillCurrency
+  ├─ SC-2 New operation (SETTLE_BILLING_CYCLE)
+  ├─ SC-3 Updated operation inputs (effectiveDate, payment amounts)
+  └─ SC-4 Error types (status guards + structural change)
        │
        ▼
-Track 3 (Reducers + Utils)  ← blocked on Track 1 + Track 2
-  ├─ PR-1 Calculation utils
-  ├─ PR-2 Updated reducers (activation, add/remove service, payments)
-  ├─ PR-3 New reducer (settleBillingCycle)
-  └─ PR-4 Editor refactor
+Track 3 (Reducers + Utils)
+  ├─ PR-1 Calculation utils (8 pure functions)
+  ├─ PR-2 Status guards (all reducers, per D-6 matrix)
+  ├─ PR-3 Updated reducers (activation, add/remove, payments)
+  ├─ PR-4 New reducer (settleBillingCycle)
+  ├─ PR-5 Editor refactor (billing-utils delegation)
+  └─ PR-6 Remove updateBillingProjection operation
 ```
 
 ---
 
 ## BA Artifacts Summary
 
-| Artifact | Type | Layout | Content |
+| Artifact | Type | Format | Content |
 |----------|------|--------|---------|
-| `subscription-billing-lifecycle-v1.0-requirements.md` | Requirements doc | — | Full requirements with acceptance criteria |
-| Billing Cycle Lifecycle Process Flow | Obsidian Canvas | Freeform (left-to-right) | Activation → cycle → settlement → renewal/expiry with decision points |
-| Subscription Billing State Machine | Obsidian Canvas | Freeform (state diagram) | PENDING→ACTIVE→PAUSED/EXPIRING→CANCELLED with billing side-effects |
-| Proration Decision Tree | Obsidian Canvas | MindMap | Mid-cycle change types → formulas → ledger impact |
-| Debt/Credit Ledger Flow | Obsidian Canvas | Freeform (timeline) | Sample lifecycle showing events → ledger entries → running balance |
+| `subscription-billing-lifecycle-v1.0-requirements.md` | Requirements doc | Markdown | Full requirements with acceptance criteria |
+| `billing-lifecycle-business-logic.md` | Decision log | Markdown | D-1 through D-8, all OQs resolved |
+| Billing Cycle Lifecycle Process Flow | Diagram | Mermaid + Obsidian Canvas | Activation → cycle → settlement → renewal/expiry with decision points |
+| Subscription Billing State Machine | Diagram | Mermaid + Obsidian Canvas | PENDING→ACTIVE→PAUSED/EXPIRING→CANCELLED with billing side-effects per D-6 |
+| Proration Decision Tree | Diagram | Mermaid + Obsidian Canvas | Mid-cycle change types → formulas → counter impact |
+| Debt/Credit Counter Flow | Diagram | Mermaid + Obsidian Canvas | Sample lifecycle showing events → counter updates → running balance |
 
 ---
 
@@ -346,6 +377,6 @@ Not a schema change. Separate from the billing work.
 
 ## Models With No Changes Identified
 
-- **Service Offering** — no schema revisions (proration/downgrade rules are platform-level, not per-offering config)
+- **Service Offering** — no schema revisions. Proration/downgrade/charge timing are platform-level rules baked into reducers (D-1, D-2), not per-offering config.
 - **Resource Template** — no revisions
 - **Facet** — no revisions
