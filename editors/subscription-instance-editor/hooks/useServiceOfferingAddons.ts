@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import type { PHDocument } from "document-model";
-import { useGetDocumentAsync } from "@powerhousedao/reactor-browser";
+import { useGetDocuments } from "@powerhousedao/reactor-browser";
 import type { ServiceOfferingState } from "../../../document-models/service-offering/v1/gen/schema/types.js";
 
 export interface AvailableAddon {
@@ -22,18 +22,18 @@ export function useServiceOfferingAddons(
   serviceOfferingId: string | null | undefined,
   existingGroupNames: string[],
 ) {
-  const getDocument = useGetDocumentAsync();
+  const getDocuments = useGetDocuments();
   const [offeringDoc, setOfferingDoc] = useState<PHDocument | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!serviceOfferingId) return;
     setLoading(true);
-    getDocument(serviceOfferingId)
-      .then((doc) => setOfferingDoc(doc ?? null))
+    getDocuments([serviceOfferingId])
+      .then((docs: PHDocument[]) => setOfferingDoc(docs[0] ?? null))
       .catch(() => setOfferingDoc(null))
       .finally(() => setLoading(false));
-  }, [serviceOfferingId, getDocument]);
+  }, [serviceOfferingId, getDocuments]);
 
   const availableAddons = useMemo<AvailableAddon[]>(() => {
     if (!offeringDoc) return [];

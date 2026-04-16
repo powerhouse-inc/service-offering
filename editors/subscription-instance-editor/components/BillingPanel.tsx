@@ -388,17 +388,14 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                     className="si-btn si-btn--xs si-btn--success"
                     style={{ marginLeft: 8 }}
                     onClick={() => {
-                      const svc = group.services[0];
-                      if (svc) {
-                        dispatch(
-                          reportSetupPayment({
-                            serviceId: svc.id,
-                            paymentDate: new Date().toISOString(),
-                            amount: group.setupCost!.amount,
-                            currency: group.setupCost!.currency,
-                          }),
-                        );
-                      }
+                      dispatch(
+                        reportSetupPayment({
+                          serviceId: group.id,
+                          paymentDate: new Date().toISOString(),
+                          amount: group.setupCost!.amount,
+                          currency: group.setupCost!.currency,
+                        }),
+                      );
                     }}
                   >
                     Mark Paid
@@ -447,17 +444,14 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                         className="si-btn si-btn--xs si-btn--success"
                         style={{ marginLeft: 8 }}
                         onClick={() => {
-                          const svc = group.services[0];
-                          if (svc) {
-                            dispatch(
-                              reportRecurringPayment({
-                                serviceId: svc.id,
-                                paymentDate: new Date().toISOString(),
-                                amount: group.recurringCost!.amount,
-                                currency: group.recurringCost!.currency,
-                              }),
-                            );
-                          }
+                          dispatch(
+                            reportRecurringPayment({
+                              serviceId: group.id,
+                              paymentDate: new Date().toISOString(),
+                              amount: group.recurringCost!.amount,
+                              currency: group.recurringCost!.currency,
+                            }),
+                          );
                         }}
                       >
                         Report Payment

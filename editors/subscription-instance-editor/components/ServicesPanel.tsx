@@ -21,6 +21,7 @@ import {
   addServiceGroup,
   removeServiceGroup,
 } from "../../../document-models/subscription-instance/v1/gen/service-group/creators.js";
+import { useServiceOfferingAddons } from "../hooks/useServiceOfferingAddons.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -222,105 +223,149 @@ function ServiceCard({
 function AddServiceGroupButton({
   dispatch,
   subscriptionStatus,
+  serviceOfferingId,
+  existingGroupNames,
   globalCurrency,
   billingCycle,
 }: {
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   subscriptionStatus: string;
+  serviceOfferingId: string | null | undefined;
+  existingGroupNames: string[];
   globalCurrency: string;
   billingCycle: string | null;
 }) {
   const [showModal, setShowModal] = useState(false);
-  const [name, setName] = useState("");
-  const [recurringAmount, setRecurringAmount] = useState("");
+  const [selectedAddonId, setSelectedAddonId] = useState<string>("");
+  const { availableAddons, loading, hasOffering } = useServiceOfferingAddons(
+    serviceOfferingId,
+    existingGroupNames,
+  );
 
   const canAdd =
     subscriptionStatus === "PENDING" || subscriptionStatus === "ACTIVE";
   if (!canAdd) return null;
 
+  const selectedAddon = availableAddons.find(
+    (a) => a.optionGroupId === selectedAddonId,
+  );
+
   const handleAdd = () => {
-    if (!name.trim()) return;
-    const amount = parseFloat(recurringAmount) || undefined;
+    if (!selectedAddon) return;
+    const amount = selectedAddon.recurringAmount ?? undefined;
+    const currency =
+      selectedAddon.recurringCurrency ?? globalCurrency ?? undefined;
+    const cycle = selectedAddon.recurringBillingCycle ?? billingCycle;
     dispatch(
       addServiceGroup({
         groupId: generateId(),
-        name: name.trim(),
+        name: selectedAddon.name,
         optional: true,
         recurringAmount: amount,
-        recurringCurrency: amount ? globalCurrency : undefined,
-        recurringBillingCycle:
-          amount && billingCycle
-            ? (billingCycle as
-                | "MONTHLY"
-                | "QUARTERLY"
-                | "SEMI_ANNUAL"
-                | "ANNUAL"
-                | "ONE_TIME")
-            : undefined,
+        recurringCurrency: currency,
+        recurringBillingCycle: cycle
+          ? (cycle as
+              | "MONTHLY"
+              | "QUARTERLY"
+              | "SEMI_ANNUAL"
+              | "ANNUAL"
+              | "ONE_TIME")
+          : undefined,
+        setupAmount: selectedAddon.setupAmount ?? undefined,
+        setupCurrency: selectedAddon.setupCurrency ?? currency,
       }),
     );
     setShowModal(false);
-    setName("");
-    setRecurringAmount("");
+    setSelectedAddonId("");
   };
 
   return (
     <>
       <button
         type="button"
-        className="si-btn si-btn--xs si-btn--ghost"
-        style={{ marginTop: 8 }}
+        className="si-btn si-btn--sm si-btn--ghost"
+        style={{ marginTop: 12 }}
         onClick={() => setShowModal(true)}
+        disabled={loading}
       >
         + Add Service Group
       </button>
       {showModal && (
-        <div className="si-modal-overlay" onClick={() => setShowModal(false)}>
+        <div
+          className="si-modal-overlay"
+          onClick={() => {
+            setShowModal(false);
+            setSelectedAddonId("");
+          }}
+        >
           <div
-            className="si-modal si-modal--sm"
+            className="si-modal si-modal--md"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="si-modal__header">
-              <h3 className="si-modal__title">Add Service to Group</h3>
+              <h3 className="si-modal__title">Add Service Group</h3>
               {subscriptionStatus === "ACTIVE" && (
                 <span className="si-modal__subtitle">
-                  Prorated cost will be added for the remaining cycle
+                  Prorated cost will be charged for the remaining cycle
                 </span>
               )}
             </div>
             <div className="si-modal__body">
-              <div className="si-form-group">
-                <label className="si-form-label">Service Name</label>
-                <input
-                  type="text"
-                  className="si-input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Custom reporting"
-                />
-              </div>
-              <div className="si-form-group">
-                <label className="si-form-label">
-                  Recurring Amount ({globalCurrency}
-                  {billingCycle ? ` ${billingCycle.toLowerCase()}` : ""},
-                  optional)
-                </label>
-                <input
-                  type="number"
-                  className="si-input"
-                  value={recurringAmount}
-                  onChange={(e) => setRecurringAmount(e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
+              {!hasOffering && (
+                <p className="si-modal__message">
+                  Service offering not found. Cannot load available add-ons.
+                </p>
+              )}
+              {hasOffering && availableAddons.length === 0 && (
+                <p className="si-modal__message">
+                  No additional add-on groups available from the service
+                  offering.
+                </p>
+              )}
+              {availableAddons.length > 0 && (
+                <div className="si-tier-options">
+                  {availableAddons.map((addon) => (
+                    <div
+                      key={addon.optionGroupId}
+                      className={`si-tier-option${selectedAddonId === addon.optionGroupId ? " si-tier-option--selected" : ""}`}
+                      onClick={() => setSelectedAddonId(addon.optionGroupId)}
+                    >
+                      <input
+                        type="radio"
+                        className="si-tier-option__radio"
+                        checked={selectedAddonId === addon.optionGroupId}
+                        onChange={() => setSelectedAddonId(addon.optionGroupId)}
+                      />
+                      <div className="si-tier-option__content">
+                        <span className="si-tier-option__name">
+                          {addon.name}
+                        </span>
+                        {addon.description && (
+                          <span className="si-tier-option__desc">
+                            {addon.description}
+                          </span>
+                        )}
+                        <span className="si-tier-option__meta">
+                          {addon.recurringAmount != null
+                            ? `${fmtCurrency(addon.recurringAmount, addon.recurringCurrency || globalCurrency)} / ${(addon.recurringBillingCycle || billingCycle || "cycle").toLowerCase()}`
+                            : "No recurring cost"}
+                          {addon.setupAmount != null &&
+                            ` + ${fmtCurrency(addon.setupAmount, addon.setupCurrency || globalCurrency)} setup`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="si-modal__footer">
               <button
                 type="button"
                 className="si-btn si-btn--ghost"
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedAddonId("");
+                }}
               >
                 Cancel
               </button>
@@ -328,9 +373,9 @@ function AddServiceGroupButton({
                 type="button"
                 className="si-btn si-btn--primary"
                 onClick={handleAdd}
-                disabled={!name.trim()}
+                disabled={!selectedAddon}
               >
-                Add Service
+                Add Group
               </button>
             </div>
           </div>
@@ -465,6 +510,8 @@ export function ServicesPanel({
             <AddServiceGroupButton
               dispatch={dispatch}
               subscriptionStatus={state.status}
+              serviceOfferingId={state.serviceOfferingId}
+              existingGroupNames={state.serviceGroups.map((g) => g.name)}
               globalCurrency={state.globalCurrency || "USD"}
               billingCycle={state.selectedBillingCycle || null}
             />

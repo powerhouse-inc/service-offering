@@ -147,25 +147,28 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       }
     },
     reportSetupPaymentOperation(state, action) {
+      // Try to find as service first, then as group (groups carry pricing)
       const svc = findServiceById(
         action.input.serviceId,
         state.services,
         state.serviceGroups,
       );
-      if (!svc) {
+      const directGroup = state.serviceGroups.find(
+        (g) => g.id === action.input.serviceId,
+      );
+      if (!svc && !directGroup) {
         throw new ReportSetupPaymentServiceNotFoundError(
-          `Service with ID ${action.input.serviceId} not found`,
+          `Service or group with ID ${action.input.serviceId} not found`,
         );
       }
-      // Mark payment on the service's setup cost if it has one
-      if (svc.setupCost) {
+      // Mark payment on the service's setup cost if found
+      if (svc?.setupCost) {
         svc.setupCost.paymentDate = action.input.paymentDate;
       }
-      // Also mark payment on the parent group's setup cost if applicable
-      const group = findGroupByServiceId(
-        action.input.serviceId,
-        state.serviceGroups,
-      );
+      // Mark payment on the group's setup cost (found via service or directly)
+      const group =
+        directGroup ??
+        findGroupByServiceId(action.input.serviceId, state.serviceGroups);
       if (group?.setupCost) {
         group.setupCost.paymentDate = action.input.paymentDate;
       }
@@ -173,25 +176,28 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
     },
     reportRecurringPaymentOperation(state, action) {
+      // Try to find as service first, then as group (groups carry pricing)
       const svc = findServiceById(
         action.input.serviceId,
         state.services,
         state.serviceGroups,
       );
-      if (!svc) {
+      const directGroup = state.serviceGroups.find(
+        (g) => g.id === action.input.serviceId,
+      );
+      if (!svc && !directGroup) {
         throw new ReportRecurringPaymentServiceNotFoundError(
-          `Service with ID ${action.input.serviceId} not found`,
+          `Service or group with ID ${action.input.serviceId} not found`,
         );
       }
-      // Mark payment on the service's recurring cost if it has one
-      if (svc.recurringCost) {
+      // Mark payment on the service's recurring cost if found
+      if (svc?.recurringCost) {
         svc.recurringCost.lastPaymentDate = action.input.paymentDate;
       }
-      // Also mark payment on the parent group's recurring cost if applicable
-      const group = findGroupByServiceId(
-        action.input.serviceId,
-        state.serviceGroups,
-      );
+      // Mark payment on the group's recurring cost (found via service or directly)
+      const group =
+        directGroup ??
+        findGroupByServiceId(action.input.serviceId, state.serviceGroups);
       if (group?.recurringCost) {
         group.recurringCost.lastPaymentDate = action.input.paymentDate;
       }
