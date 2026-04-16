@@ -1,5 +1,4 @@
 import type {
-  ServiceMetric,
   Service,
   ServiceGroup,
   SubscriptionInstanceState,
@@ -28,7 +27,9 @@ const RESET_HIERARCHY = [
 // ─── Date helpers ───────────────────────────────────────────
 
 function daysBetween(a: string, b: string): number {
-  return (new Date(b).getTime() - new Date(a).getTime()) / (1000 * 60 * 60 * 24);
+  return (
+    (new Date(b).getTime() - new Date(a).getTime()) / (1000 * 60 * 60 * 24)
+  );
 }
 
 // ─── Core billing functions ─────────────────────────────────
@@ -147,4 +148,22 @@ export function shouldResetMetric(
   const cycleIndex = RESET_HIERARCHY.indexOf(billingCycle);
   if (metricIndex === -1 || cycleIndex === -1) return false;
   return metricIndex <= cycleIndex;
+}
+
+/**
+ * Find a service by ID across both flat services and services nested in groups.
+ * Returns the service or undefined if not found.
+ */
+export function findServiceById(
+  serviceId: string,
+  services: readonly Service[],
+  serviceGroups: readonly ServiceGroup[],
+): Service | undefined {
+  const flat = services.find((s) => s.id === serviceId);
+  if (flat) return flat;
+  for (const group of serviceGroups) {
+    const grouped = group.services.find((s) => s.id === serviceId);
+    if (grouped) return grouped;
+  }
+  return undefined;
 }

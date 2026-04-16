@@ -178,16 +178,15 @@ export function SubscriptionHeader({
           <span className="si-header__stat-value">{state.services.length}</span>
           <span className="si-header__stat-label">Services</span>
         </div>
-        {state.projectedBillAmount != null && (
+        {state.totalDebt != null && (
           <div className="si-header__stat">
             <span className="si-header__stat-value">
               {new Intl.NumberFormat("en-US", {
                 style: "currency",
-                currency:
-                  state.globalCurrency || state.projectedBillCurrency || "USD",
-              }).format(state.projectedBillAmount)}
+                currency: state.globalCurrency || "USD",
+              }).format(state.totalDebt - (state.totalCredit || 0))}
             </span>
-            <span className="si-header__stat-label">Projected Bill</span>
+            <span className="si-header__stat-label">Amount Owed</span>
           </div>
         )}
         {state.nextBillingDate && (

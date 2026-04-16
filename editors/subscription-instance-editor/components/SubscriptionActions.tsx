@@ -11,6 +11,7 @@ import {
   resumeSubscription,
   cancelSubscription,
   renewExpiringSubscription,
+  settleBillingCycle,
 } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 
 interface SubscriptionActionsProps {
@@ -94,7 +95,7 @@ export function SubscriptionActions({
 }: SubscriptionActionsProps) {
   const state = document.state.global;
   const [confirmAction, setConfirmAction] = useState<
-    "pause" | "cancel" | "resume" | "renew" | null
+    "pause" | "cancel" | "resume" | "renew" | "settle" | null
   >(null);
   const [reason, setReason] = useState("");
 
@@ -145,6 +146,15 @@ export function SubscriptionActions({
     setConfirmAction(null);
   }, [dispatch]);
 
+  const handleOperatorSettle = useCallback(() => {
+    dispatch(
+      settleBillingCycle({
+        settlementDate: new Date().toISOString(),
+      }),
+    );
+    setConfirmAction(null);
+  }, [dispatch]);
+
   const handleConfirm = useCallback(() => {
     switch (confirmAction) {
       case "pause":
@@ -159,6 +169,9 @@ export function SubscriptionActions({
       case "renew":
         handleOperatorRenew();
         break;
+      case "settle":
+        handleOperatorSettle();
+        break;
     }
   }, [
     confirmAction,
@@ -166,6 +179,7 @@ export function SubscriptionActions({
     handleOperatorResume,
     handleOperatorCancel,
     handleOperatorRenew,
+    handleOperatorSettle,
   ]);
 
   const isPending = state.status === "PENDING";
@@ -198,6 +212,27 @@ export function SubscriptionActions({
                   />
                 </svg>
                 Activate
+              </button>
+            )}
+
+            {isActive && (
+              <button
+                type="button"
+                className="si-btn si-btn--sm si-btn--primary"
+                onClick={() => setConfirmAction("settle")}
+              >
+                <svg
+                  className="si-btn__icon"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Settle Cycle
               </button>
             )}
 
@@ -336,6 +371,16 @@ export function SubscriptionActions({
         title="Renew Subscription"
         message="This will renew the expiring subscription and set it back to active status."
         confirmLabel="Renew Subscription"
+        confirmVariant="primary"
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmAction === "settle"}
+        title="Settle Billing Cycle"
+        message="This will calculate overage charges, reset applicable metrics, and advance to the next billing cycle (if auto-renew is on). Settlement date will be set to now."
+        confirmLabel="Settle Cycle"
         confirmVariant="primary"
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}

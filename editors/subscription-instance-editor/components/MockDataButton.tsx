@@ -9,7 +9,6 @@ import {
   initializeSubscription,
   activateSubscription,
   setRenewalDate,
-  updateBillingProjection,
 } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 import { setCustomerType } from "../../../document-models/subscription-instance/v1/gen/customer/creators.js";
 
@@ -26,9 +25,6 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
   const populateMockData = useCallback(() => {
     const oneMonthAgo = new Date(
       Date.now() - 30 * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    const oneMonthFromNow = new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000,
     ).toISOString();
     const twoMonthsFromNow = new Date(
       Date.now() + 60 * 24 * 60 * 60 * 1000,
@@ -280,16 +276,8 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
       }),
     );
 
-    // 5. Billing projection
-    // Core: $726/mo + Security: $178/mo + Support: $498/mo = $1,402/mo
-    // Plus metric overages: vCPU 250 × $0.05 = $12.50, API 25k × $0.001 = $25, DB 35 × $0.50 = $17.50, Edge 2M × $5 = $10
-    dispatch(
-      updateBillingProjection({
-        nextBillingDate: oneMonthFromNow,
-        projectedBillAmount: 1467,
-        projectedBillCurrency: "USD",
-      }),
-    );
+    // Billing projection is now derived from totalDebt/totalCredit + overage (D-3)
+    // No explicit billing projection dispatch needed
   }, [document.state.global.customerId, dispatch]);
 
   return (

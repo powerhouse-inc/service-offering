@@ -11,7 +11,6 @@ import {
 } from "../../gen/subscription/error.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 import {
-  BILLING_CYCLE_DAYS,
   calculateNextBillingDate,
   calculateOverageCost,
   shouldResetMetric,
@@ -268,7 +267,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.cancelledSince = action.input.cancelledSince;
       state.cancellationReason = action.input.cancellationReason || null;
     },
-    resumeSubscriptionOperation(state, action) {
+    resumeSubscriptionOperation(state, _action) {
       if (state.status !== "PAUSED") {
         throw new ResumeNotPausedError(
           `Cannot resume subscription with status ${state.status}`,
@@ -368,7 +367,10 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         );
       }
 
-      const endDate =
+      // D-4: Overage window — endDate = min(settlementDate, nextBillingDate)
+      // Usage is already tracked via operations, so endDate serves as the
+      // logical boundary for the settlement (not used in calculation directly).
+      const _endDate =
         state.nextBillingDate &&
         action.input.settlementDate > state.nextBillingDate
           ? state.nextBillingDate
@@ -376,7 +378,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
 
       // Calculate overage and reset metrics
       const billingCycle = state.selectedBillingCycle || "MONTHLY";
-      function processMetrics(metrics: typeof state.services[0]["metrics"]) {
+      function processMetrics(metrics: (typeof state.services)[0]["metrics"]) {
         for (const metric of metrics) {
           const cost = calculateOverageCost(metric);
           if (cost > 0) {

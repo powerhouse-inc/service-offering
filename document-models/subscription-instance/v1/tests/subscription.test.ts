@@ -20,7 +20,6 @@ import {
   setOperatorNotes,
   setAutoRenew,
   setRenewalDate,
-  updateBillingProjection,
   InitializeSubscriptionInputSchema,
   SetResourceDocumentInputSchema,
   UpdateSubscriptionStatusInputSchema,
@@ -37,7 +36,6 @@ import {
   SetOperatorNotesInputSchema,
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
-  UpdateBillingProjectionInputSchema,
   settleBillingCycle,
   SettleBillingCycleInputSchema,
 } from "document-models/subscription-instance/v1";
@@ -308,23 +306,6 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_RENEWAL_DATE",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle updateBillingProjection operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(UpdateBillingProjectionInputSchema());
-
-    const updatedDocument = reducer(document, updateBillingProjection(input));
-
-    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "UPDATE_BILLING_PROJECTION",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

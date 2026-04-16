@@ -29,7 +29,7 @@ export function BillingPanel({ document }: BillingPanelProps) {
 
   const hasAnyData =
     state.nextBillingDate ||
-    state.projectedBillAmount != null ||
+    state.totalDebt != null ||
     breakdown.groupBreakdowns.length > 0 ||
     state.services.length > 0 ||
     breakdown.setupLines.length > 0;
@@ -60,13 +60,11 @@ export function BillingPanel({ document }: BillingPanelProps) {
     );
   }
 
-  const projectedTotal =
-    state.projectedBillAmount != null
-      ? state.projectedBillAmount
-      : breakdown.projectedTotal;
+  const projectedTotal = breakdown.projectedTotal;
   const currency = breakdown.currency;
   const hasDynamicCosts = breakdown.dynamicTotal > 0;
   const hasFixedCosts = breakdown.fixedTotal > 0;
+  const amountOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
 
   return (
     <div className="si-panel">
@@ -75,14 +73,58 @@ export function BillingPanel({ document }: BillingPanelProps) {
         <h3 className="si-panel__title">Billing Projection</h3>
       </div>
 
-      {/* Summary Cards — SI-R7: Fixed + Dynamic breakdown */}
-      <div className="si-billing-summary">
-        <div className="si-billing-summary__item">
-          <span className="si-billing-summary__label">Next Payment</span>
-          <span className="si-billing-summary__value">
-            {formatDate(state.nextBillingDate)}
-          </span>
+      {/* Billing Cycle & Debt/Credit Summary */}
+      {(state.currentBillingCycleStart || state.totalDebt != null) && (
+        <div className="si-billing-summary">
+          {state.currentBillingCycleStart && (
+            <div className="si-billing-summary__item">
+              <span className="si-billing-summary__label">Cycle Start</span>
+              <span className="si-billing-summary__value">
+                {formatDate(state.currentBillingCycleStart)}
+              </span>
+            </div>
+          )}
+          <div className="si-billing-summary__item">
+            <span className="si-billing-summary__label">Next Payment</span>
+            <span className="si-billing-summary__value">
+              {formatDate(state.nextBillingDate)}
+            </span>
+          </div>
+          {state.totalDebt != null && (
+            <div className="si-billing-summary__item">
+              <span className="si-billing-summary__label">Total Debt</span>
+              <span className="si-billing-summary__value">
+                {formatCurrency(state.totalDebt, currency)}
+              </span>
+            </div>
+          )}
+          {state.totalCredit != null && (
+            <div className="si-billing-summary__item">
+              <span className="si-billing-summary__label">Total Credit</span>
+              <span className="si-billing-summary__value si-billing-summary__value--success">
+                {formatCurrency(state.totalCredit, currency)}
+              </span>
+            </div>
+          )}
+          {state.totalDebt != null && (
+            <div
+              className={`si-billing-summary__item${amountOwed > 0 ? " si-billing-summary__item--alert" : ""}`}
+            >
+              <span className="si-billing-summary__label">
+                {amountOwed >= 0 ? "Amount Owed" : "Credit Balance"}
+              </span>
+              <span
+                className={`si-billing-summary__value ${amountOwed > 0 ? "si-billing-summary__value--danger" : amountOwed < 0 ? "si-billing-summary__value--success" : ""}`}
+              >
+                {formatCurrency(Math.abs(amountOwed), currency)}
+              </span>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Projection Summary Cards — Fixed + Dynamic breakdown */}
+      <div className="si-billing-summary">
         <div className="si-billing-summary__item">
           <span className="si-billing-summary__label">Fixed</span>
           <span className="si-billing-summary__value">

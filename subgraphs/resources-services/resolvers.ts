@@ -599,21 +599,10 @@ export const getResolvers = (
             ],
           );
 
-          // Set billing projection from tier price
-          const projectedAmount =
-            subscriptionInput.tierPrice ?? priceBreakdown.tierCycleTotal;
-          if (projectedAmount != null) {
-            await reactorClient.execute(
-              subscriptionInstanceDoc.header.id,
-              "main",
-              [
-                SubscriptionInstance.actions.updateBillingProjection({
-                  projectedBillAmount: projectedAmount,
-                  projectedBillCurrency: priceBreakdown.tierCurrency || "USD",
-                }),
-              ],
-            );
-          }
+          // Billing projection removed (D-3): totalDebt/totalCredit are now
+          // initialized by the activateSubscription reducer, not by a separate
+          // billing projection operation. The projection is a derived value
+          // via calculateUnsettledBill().
 
           return {
             success: true,
