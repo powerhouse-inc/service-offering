@@ -47,8 +47,9 @@ type SubscriptionInstanceState {
     operatorNotes: String
     budget: BudgetCategory
     nextBillingDate: DateTime
-    projectedBillAmount: Amount_Money
-    projectedBillCurrency: Currency
+    currentBillingCycleStart: DateTime
+    totalDebt: Amount_Money
+    totalCredit: Amount_Money
     services: [Service!]!
     serviceGroups: [ServiceGroup!]!
 }
@@ -330,10 +331,8 @@ input SetRenewalDateInput {
     renewalDate: DateTime!
 }
 
-input UpdateBillingProjectionInput {
-    nextBillingDate: DateTime
-    projectedBillAmount: Amount_Money
-    projectedBillCurrency: Currency
+input SettleBillingCycleInput {
+    settlementDate: DateTime!
 }
 
 # service
@@ -360,10 +359,12 @@ input AddServiceInput {
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
     recurringDiscount: DiscountServiceInfoInput
+    effectiveDate: DateTime
 }
 
 input RemoveServiceInput {
     serviceId: OID!
+    effectiveDate: DateTime
 }
 
 input UpdateServiceSetupCostInput {
@@ -386,11 +387,15 @@ input UpdateServiceRecurringCostInput {
 input ReportSetupPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
+    amount: Amount_Money!
+    currency: Currency!
 }
 
 input ReportRecurringPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
+    amount: Amount_Money!
+    currency: Currency!
 }
 
 input UpdateServiceInfoInput {
@@ -447,11 +452,13 @@ input AddServiceToGroupInput {
     recurringBillingCycle: BillingCycle
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
+    effectiveDate: DateTime
 }
 
 input RemoveServiceFromGroupInput {
     groupId: OID!
     serviceId: OID!
+    effectiveDate: DateTime
 }
 
 input UpdateServiceGroupCostInput {

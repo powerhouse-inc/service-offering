@@ -20,10 +20,10 @@ export const documentModel: DocumentModelGlobalState = {
         },
         global: {
           schema:
-            "type SubscriptionInstanceState {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    customerType: CustomerType\n    teamMemberCount: Int\n    operatorId: PHID\n    serviceOfferingId: PHID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    tierPricingMode: TierPricingMode\n    selectedBillingCycle: BillingCycle\n    globalCurrency: Currency\n    resource: ResourceDocument\n    status: SubscriptionStatus!\n    createdAt: DateTime\n    activatedSince: DateTime\n    pausedSince: DateTime\n    expiringSince: DateTime\n    renewalDate: DateTime\n    cancelledSince: DateTime\n    cancellationReason: String\n    autoRenew: Boolean!\n    operatorNotes: String\n    budget: BudgetCategory\n    nextBillingDate: DateTime\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n    services: [Service!]!\n    serviceGroups: [ServiceGroup!]!\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\nenum CustomerType {\n    INDIVIDUAL\n    TEAM\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}\n\nenum SubscriptionStatus {\n    PENDING\n    ACTIVE\n    PAUSED\n    EXPIRING\n    CANCELLED\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\nenum DiscountSource {\n    TIER_INHERITED\n    GROUP_INDEPENDENT\n    BUNDLE\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\nenum ResetPeriod {\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype DiscountInfo {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingDate: DateTime\n    paymentDate: DateTime\n}\n\ntype RecurringCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingCycle: BillingCycle!\n    nextBillingDate: DateTime\n    lastPaymentDate: DateTime\n    discount: DiscountInfo\n}\n\ntype ResourceDocument {\n    id: PHID!\n    label: String\n    thumbnailUrl: URL\n}\n\ntype BudgetCategory {\n    id: OID!\n    label: String!\n}\n\ntype ServiceFacetSelection {\n    id: OID!\n    facetName: String!\n    selectedOption: String!\n}\n\ntype ServiceMetric {\n    id: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    freeLimit: Int\n    paidLimit: Int\n    unitCost: RecurringCost\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}\n\ntype Service {\n    id: OID!\n    name: String\n    description: String\n    customValue: String\n    facetSelections: [ServiceFacetSelection!]!\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    metrics: [ServiceMetric!]!\n}\n\ntype ServiceGroup {\n    id: OID!\n    optional: Boolean!\n    name: String!\n    costType: GroupCostType\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    services: [Service!]!\n}",
+            "type SubscriptionInstanceState {\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    customerType: CustomerType\n    teamMemberCount: Int\n    operatorId: PHID\n    serviceOfferingId: PHID\n    tierName: String\n    tierPricingOptionId: OID\n    tierPrice: Amount_Money\n    tierCurrency: Currency\n    tierPricingMode: TierPricingMode\n    selectedBillingCycle: BillingCycle\n    globalCurrency: Currency\n    resource: ResourceDocument\n    status: SubscriptionStatus!\n    createdAt: DateTime\n    activatedSince: DateTime\n    pausedSince: DateTime\n    expiringSince: DateTime\n    renewalDate: DateTime\n    cancelledSince: DateTime\n    cancellationReason: String\n    autoRenew: Boolean!\n    operatorNotes: String\n    budget: BudgetCategory\n    nextBillingDate: DateTime\n    currentBillingCycleStart: DateTime\n    totalDebt: Amount_Money\n    totalCredit: Amount_Money\n    services: [Service!]!\n    serviceGroups: [ServiceGroup!]!\n}\n\nenum TierPricingMode {\n    CALCULATED\n    MANUAL_OVERRIDE\n}\n\nenum CustomerType {\n    INDIVIDUAL\n    TEAM\n}\n\nenum GroupCostType {\n    RECURRING\n    SETUP\n}\n\nenum SubscriptionStatus {\n    PENDING\n    ACTIVE\n    PAUSED\n    EXPIRING\n    CANCELLED\n}\n\nenum DiscountType {\n    PERCENTAGE\n    FLAT_AMOUNT\n}\n\nenum DiscountSource {\n    TIER_INHERITED\n    GROUP_INDEPENDENT\n    BUNDLE\n}\n\nenum BillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\nenum ResetPeriod {\n    HOURLY\n    DAILY\n    WEEKLY\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n}\n\ntype DiscountInfo {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ntype SetupCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingDate: DateTime\n    paymentDate: DateTime\n}\n\ntype RecurringCost {\n    amount: Amount_Money!\n    currency: Currency!\n    billingCycle: BillingCycle!\n    nextBillingDate: DateTime\n    lastPaymentDate: DateTime\n    discount: DiscountInfo\n}\n\ntype ResourceDocument {\n    id: PHID!\n    label: String\n    thumbnailUrl: URL\n}\n\ntype BudgetCategory {\n    id: OID!\n    label: String!\n}\n\ntype ServiceFacetSelection {\n    id: OID!\n    facetName: String!\n    selectedOption: String!\n}\n\ntype ServiceMetric {\n    id: OID!\n    name: String!\n    unitName: String!\n    limit: Int\n    freeLimit: Int\n    paidLimit: Int\n    unitCost: RecurringCost\n    currentUsage: Int!\n    usageResetPeriod: ResetPeriod\n    nextUsageReset: DateTime\n}\n\ntype Service {\n    id: OID!\n    name: String\n    description: String\n    customValue: String\n    facetSelections: [ServiceFacetSelection!]!\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    metrics: [ServiceMetric!]!\n}\n\ntype ServiceGroup {\n    id: OID!\n    optional: Boolean!\n    name: String!\n    costType: GroupCostType\n    setupCost: SetupCost\n    recurringCost: RecurringCost\n    services: [Service!]!\n}",
           examples: [],
           initialValue:
-            '{"customerId":null,"customerName":null,"customerEmail":null,"customerType":null,"teamMemberCount":null,"operatorId":null,"serviceOfferingId":null,"tierName":null,"tierPricingOptionId":null,"tierPrice":null,"tierCurrency":null,"tierPricingMode":null,"selectedBillingCycle":null,"globalCurrency":null,"resource":null,"status":"PENDING","createdAt":null,"activatedSince":null,"pausedSince":null,"expiringSince":null,"renewalDate":null,"cancelledSince":null,"cancellationReason":null,"autoRenew":false,"operatorNotes":null,"budget":null,"nextBillingDate":null,"projectedBillAmount":null,"projectedBillCurrency":null,"services":[],"serviceGroups":[]}',
+            '{"customerId":null,"customerName":null,"customerEmail":null,"customerType":null,"teamMemberCount":null,"operatorId":null,"serviceOfferingId":null,"tierName":null,"tierPricingOptionId":null,"tierPrice":null,"tierCurrency":null,"tierPricingMode":null,"selectedBillingCycle":null,"globalCurrency":null,"resource":null,"status":"PENDING","createdAt":null,"activatedSince":null,"pausedSince":null,"expiringSince":null,"renewalDate":null,"cancelledSince":null,"cancellationReason":null,"autoRenew":false,"operatorNotes":null,"budget":null,"nextBillingDate":null,"currentBillingCycleStart":null,"totalDebt":null,"totalCredit":null,"services":[],"serviceGroups":[]}',
         },
       },
       modules: [
@@ -86,7 +86,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input ActivateSubscriptionInput {\n    activatedSince: DateTime!\n}",
               reducer:
-                'if (state.status !== "PENDING") {\n  throw new ActivateNotPendingError(`Cannot activate subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.activatedSince = action.input.activatedSince;',
+                'if (state.status !== "PENDING") {\n  throw new ActivateNotPendingError(`Cannot activate subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.activatedSince = action.input.activatedSince;\n\nstate.currentBillingCycleStart = action.input.activatedSince;\nconst BILLING_CYCLE_DAYS = { MONTHLY: 30, QUARTERLY: 91, SEMI_ANNUAL: 182, ANNUAL: 365, ONE_TIME: 0 };\nconst cycleDays = state.selectedBillingCycle ? BILLING_CYCLE_DAYS[state.selectedBillingCycle] || 30 : 30;\nif (cycleDays > 0) {\n  const d = new Date(action.input.activatedSince);\n  d.setDate(d.getDate() + cycleDays);\n  state.nextBillingDate = d.toISOString();\n}\n\nstate.totalDebt = 0;\nstate.totalCredit = 0;\n\nlet initialDebt = 0;\nfor (const group of state.serviceGroups) {\n  if (group.setupCost) initialDebt += group.setupCost.amount;\n  if (group.recurringCost) initialDebt += group.recurringCost.amount;\n  for (const svc of group.services) {\n    if (svc.setupCost) initialDebt += svc.setupCost.amount;\n    if (svc.recurringCost) initialDebt += svc.recurringCost.amount;\n  }\n}\nfor (const svc of state.services) {\n  if (svc.setupCost) initialDebt += svc.setupCost.amount;\n  if (svc.recurringCost) initialDebt += svc.recurringCost.amount;\n}\nstate.totalDebt = initialDebt;',
               examples: [],
               template: "Activate a pending subscription",
               description: "Activate a pending subscription",
@@ -191,7 +191,7 @@ export const documentModel: DocumentModelGlobalState = {
               schema:
                 "input RenewExpiringSubscriptionInput {\n    timestamp: DateTime!\n    newRenewalDate: DateTime\n}",
               reducer:
-                'if (state.status !== "EXPIRING") {\n  throw new RenewNotExpiringError(`Cannot renew subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.expiringSince = null;\nstate.renewalDate = action.input.newRenewalDate || null;',
+                'if (state.status !== "EXPIRING") {\n  throw new RenewNotExpiringError(`Cannot renew subscription with status ${state.status}`);\n}\nstate.status = "ACTIVE";\nstate.expiringSince = null;\n\nstate.currentBillingCycleStart = state.nextBillingDate;\nconst BILLING_CYCLE_DAYS = { MONTHLY: 30, QUARTERLY: 91, SEMI_ANNUAL: 182, ANNUAL: 365, ONE_TIME: 0 };\nconst cycleDays = state.selectedBillingCycle ? BILLING_CYCLE_DAYS[state.selectedBillingCycle] || 30 : 30;\nif (state.nextBillingDate && cycleDays > 0) {\n  const d = new Date(state.nextBillingDate);\n  d.setDate(d.getDate() + cycleDays);\n  state.nextBillingDate = d.toISOString();\n}\n\nfor (const group of state.serviceGroups) {\n  if (group.recurringCost) {\n    state.totalDebt = (state.totalDebt ?? 0) + group.recurringCost.amount;\n  }\n}\nfor (const svc of state.services) {\n  if (svc.recurringCost) {\n    state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;\n  }\n}\n\nstate.renewalDate = action.input.newRenewalDate || null;',
               examples: [],
               template: "Renew an expiring subscription",
               description: "Renew an expiring subscription",
@@ -293,17 +293,34 @@ export const documentModel: DocumentModelGlobalState = {
               description: "Set renewal date",
             },
             {
-              id: "op-update-billing-projection",
-              name: "UPDATE_BILLING_PROJECTION",
-              scope: "global",
-              errors: [],
+              id: "op-settle-billing-cycle",
+              name: "SETTLE_BILLING_CYCLE",
+              description:
+                "Settle the current billing cycle \u2014 calculate overage, reset metrics, advance or expire",
               schema:
-                "input UpdateBillingProjectionInput {\n    nextBillingDate: DateTime\n    projectedBillAmount: Amount_Money\n    projectedBillCurrency: Currency\n}",
+                "input SettleBillingCycleInput {\n    settlementDate: DateTime!\n}",
+              template: "Settle the current billing cycle",
               reducer:
-                "if (action.input.nextBillingDate !== undefined) state.nextBillingDate = action.input.nextBillingDate || null;\nif (action.input.projectedBillAmount !== undefined) state.projectedBillAmount = action.input.projectedBillAmount || null;\nif (action.input.projectedBillCurrency !== undefined) state.projectedBillCurrency = action.input.projectedBillCurrency || null;",
+                'if (state.status !== "ACTIVE") {\n  throw new NoBillingCycleActiveError(`Cannot settle billing cycle when status is ${state.status}`);\n}\nif (state.currentBillingCycleStart && action.input.settlementDate < state.currentBillingCycleStart) {\n  throw new SettlementDateBeforeCycleStartError("Settlement date is before the current billing cycle start");\n}\n\nconst endDate = state.nextBillingDate && action.input.settlementDate > state.nextBillingDate\n  ? state.nextBillingDate\n  : action.input.settlementDate;\n\nconst RESET_HIERARCHY = ["HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"];\nconst cycleIndex = state.selectedBillingCycle ? RESET_HIERARCHY.indexOf(state.selectedBillingCycle) : -1;\n\nfunction processMetrics(metrics) {\n  for (const metric of metrics) {\n    if (metric.unitCost) {\n      const freeLimit = metric.freeLimit ?? 0;\n      let overage = Math.max(0, metric.currentUsage - freeLimit);\n      if (metric.paidLimit) {\n        overage = Math.min(overage, metric.paidLimit - freeLimit);\n      }\n      const cost = overage * metric.unitCost.amount;\n      if (cost > 0) {\n        state.totalDebt = (state.totalDebt ?? 0) + cost;\n      }\n    }\n    if (metric.usageResetPeriod) {\n      const metricIndex = RESET_HIERARCHY.indexOf(metric.usageResetPeriod);\n      if (metricIndex !== -1 && cycleIndex !== -1 && metricIndex <= cycleIndex) {\n        metric.currentUsage = 0;\n      }\n    }\n  }\n}\n\nfor (const svc of state.services) {\n  processMetrics(svc.metrics);\n}\nfor (const group of state.serviceGroups) {\n  for (const svc of group.services) {\n    processMetrics(svc.metrics);\n  }\n}\n\nif (state.autoRenew) {\n  for (const group of state.serviceGroups) {\n    if (group.recurringCost) {\n      state.totalDebt = (state.totalDebt ?? 0) + group.recurringCost.amount;\n    }\n  }\n  for (const svc of state.services) {\n    if (svc.recurringCost) {\n      state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;\n    }\n  }\n  state.currentBillingCycleStart = state.nextBillingDate;\n  const BILLING_CYCLE_DAYS = { MONTHLY: 30, QUARTERLY: 91, SEMI_ANNUAL: 182, ANNUAL: 365, ONE_TIME: 0 };\n  const days = BILLING_CYCLE_DAYS[state.selectedBillingCycle] || 30;\n  if (state.nextBillingDate && days > 0) {\n    const d = new Date(state.nextBillingDate);\n    d.setDate(d.getDate() + days);\n    state.nextBillingDate = d.toISOString();\n  }\n} else {\n  state.status = "EXPIRING";\n  state.expiringSince = action.input.settlementDate;\n}',
+              errors: [
+                {
+                  id: "err-no-billing-cycle-active",
+                  name: "NoBillingCycleActiveError",
+                  code: "NO_BILLING_CYCLE_ACTIVE",
+                  description: "Subscription status is not ACTIVE",
+                  template: "",
+                },
+                {
+                  id: "err-settlement-date-before-cycle-start",
+                  name: "SettlementDateBeforeCycleStartError",
+                  code: "SETTLEMENT_DATE_BEFORE_CYCLE_START",
+                  description:
+                    "Settlement date is before the current billing cycle start date",
+                  template: "",
+                },
+              ],
               examples: [],
-              template: "Update billing projections",
-              description: "Update billing projections",
+              scope: "global",
             },
           ],
           description:
@@ -317,11 +334,20 @@ export const documentModel: DocumentModelGlobalState = {
               id: "op-add-service",
               name: "ADD_SERVICE",
               scope: "global",
-              errors: [],
+              errors: [
+                {
+                  id: "err-not-active-add-service",
+                  name: "SubscriptionNotActiveAddServiceError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_ADD_SERVICE",
+                  description:
+                    "Status must be PENDING or ACTIVE to add a service",
+                  template: "",
+                },
+              ],
               schema:
-                "input DiscountServiceInfoInput {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ninput AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    recurringDiscount: DiscountServiceInfoInput\n}",
+                "input DiscountServiceInfoInput {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ninput AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    recurringDiscount: DiscountServiceInfoInput\n    effectiveDate: DateTime\n}",
               reducer:
-                "const service = {\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  metrics: [],\n};\nstate.services.push(service);",
+                'if (state.status !== "PENDING" && state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveAddServiceError(`Cannot add service when status is ${state.status}`);\n}\nconst service = {\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  metrics: [],\n};\nstate.services.push(service);\n\nif (state.status === "ACTIVE" && action.input.effectiveDate && action.input.recurringAmount && state.currentBillingCycleStart && state.nextBillingDate) {\n  const cycleStart = new Date(state.currentBillingCycleStart).getTime();\n  const cycleEnd = new Date(state.nextBillingDate).getTime();\n  const effective = new Date(action.input.effectiveDate).getTime();\n  const totalDays = (cycleEnd - cycleStart) / (1000 * 60 * 60 * 24);\n  const remainingDays = (cycleEnd - effective) / (1000 * 60 * 60 * 24);\n  if (totalDays > 0 && remainingDays > 0) {\n    const proratedCost = (remainingDays / totalDays) * action.input.recurringAmount;\n    state.totalDebt = (state.totalDebt ?? 0) + proratedCost;\n  }\n}',
               examples: [],
               template: "Add a standalone service",
               description: "Add a standalone service",
@@ -338,10 +364,19 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-not-active-remove-service",
+                  name: "SubscriptionNotActiveRemoveServiceError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_REMOVE_SERVICE",
+                  description:
+                    "Status must be PENDING or ACTIVE to remove a service",
+                  template: "",
+                },
               ],
-              schema: "input RemoveServiceInput {\n    serviceId: OID!\n}",
+              schema:
+                "input RemoveServiceInput {\n    serviceId: OID!\n    effectiveDate: DateTime\n}",
               reducer:
-                "const index = state.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nstate.services.splice(index, 1);",
+                'if (state.status !== "PENDING" && state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveRemoveServiceError(`Cannot remove service when status is ${state.status}`);\n}\nconst index = state.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst svc = state.services[index];\n\nif (state.status === "ACTIVE" && action.input.effectiveDate && svc.recurringCost && state.currentBillingCycleStart && state.nextBillingDate) {\n  const cycleStart = new Date(state.currentBillingCycleStart).getTime();\n  const cycleEnd = new Date(state.nextBillingDate).getTime();\n  const effective = new Date(action.input.effectiveDate).getTime();\n  const totalDays = (cycleEnd - cycleStart) / (1000 * 60 * 60 * 24);\n  const remainingDays = (cycleEnd - effective) / (1000 * 60 * 60 * 24);\n  if (totalDays > 0 && remainingDays > 0) {\n    const proratedCredit = (remainingDays / totalDays) * svc.recurringCost.amount;\n    state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;\n  }\n}\n\nstate.services.splice(index, 1);',
               examples: [],
               template: "Remove a standalone service",
               description: "Remove a standalone service",
@@ -402,9 +437,9 @@ export const documentModel: DocumentModelGlobalState = {
                 },
               ],
               schema:
-                "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
+                "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n    amount: Amount_Money!\n    currency: Currency!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}",
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
               examples: [],
               template: "Record a setup payment",
               description: "Record a setup payment",
@@ -423,9 +458,9 @@ export const documentModel: DocumentModelGlobalState = {
                 },
               ],
               schema:
-                "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
+                "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n    amount: Amount_Money!\n    currency: Currency!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}",
+                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nif (svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
               examples: [],
               template: "Record a recurring payment",
               description: "Record a recurring payment",
@@ -505,11 +540,20 @@ export const documentModel: DocumentModelGlobalState = {
               id: "op-add-service-group",
               name: "ADD_SERVICE_GROUP",
               scope: "global",
-              errors: [],
+              errors: [
+                {
+                  id: "err-structural-add-group",
+                  name: "StructuralChangeNotAllowedAddGroupError",
+                  code: "STRUCTURAL_CHANGE_NOT_ALLOWED_ADD_GROUP",
+                  description:
+                    "Status must be PENDING for structural changes \u2014 cannot add service groups to an active subscription",
+                  template: "",
+                },
+              ],
               schema:
                 "input AddServiceGroupInput {\n    groupId: OID!\n    name: String!\n    optional: Boolean!\n    costType: GroupCostType\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringDiscount: DiscountServiceInfoInput\n}",
               reducer:
-                "state.serviceGroups.push({\n  id: action.input.groupId,\n  name: action.input.name,\n  optional: action.input.optional,\n  costType: action.input.costType || null,\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: null,\n    lastPaymentDate: null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  services: [],\n});",
+                'if (state.status !== "PENDING") {\n  throw new StructuralChangeNotAllowedAddGroupError(`Cannot add service group when status is ${state.status} \u2014 structural changes only allowed in PENDING`);\n}\nstate.serviceGroups.push({\n  id: action.input.groupId,\n  name: action.input.name,\n  optional: action.input.optional,\n  costType: action.input.costType || null,\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: null,\n    lastPaymentDate: null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  services: [],\n});',
               examples: [],
               template: "Add a service group",
               description: "Add a service group",
@@ -526,10 +570,18 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-structural-remove-group",
+                  name: "StructuralChangeNotAllowedRemoveGroupError",
+                  code: "STRUCTURAL_CHANGE_NOT_ALLOWED_REMOVE_GROUP",
+                  description:
+                    "Status must be PENDING for structural changes \u2014 cannot remove service groups from an active subscription",
+                  template: "",
+                },
               ],
               schema: "input RemoveServiceGroupInput {\n    groupId: OID!\n}",
               reducer:
-                "const index = state.serviceGroups.findIndex((g) => g.id === action.input.groupId);\nif (index === -1) {\n  throw new RemoveServiceGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nstate.serviceGroups.splice(index, 1);",
+                'if (state.status !== "PENDING") {\n  throw new StructuralChangeNotAllowedRemoveGroupError(`Cannot remove service group when status is ${state.status} \u2014 structural changes only allowed in PENDING`);\n}\nconst index = state.serviceGroups.findIndex((g) => g.id === action.input.groupId);\nif (index === -1) {\n  throw new RemoveServiceGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nstate.serviceGroups.splice(index, 1);',
               examples: [],
               template: "Remove a service group",
               description: "Remove a service group",
@@ -546,11 +598,19 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-not-active-add-to-group",
+                  name: "SubscriptionNotActiveAddToGroupError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_ADD_TO_GROUP",
+                  description:
+                    "Status must be PENDING or ACTIVE to add a service to a group",
+                  template: "",
+                },
               ],
               schema:
-                "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
+                "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    effectiveDate: DateTime\n}",
               reducer:
-                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new AddServiceToGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\ngroup.services.push({\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: null,\n  } : null,\n  metrics: [],\n});",
+                'if (state.status !== "PENDING" && state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveAddToGroupError(`Cannot add service to group when status is ${state.status}`);\n}\nconst group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new AddServiceToGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\ngroup.services.push({\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: null,\n  } : null,\n  metrics: [],\n});\n\nif (state.status === "ACTIVE" && action.input.effectiveDate && action.input.recurringAmount && state.currentBillingCycleStart && state.nextBillingDate) {\n  const cycleStart = new Date(state.currentBillingCycleStart).getTime();\n  const cycleEnd = new Date(state.nextBillingDate).getTime();\n  const effective = new Date(action.input.effectiveDate).getTime();\n  const totalDays = (cycleEnd - cycleStart) / (1000 * 60 * 60 * 24);\n  const remainingDays = (cycleEnd - effective) / (1000 * 60 * 60 * 24);\n  if (totalDays > 0 && remainingDays > 0) {\n    const proratedCost = (remainingDays / totalDays) * action.input.recurringAmount;\n    state.totalDebt = (state.totalDebt ?? 0) + proratedCost;\n  }\n}',
               examples: [],
               template: "Add a service to a group",
               description: "Add a service to a group",
@@ -574,11 +634,19 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-not-active-remove-from-group",
+                  name: "SubscriptionNotActiveRemoveFromGroupError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_REMOVE_FROM_GROUP",
+                  description:
+                    "Status must be PENDING or ACTIVE to remove a service from a group",
+                  template: "",
+                },
               ],
               schema:
-                "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n}",
+                "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    effectiveDate: DateTime\n}",
               reducer:
-                "const group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new RemoveServiceFromGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nconst index = group.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceFromGroupServiceNotFoundError(`Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`);\n}\ngroup.services.splice(index, 1);",
+                'if (state.status !== "PENDING" && state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveRemoveFromGroupError(`Cannot remove service from group when status is ${state.status}`);\n}\nconst group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new RemoveServiceFromGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nconst index = group.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceFromGroupServiceNotFoundError(`Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`);\n}\nconst svc = group.services[index];\n\nif (state.status === "ACTIVE" && action.input.effectiveDate && svc.recurringCost && state.currentBillingCycleStart && state.nextBillingDate) {\n  const cycleStart = new Date(state.currentBillingCycleStart).getTime();\n  const cycleEnd = new Date(state.nextBillingDate).getTime();\n  const effective = new Date(action.input.effectiveDate).getTime();\n  const totalDays = (cycleEnd - cycleStart) / (1000 * 60 * 60 * 24);\n  const remainingDays = (cycleEnd - effective) / (1000 * 60 * 60 * 24);\n  if (totalDays > 0 && remainingDays > 0) {\n    const proratedCredit = (remainingDays / totalDays) * svc.recurringCost.amount;\n    state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;\n  }\n}\n\ngroup.services.splice(index, 1);',
               examples: [],
               template: "Remove a service from a group",
               description: "Remove a service from a group",
@@ -680,11 +748,18 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-not-active-update-usage",
+                  name: "SubscriptionNotActiveUpdateUsageError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_UPDATE_USAGE",
+                  description: "Status must be ACTIVE to update metric usage",
+                  template: "",
+                },
               ],
               schema:
                 "input UpdateMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    currentUsage: Int!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage = action.input.currentUsage;",
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveUpdateUsageError(`Cannot update metric usage when status is ${state.status}`);\n}\nconst svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new UpdateMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new UpdateMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage = action.input.currentUsage;',
               examples: [],
               template: "Set metric usage directly",
               description: "Set metric usage directly",
@@ -736,11 +811,19 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-not-active-increment-usage",
+                  name: "SubscriptionNotActiveIncrementUsageError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_INCREMENT_USAGE",
+                  description:
+                    "Status must be ACTIVE to increment metric usage",
+                  template: "",
+                },
               ],
               schema:
                 "input IncrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    incrementBy: Int!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new IncrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new IncrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage += action.input.incrementBy;",
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveIncrementUsageError(`Cannot increment metric usage when status is ${state.status}`);\n}\nconst svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new IncrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new IncrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage += action.input.incrementBy;',
               examples: [],
               template: "Increment usage counter",
               description: "Increment usage counter",
@@ -764,11 +847,19 @@ export const documentModel: DocumentModelGlobalState = {
                   template: "",
                   description: "",
                 },
+                {
+                  id: "err-not-active-decrement-usage",
+                  name: "SubscriptionNotActiveDecrementUsageError",
+                  code: "SUBSCRIPTION_NOT_ACTIVE_DECREMENT_USAGE",
+                  description:
+                    "Status must be ACTIVE to decrement metric usage",
+                  template: "",
+                },
               ],
               schema:
                 "input DecrementMetricUsageInput {\n    serviceId: OID!\n    metricId: OID!\n    currentTime: DateTime!\n    decrementBy: Int!\n}",
               reducer:
-                "const svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new DecrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new DecrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage -= action.input.decrementBy;",
+                'if (state.status !== "ACTIVE") {\n  throw new SubscriptionNotActiveDecrementUsageError(`Cannot decrement metric usage when status is ${state.status}`);\n}\nconst svc = state.services.find((s) => s.id === action.input.serviceId);\nif (!svc) {\n  throw new DecrementMetricUsageServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nconst metric = svc.metrics.find((m) => m.id === action.input.metricId);\nif (!metric) {\n  throw new DecrementMetricUsageNotFoundError(`Metric with ID ${action.input.metricId} not found`);\n}\nmetric.currentUsage -= action.input.decrementBy;',
               examples: [],
               template: "Decrement usage counter",
               description: "Decrement usage counter",

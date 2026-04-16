@@ -16,7 +16,7 @@ import type {
   SetOperatorNotesInput,
   SetAutoRenewInput,
   SetRenewalDateInput,
-  UpdateBillingProjectionInput,
+  SettleBillingCycleInput,
 } from "../types.js";
 
 export type InitializeSubscriptionAction = Action & {
@@ -83,9 +83,9 @@ export type SetRenewalDateAction = Action & {
   type: "SET_RENEWAL_DATE";
   input: SetRenewalDateInput;
 };
-export type UpdateBillingProjectionAction = Action & {
-  type: "UPDATE_BILLING_PROJECTION";
-  input: UpdateBillingProjectionInput;
+export type SettleBillingCycleAction = Action & {
+  type: "SETTLE_BILLING_CYCLE";
+  input: SettleBillingCycleInput;
 };
 
 export type SubscriptionInstanceSubscriptionAction =
@@ -105,4 +105,4 @@ export type SubscriptionInstanceSubscriptionAction =
   | SetOperatorNotesAction
   | SetAutoRenewAction
   | SetRenewalDateAction
-  | UpdateBillingProjectionAction;
+  | SettleBillingCycleAction;

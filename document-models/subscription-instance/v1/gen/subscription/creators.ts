@@ -16,7 +16,7 @@ import {
   SetOperatorNotesInputSchema,
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
-  UpdateBillingProjectionInputSchema,
+  SettleBillingCycleInputSchema,
 } from "../schema/zod.js";
 import type {
   InitializeSubscriptionInput,
@@ -35,7 +35,7 @@ import type {
   SetOperatorNotesInput,
   SetAutoRenewInput,
   SetRenewalDateInput,
-  UpdateBillingProjectionInput,
+  SettleBillingCycleInput,
 } from "../types.js";
 import type {
   InitializeSubscriptionAction,
@@ -54,7 +54,7 @@ import type {
   SetOperatorNotesAction,
   SetAutoRenewAction,
   SetRenewalDateAction,
-  UpdateBillingProjectionAction,
+  SettleBillingCycleAction,
 } from "./actions.js";
 
 export const initializeSubscription = (input: InitializeSubscriptionInput) =>
@@ -205,11 +205,11 @@ export const setRenewalDate = (input: SetRenewalDateInput) =>
     "global",
   );
 
-export const updateBillingProjection = (input: UpdateBillingProjectionInput) =>
-  createAction<UpdateBillingProjectionAction>(
-    "UPDATE_BILLING_PROJECTION",
+export const settleBillingCycle = (input: SettleBillingCycleInput) =>
+  createAction<SettleBillingCycleAction>(
+    "SETTLE_BILLING_CYCLE",
     { ...input },
     undefined,
-    UpdateBillingProjectionInputSchema,
+    SettleBillingCycleInputSchema,
     "global",
   );

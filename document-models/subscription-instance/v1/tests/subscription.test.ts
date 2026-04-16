@@ -38,6 +38,8 @@ import {
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
   UpdateBillingProjectionInputSchema,
+  settleBillingCycle,
+  SettleBillingCycleInputSchema,
 } from "document-models/subscription-instance/v1";
 
 describe("SubscriptionOperations", () => {
@@ -323,6 +325,23 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "UPDATE_BILLING_PROJECTION",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle settleBillingCycle operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(SettleBillingCycleInputSchema());
+
+    const updatedDocument = reducer(document, settleBillingCycle(input));
+
+    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "SETTLE_BILLING_CYCLE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

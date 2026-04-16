@@ -1,4 +1,3 @@
-import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 import {
   ActivateNotPendingError,
   PauseNotActiveError,
@@ -7,7 +6,10 @@ import {
   ResumeNotPausedError,
   RenewNotExpiringError,
   RemoveBudgetNotFoundError,
+  NoBillingCycleActiveError,
+  SettlementDateBeforeCycleStartError,
 } from "../../gen/subscription/error.js";
+import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {
@@ -304,5 +306,107 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       if (action.input.projectedBillCurrency !== undefined)
         state.projectedBillCurrency =
           action.input.projectedBillCurrency || null;
+    },
+    settleBillingCycleOperation(state, action) {
+      if (state.status !== "ACTIVE") {
+        throw new NoBillingCycleActiveError(
+          `Cannot settle billing cycle when status is ${state.status}`,
+        );
+      }
+      if (
+        state.currentBillingCycleStart &&
+        action.input.settlementDate < state.currentBillingCycleStart
+      ) {
+        throw new SettlementDateBeforeCycleStartError(
+          "Settlement date is before the current billing cycle start",
+        );
+      }
+
+      const endDate =
+        state.nextBillingDate &&
+        action.input.settlementDate > state.nextBillingDate
+          ? state.nextBillingDate
+          : action.input.settlementDate;
+
+      const RESET_HIERARCHY = [
+        "HOURLY",
+        "DAILY",
+        "WEEKLY",
+        "MONTHLY",
+        "QUARTERLY",
+        "SEMI_ANNUAL",
+        "ANNUAL",
+      ];
+      const cycleIndex = state.selectedBillingCycle
+        ? RESET_HIERARCHY.indexOf(state.selectedBillingCycle)
+        : -1;
+
+      function processMetrics(metrics) {
+        for (const metric of metrics) {
+          if (metric.unitCost) {
+            const freeLimit = metric.freeLimit ?? 0;
+            let overage = Math.max(0, metric.currentUsage - freeLimit);
+            if (metric.paidLimit) {
+              overage = Math.min(overage, metric.paidLimit - freeLimit);
+            }
+            const cost = overage * metric.unitCost.amount;
+            if (cost > 0) {
+              state.totalDebt = (state.totalDebt ?? 0) + cost;
+            }
+          }
+          if (metric.usageResetPeriod) {
+            const metricIndex = RESET_HIERARCHY.indexOf(
+              metric.usageResetPeriod,
+            );
+            if (
+              metricIndex !== -1 &&
+              cycleIndex !== -1 &&
+              metricIndex <= cycleIndex
+            ) {
+              metric.currentUsage = 0;
+            }
+          }
+        }
+      }
+
+      for (const svc of state.services) {
+        processMetrics(svc.metrics);
+      }
+      for (const group of state.serviceGroups) {
+        for (const svc of group.services) {
+          processMetrics(svc.metrics);
+        }
+      }
+
+      if (state.autoRenew) {
+        for (const group of state.serviceGroups) {
+          if (group.recurringCost) {
+            state.totalDebt =
+              (state.totalDebt ?? 0) + group.recurringCost.amount;
+          }
+        }
+        for (const svc of state.services) {
+          if (svc.recurringCost) {
+            state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;
+          }
+        }
+        state.currentBillingCycleStart = state.nextBillingDate;
+        const BILLING_CYCLE_DAYS = {
+          MONTHLY: 30,
+          QUARTERLY: 91,
+          SEMI_ANNUAL: 182,
+          ANNUAL: 365,
+          ONE_TIME: 0,
+        };
+        const days = BILLING_CYCLE_DAYS[state.selectedBillingCycle] || 30;
+        if (state.nextBillingDate && days > 0) {
+          const d = new Date(state.nextBillingDate);
+          d.setDate(d.getDate() + days);
+          state.nextBillingDate = d.toISOString();
+        }
+      } else {
+        state.status = "EXPIRING";
+        state.expiringSince = action.input.settlementDate;
+      }
     },
   };

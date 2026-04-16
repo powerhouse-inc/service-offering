@@ -27,7 +27,7 @@ import {
   SetOperatorNotesInputSchema,
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
-  UpdateBillingProjectionInputSchema,
+  SettleBillingCycleInputSchema,
   AddServiceInputSchema,
   RemoveServiceInputSchema,
   UpdateServiceSetupCostInputSchema,
@@ -253,10 +253,10 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
-    case "UPDATE_BILLING_PROJECTION": {
-      UpdateBillingProjectionInputSchema().parse(action.input);
+    case "SETTLE_BILLING_CYCLE": {
+      SettleBillingCycleInputSchema().parse(action.input);
 
-      subscriptionInstanceSubscriptionOperations.updateBillingProjectionOperation(
+      subscriptionInstanceSubscriptionOperations.settleBillingCycleOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

@@ -1,4 +1,3 @@
-import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 import {
   AddServiceMetricServiceNotFoundError,
   UpdateMetricServiceNotFoundError,
@@ -12,6 +11,7 @@ import {
   DecrementMetricUsageServiceNotFoundError,
   DecrementMetricUsageNotFoundError,
 } from "../../gen/metrics/error.js";
+import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
   {

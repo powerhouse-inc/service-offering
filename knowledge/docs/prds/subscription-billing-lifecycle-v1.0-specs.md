@@ -269,7 +269,31 @@ input ReportRecurringPaymentInput {
 | `SubscriptionNotActiveIncrementUsageError` | `SUBSCRIPTION_NOT_ACTIVE_INCREMENT_USAGE` | INCREMENT_METRIC_USAGE | Status must be ACTIVE |
 | `SubscriptionNotActiveDecrementUsageError` | `SUBSCRIPTION_NOT_ACTIVE_DECREMENT_USAGE` | DECREMENT_METRIC_USAGE | Status must be ACTIVE |
 
-### 2.4 Removed Operation: UPDATE_BILLING_PROJECTION
+### 2.4 Updated Reducer: RENEW_EXPIRING_SUBSCRIPTION (D-9)
+
+**Module**: `subscription`
+**Operation ID**: `op-renew-expiring-subscription` (existing — no schema change needed)
+
+The existing input is sufficient (`timestamp: DateTime!`, `newRenewalDate: DateTime`). The **reducer** needs billing initialization logic added:
+
+```
+1. Guard: status must be EXPIRING (already exists)
+2. status = "ACTIVE" (already exists)
+3. expiringSince = null (already exists)
+4. NEW: currentBillingCycleStart = nextBillingDate (pick up from expired cycle end)
+5. NEW: nextBillingDate = calculateNextBillingDate(nextBillingDate, selectedBillingCycle)
+6. NEW: For each service group with recurringCost: totalDebt += recurringCost.amount
+7. NEW: For each standalone service with recurringCost: totalDebt += recurringCost.amount
+8. renewalDate = newRenewalDate || null (already exists)
+```
+
+**Cycle boundary rule (D-4)**: New cycle starts from `nextBillingDate`, not from `timestamp`. If cycle expired April 30 and customer renews May 5, new cycle = April 30 – May 30. No date drift.
+
+**MCP action**: SET_OPERATION_REDUCER on `op-renew-expiring-subscription` with updated logic.
+
+---
+
+### 2.5 Removed Operation: UPDATE_BILLING_PROJECTION
 
 **Module**: `subscription`
 **Operation ID**: `op-update-billing-projection`
@@ -298,6 +322,12 @@ Remove entirely. `projectedBillAmount` and `projectedBillCurrency` no longer exi
 | `REMOVE_SERVICE_FROM_GROUP` | service-group | `effectiveDate: DateTime` | D-2 |
 | `REPORT_SETUP_PAYMENT` | service | `amount: Amount_Money!, currency: Currency!` | D-3 |
 | `REPORT_RECURRING_PAYMENT` | service | `amount: Amount_Money!, currency: Currency!` | D-3 |
+
+### 3.3 Modified Operations (reducer changes only — no input changes)
+
+| Operation | Module | Reducer Change | Decision |
+|-----------|--------|---------------|----------|
+| `RENEW_EXPIRING_SUBSCRIPTION` | subscription | Add billing initialization: advance cycle dates, add recurring costs to totalDebt | D-9 |
 
 ### 3.3 Removed Operations
 

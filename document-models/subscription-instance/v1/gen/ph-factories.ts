@@ -40,8 +40,9 @@ export function defaultGlobalState(): SubscriptionInstanceGlobalState {
     operatorNotes: null,
     budget: null,
     nextBillingDate: null,
-    projectedBillAmount: null,
-    projectedBillCurrency: null,
+    currentBillingCycleStart: null,
+    totalDebt: null,
+    totalCredit: null,
     services: [],
     serviceGroups: [],
   };

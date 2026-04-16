@@ -291,6 +291,31 @@ Wouter's response was to ask for a BA on the mechanism — but the mechanism he 
 
 ---
 
+### D-9: Manual Renewal Billing — Fix renewExpiringSubscription
+
+**Decision**: Option A — update the existing `renewExpiringSubscription` reducer to initialize billing state for the new cycle. Fixed cycle boundaries per D-4.
+
+**Rationale**: When `autoRenew` is false, settlement closes the cycle and transitions to EXPIRING. The customer can then manually renew via `renewExpiringSubscription`. Currently this operation only transitions status back to ACTIVE — it doesn't touch billing state. This creates a gap: the subscription is ACTIVE but cycle boundaries and debt counters are stale.
+
+Considered three options:
+1. Fix `renewExpiringSubscription` — **selected**. Natural place for the logic. Mirrors what settlement does for auto-renew (add recurring costs, advance dates) minus setup costs (one-time only).
+2. Hack: toggle `autoRenew` before re-settling — rejected. Requires two operations for one intent.
+3. New dedicated `RENEW_SUBSCRIPTION` operation — rejected. Adds operation count for something the existing operation should handle.
+
+**Cycle boundary rule** (per D-4): New cycle starts from the existing `nextBillingDate`, not from the renewal timestamp. If the cycle expired on April 30 and the customer renews on May 5, the new cycle is April 30 – May 30 (not May 5 – June 5). No date drift.
+
+**Affected doc model changes**:
+- `renewExpiringSubscription` reducer — add billing initialization:
+  1. `currentBillingCycleStart` = current `nextBillingDate` (pick up from where cycle ended)
+  2. `nextBillingDate` = `calculateNextBillingDate(nextBillingDate, selectedBillingCycle)`
+  3. Add recurring costs for new cycle to `totalDebt` (same logic as settlement auto-renew path)
+- No input schema changes needed — existing `timestamp` and `newRenewalDate` inputs are sufficient
+
+**Affected utils**:
+- Same `calculateNextBillingDate()` already specified in PR-1
+
+---
+
 ## Open Questions
 
 ### OQ-2: On early settlement + renewal, does the new cycle start from `settlementDate` or original `nextBillingDate`?

@@ -5,7 +5,9 @@ export type ErrorCode =
   | "CancelAlreadyCancelledError"
   | "ResumeNotPausedError"
   | "RenewNotExpiringError"
-  | "RemoveBudgetNotFoundError";
+  | "RemoveBudgetNotFoundError"
+  | "NoBillingCycleActiveError"
+  | "SettlementDateBeforeCycleStartError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -60,6 +62,23 @@ export class RemoveBudgetNotFoundError extends Error implements ReducerError {
   }
 }
 
+export class NoBillingCycleActiveError extends Error implements ReducerError {
+  errorCode = "NoBillingCycleActiveError" as ErrorCode;
+  constructor(message = "NoBillingCycleActiveError") {
+    super(message);
+  }
+}
+
+export class SettlementDateBeforeCycleStartError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SettlementDateBeforeCycleStartError" as ErrorCode;
+  constructor(message = "SettlementDateBeforeCycleStartError") {
+    super(message);
+  }
+}
+
 export const errors = {
   ActivateSubscription: { ActivateNotPendingError },
   PauseSubscription: { PauseNotActiveError },
@@ -68,4 +87,8 @@ export const errors = {
   ResumeSubscription: { ResumeNotPausedError },
   RenewExpiringSubscription: { RenewNotExpiringError },
   RemoveBudgetCategory: { RemoveBudgetNotFoundError },
+  SettleBillingCycle: {
+    NoBillingCycleActiveError,
+    SettlementDateBeforeCycleStartError,
+  },
 };

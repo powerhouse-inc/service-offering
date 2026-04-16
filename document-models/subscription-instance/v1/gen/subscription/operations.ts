@@ -16,7 +16,7 @@ import type {
   SetOperatorNotesAction,
   SetAutoRenewAction,
   SetRenewalDateAction,
-  UpdateBillingProjectionAction,
+  SettleBillingCycleAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -101,9 +101,9 @@ export interface SubscriptionInstanceSubscriptionOperations {
     action: SetRenewalDateAction,
     dispatch?: SignalDispatch,
   ) => void;
-  updateBillingProjectionOperation: (
+  settleBillingCycleOperation: (
     state: SubscriptionInstanceState,
-    action: UpdateBillingProjectionAction,
+    action: SettleBillingCycleAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

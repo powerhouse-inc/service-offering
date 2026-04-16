@@ -4,12 +4,15 @@ export type ErrorCode =
   | "UpdateMetricNotFoundError"
   | "UpdateMetricUsageServiceNotFoundError"
   | "UpdateMetricUsageNotFoundError"
+  | "SubscriptionNotActiveUpdateUsageError"
   | "RemoveServiceMetricServiceNotFoundError"
   | "RemoveServiceMetricNotFoundError"
   | "IncrementMetricUsageServiceNotFoundError"
   | "IncrementMetricUsageNotFoundError"
+  | "SubscriptionNotActiveIncrementUsageError"
   | "DecrementMetricUsageServiceNotFoundError"
-  | "DecrementMetricUsageNotFoundError";
+  | "DecrementMetricUsageNotFoundError"
+  | "SubscriptionNotActiveDecrementUsageError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -62,6 +65,16 @@ export class UpdateMetricUsageNotFoundError
   }
 }
 
+export class SubscriptionNotActiveUpdateUsageError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveUpdateUsageError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveUpdateUsageError") {
+    super(message);
+  }
+}
+
 export class RemoveServiceMetricServiceNotFoundError
   extends Error
   implements ReducerError
@@ -102,6 +115,16 @@ export class IncrementMetricUsageNotFoundError
   }
 }
 
+export class SubscriptionNotActiveIncrementUsageError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveIncrementUsageError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveIncrementUsageError") {
+    super(message);
+  }
+}
+
 export class DecrementMetricUsageServiceNotFoundError
   extends Error
   implements ReducerError
@@ -122,12 +145,23 @@ export class DecrementMetricUsageNotFoundError
   }
 }
 
+export class SubscriptionNotActiveDecrementUsageError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveDecrementUsageError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveDecrementUsageError") {
+    super(message);
+  }
+}
+
 export const errors = {
   AddServiceMetric: { AddServiceMetricServiceNotFoundError },
   UpdateMetric: { UpdateMetricServiceNotFoundError, UpdateMetricNotFoundError },
   UpdateMetricUsage: {
     UpdateMetricUsageServiceNotFoundError,
     UpdateMetricUsageNotFoundError,
+    SubscriptionNotActiveUpdateUsageError,
   },
   RemoveServiceMetric: {
     RemoveServiceMetricServiceNotFoundError,
@@ -136,9 +170,11 @@ export const errors = {
   IncrementMetricUsage: {
     IncrementMetricUsageServiceNotFoundError,
     IncrementMetricUsageNotFoundError,
+    SubscriptionNotActiveIncrementUsageError,
   },
   DecrementMetricUsage: {
     DecrementMetricUsageServiceNotFoundError,
     DecrementMetricUsageNotFoundError,
+    SubscriptionNotActiveDecrementUsageError,
   },
 };

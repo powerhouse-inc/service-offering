@@ -1,12 +1,26 @@
 export type ErrorCode =
+  | "StructuralChangeNotAllowedAddGroupError"
   | "RemoveServiceGroupNotFoundError"
+  | "StructuralChangeNotAllowedRemoveGroupError"
   | "AddServiceToGroupGroupNotFoundError"
+  | "SubscriptionNotActiveAddToGroupError"
   | "RemoveServiceFromGroupGroupNotFoundError"
   | "RemoveServiceFromGroupServiceNotFoundError"
+  | "SubscriptionNotActiveRemoveFromGroupError"
   | "UpdateServiceGroupCostNotFoundError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
+}
+
+export class StructuralChangeNotAllowedAddGroupError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "StructuralChangeNotAllowedAddGroupError" as ErrorCode;
+  constructor(message = "StructuralChangeNotAllowedAddGroupError") {
+    super(message);
+  }
 }
 
 export class RemoveServiceGroupNotFoundError
@@ -19,12 +33,32 @@ export class RemoveServiceGroupNotFoundError
   }
 }
 
+export class StructuralChangeNotAllowedRemoveGroupError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "StructuralChangeNotAllowedRemoveGroupError" as ErrorCode;
+  constructor(message = "StructuralChangeNotAllowedRemoveGroupError") {
+    super(message);
+  }
+}
+
 export class AddServiceToGroupGroupNotFoundError
   extends Error
   implements ReducerError
 {
   errorCode = "AddServiceToGroupGroupNotFoundError" as ErrorCode;
   constructor(message = "AddServiceToGroupGroupNotFoundError") {
+    super(message);
+  }
+}
+
+export class SubscriptionNotActiveAddToGroupError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveAddToGroupError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveAddToGroupError") {
     super(message);
   }
 }
@@ -49,6 +83,16 @@ export class RemoveServiceFromGroupServiceNotFoundError
   }
 }
 
+export class SubscriptionNotActiveRemoveFromGroupError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveRemoveFromGroupError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveRemoveFromGroupError") {
+    super(message);
+  }
+}
+
 export class UpdateServiceGroupCostNotFoundError
   extends Error
   implements ReducerError
@@ -60,11 +104,19 @@ export class UpdateServiceGroupCostNotFoundError
 }
 
 export const errors = {
-  RemoveServiceGroup: { RemoveServiceGroupNotFoundError },
-  AddServiceToGroup: { AddServiceToGroupGroupNotFoundError },
+  AddServiceGroup: { StructuralChangeNotAllowedAddGroupError },
+  RemoveServiceGroup: {
+    RemoveServiceGroupNotFoundError,
+    StructuralChangeNotAllowedRemoveGroupError,
+  },
+  AddServiceToGroup: {
+    AddServiceToGroupGroupNotFoundError,
+    SubscriptionNotActiveAddToGroupError,
+  },
   RemoveServiceFromGroup: {
     RemoveServiceFromGroupGroupNotFoundError,
     RemoveServiceFromGroupServiceNotFoundError,
+    SubscriptionNotActiveRemoveFromGroupError,
   },
   UpdateServiceGroupCost: { UpdateServiceGroupCostNotFoundError },
 };

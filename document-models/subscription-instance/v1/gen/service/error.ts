@@ -1,5 +1,7 @@
 export type ErrorCode =
+  | "SubscriptionNotActiveAddServiceError"
   | "RemoveServiceNotFoundError"
+  | "SubscriptionNotActiveRemoveServiceError"
   | "UpdateServiceSetupCostNotFoundError"
   | "UpdateServiceRecurringCostNotFoundError"
   | "ReportSetupPaymentServiceNotFoundError"
@@ -12,9 +14,29 @@ export interface ReducerError {
   errorCode: ErrorCode;
 }
 
+export class SubscriptionNotActiveAddServiceError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveAddServiceError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveAddServiceError") {
+    super(message);
+  }
+}
+
 export class RemoveServiceNotFoundError extends Error implements ReducerError {
   errorCode = "RemoveServiceNotFoundError" as ErrorCode;
   constructor(message = "RemoveServiceNotFoundError") {
+    super(message);
+  }
+}
+
+export class SubscriptionNotActiveRemoveServiceError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "SubscriptionNotActiveRemoveServiceError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveRemoveServiceError") {
     super(message);
   }
 }
@@ -90,7 +112,11 @@ export class RemoveServiceFacetSelectionServiceNotFoundError
 }
 
 export const errors = {
-  RemoveService: { RemoveServiceNotFoundError },
+  AddService: { SubscriptionNotActiveAddServiceError },
+  RemoveService: {
+    RemoveServiceNotFoundError,
+    SubscriptionNotActiveRemoveServiceError,
+  },
   UpdateServiceSetupCost: { UpdateServiceSetupCostNotFoundError },
   UpdateServiceRecurringCost: { UpdateServiceRecurringCostNotFoundError },
   ReportSetupPayment: { ReportSetupPaymentServiceNotFoundError },
