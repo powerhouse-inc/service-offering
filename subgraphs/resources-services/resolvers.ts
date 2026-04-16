@@ -659,7 +659,7 @@ function getDriveLink(driveSlug: string): string {
     return `https://connect.powerhouse.xyz/?driveUrl=https://switchboard.powerhouse.xyz/d/${driveSlug}`;
   }
 
-  return `http://localhost:3000/?driveUrl=http://localhost:4001/d/${driveSlug}`;
+  return `http://localhost:3001/?driveUrl=http://localhost:4001/d/${driveSlug}`;
 }
 
 /**
