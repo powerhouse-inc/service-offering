@@ -60,7 +60,15 @@ flowchart TD
 
 ## 3. Real-World Validation
 
-Universal — all platforms freeze functionality on cancellation. Zoom: "you will lose all associated plan features" (verified).
+### Zoom (verified)
+
+**URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0063375
+
+**Screenshot**: [evidence/d6-zoom-upgrade-downgrade.png](evidence/d6-zoom-upgrade-downgrade.png)
+
+Zoom: "you will lose all associated plan features" on downgrade/cancellation.
+
+Universal — all platforms freeze functionality on cancellation.
 
 ---
 

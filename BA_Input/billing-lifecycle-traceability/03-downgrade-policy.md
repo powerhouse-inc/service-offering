@@ -60,6 +60,8 @@ This gives us:
 
 **URL**: https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy
 
+**Screenshot**: [evidence/d1-d2-slack-fair-billing.png](evidence/d1-d2-slack-fair-billing.png)
+
 **Key quote**: "We'll divide the cost per member by the number of days in the month, then multiply by the remaining number of days in the month." Credits are non-refundable and auto-applied to future charges.
 
 **Verdict**: Prorated credit, non-refundable, auto-applied. This is the model we chose.
@@ -70,6 +72,8 @@ This gives us:
 
 **URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0063375
 
+**Screenshot**: [evidence/d1-zoom-proration.png](evidence/d1-zoom-proration.png)
+
 **Verdict**: No credit on downgrade — takes effect at renewal. We did NOT follow this model.
 
 ---
@@ -77,6 +81,8 @@ This gives us:
 ### Stripe (verified)
 
 **URL**: https://docs.stripe.com/billing/subscriptions/prorations
+
+**Screenshot**: [evidence/d1-stripe-proration.png](evidence/d1-stripe-proration.png)
 
 **Verdict**: Credit applied on next invoice, not immediately. We chose immediate credit per Wouter.
 

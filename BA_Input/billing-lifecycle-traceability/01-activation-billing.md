@@ -53,7 +53,29 @@ This gives us:
 
 ## 3. Real-World Validation
 
-### Stripe / Zoom / Dropbox (verified)
+### Stripe (verified)
+
+**URL**: https://docs.stripe.com/billing/subscriptions/creating
+
+**Screenshot**: [evidence/ba5-stripe-creating-subscriptions.png](evidence/ba5-stripe-creating-subscriptions.png)
+
+Stripe creates the first invoice immediately when a subscription is created. Charges on activation.
+
+### Zoom (verified)
+
+**URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0060848
+
+**Screenshot**: [evidence/ba5-zoom-billing.png](evidence/ba5-zoom-billing.png)
+
+Zoom charges immediately when you upgrade or purchase a plan.
+
+### Dropbox (verified)
+
+**URL**: https://help.dropbox.com/plans/manage-subscription
+
+**Screenshot**: [evidence/ba5-dropbox-subscription.png](evidence/ba5-dropbox-subscription.png)
+
+Dropbox charges immediately on plan activation.
 
 All charge immediately on activation. This is a universal pattern — no platform defers the initial charge.
 

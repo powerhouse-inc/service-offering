@@ -73,6 +73,8 @@ This gives us:
 
 **URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0063375
 
+**Screenshot**: [evidence/d1-zoom-proration.png](evidence/d1-zoom-proration.png)
+
 **Key quote**: "If you upgrade in the middle of a billing period, your account will be credited a prorated amount for the time remaining on your existing subscription, and you will be charged for the upgrade with the credit applied."
 
 **Verdict**: Immediate prorated charge. Matches our rule.
@@ -83,6 +85,8 @@ This gives us:
 
 **URL**: https://docs.stripe.com/billing/subscriptions/prorations
 
+**Screenshot**: [evidence/d1-stripe-proration.png](evidence/d1-stripe-proration.png)
+
 **Key quote**: "The default parameter for `proration_behavior` is `create_prorations`, which creates proration invoice items when applicable" — these are invoiced at next cycle, not immediately.
 
 **Verdict**: Default is deferred. Configurable to immediate via `always_invoice`. We chose immediate per Wouter's directive.
@@ -92,6 +96,8 @@ This gives us:
 ### Slack (verified)
 
 **URL**: https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy
+
+**Screenshot**: [evidence/d1-d2-slack-fair-billing.png](evidence/d1-d2-slack-fair-billing.png)
 
 **Key quote**: "We'll divide the cost per member by the number of days in the month, then multiply by the remaining number of days in the month." and "We'll calculate the prorated cost and bill you the following month for any new members added."
 
