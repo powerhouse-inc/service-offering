@@ -1,7 +1,7 @@
 # Billing Engine Demo Walkthrough
 
 **Audience**: Wouter (first time seeing billing lifecycle in the subscription instance)
-**Test document**: `http://localhost:3001/d/preview-1e38b0a0/94004d1b-7744-4f98-90d1-4c7cf13b8d11`
+**Test document**: `http://localhost:3001/d/preview-1e38b0a0/b9c7eff7-5e48-48a6-bf47-85f996ceb05f`
 **Date**: 2026-04-17
 
 ---
@@ -27,7 +27,7 @@
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | Open `{}` inspector → `ACTIVATE_SUBSCRIPTION` operation. Input is just `{ activatedSince }` — no pricing in the input. | Operation inspector |
-| **Reducer** | The reducer at [subscription.ts:207-241](document-models/subscription-instance/v1/src/reducers/subscription.ts#L207-L241) loops all groups and services, sums every `setupCost.amount` + `recurringCost.amount` → writes `state.totalDebt`. Also sets `currentBillingCycleStart` and calculates `nextBillingDate`. | Code |
+| **Reducer** | The reducer at [subscription.ts:192-224](document-models/subscription-instance/v1/src/reducers/subscription.ts#L192-L224) loops all groups and services, sums every `setupCost.amount` + `recurringCost.amount` → writes `state.totalDebt`. Also sets `currentBillingCycleStart` and calculates `nextBillingDate`. | Code |
 | **State** | The editor BillingPanel shows "Outstanding Balance: **$11,020**" — that's `totalDebt - totalCredit` derived live. Cycle shows Apr 17 → May 17 (Monthly). | Editor UI |
 
 ### The math
@@ -61,8 +61,8 @@
 
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
-| **Operation** | Open `{}` → `REPORT_SETUP_PAYMENT`. Input: `{ serviceId: "sg-entity-compliance", paymentDate: "..." }`. **No amount field, no currency field.** | Operation inspector |
-| **Reducer** | [service.ts:155-189](document-models/subscription-instance/v1/src/reducers/service.ts#L155-L189) — finds the group by ID, reads `setupCost.amount` from state ($3,000), adds that to `totalCredit`. Sets `paymentDate` on the cost. | Code |
+| **Operation** | Open `{}` → `REPORT_SETUP_PAYMENT`. Input: `{ serviceId: "sg-entity-demo", paymentDate: "..." }`. **No amount field, no currency field.** | Operation inspector |
+| **Reducer** | [service.ts:161-191](document-models/subscription-instance/v1/src/reducers/service.ts#L161-L191) — finds the group by ID, reads `setupCost.amount` from state ($3,000), adds that to `totalCredit`. Sets `paymentDate` on the cost. Guards: nothing-owed check, not-found, no-cost, already-paid. | Code |
 | **State** | BillingPanel: Outstanding Balance now $8,020. Setup cost shows "Paid" tag. `totalCredit` went from 0 → 3,000. | Editor UI |
 
 ### Now show the guard — try to pay it again
@@ -77,13 +77,19 @@
 
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
-| **Operation** | `REPORT_RECURRING_PAYMENT` with `{ serviceId: "sg-finops", paymentDate: "..." }`. Again — **no amount**. | Operation inspector |
-| **Reducer** | [service.ts:190-230](document-models/subscription-instance/v1/src/reducers/service.ts#L190-L230) — reads `recurringCost.amount` ($750) from state. Sets `lastPaymentDate`. Per-cycle guard: if `lastPaymentDate >= currentBillingCycleStart`, throws `AlreadyPaidThisCycleError`. | Code |
+| **Operation** | `REPORT_RECURRING_PAYMENT` with `{ serviceId: "sg-finops-demo", paymentDate: "..." }`. Again — **no amount**. | Operation inspector |
+| **Reducer** | [service.ts:198-240](document-models/subscription-instance/v1/src/reducers/service.ts#L198-L240) — reads `recurringCost.amount` ($750) from state. Sets `lastPaymentDate`. Per-cycle guard: if `lastPaymentDate >= currentBillingCycleStart`, throws `AlreadyPaidThisCycleError`. Nothing-owed guard: if balance is zero or negative, throws `NothingOwedError`. | Code |
 | **State** | Balance down. Button shows "Paid" for this cycle. After settlement advances the cycle, the button reappears. | Editor UI |
+
+### Show the nothing-owed guard
+
+8. Pay all remaining line items until balance hits $0
+9. The entire "Report Payments" section **disappears** — no buttons visible
+10. Even via MCP dispatch, the reducer would throw `NothingOwedError`
 
 ### Key point for Wouter
 
-> "The operator can't type in an amount. The system knows what's owed for each line item. Click 'paid' and it credits the right number. Can't double-pay setup costs. Can't pay recurring twice in the same cycle."
+> "The operator can't type in an amount. The system knows what's owed for each line item. Click 'paid' and it credits the right number. Can't double-pay setup costs. Can't pay recurring twice in the same cycle. And once the balance is zero, no more payment buttons — you literally cannot inflate the credit."
 
 ---
 
@@ -96,15 +102,15 @@
 1. Find the **Invoice management** service inside the Financial Operations group
 2. It has a metric: "Invoice(s)" — 5 free, up to 10 paid at $21/unit
 3. Click **+** to increment usage to 8 (3 over the free limit)
-4. Watch the **Dynamic Costs** section appear in BillingPanel showing: `3 × $21 = $63`
+4. Watch the **Dynamic Costs** section appear in BillingPanel showing: `3 x $21 = $63`
 
 ### What happens under the hood
 
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | `INCREMENT_METRIC_USAGE` with `{ serviceId, metricId, incrementBy: 1, currentTime }`. Status guard: ACTIVE only. | Operation inspector |
-| **Reducer** | [metrics.ts:136-164](document-models/subscription-instance/v1/src/reducers/metrics.ts#L136-L164) — increments `currentUsage`, capped at `paidLimit` (10). | Code |
-| **State** | `metric.currentUsage: 8`. The BillingPanel computes overage live via `calculateOverageCost()`: `max(0, 8 - 5) × $21 = $63`. This is a **projection** — not yet charged to `totalDebt`. | Editor UI |
+| **Reducer** | [metrics.ts:130-158](document-models/subscription-instance/v1/src/reducers/metrics.ts#L130-L158) — increments `currentUsage`, capped at `paidLimit` (10). | Code |
+| **State** | `metric.currentUsage: 8`. The BillingPanel computes overage live via `calculateOverageCost()`: `max(0, 8 - 5) x $21 = $63`. This is a **projection** — not yet charged to `totalDebt`. | Editor UI |
 
 ### Key point for Wouter
 
@@ -127,14 +133,14 @@
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | `SETTLE_BILLING_CYCLE` with `{ settlementDate }`. Just a timestamp — all calculation is deterministic from state. | Operation inspector |
-| **Reducer** | [subscription.ts:355-427](document-models/subscription-instance/v1/src/reducers/subscription.ts#L355-L427) — four steps: (1) Calculate overage per metric → `totalDebt`. (2) Reset metrics where `usageResetPeriod <= billingCycle`. (3) If autoRenew: add next cycle recurring costs → `totalDebt`, advance `currentBillingCycleStart` and `nextBillingDate`. (4) If not autoRenew: status → EXPIRING. | Code |
+| **Reducer** | [subscription.ts:339-407](document-models/subscription-instance/v1/src/reducers/subscription.ts#L339-L407) — four steps: (1) Calculate overage per metric → `totalDebt`. (2) Reset metrics where `usageResetPeriod <= billingCycle`. (3) If autoRenew: add next cycle recurring costs → `totalDebt`, advance `currentBillingCycleStart` and `nextBillingDate`. (4) If not autoRenew: status → EXPIRING. | Code |
 | **State** | `totalDebt` increased by $63 (overage) + $4,420 (next cycle recurring). Metrics back to 0. Cycle advanced: May 17 → Jun 16. | Editor UI |
 
 ### The settlement math
 
 | Component | Amount |
 |-----------|--------|
-| Overage: 3 invoices × $21 | +$63 to totalDebt |
+| Overage: 3 invoices x $21 | +$63 to totalDebt |
 | Next cycle: FinOps recurring | +$750 to totalDebt |
 | Next cycle: FinOps Add-On recurring | +$1,810 to totalDebt |
 | Next cycle: Advanced Add-On recurring | +$1,860 to totalDebt |
@@ -156,7 +162,7 @@
 
 1. After settlement, some of the Outstanding Balance is from overage ($63) and some from recurring
 2. Mark the recurring line items as paid (Report Payment buttons)
-3. The remaining balance is the overage + unpaid items
+3. The remaining balance includes overage
 4. Click **Pay Balance** — credits the exact remaining amount
 
 ### What happens under the hood
@@ -164,8 +170,8 @@
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | `REPORT_OVERAGE_PAYMENT` with `{ paymentDate, amount }`. Unlike setup/recurring, overage keeps an amount field because it's an aggregate across metrics — no single line item. | Operation inspector |
-| **Reducer** | [service.ts:249-262](document-models/subscription-instance/v1/src/reducers/service.ts#L249-L262) — validates `amount > 0`, validates `amount <= (totalDebt - totalCredit)`. Can't credit more than what's owed. | Code |
-| **State** | `totalCredit` increases. Outstanding Balance drops to $0 ("Paid up"). | Editor UI |
+| **Reducer** | [service.ts:261-274](document-models/subscription-instance/v1/src/reducers/service.ts#L261-L274) — validates `amount > 0`, validates `amount <= (totalDebt - totalCredit)`. Can't credit more than what's owed. | Code |
+| **State** | `totalCredit` increases. Outstanding Balance drops to $0 ("Paid up"). Payment section disappears. | Editor UI |
 
 ### Key point for Wouter
 
@@ -181,7 +187,7 @@
 ### What to show — Add
 
 1. Click **+ Add Service Group** at the bottom of Recurring Services
-2. The modal loads available add-ons from the service offering (this is the cross-document read — `serviceOfferingId` fix)
+2. The modal loads available add-ons from the service offering (cross-document read — `serviceOfferingId` fix)
 3. Select an add-on, click **Add Group**
 4. Outstanding Balance increases by the **prorated** amount (not the full cycle cost)
 
@@ -190,8 +196,8 @@
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | `ADD_SERVICE_GROUP` with `{ groupId, name, recurringAmount, ... }`. | Operation inspector |
-| **Reducer** | [service-group.ts:17-83](document-models/subscription-instance/v1/src/reducers/service-group.ts#L17-L83) — creates the group, then if ACTIVE: calls `calculateProratedCost(recurringAmount, cycleStart, cycleEnd, now)` → adds prorated amount to `totalDebt`. Setup cost added in full immediately. | Code |
-| **Utils** | [utils.ts:58-68](document-models/subscription-instance/v1/src/utils.ts#L58-L68) — `(remainingDays / totalDays) × amount`. Your exact formula. | Code |
+| **Reducer** | [service-group.ts:17-79](document-models/subscription-instance/v1/src/reducers/service-group.ts#L17-L79) — creates the group, then if ACTIVE: calls `calculateProratedCost(recurringAmount, cycleStart, cycleEnd, now)` → adds prorated amount to `totalDebt`. Setup cost added in full immediately. | Code |
+| **Utils** | [utils.ts:58-68](document-models/subscription-instance/v1/src/utils.ts#L58-L68) — `(remainingDays / totalDays) x amount`. Your exact formula. | Code |
 | **State** | `totalDebt` increased by prorated amount (not full cycle). New group visible in services panel. | Editor UI |
 
 ### What to show — Remove (D-2)
@@ -202,12 +208,12 @@
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | `REMOVE_SERVICE_GROUP` with `{ groupId }`. No pricing input — reads from group state. | Operation inspector |
-| **Reducer** | [service-group.ts:85-121](document-models/subscription-instance/v1/src/reducers/service-group.ts#L85-L121) — same `calculateProratedCost()`, but result goes to `totalCredit` instead of `totalDebt`. | Code |
+| **Reducer** | [service-group.ts:81-117](document-models/subscription-instance/v1/src/reducers/service-group.ts#L81-L117) — same `calculateProratedCost()`, but result goes to `totalCredit` instead of `totalDebt`. | Code |
 | **State** | `totalCredit` increased. Group gone. Balance drops. | Editor UI |
 
 ### Key point for Wouter
 
-> "Same formula for add and remove — `remainingDays / totalDays × cost`. Add goes to debt, remove goes to credit. Symmetric, like you described it."
+> "Same formula for add and remove — `remainingDays / totalDays x cost`. Add goes to debt, remove goes to credit. Symmetric, like you described it."
 
 ---
 
@@ -226,7 +232,7 @@
 | Layer | What to show | Where to look |
 |-------|-------------|---------------|
 | **Operation** | `RENEW_EXPIRING_SUBSCRIPTION` with `{ timestamp }`. | Operation inspector |
-| **Reducer** | [subscription.ts:279-311](document-models/subscription-instance/v1/src/reducers/subscription.ts#L279-L311) — sets ACTIVE, advances cycle boundaries from `nextBillingDate` (D-4 fixed boundaries), adds recurring costs to `totalDebt`. | Code |
+| **Reducer** | [subscription.ts:264-296](document-models/subscription-instance/v1/src/reducers/subscription.ts#L264-L296) — sets ACTIVE, advances cycle boundaries from `nextBillingDate` (D-4 fixed boundaries), adds recurring costs to `totalDebt`. | Code |
 | **State** | New cycle dates. Recurring costs added to debt. Status ACTIVE again. | Editor UI |
 
 ---
@@ -238,10 +244,9 @@
 ### What to show
 
 1. Pay all line items so balance is $0
-2. At this point, if a prorated credit from a group removal makes `totalCredit > totalDebt`, the balance goes **negative**
-3. Remove an optional add-on group → prorated credit → balance goes negative
-4. BillingPanel shows "Credit Balance: $X" in **green** instead of "Outstanding Balance" in red
-5. Next settlement adds recurring costs → balance trends back toward zero naturally
+2. Remove an optional add-on group → prorated credit → balance goes **negative**
+3. BillingPanel shows "Credit Balance: $X" in **green** instead of "Outstanding Balance" in red
+4. Next settlement adds recurring costs → balance trends back toward zero naturally
 
 ### Key point for Wouter
 

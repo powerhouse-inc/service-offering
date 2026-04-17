@@ -2,7 +2,6 @@ import { type SignalDispatch } from "document-model";
 import type {
   InitializeSubscriptionAction,
   SetResourceDocumentAction,
-  UpdateSubscriptionStatusAction,
   ActivateSubscriptionAction,
   PauseSubscriptionAction,
   SetExpiringAction,
@@ -29,11 +28,6 @@ export interface SubscriptionInstanceSubscriptionOperations {
   setResourceDocumentOperation: (
     state: SubscriptionInstanceState,
     action: SetResourceDocumentAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  updateSubscriptionStatusOperation: (
-    state: SubscriptionInstanceState,
-    action: UpdateSubscriptionStatusAction,
     dispatch?: SignalDispatch,
   ) => void;
   activateSubscriptionOperation: (

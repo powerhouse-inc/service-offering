@@ -2,7 +2,6 @@ import type { Action } from "document-model";
 import type {
   InitializeSubscriptionInput,
   SetResourceDocumentInput,
-  UpdateSubscriptionStatusInput,
   ActivateSubscriptionInput,
   PauseSubscriptionInput,
   SetExpiringInput,
@@ -26,10 +25,6 @@ export type InitializeSubscriptionAction = Action & {
 export type SetResourceDocumentAction = Action & {
   type: "SET_RESOURCE_DOCUMENT";
   input: SetResourceDocumentInput;
-};
-export type UpdateSubscriptionStatusAction = Action & {
-  type: "UPDATE_SUBSCRIPTION_STATUS";
-  input: UpdateSubscriptionStatusInput;
 };
 export type ActivateSubscriptionAction = Action & {
   type: "ACTIVATE_SUBSCRIPTION";
@@ -91,7 +86,6 @@ export type SettleBillingCycleAction = Action & {
 export type SubscriptionInstanceSubscriptionAction =
   | InitializeSubscriptionAction
   | SetResourceDocumentAction
-  | UpdateSubscriptionStatusAction
   | ActivateSubscriptionAction
   | PauseSubscriptionAction
   | SetExpiringAction

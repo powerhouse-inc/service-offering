@@ -357,7 +357,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
       )}
 
       {/* ─── Payment Actions (Operator Only) ─── */}
-      {mode === "operator" && state.status !== "PENDING" && (
+      {mode === "operator" && state.status !== "PENDING" && amountOwed > 0 && (
         <div className="si-billing-section" style={{ marginTop: 16 }}>
           <div className="si-billing-section-label">
             <span className="si-billing-section-label__text">

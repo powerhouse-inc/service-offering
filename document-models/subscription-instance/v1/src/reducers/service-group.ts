@@ -31,7 +31,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
             ? {
                 amount: action.input.setupAmount,
                 currency: action.input.setupCurrency,
-                billingDate: action.input.setupBillingDate || null,
                 paymentDate: null,
               }
             : null,
@@ -43,7 +42,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
                 amount: action.input.recurringAmount,
                 currency: action.input.recurringCurrency,
                 billingCycle: action.input.recurringBillingCycle,
-                nextBillingDate: null,
                 lastPaymentDate: null,
                 discount: action.input.recurringDiscount
                   ? {
@@ -145,7 +143,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
             ? {
                 amount: action.input.setupAmount,
                 currency: action.input.setupCurrency,
-                billingDate: action.input.setupBillingDate || null,
                 paymentDate: action.input.setupPaymentDate || null,
               }
             : null,
@@ -157,7 +154,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
                 amount: action.input.recurringAmount,
                 currency: action.input.recurringCurrency,
                 billingCycle: action.input.recurringBillingCycle,
-                nextBillingDate: action.input.recurringNextBillingDate || null,
                 lastPaymentDate: action.input.recurringLastPaymentDate || null,
                 discount: null,
               }
@@ -207,7 +203,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
         group.setupCost = {
           amount: action.input.setupAmount,
           currency: action.input.setupCurrency,
-          billingDate: action.input.setupBillingDate || null,
           paymentDate: group.setupCost?.paymentDate || null,
         };
       } else if (group.setupCost) {
@@ -215,8 +210,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           group.setupCost.amount = action.input.setupAmount;
         if (action.input.setupCurrency)
           group.setupCost.currency = action.input.setupCurrency;
-        if (action.input.setupBillingDate !== undefined)
-          group.setupCost.billingDate = action.input.setupBillingDate || null;
       }
       if (
         action.input.recurringAmount &&
@@ -227,7 +220,6 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           amount: action.input.recurringAmount,
           currency: action.input.recurringCurrency,
           billingCycle: action.input.recurringBillingCycle,
-          nextBillingDate: group.recurringCost?.nextBillingDate || null,
           lastPaymentDate: group.recurringCost?.lastPaymentDate || null,
           discount: group.recurringCost?.discount || null,
         };

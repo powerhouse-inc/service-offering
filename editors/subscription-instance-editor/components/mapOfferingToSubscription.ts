@@ -321,7 +321,6 @@ function mapUsageLimits(
       id: generateId(),
       name: ul.metric,
       unitName: ul.unitName ?? "units",
-      limit: ul.freeLimit ?? ul.paidLimit ?? null,
       freeLimit: ul.freeLimit ?? null,
       paidLimit: ul.paidLimit ?? null,
       currentUsage: 0,

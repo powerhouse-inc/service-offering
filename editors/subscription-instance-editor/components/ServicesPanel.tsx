@@ -42,7 +42,7 @@ function UsageBar({
   isOperator: boolean;
   customerName?: string | null;
 }) {
-  const freeLimit = metric.freeLimit ?? metric.limit ?? 0;
+  const freeLimit = metric.freeLimit ?? 0;
   const paidLimit = metric.paidLimit ?? null;
   const displayLimit = paidLimit ?? freeLimit;
 
@@ -121,21 +121,13 @@ function UsageBar({
           {metric.unitName} over free limit
         </div>
       )}
-      {(metric.nextUsageReset || metric.usageResetPeriod) && (
+      {metric.usageResetPeriod && (
         <p className="si-metric__reset">
-          {metric.usageResetPeriod && (
-            <span className="si-metric__reset-period">
-              {metric.usageResetPeriod.charAt(0) +
-                metric.usageResetPeriod.slice(1).toLowerCase()}{" "}
-              reset
-            </span>
-          )}
-          {metric.nextUsageReset && (
-            <span>
-              {metric.usageResetPeriod ? " · " : "Resets "}
-              {new Date(metric.nextUsageReset).toLocaleDateString()}
-            </span>
-          )}
+          <span className="si-metric__reset-period">
+            {metric.usageResetPeriod.charAt(0) +
+              metric.usageResetPeriod.slice(1).toLowerCase()}{" "}
+            reset
+          </span>
         </p>
       )}
     </div>

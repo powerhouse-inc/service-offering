@@ -8,6 +8,8 @@ import {
   ReportRecurringPaymentServiceNotFoundError,
   ReportRecurringPaymentAlreadyPaidThisCycleError,
   ReportRecurringPaymentNoCostError,
+  ReportRecurringPaymentNothingOwedError,
+  ReportSetupPaymentNothingOwedError,
   ReportOveragePaymentExceedsDebtError,
   ReportOveragePaymentInvalidAmountError,
   UpdateServiceInfoNotFoundError,
@@ -39,7 +41,6 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
             ? {
                 amount: action.input.setupAmount,
                 currency: action.input.setupCurrency,
-                billingDate: action.input.setupBillingDate || null,
                 paymentDate: action.input.setupPaymentDate || null,
               }
             : null,
@@ -51,7 +52,6 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
                 amount: action.input.recurringAmount,
                 currency: action.input.recurringCurrency,
                 billingCycle: action.input.recurringBillingCycle,
-                nextBillingDate: action.input.recurringNextBillingDate || null,
                 lastPaymentDate: action.input.recurringLastPaymentDate || null,
                 discount: action.input.recurringDiscount
                   ? {
@@ -103,15 +103,12 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         svc.setupCost = {
           amount: action.input.amount,
           currency: action.input.currency,
-          billingDate: action.input.billingDate || null,
           paymentDate: action.input.paymentDate || null,
         };
       } else if (svc.setupCost) {
         if (action.input.amount) svc.setupCost.amount = action.input.amount;
         if (action.input.currency)
           svc.setupCost.currency = action.input.currency;
-        if (action.input.billingDate !== undefined)
-          svc.setupCost.billingDate = action.input.billingDate || null;
         if (action.input.paymentDate !== undefined)
           svc.setupCost.paymentDate = action.input.paymentDate || null;
       }
@@ -134,7 +131,6 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
           amount: action.input.amount,
           currency: action.input.currency,
           billingCycle: action.input.billingCycle,
-          nextBillingDate: action.input.nextBillingDate || null,
           lastPaymentDate: action.input.lastPaymentDate || null,
           discount: svc.recurringCost?.discount || null,
         };
@@ -144,15 +140,19 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
           svc.recurringCost.currency = action.input.currency;
         if (action.input.billingCycle)
           svc.recurringCost.billingCycle = action.input.billingCycle;
-        if (action.input.nextBillingDate !== undefined)
-          svc.recurringCost.nextBillingDate =
-            action.input.nextBillingDate || null;
         if (action.input.lastPaymentDate !== undefined)
           svc.recurringCost.lastPaymentDate =
             action.input.lastPaymentDate || null;
       }
     },
     reportSetupPaymentOperation(state, action) {
+      // Guard: nothing owed — cannot pay when already in credit or at zero
+      const currentOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
+      if (currentOwed <= 0) {
+        throw new ReportSetupPaymentNothingOwedError(
+          "Cannot report payment when nothing is owed",
+        );
+      }
       // Find entity by serviceId — can be a service or a group
       const svc = findServiceById(
         action.input.serviceId,
@@ -190,6 +190,13 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
         (state.totalCredit ?? 0) + setupEntity.setupCost.amount;
     },
     reportRecurringPaymentOperation(state, action) {
+      // Guard: nothing owed — cannot pay when already in credit or at zero
+      const currentOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
+      if (currentOwed <= 0) {
+        throw new ReportRecurringPaymentNothingOwedError(
+          "Cannot report payment when nothing is owed",
+        );
+      }
       // Find entity by serviceId — can be a service or a group
       const svc = findServiceById(
         action.input.serviceId,

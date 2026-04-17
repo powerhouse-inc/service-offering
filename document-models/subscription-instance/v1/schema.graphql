@@ -116,7 +116,6 @@ type DiscountInfo {
 type SetupCost {
     amount: Amount_Money!
     currency: Currency!
-    billingDate: DateTime
     paymentDate: DateTime
 }
 
@@ -124,7 +123,6 @@ type RecurringCost {
     amount: Amount_Money!
     currency: Currency!
     billingCycle: BillingCycle!
-    nextBillingDate: DateTime
     lastPaymentDate: DateTime
     discount: DiscountInfo
 }
@@ -150,13 +148,11 @@ type ServiceMetric {
     id: OID!
     name: String!
     unitName: String!
-    limit: Int
     freeLimit: Int
     paidLimit: Int
     unitCost: RecurringCost
     currentUsage: Int!
     usageResetPeriod: ResetPeriod
-    nextUsageReset: DateTime
 }
 
 type Service {
@@ -199,7 +195,6 @@ input InitializeMetricInput {
     id: OID!
     name: String!
     unitName: String!
-    limit: Int
     freeLimit: Int
     paidLimit: Int
     currentUsage: Int!
@@ -231,7 +226,6 @@ input InitializeServiceGroupInput {
     costType: GroupCostType
     setupAmount: Amount_Money
     setupCurrency: Currency
-    setupBillingDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
@@ -264,10 +258,6 @@ input SetResourceDocumentInput {
     resourceId: PHID!
     resourceLabel: String
     resourceThumbnailUrl: URL
-}
-
-input UpdateSubscriptionStatusInput {
-    status: SubscriptionStatus!
 }
 
 input ActivateSubscriptionInput {
@@ -351,12 +341,10 @@ input AddServiceInput {
     customValue: String
     setupAmount: Amount_Money
     setupCurrency: Currency
-    setupBillingDate: DateTime
     setupPaymentDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
     recurringDiscount: DiscountServiceInfoInput
 }
@@ -369,7 +357,6 @@ input UpdateServiceSetupCostInput {
     serviceId: OID!
     amount: Amount_Money
     currency: Currency
-    billingDate: DateTime
     paymentDate: DateTime
 }
 
@@ -425,7 +412,6 @@ input AddServiceGroupInput {
     costType: GroupCostType
     setupAmount: Amount_Money
     setupCurrency: Currency
-    setupBillingDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
@@ -444,12 +430,10 @@ input AddServiceToGroupInput {
     customValue: String
     setupAmount: Amount_Money
     setupCurrency: Currency
-    setupBillingDate: DateTime
     setupPaymentDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
-    recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
 }
 
@@ -462,7 +446,6 @@ input UpdateServiceGroupCostInput {
     groupId: OID!
     setupAmount: Amount_Money
     setupCurrency: Currency
-    setupBillingDate: DateTime
     recurringAmount: Amount_Money
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
@@ -475,17 +458,13 @@ input AddServiceMetricInput {
     metricId: OID!
     name: String!
     unitName: String!
-    limit: Int
     freeLimit: Int
     paidLimit: Int
     currentUsage: Int!
     usageResetPeriod: ResetPeriod
-    nextUsageReset: DateTime
     unitCostAmount: Amount_Money
     unitCostCurrency: Currency
     unitCostBillingCycle: BillingCycle
-    unitCostNextBillingDate: DateTime
-    unitCostLastPaymentDate: DateTime
 }
 
 input UpdateMetricInput {
@@ -493,9 +472,9 @@ input UpdateMetricInput {
     metricId: OID!
     name: String
     unitName: String
-    limit: Int
+    freeLimit: Int
+    paidLimit: Int
     usageResetPeriod: ResetPeriod
-    nextUsageReset: DateTime
 }
 
 input UpdateMetricUsageInput {

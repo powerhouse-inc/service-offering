@@ -37,7 +37,6 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         id: action.input.metricId,
         name: action.input.name,
         unitName: action.input.unitName,
-        limit: action.input.limit || null,
         freeLimit: action.input.freeLimit || null,
         paidLimit: action.input.paidLimit || null,
         unitCost:
@@ -48,14 +47,12 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
                 amount: action.input.unitCostAmount,
                 currency: action.input.unitCostCurrency,
                 billingCycle: action.input.unitCostBillingCycle,
-                nextBillingDate: action.input.unitCostNextBillingDate || null,
-                lastPaymentDate: action.input.unitCostLastPaymentDate || null,
+                lastPaymentDate: null,
                 discount: null,
               }
             : null,
         currentUsage: action.input.currentUsage,
         usageResetPeriod: action.input.usageResetPeriod || null,
-        nextUsageReset: action.input.nextUsageReset || null,
       });
     },
     updateMetricOperation(state, action) {
@@ -77,12 +74,12 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       }
       if (action.input.name) metric.name = action.input.name;
       if (action.input.unitName) metric.unitName = action.input.unitName;
-      if (action.input.limit !== undefined)
-        metric.limit = action.input.limit || null;
+      if (action.input.freeLimit !== undefined)
+        metric.freeLimit = action.input.freeLimit || null;
+      if (action.input.paidLimit !== undefined)
+        metric.paidLimit = action.input.paidLimit || null;
       if (action.input.usageResetPeriod !== undefined)
         metric.usageResetPeriod = action.input.usageResetPeriod || null;
-      if (action.input.nextUsageReset !== undefined)
-        metric.nextUsageReset = action.input.nextUsageReset || null;
     },
     updateMetricUsageOperation(state, action) {
       // D-6: ACTIVE only

@@ -130,8 +130,8 @@ export function MetricActions({
               <div className="si-modal__body">
                 <div className="si-metric-adjust-info">
                   <span>Current: {metric.currentUsage.toLocaleString()}</span>
-                  {metric.limit != null && (
-                    <span>Limit: {metric.limit.toLocaleString()}</span>
+                  {metric.paidLimit != null && (
+                    <span>Limit: {metric.paidLimit.toLocaleString()}</span>
                   )}
                 </div>
                 {/* Quick +/- buttons */}
@@ -232,7 +232,7 @@ export function UpdateMetricLimitModal({
   metric,
   dispatch,
 }: UpdateMetricLimitModalProps) {
-  const [limit, setLimit] = useState(metric.limit?.toString() || "");
+  const [limit, setLimit] = useState(metric.paidLimit?.toString() || "");
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -244,7 +244,7 @@ export function UpdateMetricLimitModal({
         updateMetric({
           serviceId,
           metricId: metric.id,
-          limit: parsedLimit,
+          paidLimit: parsedLimit,
         }),
       );
 

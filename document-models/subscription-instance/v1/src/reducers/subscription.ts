@@ -55,7 +55,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             ? {
                 amount: s.setupAmount,
                 currency: s.setupCurrency,
-                billingDate: null,
                 paymentDate: null,
               }
             : null,
@@ -65,7 +64,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                 amount: s.recurringAmount,
                 currency: s.recurringCurrency,
                 billingCycle: s.recurringBillingCycle,
-                nextBillingDate: null,
                 lastPaymentDate: null,
                 discount: s.recurringDiscount
                   ? {
@@ -81,7 +79,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           id: m.id,
           name: m.name,
           unitName: m.unitName,
-          limit: m.limit || null,
           freeLimit: m.freeLimit || null,
           paidLimit: m.paidLimit || null,
           unitCost:
@@ -90,14 +87,12 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                   amount: m.unitCostAmount,
                   currency: m.unitCostCurrency,
                   billingCycle: m.unitCostBillingCycle,
-                  nextBillingDate: null,
                   lastPaymentDate: null,
                   discount: null,
                 }
               : null,
           currentUsage: m.currentUsage,
           usageResetPeriod: m.usageResetPeriod || null,
-          nextUsageReset: null,
         })),
       }));
       state.serviceGroups = (action.input.serviceGroups || []).map((sg) => ({
@@ -110,7 +105,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             ? {
                 amount: sg.setupAmount,
                 currency: sg.setupCurrency,
-                billingDate: sg.setupBillingDate || null,
                 paymentDate: null,
               }
             : null,
@@ -120,7 +114,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                 amount: sg.recurringAmount,
                 currency: sg.recurringCurrency,
                 billingCycle: sg.recurringBillingCycle,
-                nextBillingDate: null,
                 lastPaymentDate: null,
                 discount: sg.recurringDiscount
                   ? {
@@ -147,7 +140,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
               ? {
                   amount: s.setupAmount,
                   currency: s.setupCurrency,
-                  billingDate: null,
                   paymentDate: null,
                 }
               : null,
@@ -157,7 +149,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                   amount: s.recurringAmount,
                   currency: s.recurringCurrency,
                   billingCycle: s.recurringBillingCycle,
-                  nextBillingDate: null,
                   lastPaymentDate: null,
                   discount: s.recurringDiscount
                     ? {
@@ -173,7 +164,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             id: m.id,
             name: m.name,
             unitName: m.unitName,
-            limit: m.limit || null,
             freeLimit: m.freeLimit || null,
             paidLimit: m.paidLimit || null,
             unitCost:
@@ -182,14 +172,12 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                     amount: m.unitCostAmount,
                     currency: m.unitCostCurrency,
                     billingCycle: m.unitCostBillingCycle,
-                    nextBillingDate: null,
                     lastPaymentDate: null,
                     discount: null,
                   }
                 : null,
             currentUsage: m.currentUsage,
             usageResetPeriod: m.usageResetPeriod || null,
-            nextUsageReset: null,
           })),
         })),
       }));
@@ -200,9 +188,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         label: action.input.resourceLabel || null,
         thumbnailUrl: action.input.resourceThumbnailUrl || null,
       };
-    },
-    updateSubscriptionStatusOperation(state, action) {
-      state.status = action.input.status;
     },
     activateSubscriptionOperation(state, action) {
       if (state.status !== "PENDING") {

@@ -173,7 +173,7 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
                       name: "Cache Hit Rate",
                       unitName: "%",
                       currentUsage: 94,
-                      limit: 100,
+                      paidLimit: 100,
                     },
                     {
                       id: generateId(),

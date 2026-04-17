@@ -220,7 +220,6 @@ input AddServiceGroupInput {
     costType: GroupCostType
     setupAmount: Amount_Money          # one-time cost, added to debt immediately
     setupCurrency: Currency
-    setupBillingDate: DateTime
     recurringAmount: Amount_Money      # <-- D-1: prorated for remaining cycle
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle

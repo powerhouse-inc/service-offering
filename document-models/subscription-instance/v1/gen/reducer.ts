@@ -13,7 +13,6 @@ import { subscriptionInstanceCustomerOperations } from "../src/reducers/customer
 import {
   InitializeSubscriptionInputSchema,
   SetResourceDocumentInputSchema,
-  UpdateSubscriptionStatusInputSchema,
   ActivateSubscriptionInputSchema,
   PauseSubscriptionInputSchema,
   SetExpiringInputSchema,
@@ -79,18 +78,6 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       SetResourceDocumentInputSchema().parse(action.input);
 
       subscriptionInstanceSubscriptionOperations.setResourceDocumentOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "UPDATE_SUBSCRIPTION_STATUS": {
-      UpdateSubscriptionStatusInputSchema().parse(action.input);
-
-      subscriptionInstanceSubscriptionOperations.updateSubscriptionStatusOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

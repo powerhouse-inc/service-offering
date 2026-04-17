@@ -86,7 +86,7 @@ export interface MetricOverage {
 export function computeMetricOverage(
   metric: ServiceMetric,
 ): MetricOverage | null {
-  const freeLimit = metric.freeLimit ?? metric.limit ?? 0;
+  const freeLimit = metric.freeLimit ?? 0;
   const paidLimit = metric.paidLimit ?? null;
 
   if (freeLimit <= 0 && paidLimit == null) return null;

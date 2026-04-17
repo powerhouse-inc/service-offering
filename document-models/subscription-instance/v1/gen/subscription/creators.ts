@@ -2,7 +2,6 @@ import { createAction } from "document-model";
 import {
   InitializeSubscriptionInputSchema,
   SetResourceDocumentInputSchema,
-  UpdateSubscriptionStatusInputSchema,
   ActivateSubscriptionInputSchema,
   PauseSubscriptionInputSchema,
   SetExpiringInputSchema,
@@ -21,7 +20,6 @@ import {
 import type {
   InitializeSubscriptionInput,
   SetResourceDocumentInput,
-  UpdateSubscriptionStatusInput,
   ActivateSubscriptionInput,
   PauseSubscriptionInput,
   SetExpiringInput,
@@ -40,7 +38,6 @@ import type {
 import type {
   InitializeSubscriptionAction,
   SetResourceDocumentAction,
-  UpdateSubscriptionStatusAction,
   ActivateSubscriptionAction,
   PauseSubscriptionAction,
   SetExpiringAction,
@@ -72,17 +69,6 @@ export const setResourceDocument = (input: SetResourceDocumentInput) =>
     { ...input },
     undefined,
     SetResourceDocumentInputSchema,
-    "global",
-  );
-
-export const updateSubscriptionStatus = (
-  input: UpdateSubscriptionStatusInput,
-) =>
-  createAction<UpdateSubscriptionStatusAction>(
-    "UPDATE_SUBSCRIPTION_STATUS",
-    { ...input },
-    undefined,
-    UpdateSubscriptionStatusInputSchema,
     "global",
   );
 

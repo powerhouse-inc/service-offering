@@ -6,7 +6,6 @@ import {
   isSubscriptionInstanceDocument,
   initializeSubscription,
   setResourceDocument,
-  updateSubscriptionStatus,
   activateSubscription,
   pauseSubscription,
   setExpiring,
@@ -22,7 +21,6 @@ import {
   setRenewalDate,
   InitializeSubscriptionInputSchema,
   SetResourceDocumentInputSchema,
-  UpdateSubscriptionStatusInputSchema,
   ActivateSubscriptionInputSchema,
   PauseSubscriptionInputSchema,
   SetExpiringInputSchema,
@@ -68,23 +66,6 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "SET_RESOURCE_DOCUMENT",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle updateSubscriptionStatus operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(UpdateSubscriptionStatusInputSchema());
-
-    const updatedDocument = reducer(document, updateSubscriptionStatus(input));
-
-    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "UPDATE_SUBSCRIPTION_STATUS",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

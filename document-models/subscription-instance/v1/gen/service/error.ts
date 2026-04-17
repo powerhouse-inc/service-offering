@@ -7,9 +7,11 @@ export type ErrorCode =
   | "ReportSetupPaymentServiceNotFoundError"
   | "ReportSetupPaymentAlreadyPaidError"
   | "ReportSetupPaymentNoCostError"
+  | "ReportSetupPaymentNothingOwedError"
   | "ReportRecurringPaymentServiceNotFoundError"
   | "ReportRecurringPaymentAlreadyPaidThisCycleError"
   | "ReportRecurringPaymentNoCostError"
+  | "ReportRecurringPaymentNothingOwedError"
   | "UpdateServiceInfoNotFoundError"
   | "AddServiceFacetSelectionServiceNotFoundError"
   | "RemoveServiceFacetSelectionServiceNotFoundError"
@@ -97,6 +99,16 @@ export class ReportSetupPaymentNoCostError
   }
 }
 
+export class ReportSetupPaymentNothingOwedError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportSetupPaymentNothingOwedError" as ErrorCode;
+  constructor(message = "ReportSetupPaymentNothingOwedError") {
+    super(message);
+  }
+}
+
 export class ReportRecurringPaymentServiceNotFoundError
   extends Error
   implements ReducerError
@@ -123,6 +135,16 @@ export class ReportRecurringPaymentNoCostError
 {
   errorCode = "ReportRecurringPaymentNoCostError" as ErrorCode;
   constructor(message = "ReportRecurringPaymentNoCostError") {
+    super(message);
+  }
+}
+
+export class ReportRecurringPaymentNothingOwedError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportRecurringPaymentNothingOwedError" as ErrorCode;
+  constructor(message = "ReportRecurringPaymentNothingOwedError") {
     super(message);
   }
 }
@@ -189,11 +211,13 @@ export const errors = {
     ReportSetupPaymentServiceNotFoundError,
     ReportSetupPaymentAlreadyPaidError,
     ReportSetupPaymentNoCostError,
+    ReportSetupPaymentNothingOwedError,
   },
   ReportRecurringPayment: {
     ReportRecurringPaymentServiceNotFoundError,
     ReportRecurringPaymentAlreadyPaidThisCycleError,
     ReportRecurringPaymentNoCostError,
+    ReportRecurringPaymentNothingOwedError,
   },
   UpdateServiceInfo: { UpdateServiceInfoNotFoundError },
   AddServiceFacetSelection: { AddServiceFacetSelectionServiceNotFoundError },
