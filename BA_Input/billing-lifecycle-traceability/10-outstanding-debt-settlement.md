@@ -35,10 +35,9 @@ Debt is a derived UI concern, not a reducer gate. Blocking settlement while debt
 No direct Wouter quote — this is a Powerhouse alignment decision.
 
 **Rationale**:
-- Powerhouse reducers have no warning mechanism — operations either succeed or throw (binary `.error` property)
-- No existing Powerhouse reducer returns warnings or conditional feedback
-- Blocking settlement while debt is outstanding would prevent overage from being captured, making the debt situation worse
-- Whether to proceed with settlement despite debt is an operator judgment call, not a system rule
+- Settlement is where overage gets captured — usage above free limits gets turned into charges. If we blocked settlement because of unpaid debt, those overage charges would keep growing uncaptured. The operator would be stuck in a loop: can't settle because of debt, but debt keeps growing because they can't settle.
+- A warning instead of a block isn't possible either — Powerhouse reducers are binary (succeed or throw). There is no "succeed with warning" mechanism. No existing document model uses conditional feedback on operations.
+- The Outstanding Balance display in BillingPanel is the signal. The operator sees it in red before clicking "Settle Cycle" and decides whether to chase the payment or settle anyway. The system doesn't make that judgment for them.
 
 ---
 

@@ -10,7 +10,7 @@ This document traces every business decision to its implementation: stakeholder 
 
 ## D-1: Proration Charge Timing (Mid-Cycle Add)
 
-See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration-charge-timing-traceability.md)
+See full traceability: [02-proration-charge-timing.md](02-proration-charge-timing.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -27,7 +27,7 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## D-2: Downgrade Policy (Mid-Cycle Remove)
 
-See full traceability: [d2-downgrade-policy-traceability.md](d2-downgrade-policy-traceability.md)
+See full traceability: [03-downgrade-policy.md](03-downgrade-policy.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -44,7 +44,7 @@ See full traceability: [d2-downgrade-policy-traceability.md](d2-downgrade-policy
 
 ## D-3: Ledger Structure (Counters, Not Arrays)
 
-See full traceability: [d3-ledger-structure-traceability.md](d3-ledger-structure-traceability.md)
+See full traceability: [05-ledger-structure.md](05-ledger-structure.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -61,7 +61,7 @@ See full traceability: [d3-ledger-structure-traceability.md](d3-ledger-structure
 
 ## D-4: Settlement Timing (Cycle Boundaries Stay Fixed)
 
-See full traceability: [d4-settlement-timing-traceability.md](d4-settlement-timing-traceability.md)
+See full traceability: [04-settlement-timing.md](04-settlement-timing.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -80,7 +80,7 @@ See full traceability: [d4-settlement-timing-traceability.md](d4-settlement-timi
 
 ## D-5: Pause/Resume (Continue Existing Cycle)
 
-See full traceability: [d5-pause-resume-traceability.md](d5-pause-resume-traceability.md)
+See full traceability: [07-pause-resume.md](07-pause-resume.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -96,7 +96,7 @@ See full traceability: [d5-pause-resume-traceability.md](d5-pause-resume-traceab
 
 ## D-6: Operation Status Matrix (Revised)
 
-See full traceability: [d6-operation-status-matrix-traceability.md](d6-operation-status-matrix-traceability.md)
+See full traceability: [09-operation-status-matrix.md](09-operation-status-matrix.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -119,7 +119,7 @@ See full traceability: [d6-operation-status-matrix-traceability.md](d6-operation
 
 ## D-7: Negative Balance (Carry Forward)
 
-See full traceability: [d7-negative-balance-traceability.md](d7-negative-balance-traceability.md)
+See full traceability: [06-negative-balance.md](06-negative-balance.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -134,7 +134,7 @@ See full traceability: [d7-negative-balance-traceability.md](d7-negative-balance
 
 ## D-8: Outstanding Debt at Settlement (No Guard)
 
-See full traceability: [d8-outstanding-debt-settlement-traceability.md](d8-outstanding-debt-settlement-traceability.md)
+See full traceability: [10-outstanding-debt-settlement.md](10-outstanding-debt-settlement.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -148,7 +148,7 @@ See full traceability: [d8-outstanding-debt-settlement-traceability.md](d8-outst
 
 ## D-9: Manual Renewal Billing
 
-See full traceability: [d9-manual-renewal-traceability.md](d9-manual-renewal-traceability.md)
+See full traceability: [08-manual-renewal.md](08-manual-renewal.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -163,7 +163,7 @@ See full traceability: [d9-manual-renewal-traceability.md](d9-manual-renewal-tra
 
 ## Activation Billing (BA-5)
 
-See full traceability: [ba5-activation-billing-traceability.md](ba5-activation-billing-traceability.md)
+See full traceability: [01-activation-billing.md](01-activation-billing.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -179,7 +179,7 @@ See full traceability: [ba5-activation-billing-traceability.md](ba5-activation-b
 
 ## Independent Metric Reset Cycles
 
-See full traceability: [metric-reset-cycles-traceability.md](metric-reset-cycles-traceability.md)
+See full traceability: [11-metric-reset-cycles.md](11-metric-reset-cycles.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -196,7 +196,7 @@ See full traceability: [metric-reset-cycles-traceability.md](metric-reset-cycles
 
 ## Payment Reporting
 
-See full traceability: [payment-reporting-traceability.md](payment-reporting-traceability.md)
+See full traceability: [12-payment-reporting.md](12-payment-reporting.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -211,7 +211,7 @@ See full traceability: [payment-reporting-traceability.md](payment-reporting-tra
 
 ## Cross-Document Read (Service Offering → Subscription)
 
-See full traceability: [cross-document-read-traceability.md](cross-document-read-traceability.md)
+See full traceability: [13-cross-document-read.md](13-cross-document-read.md)
 
 | Layer | Implementation |
 |-------|---------------|
