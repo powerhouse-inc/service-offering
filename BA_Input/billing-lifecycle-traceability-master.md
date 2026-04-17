@@ -27,6 +27,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## D-2: Downgrade Policy (Mid-Cycle Remove)
 
+See full traceability: [d2-downgrade-policy-traceability.md](d2-downgrade-policy-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | Mid-cycle service group remove = prorated credit to totalCredit. Same formula as D-1, reversed direction. |
@@ -42,6 +44,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## D-3: Ledger Structure (Counters, Not Arrays)
 
+See full traceability: [d3-ledger-structure-traceability.md](d3-ledger-structure-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | Running counters only (totalDebt, totalCredit) on state. No ledger entries array. Audit trail lives in Reactor operation history. |
@@ -56,6 +60,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 ---
 
 ## D-4: Settlement Timing (Cycle Boundaries Stay Fixed)
+
+See full traceability: [d4-settlement-timing-traceability.md](d4-settlement-timing-traceability.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -74,6 +80,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## D-5: Pause/Resume (Continue Existing Cycle)
 
+See full traceability: [d5-pause-resume-traceability.md](d5-pause-resume-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | Paused subscription resumes into existing cycle. No date extension, no fresh cycle. Paused days lost. |
@@ -87,6 +95,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 ---
 
 ## D-6: Operation Status Matrix (Revised)
+
+See full traceability: [d6-operation-status-matrix-traceability.md](d6-operation-status-matrix-traceability.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -109,6 +119,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## D-7: Negative Balance (Carry Forward)
 
+See full traceability: [d7-negative-balance-traceability.md](d7-negative-balance-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | When totalDebt - totalCredit is negative (customer overpaid), surplus carries forward. No floor, no refund in doc model. |
@@ -122,6 +134,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## D-8: Outstanding Debt at Settlement (No Guard)
 
+See full traceability: [d8-outstanding-debt-settlement-traceability.md](d8-outstanding-debt-settlement-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | Settlement always succeeds regardless of outstanding debt. Debt is a derived UI concern, not a reducer gate. |
@@ -133,6 +147,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 ---
 
 ## D-9: Manual Renewal Billing
+
+See full traceability: [d9-manual-renewal-traceability.md](d9-manual-renewal-traceability.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -147,6 +163,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## Activation Billing (BA-5)
 
+See full traceability: [ba5-activation-billing-traceability.md](ba5-activation-billing-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | On activation: customer owes setup costs + first cycle recurring costs. Prepaid model. |
@@ -160,6 +178,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 ---
 
 ## Independent Metric Reset Cycles
+
+See full traceability: [metric-reset-cycles-traceability.md](metric-reset-cycles-traceability.md)
 
 | Layer | Implementation |
 |-------|---------------|
@@ -176,6 +196,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 
 ## Payment Reporting
 
+See full traceability: [payment-reporting-traceability.md](payment-reporting-traceability.md)
+
 | Layer | Implementation |
 |-------|---------------|
 | **Rule** | Payments reduce `totalCredit`. Can be reported for setup costs (one-time) or recurring costs (per cycle). Accepts service ID or group ID. |
@@ -188,6 +210,8 @@ See full traceability: [d1-proration-charge-timing-traceability.md](d1-proration
 ---
 
 ## Cross-Document Read (Service Offering → Subscription)
+
+See full traceability: [cross-document-read-traceability.md](cross-document-read-traceability.md)
 
 | Layer | Implementation |
 |-------|---------------|
