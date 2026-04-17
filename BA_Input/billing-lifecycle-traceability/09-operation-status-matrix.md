@@ -90,6 +90,7 @@ Universal — all platforms freeze functionality on cancellation.
 | `updateServiceGroupCost` | yes | no | no | no | no |
 | `reportSetupPayment` | yes | yes | yes | yes | yes |
 | `reportRecurringPayment` | yes | yes | yes | yes | yes |
+| `reportOveragePayment` | yes | yes | yes | yes | yes |
 
 ---
 

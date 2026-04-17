@@ -111,7 +111,7 @@ See full traceability: [09-operation-status-matrix.md](09-operation-status-matri
 | — `resetMetricCycle` | ACTIVE only |
 | — `settleBillingCycle` | ACTIVE only |
 | — `updateServiceSetupCost`, `updateServiceRecurringCost`, `updateServiceGroupCost` | PENDING only |
-| — `reportSetupPayment`, `reportRecurringPayment` | All statuses (payments always accepted) |
+| — `reportSetupPayment`, `reportRecurringPayment`, `reportOveragePayment` | All statuses (payments always accepted) |
 | **Errors** | `StructuralChangeNotAllowedAddGroupError`, `StructuralChangeNotAllowedRemoveGroupError`, `SubscriptionNotActiveAddServiceError`, `SubscriptionNotActiveRemoveServiceError`, `SubscriptionNotActiveAddToGroupError`, `SubscriptionNotActiveRemoveFromGroupError`, `SubscriptionNotActiveUpdateUsageError`, `SubscriptionNotActiveIncrementUsageError`, `SubscriptionNotActiveDecrementUsageError`, `SubscriptionNotActiveResetMetricCycleError` |
 | **Editor** | Controls disabled/hidden based on status. Metric +/- disabled when not ACTIVE. Add/Remove group disabled when PAUSED/EXPIRING/CANCELLED. |
 
@@ -348,8 +348,11 @@ Note: `effectiveDate` fields were cleaned up since pricing lives on groups, not 
 
 | Feature | Source | Status | Notes |
 |---------|--------|--------|-------|
-| `effectiveDate` on `AddServiceInput`, `AddServiceToGroupInput`, `RemoveServiceInput`, `RemoveServiceFromGroupInput` | D-1 original | **UNUSED** | Reducer has the field but doesn't use it for proration — services don't carry pricing. Fields remain for backward compatibility. |
+| `effectiveDate` on `AddServiceInput`, `AddServiceToGroupInput`, `RemoveServiceInput`, `RemoveServiceFromGroupInput` | D-1 original | **REMOVED** | Unused fields cleaned up — services don't carry pricing, so `effectiveDate` was dead weight. |
 | `updateServiceSetupCost`, `updateServiceRecurringCost`, `updateServiceGroupCost` status guards | D-6 reviewer warning | **DONE** | PENDING-only guard added. Cost updates on ACTIVE subscriptions have billing implications not accounted for. |
+| Payment amount validation | Payment reporting | **DONE** | Payment amounts now read from state (setup/recurring). Overage payments constrained to `<= amountOwed`. Guards: already-paid, no-cost, already-paid-this-cycle, exceeds-debt, invalid-amount. |
+| Overage payment path | Payment reporting | **DONE** | `REPORT_OVERAGE_PAYMENT` operation added with `{ paymentDate, amount }` input. Amount constrained to outstanding debt. |
+| `serviceOfferingId` fix | Cross-document read | **DONE** | `mapOfferingToSubscription` now accepts `serviceOfferingDocumentId` (document header UUID) as the preferred identifier over `offering.id` (PHID). |
 | `updateServiceInfo`, `addServiceFacetSelection`, `removeServiceFacetSelection` status guards | D-6 reviewer warning | **MISSING** | Lower priority — info updates, not billing-impacting. |
 | Settlement test scenarios | Spec section 10.7 | **PARTIAL** | Basic test exists (operation recording). No tests for: on-time, late, early settlement, autoRenew=false, metric reset. |
 | Editor: `billing-utils.ts` delegation to doc model utils | Spec section 7.1 | **PARTIAL** | Editor still computes billing breakdown independently in `billing-utils.ts`. `computeMetricOverage()` now delegates to `calculateOverageCost()`, but `computeBillingBreakdown()` is still independent. |
