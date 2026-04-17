@@ -9,6 +9,7 @@ import type {
   UpdateServiceInfoInput,
   AddServiceFacetSelectionInput,
   RemoveServiceFacetSelectionInput,
+  ReportOveragePaymentInput,
 } from "../types.js";
 
 export type AddServiceAction = Action & {
@@ -47,6 +48,10 @@ export type RemoveServiceFacetSelectionAction = Action & {
   type: "REMOVE_SERVICE_FACET_SELECTION";
   input: RemoveServiceFacetSelectionInput;
 };
+export type ReportOveragePaymentAction = Action & {
+  type: "REPORT_OVERAGE_PAYMENT";
+  input: ReportOveragePaymentInput;
+};
 
 export type SubscriptionInstanceServiceAction =
   | AddServiceAction
@@ -57,4 +62,5 @@ export type SubscriptionInstanceServiceAction =
   | ReportRecurringPaymentAction
   | UpdateServiceInfoAction
   | AddServiceFacetSelectionAction
-  | RemoveServiceFacetSelectionAction;
+  | RemoveServiceFacetSelectionAction
+  | ReportOveragePaymentAction;

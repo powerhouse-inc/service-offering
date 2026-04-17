@@ -359,12 +359,10 @@ input AddServiceInput {
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
     recurringDiscount: DiscountServiceInfoInput
-    effectiveDate: DateTime
 }
 
 input RemoveServiceInput {
     serviceId: OID!
-    effectiveDate: DateTime
 }
 
 input UpdateServiceSetupCostInput {
@@ -387,15 +385,11 @@ input UpdateServiceRecurringCostInput {
 input ReportSetupPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
-    amount: Amount_Money!
-    currency: Currency!
 }
 
 input ReportRecurringPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
-    amount: Amount_Money!
-    currency: Currency!
 }
 
 input UpdateServiceInfoInput {
@@ -415,6 +409,11 @@ input AddServiceFacetSelectionInput {
 input RemoveServiceFacetSelectionInput {
     serviceId: OID!
     facetSelectionId: OID!
+}
+
+input ReportOveragePaymentInput {
+    paymentDate: DateTime!
+    amount: Amount_Money!
 }
 
 # service-group
@@ -452,13 +451,11 @@ input AddServiceToGroupInput {
     recurringBillingCycle: BillingCycle
     recurringNextBillingDate: DateTime
     recurringLastPaymentDate: DateTime
-    effectiveDate: DateTime
 }
 
 input RemoveServiceFromGroupInput {
     groupId: OID!
     serviceId: OID!
-    effectiveDate: DateTime
 }
 
 input UpdateServiceGroupCostInput {

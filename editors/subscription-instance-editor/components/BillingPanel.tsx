@@ -18,6 +18,7 @@ import {
 import {
   reportSetupPayment,
   reportRecurringPayment,
+  reportOveragePayment,
 } from "../../../document-models/subscription-instance/v1/gen/service/creators.js";
 
 interface BillingPanelProps {
@@ -392,8 +393,6 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                         reportSetupPayment({
                           serviceId: group.id,
                           paymentDate: new Date().toISOString(),
-                          amount: group.setupCost!.amount,
-                          currency: group.setupCost!.currency,
                         }),
                       );
                     }}
@@ -448,8 +447,6 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                             reportRecurringPayment({
                               serviceId: group.id,
                               paymentDate: new Date().toISOString(),
-                              amount: group.recurringCost!.amount,
-                              currency: group.recurringCost!.currency,
                             }),
                           );
                         }}
@@ -490,8 +487,6 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                         reportRecurringPayment({
                           serviceId: svc.id,
                           paymentDate: new Date().toISOString(),
-                          amount: svc.recurringCost!.amount,
-                          currency: svc.recurringCost!.currency,
                         }),
                       );
                     }}
@@ -501,6 +496,40 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                 </span>
               </div>
             ))}
+
+          {/* Pay remaining balance (overage/other) */}
+          {amountOwed > 0 && (
+            <div
+              className="si-billing-line"
+              style={{
+                marginTop: 12,
+                paddingTop: 8,
+                borderTop: "1px solid var(--si-slate-200)",
+              }}
+            >
+              <span className="si-billing-line__name">Outstanding balance</span>
+              <span className="si-billing-line__right">
+                <span className="si-billing-line__amount si-billing-line__amount--setup">
+                  {formatCurrency(amountOwed, currency)}
+                </span>
+                <button
+                  type="button"
+                  className="si-btn si-btn--xs si-btn--success"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => {
+                    dispatch(
+                      reportOveragePayment({
+                        paymentDate: new Date().toISOString(),
+                        amount: amountOwed,
+                      }),
+                    );
+                  }}
+                >
+                  Pay Balance
+                </button>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

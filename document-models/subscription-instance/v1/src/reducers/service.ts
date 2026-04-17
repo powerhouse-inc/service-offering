@@ -3,7 +3,13 @@ import {
   UpdateServiceSetupCostNotFoundError,
   UpdateServiceRecurringCostNotFoundError,
   ReportSetupPaymentServiceNotFoundError,
+  ReportSetupPaymentAlreadyPaidError,
+  ReportSetupPaymentNoCostError,
   ReportRecurringPaymentServiceNotFoundError,
+  ReportRecurringPaymentAlreadyPaidThisCycleError,
+  ReportRecurringPaymentNoCostError,
+  ReportOveragePaymentExceedsDebtError,
+  ReportOveragePaymentInvalidAmountError,
   UpdateServiceInfoNotFoundError,
   AddServiceFacetSelectionServiceNotFoundError,
   RemoveServiceFacetSelectionServiceNotFoundError,
@@ -147,7 +153,7 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       }
     },
     reportSetupPaymentOperation(state, action) {
-      // Try to find as service first, then as group (groups carry pricing)
+      // Find entity by serviceId — can be a service or a group
       const svc = findServiceById(
         action.input.serviceId,
         state.services,
@@ -161,22 +167,30 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
           `Service or group with ID ${action.input.serviceId} not found`,
         );
       }
-      // Mark payment on the service's setup cost if found
-      if (svc?.setupCost) {
-        svc.setupCost.paymentDate = action.input.paymentDate;
-      }
-      // Mark payment on the group's setup cost (found via service or directly)
+      // Resolve the entity that carries setupCost
       const group =
         directGroup ??
         findGroupByServiceId(action.input.serviceId, state.serviceGroups);
-      if (group?.setupCost) {
-        group.setupCost.paymentDate = action.input.paymentDate;
+      const setupEntity =
+        (svc?.setupCost ? svc : null) ?? (group?.setupCost ? group : null);
+      if (!setupEntity || !setupEntity.setupCost) {
+        throw new ReportSetupPaymentNoCostError(
+          `No setup cost found for ID ${action.input.serviceId}`,
+        );
       }
-      // D-3: Update totalCredit with payment amount
-      state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
+      // Guard: already paid
+      if (setupEntity.setupCost.paymentDate) {
+        throw new ReportSetupPaymentAlreadyPaidError(
+          `Setup cost for ID ${action.input.serviceId} is already paid`,
+        );
+      }
+      // Mark paid and credit the exact cost amount from state
+      setupEntity.setupCost.paymentDate = action.input.paymentDate;
+      state.totalCredit =
+        (state.totalCredit ?? 0) + setupEntity.setupCost.amount;
     },
     reportRecurringPaymentOperation(state, action) {
-      // Try to find as service first, then as group (groups carry pricing)
+      // Find entity by serviceId — can be a service or a group
       const svc = findServiceById(
         action.input.serviceId,
         state.services,
@@ -190,19 +204,33 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
           `Service or group with ID ${action.input.serviceId} not found`,
         );
       }
-      // Mark payment on the service's recurring cost if found
-      if (svc?.recurringCost) {
-        svc.recurringCost.lastPaymentDate = action.input.paymentDate;
-      }
-      // Mark payment on the group's recurring cost (found via service or directly)
+      // Resolve the entity that carries recurringCost
       const group =
         directGroup ??
         findGroupByServiceId(action.input.serviceId, state.serviceGroups);
-      if (group?.recurringCost) {
-        group.recurringCost.lastPaymentDate = action.input.paymentDate;
+      const recurringEntity =
+        (svc?.recurringCost ? svc : null) ??
+        (group?.recurringCost ? group : null);
+      if (!recurringEntity || !recurringEntity.recurringCost) {
+        throw new ReportRecurringPaymentNoCostError(
+          `No recurring cost found for ID ${action.input.serviceId}`,
+        );
       }
-      // D-3: Update totalCredit with payment amount
-      state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
+      // Guard: one payment per billing cycle
+      if (
+        recurringEntity.recurringCost.lastPaymentDate &&
+        state.currentBillingCycleStart &&
+        recurringEntity.recurringCost.lastPaymentDate >=
+          state.currentBillingCycleStart
+      ) {
+        throw new ReportRecurringPaymentAlreadyPaidThisCycleError(
+          `Recurring cost for ID ${action.input.serviceId} already paid this cycle`,
+        );
+      }
+      // Mark paid and credit the exact cost amount from state
+      recurringEntity.recurringCost.lastPaymentDate = action.input.paymentDate;
+      state.totalCredit =
+        (state.totalCredit ?? 0) + recurringEntity.recurringCost.amount;
     },
     updateServiceInfoOperation(state, action) {
       const svc = state.services.find((s) => s.id === action.input.serviceId);
@@ -243,5 +271,19 @@ export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceO
       if (index !== -1) {
         svc.facetSelections.splice(index, 1);
       }
+    },
+    reportOveragePaymentOperation(state, action) {
+      if (action.input.amount <= 0) {
+        throw new ReportOveragePaymentInvalidAmountError(
+          "Payment amount must be greater than zero",
+        );
+      }
+      const currentOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
+      if (action.input.amount > currentOwed) {
+        throw new ReportOveragePaymentExceedsDebtError(
+          `Payment amount ${action.input.amount} exceeds outstanding balance ${currentOwed}`,
+        );
+      }
+      state.totalCredit = (state.totalCredit ?? 0) + action.input.amount;
     },
   };

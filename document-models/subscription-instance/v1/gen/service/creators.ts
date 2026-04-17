@@ -9,6 +9,7 @@ import {
   UpdateServiceInfoInputSchema,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
+  ReportOveragePaymentInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceInput,
@@ -20,6 +21,7 @@ import type {
   UpdateServiceInfoInput,
   AddServiceFacetSelectionInput,
   RemoveServiceFacetSelectionInput,
+  ReportOveragePaymentInput,
 } from "../types.js";
 import type {
   AddServiceAction,
@@ -31,6 +33,7 @@ import type {
   UpdateServiceInfoAction,
   AddServiceFacetSelectionAction,
   RemoveServiceFacetSelectionAction,
+  ReportOveragePaymentAction,
 } from "./actions.js";
 
 export const addService = (input: AddServiceInput) =>
@@ -117,5 +120,14 @@ export const removeServiceFacetSelection = (
     { ...input },
     undefined,
     RemoveServiceFacetSelectionInputSchema,
+    "global",
+  );
+
+export const reportOveragePayment = (input: ReportOveragePaymentInput) =>
+  createAction<ReportOveragePaymentAction>(
+    "REPORT_OVERAGE_PAYMENT",
+    { ...input },
+    undefined,
+    ReportOveragePaymentInputSchema,
     "global",
   );

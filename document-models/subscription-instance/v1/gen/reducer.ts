@@ -37,6 +37,7 @@ import {
   UpdateServiceInfoInputSchema,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
+  ReportOveragePaymentInputSchema,
   AddServiceGroupInputSchema,
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
@@ -366,6 +367,18 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       RemoveServiceFacetSelectionInputSchema().parse(action.input);
 
       subscriptionInstanceServiceOperations.removeServiceFacetSelectionOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REPORT_OVERAGE_PAYMENT": {
+      ReportOveragePaymentInputSchema().parse(action.input);
+
+      subscriptionInstanceServiceOperations.reportOveragePaymentOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

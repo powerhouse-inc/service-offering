@@ -116,8 +116,9 @@ Every reducer that touches money updates counters directly:
 | `settleBillingCycleOperation` | [subscription.ts:355-427](document-models/subscription-instance/v1/src/reducers/subscription.ts#L355-L427) | `totalDebt` | Overage + next cycle recurring |
 | `renewExpiringSubscriptionOperation` | [subscription.ts:279-311](document-models/subscription-instance/v1/src/reducers/subscription.ts#L279-L311) | `totalDebt` | Next cycle recurring costs |
 | `resetMetricCycleOperation` | [metrics.ts:190-226](document-models/subscription-instance/v1/src/reducers/metrics.ts#L190-L226) | `totalDebt` | Metric overage |
-| `reportSetupPaymentOperation` | [service.ts:149-177](document-models/subscription-instance/v1/src/reducers/service.ts#L149-L177) | `totalCredit` | Payment amount |
-| `reportRecurringPaymentOperation` | [service.ts:178-206](document-models/subscription-instance/v1/src/reducers/service.ts#L178-L206) | `totalCredit` | Payment amount |
+| `reportSetupPaymentOperation` | [service.ts:149-177](document-models/subscription-instance/v1/src/reducers/service.ts#L149-L177) | `totalCredit` | Payment amount (read from state `setupCost.amount`, not input) |
+| `reportRecurringPaymentOperation` | [service.ts:178-206](document-models/subscription-instance/v1/src/reducers/service.ts#L178-L206) | `totalCredit` | Payment amount (read from state `recurringCost.amount`, not input) |
+| `reportOveragePaymentOperation` | [service.ts:249-262](document-models/subscription-instance/v1/src/reducers/service.ts#L249-L262) | `totalCredit` | Overage/balance payment amount |
 
 ---
 

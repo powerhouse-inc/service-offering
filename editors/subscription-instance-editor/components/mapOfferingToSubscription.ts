@@ -34,6 +34,8 @@ export interface MapOfferingOptions {
   createdAt: string;
   /** Computed price breakdown from getUserSelectionPriceBreakdown */
   priceBreakdown: PriceBreakdown;
+  /** Document header UUID of the service offering — preferred over offering.id (PHID) */
+  serviceOfferingDocumentId?: string;
 }
 
 /**
@@ -123,7 +125,8 @@ export function mapOfferingToSubscription(
     customerId: customerId ?? undefined,
     customerName: customerName ?? undefined,
     customerEmail: customerEmail ?? undefined,
-    serviceOfferingId: offering.id,
+    serviceOfferingId:
+      options.serviceOfferingDocumentId ?? offering.id ?? undefined,
     tierName: tier.name,
     tierPricingOptionId: tier.id,
     tierPrice,

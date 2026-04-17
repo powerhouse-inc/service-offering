@@ -304,7 +304,7 @@
                   "template": ""
                 }
               ],
-              "schema": "input DiscountServiceInfoInput {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ninput AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    recurringDiscount: DiscountServiceInfoInput\n    effectiveDate: DateTime\n}",
+              "schema": "input DiscountServiceInfoInput {\n    originalAmount: Amount_Money!\n    discountType: DiscountType!\n    discountValue: Float!\n    source: DiscountSource!\n}\n\ninput AddServiceInput {\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    recurringDiscount: DiscountServiceInfoInput\n}",
               "reducer": "if (state.status !== \"PENDING\" && state.status !== \"ACTIVE\") {\n  throw new SubscriptionNotActiveAddServiceError(`Cannot add service when status is ${state.status}`);\n}\nconst service = {\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: action.input.recurringDiscount ? {\n      originalAmount: action.input.recurringDiscount.originalAmount,\n      discountType: action.input.recurringDiscount.discountType,\n      discountValue: action.input.recurringDiscount.discountValue,\n      source: action.input.recurringDiscount.source,\n    } : null,\n  } : null,\n  metrics: [],\n};\nstate.services.push(service);",
               "examples": [],
               "template": "Add a standalone service",
@@ -330,7 +330,7 @@
                   "template": ""
                 }
               ],
-              "schema": "input RemoveServiceInput {\n    serviceId: OID!\n    effectiveDate: DateTime\n}",
+              "schema": "input RemoveServiceInput {\n    serviceId: OID!\n}",
               "reducer": "if (state.status !== \"PENDING\" && state.status !== \"ACTIVE\") {\n  throw new SubscriptionNotActiveRemoveServiceError(`Cannot remove service when status is ${state.status}`);\n}\nconst index = state.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceNotFoundError(`Service with ID ${action.input.serviceId} not found`);\n}\nstate.services.splice(index, 1);",
               "examples": [],
               "template": "Remove a standalone service",
@@ -385,10 +385,24 @@
                   "name": "ReportSetupPaymentServiceNotFoundError",
                   "template": "",
                   "description": ""
+                },
+                {
+                  "id": "err-report-setup-already-paid",
+                  "name": "ReportSetupPaymentAlreadyPaidError",
+                  "code": "REPORT_SETUP_PAYMENT_ALREADY_PAID",
+                  "description": "Setup cost has already been paid",
+                  "template": ""
+                },
+                {
+                  "id": "err-report-setup-no-cost",
+                  "name": "ReportSetupPaymentNoCostError",
+                  "code": "REPORT_SETUP_PAYMENT_NO_COST",
+                  "description": "No setup cost found for the given entity",
+                  "template": ""
                 }
               ],
-              "schema": "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n    amount: Amount_Money!\n    currency: Currency!\n}",
-              "reducer": "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nconst directGroup = state.serviceGroups.find((g) => g.id === action.input.serviceId);\nif (!svc && !directGroup) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service or group with ID ${action.input.serviceId} not found`);\n}\nif (svc && svc.setupCost) {\n  svc.setupCost.paymentDate = action.input.paymentDate;\n}\nfunction findGroup(serviceId) {\n  for (const group of state.serviceGroups) {\n    if (group.services.some((s) => s.id === serviceId)) return group;\n  }\n  return undefined;\n}\nconst group = directGroup || findGroup(action.input.serviceId);\nif (group && group.setupCost) {\n  group.setupCost.paymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
+              "schema": "input ReportSetupPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
+              "reducer": "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nconst directGroup = state.serviceGroups.find((g) => g.id === action.input.serviceId);\nif (!svc && !directGroup) {\n  throw new ReportSetupPaymentServiceNotFoundError(`Service or group with ID ${action.input.serviceId} not found`);\n}\nfunction findGroup(serviceId) {\n  for (const group of state.serviceGroups) {\n    if (group.services.some((s) => s.id === serviceId)) return group;\n  }\n  return undefined;\n}\nconst targetGroup = directGroup ?? findGroup(action.input.serviceId);\nconst setupEntity = (svc?.setupCost ? svc : null) || (targetGroup?.setupCost ? targetGroup : null);\nif (!setupEntity || !setupEntity.setupCost) {\n  throw new ReportSetupPaymentNoCostError(`No setup cost found for ID ${action.input.serviceId}`);\n}\nif (setupEntity.setupCost.paymentDate) {\n  throw new ReportSetupPaymentAlreadyPaidError(`Setup cost for ID ${action.input.serviceId} is already paid`);\n}\nsetupEntity.setupCost.paymentDate = action.input.paymentDate;\nstate.totalCredit = (state.totalCredit ?? 0) + setupEntity.setupCost.amount;",
               "examples": [],
               "template": "Record a setup payment",
               "description": "Record a setup payment"
@@ -404,10 +418,24 @@
                   "name": "ReportRecurringPaymentServiceNotFoundError",
                   "template": "",
                   "description": ""
+                },
+                {
+                  "id": "err-report-recurring-already-paid-cycle",
+                  "name": "ReportRecurringPaymentAlreadyPaidThisCycleError",
+                  "code": "REPORT_RECURRING_PAYMENT_ALREADY_PAID_THIS_CYCLE",
+                  "description": "Recurring cost has already been paid this billing cycle",
+                  "template": ""
+                },
+                {
+                  "id": "err-report-recurring-no-cost",
+                  "name": "ReportRecurringPaymentNoCostError",
+                  "code": "REPORT_RECURRING_PAYMENT_NO_COST",
+                  "description": "No recurring cost found for the given entity",
+                  "template": ""
                 }
               ],
-              "schema": "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n    amount: Amount_Money!\n    currency: Currency!\n}",
-              "reducer": "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nconst directGroup = state.serviceGroups.find((g) => g.id === action.input.serviceId);\nif (!svc && !directGroup) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service or group with ID ${action.input.serviceId} not found`);\n}\nif (svc && svc.recurringCost) {\n  svc.recurringCost.lastPaymentDate = action.input.paymentDate;\n}\nfunction findGroup(serviceId) {\n  for (const group of state.serviceGroups) {\n    if (group.services.some((s) => s.id === serviceId)) return group;\n  }\n  return undefined;\n}\nconst group = directGroup || findGroup(action.input.serviceId);\nif (group && group.recurringCost) {\n  group.recurringCost.lastPaymentDate = action.input.paymentDate;\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
+              "schema": "input ReportRecurringPaymentInput {\n    serviceId: OID!\n    paymentDate: DateTime!\n}",
+              "reducer": "function findSvc(serviceId) {\n  const flat = state.services.find((s) => s.id === serviceId);\n  if (flat) return flat;\n  for (const group of state.serviceGroups) {\n    const grouped = group.services.find((s) => s.id === serviceId);\n    if (grouped) return grouped;\n  }\n  return undefined;\n}\nconst svc = findSvc(action.input.serviceId);\nconst directGroup = state.serviceGroups.find((g) => g.id === action.input.serviceId);\nif (!svc && !directGroup) {\n  throw new ReportRecurringPaymentServiceNotFoundError(`Service or group with ID ${action.input.serviceId} not found`);\n}\nfunction findGroup(serviceId) {\n  for (const group of state.serviceGroups) {\n    if (group.services.some((s) => s.id === serviceId)) return group;\n  }\n  return undefined;\n}\nconst targetGroup = directGroup ?? findGroup(action.input.serviceId);\nconst recurringEntity = (svc?.recurringCost ? svc : null) || (targetGroup?.recurringCost ? targetGroup : null);\nif (!recurringEntity || !recurringEntity.recurringCost) {\n  throw new ReportRecurringPaymentNoCostError(`No recurring cost found for ID ${action.input.serviceId}`);\n}\nif (recurringEntity.recurringCost.lastPaymentDate && state.currentBillingCycleStart && recurringEntity.recurringCost.lastPaymentDate >= state.currentBillingCycleStart) {\n  throw new ReportRecurringPaymentAlreadyPaidThisCycleError(`Recurring cost for ID ${action.input.serviceId} already paid this cycle`);\n}\nrecurringEntity.recurringCost.lastPaymentDate = action.input.paymentDate;\nstate.totalCredit = (state.totalCredit ?? 0) + recurringEntity.recurringCost.amount;",
               "examples": [],
               "template": "Record a recurring payment",
               "description": "Record a recurring payment"
@@ -468,6 +496,32 @@
               "examples": [],
               "template": "Remove facet selection from a service",
               "description": "Remove facet selection from a service"
+            },
+            {
+              "id": "op-report-overage-payment",
+              "name": "REPORT_OVERAGE_PAYMENT",
+              "description": "Report a payment against outstanding overage or remaining balance. Amount constrained to not exceed amount owed.",
+              "schema": "input ReportOveragePaymentInput {\n    paymentDate: DateTime!\n    amount: Amount_Money!\n}",
+              "template": "Report an overage or balance payment",
+              "reducer": "if (action.input.amount <= 0) {\n  throw new ReportOveragePaymentInvalidAmountError(\"Payment amount must be greater than zero\");\n}\nconst currentOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);\nif (action.input.amount > currentOwed) {\n  throw new ReportOveragePaymentExceedsDebtError(`Payment amount ${action.input.amount} exceeds outstanding balance ${currentOwed}`);\n}\nstate.totalCredit = (state.totalCredit ?? 0) + action.input.amount;",
+              "errors": [
+                {
+                  "id": "err-overage-exceeds-debt",
+                  "name": "ReportOveragePaymentExceedsDebtError",
+                  "code": "REPORT_OVERAGE_PAYMENT_EXCEEDS_DEBT",
+                  "description": "Payment amount exceeds the outstanding balance",
+                  "template": ""
+                },
+                {
+                  "id": "err-overage-invalid-amount",
+                  "name": "ReportOveragePaymentInvalidAmountError",
+                  "code": "REPORT_OVERAGE_PAYMENT_INVALID_AMOUNT",
+                  "description": "Payment amount must be greater than zero",
+                  "template": ""
+                }
+              ],
+              "examples": [],
+              "scope": "global"
             }
           ],
           "description": "Standalone service CRUD, cost management, facet selections, and payment tracking"
@@ -541,7 +595,7 @@
                   "template": ""
                 }
               ],
-              "schema": "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n    effectiveDate: DateTime\n}",
+              "schema": "input AddServiceToGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    name: String\n    description: String\n    customValue: String\n    setupAmount: Amount_Money\n    setupCurrency: Currency\n    setupBillingDate: DateTime\n    setupPaymentDate: DateTime\n    recurringAmount: Amount_Money\n    recurringCurrency: Currency\n    recurringBillingCycle: BillingCycle\n    recurringNextBillingDate: DateTime\n    recurringLastPaymentDate: DateTime\n}",
               "reducer": "if (state.status !== \"PENDING\" && state.status !== \"ACTIVE\") {\n  throw new SubscriptionNotActiveAddToGroupError(`Cannot add service to group when status is ${state.status}`);\n}\nconst group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new AddServiceToGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\ngroup.services.push({\n  id: action.input.serviceId,\n  name: action.input.name || null,\n  description: action.input.description || null,\n  customValue: action.input.customValue || null,\n  facetSelections: [],\n  setupCost: action.input.setupAmount && action.input.setupCurrency ? {\n    amount: action.input.setupAmount,\n    currency: action.input.setupCurrency,\n    billingDate: action.input.setupBillingDate || null,\n    paymentDate: action.input.setupPaymentDate || null,\n  } : null,\n  recurringCost: action.input.recurringAmount && action.input.recurringCurrency && action.input.recurringBillingCycle ? {\n    amount: action.input.recurringAmount,\n    currency: action.input.recurringCurrency,\n    billingCycle: action.input.recurringBillingCycle,\n    nextBillingDate: action.input.recurringNextBillingDate || null,\n    lastPaymentDate: action.input.recurringLastPaymentDate || null,\n    discount: null,\n  } : null,\n  metrics: [],\n});",
               "examples": [],
               "template": "Add a service to a group",
@@ -574,7 +628,7 @@
                   "template": ""
                 }
               ],
-              "schema": "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n    effectiveDate: DateTime\n}",
+              "schema": "input RemoveServiceFromGroupInput {\n    groupId: OID!\n    serviceId: OID!\n}",
               "reducer": "if (state.status !== \"PENDING\" && state.status !== \"ACTIVE\") {\n  throw new SubscriptionNotActiveRemoveFromGroupError(`Cannot remove service from group when status is ${state.status}`);\n}\nconst group = state.serviceGroups.find((g) => g.id === action.input.groupId);\nif (!group) {\n  throw new RemoveServiceFromGroupGroupNotFoundError(`Service group with ID ${action.input.groupId} not found`);\n}\nconst index = group.services.findIndex((s) => s.id === action.input.serviceId);\nif (index === -1) {\n  throw new RemoveServiceFromGroupServiceNotFoundError(`Service with ID ${action.input.serviceId} not found in group ${action.input.groupId}`);\n}\ngroup.services.splice(index, 1);",
               "examples": [],
               "template": "Remove a service from a group",

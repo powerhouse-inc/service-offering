@@ -95,6 +95,8 @@ No reducer changes needed for D-7 — the math just works. Counters are cumulati
 - Next cycle: settlement adds recurring costs to `totalDebt` → balance trends toward zero
 - Capping at zero would hide the surplus from the operator
 
+**Overpayment guard on `REPORT_OVERAGE_PAYMENT`**: The `reportOveragePaymentOperation` reducer now enforces `amount <= currentOwed`, preventing direct overpayment via the payment UI. The `ReportOveragePaymentExceedsDebtError` is thrown if the payment exceeds the outstanding balance. D-7 carry-forward still applies for proration credits — a mid-cycle removal can create negative balance via `totalCredit > totalDebt` — but the payment path itself no longer allows it.
+
 ---
 
 ## 6. Editor UI

@@ -22,6 +22,8 @@ import {
   UpdateServiceInfoInputSchema,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
+  reportOveragePayment,
+  ReportOveragePaymentInputSchema,
 } from "document-models/subscription-instance/v1";
 
 describe("ServiceOperations", () => {
@@ -177,6 +179,23 @@ describe("ServiceOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "REMOVE_SERVICE_FACET_SELECTION",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle reportOveragePayment operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(ReportOveragePaymentInputSchema());
+
+    const updatedDocument = reducer(document, reportOveragePayment(input));
+
+    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "REPORT_OVERAGE_PAYMENT",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

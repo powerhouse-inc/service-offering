@@ -33,6 +33,7 @@ import type {
   RemoveServiceInput,
   RemoveServiceMetricInput,
   RenewExpiringSubscriptionInput,
+  ReportOveragePaymentInput,
   ReportRecurringPaymentInput,
   ReportSetupPaymentInput,
   ResetMetricCycleInput,
@@ -163,7 +164,6 @@ export function AddServiceInputSchema(): z.ZodObject<
   return z.object({
     customValue: z.string().nullish(),
     description: z.string().nullish(),
-    effectiveDate: z.iso.datetime().nullish(),
     name: z.string().nullish(),
     recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
@@ -207,7 +207,6 @@ export function AddServiceToGroupInputSchema(): z.ZodObject<
   return z.object({
     customValue: z.string().nullish(),
     description: z.string().nullish(),
-    effectiveDate: z.iso.datetime().nullish(),
     groupId: z.string(),
     name: z.string().nullish(),
     recurringAmount: z.number().nullish(),
@@ -432,7 +431,6 @@ export function RemoveServiceFromGroupInputSchema(): z.ZodObject<
   Properties<RemoveServiceFromGroupInput>
 > {
   return z.object({
-    effectiveDate: z.iso.datetime().nullish(),
     groupId: z.string(),
     serviceId: z.string(),
   });
@@ -450,7 +448,6 @@ export function RemoveServiceInputSchema(): z.ZodObject<
   Properties<RemoveServiceInput>
 > {
   return z.object({
-    effectiveDate: z.iso.datetime().nullish(),
     serviceId: z.string(),
   });
 }
@@ -473,12 +470,19 @@ export function RenewExpiringSubscriptionInputSchema(): z.ZodObject<
   });
 }
 
+export function ReportOveragePaymentInputSchema(): z.ZodObject<
+  Properties<ReportOveragePaymentInput>
+> {
+  return z.object({
+    amount: z.number(),
+    paymentDate: z.iso.datetime(),
+  });
+}
+
 export function ReportRecurringPaymentInputSchema(): z.ZodObject<
   Properties<ReportRecurringPaymentInput>
 > {
   return z.object({
-    amount: z.number(),
-    currency: z.string(),
     paymentDate: z.iso.datetime(),
     serviceId: z.string(),
   });
@@ -488,8 +492,6 @@ export function ReportSetupPaymentInputSchema(): z.ZodObject<
   Properties<ReportSetupPaymentInput>
 > {
   return z.object({
-    amount: z.number(),
-    currency: z.string(),
     paymentDate: z.iso.datetime(),
     serviceId: z.string(),
   });

@@ -204,10 +204,6 @@ function ServiceCard({
                   removeServiceFromGroup({
                     groupId,
                     serviceId: service.id,
-                    effectiveDate:
-                      subscriptionStatus === "ACTIVE"
-                        ? new Date().toISOString()
-                        : undefined,
                   }),
                 );
               }}

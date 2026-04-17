@@ -87,7 +87,6 @@ export type AddServiceGroupInput = {
 export type AddServiceInput = {
   customValue?: InputMaybe<Scalars["String"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
-  effectiveDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   name?: InputMaybe<Scalars["String"]["input"]>;
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
@@ -123,7 +122,6 @@ export type AddServiceMetricInput = {
 export type AddServiceToGroupInput = {
   customValue?: InputMaybe<Scalars["String"]["input"]>;
   description?: InputMaybe<Scalars["String"]["input"]>;
-  effectiveDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   groupId: Scalars["OID"]["input"];
   name?: InputMaybe<Scalars["String"]["input"]>;
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
@@ -292,7 +290,6 @@ export type RemoveServiceFacetSelectionInput = {
 };
 
 export type RemoveServiceFromGroupInput = {
-  effectiveDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   groupId: Scalars["OID"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
@@ -302,7 +299,6 @@ export type RemoveServiceGroupInput = {
 };
 
 export type RemoveServiceInput = {
-  effectiveDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   serviceId: Scalars["OID"]["input"];
 };
 
@@ -316,16 +312,17 @@ export type RenewExpiringSubscriptionInput = {
   timestamp: Scalars["DateTime"]["input"];
 };
 
-export type ReportRecurringPaymentInput = {
+export type ReportOveragePaymentInput = {
   amount: Scalars["Amount_Money"]["input"];
-  currency: Scalars["Currency"]["input"];
+  paymentDate: Scalars["DateTime"]["input"];
+};
+
+export type ReportRecurringPaymentInput = {
   paymentDate: Scalars["DateTime"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
 
 export type ReportSetupPaymentInput = {
-  amount: Scalars["Amount_Money"]["input"];
-  currency: Scalars["Currency"]["input"];
   paymentDate: Scalars["DateTime"]["input"];
   serviceId: Scalars["OID"]["input"];
 };

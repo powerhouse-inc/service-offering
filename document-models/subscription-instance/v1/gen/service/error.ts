@@ -5,10 +5,16 @@ export type ErrorCode =
   | "UpdateServiceSetupCostNotFoundError"
   | "UpdateServiceRecurringCostNotFoundError"
   | "ReportSetupPaymentServiceNotFoundError"
+  | "ReportSetupPaymentAlreadyPaidError"
+  | "ReportSetupPaymentNoCostError"
   | "ReportRecurringPaymentServiceNotFoundError"
+  | "ReportRecurringPaymentAlreadyPaidThisCycleError"
+  | "ReportRecurringPaymentNoCostError"
   | "UpdateServiceInfoNotFoundError"
   | "AddServiceFacetSelectionServiceNotFoundError"
-  | "RemoveServiceFacetSelectionServiceNotFoundError";
+  | "RemoveServiceFacetSelectionServiceNotFoundError"
+  | "ReportOveragePaymentExceedsDebtError"
+  | "ReportOveragePaymentInvalidAmountError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -71,12 +77,52 @@ export class ReportSetupPaymentServiceNotFoundError
   }
 }
 
+export class ReportSetupPaymentAlreadyPaidError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportSetupPaymentAlreadyPaidError" as ErrorCode;
+  constructor(message = "ReportSetupPaymentAlreadyPaidError") {
+    super(message);
+  }
+}
+
+export class ReportSetupPaymentNoCostError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportSetupPaymentNoCostError" as ErrorCode;
+  constructor(message = "ReportSetupPaymentNoCostError") {
+    super(message);
+  }
+}
+
 export class ReportRecurringPaymentServiceNotFoundError
   extends Error
   implements ReducerError
 {
   errorCode = "ReportRecurringPaymentServiceNotFoundError" as ErrorCode;
   constructor(message = "ReportRecurringPaymentServiceNotFoundError") {
+    super(message);
+  }
+}
+
+export class ReportRecurringPaymentAlreadyPaidThisCycleError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportRecurringPaymentAlreadyPaidThisCycleError" as ErrorCode;
+  constructor(message = "ReportRecurringPaymentAlreadyPaidThisCycleError") {
+    super(message);
+  }
+}
+
+export class ReportRecurringPaymentNoCostError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportRecurringPaymentNoCostError" as ErrorCode;
+  constructor(message = "ReportRecurringPaymentNoCostError") {
     super(message);
   }
 }
@@ -111,6 +157,26 @@ export class RemoveServiceFacetSelectionServiceNotFoundError
   }
 }
 
+export class ReportOveragePaymentExceedsDebtError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportOveragePaymentExceedsDebtError" as ErrorCode;
+  constructor(message = "ReportOveragePaymentExceedsDebtError") {
+    super(message);
+  }
+}
+
+export class ReportOveragePaymentInvalidAmountError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ReportOveragePaymentInvalidAmountError" as ErrorCode;
+  constructor(message = "ReportOveragePaymentInvalidAmountError") {
+    super(message);
+  }
+}
+
 export const errors = {
   AddService: { SubscriptionNotActiveAddServiceError },
   RemoveService: {
@@ -119,11 +185,23 @@ export const errors = {
   },
   UpdateServiceSetupCost: { UpdateServiceSetupCostNotFoundError },
   UpdateServiceRecurringCost: { UpdateServiceRecurringCostNotFoundError },
-  ReportSetupPayment: { ReportSetupPaymentServiceNotFoundError },
-  ReportRecurringPayment: { ReportRecurringPaymentServiceNotFoundError },
+  ReportSetupPayment: {
+    ReportSetupPaymentServiceNotFoundError,
+    ReportSetupPaymentAlreadyPaidError,
+    ReportSetupPaymentNoCostError,
+  },
+  ReportRecurringPayment: {
+    ReportRecurringPaymentServiceNotFoundError,
+    ReportRecurringPaymentAlreadyPaidThisCycleError,
+    ReportRecurringPaymentNoCostError,
+  },
   UpdateServiceInfo: { UpdateServiceInfoNotFoundError },
   AddServiceFacetSelection: { AddServiceFacetSelectionServiceNotFoundError },
   RemoveServiceFacetSelection: {
     RemoveServiceFacetSelectionServiceNotFoundError,
+  },
+  ReportOveragePayment: {
+    ReportOveragePaymentExceedsDebtError,
+    ReportOveragePaymentInvalidAmountError,
   },
 };

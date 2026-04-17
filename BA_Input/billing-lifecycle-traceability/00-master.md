@@ -200,12 +200,12 @@ See full traceability: [12-payment-reporting.md](12-payment-reporting.md)
 
 | Layer | Implementation |
 |-------|---------------|
-| **Rule** | Payments reduce `totalCredit`. Can be reported for setup costs (one-time) or recurring costs (per cycle). Accepts service ID or group ID. |
+| **Rule** | Payments reduce `totalCredit`. Can be reported for setup costs (one-time) or recurring costs (per cycle). Accepts service ID or group ID. Overage payments accepted up to `amountOwed`. |
 | **Source** | Wouter @ 01:04:27 — "if the payment comes in you update the credit." |
-| **Schema** | `ReportSetupPaymentInput { serviceId: OID!, paymentDate: DateTime!, amount: Amount_Money!, currency: Currency! }`. Same for `ReportRecurringPaymentInput`. `serviceId` can be a service ID or group ID. |
-| **Reducer** | `reportSetupPaymentOperation` and `reportRecurringPaymentOperation` in [service.ts:149-207](document-models/subscription-instance/v1/src/reducers/service.ts#L149-L207) — searches services then groups by ID, marks `paymentDate`/`lastPaymentDate`, adds `amount` to `totalCredit` |
+| **Schema** | `ReportSetupPaymentInput { serviceId: OID!, paymentDate: DateTime! }`. Same shape for `ReportRecurringPaymentInput`. `amount` and `currency` removed — payment amount now read from state (setup cost or recurring cost of the matched service/group). New operation `REPORT_OVERAGE_PAYMENT` with input `ReportOveragePaymentInput { paymentDate: DateTime!, amount: Amount_Money! }` — `amount` constrained to `<= amountOwed`. |
+| **Reducer** | `reportSetupPaymentOperation` and `reportRecurringPaymentOperation` in [service.ts](document-models/subscription-instance/v1/src/reducers/service.ts) — searches services then groups by ID, reads payment amount from state, marks `paymentDate`/`lastPaymentDate`, adds amount to `totalCredit`. Guards: already-paid, no-cost, already-paid-this-cycle. `reportOveragePaymentOperation` — adds `amount` to `totalCredit` with guards: exceeds-debt (`amount > amountOwed`), invalid-amount (`amount <= 0`). |
 | **Editor** | "Mark Paid" on unpaid setup costs, "Report Payment" on recurring costs (with once-per-cycle guard) in [BillingPanel.tsx](editors/subscription-instance-editor/components/BillingPanel.tsx). Uses group ID directly so empty groups work. |
-| **Test** | Activate → click Mark Paid on setup → verify totalCredit increases, setup shows "Paid" tag. Click Report Payment on recurring → verify paid-this-cycle guard activates. |
+| **Test** | Activate → click Mark Paid on setup → verify totalCredit increases, setup shows "Paid" tag. Click Report Payment on recurring → verify paid-this-cycle guard activates. Report Overage Payment → verify amount <= amountOwed constraint. |
 
 ---
 
@@ -220,6 +220,7 @@ See full traceability: [13-cross-document-read.md](13-cross-document-read.md)
 | **Hook** | `useServiceOfferingAddons(serviceOfferingId, existingGroupNames)` in [useServiceOfferingAddons.ts](editors/subscription-instance-editor/hooks/useServiceOfferingAddons.ts) — fetches offering via `useGetDocuments`, filters add-on groups not already in subscription |
 | **Editor** | Add Service Group modal shows radio options from the offering with pricing, not a free-form input |
 | **Constraint** | Offering must be accessible from the same Reactor. Remote offerings need to be synced as a remote drive first. |
+| **Fix** | `mapOfferingToSubscription` now accepts `serviceOfferingDocumentId` (document header UUID) as the preferred identifier over `offering.id` (PHID). This fixes cross-document lookup when the PHID is not yet populated or differs from the document-level identifier. |
 
 ---
 
@@ -246,6 +247,7 @@ See full traceability: [13-cross-document-read.md](13-cross-document-read.md)
 |-----------|--------|---------|----------|
 | `SETTLE_BILLING_CYCLE` | subscription | Close billing cycle, calculate overage, advance or expire | D-4 |
 | `RESET_METRIC_CYCLE` | metrics | Independent metric reset with overage calculation | Sprint planning 00:55:28 |
+| `REPORT_OVERAGE_PAYMENT` | service | Record payment toward outstanding overage debt, constrained to `<= amountOwed` | Payment reporting revision |
 
 ### Operations Removed
 
@@ -257,14 +259,14 @@ See full traceability: [13-cross-document-read.md](13-cross-document-read.md)
 
 | Input | Change | Decision |
 |-------|--------|----------|
-| `AddServiceInput` | + `effectiveDate: DateTime` (unused — services don't carry pricing) | D-1 revised |
-| `RemoveServiceInput` | + `effectiveDate: DateTime` (unused) | D-2 revised |
-| `AddServiceToGroupInput` | + `effectiveDate: DateTime` (unused) | D-1 revised |
-| `RemoveServiceFromGroupInput` | + `effectiveDate: DateTime` (unused) | D-2 revised |
-| `ReportSetupPaymentInput` | + `amount: Amount_Money!`, `currency: Currency!` | D-3 |
-| `ReportRecurringPaymentInput` | + `amount: Amount_Money!`, `currency: Currency!` | D-3 |
+| `AddServiceInput` | `effectiveDate` **removed** (was unused — services don't carry pricing) | Cleanup |
+| `RemoveServiceInput` | `effectiveDate` **removed** (was unused) | Cleanup |
+| `AddServiceToGroupInput` | `effectiveDate` **removed** (was unused) | Cleanup |
+| `RemoveServiceFromGroupInput` | `effectiveDate` **removed** (was unused) | Cleanup |
+| `ReportSetupPaymentInput` | `amount` and `currency` **removed** — payment amount now read from state | Payment reporting revision |
+| `ReportRecurringPaymentInput` | `amount` and `currency` **removed** — payment amount now read from state | Payment reporting revision |
 
-Note: `effectiveDate` on service-level inputs is unused since pricing lives on groups, not services. These fields remain for backward compatibility but the reducers no longer use them for proration.
+Note: `effectiveDate` fields were cleaned up since pricing lives on groups, not services — the fields were never used by reducers. `amount`/`currency` were removed from payment inputs because the reducer now reads the correct amount from the matched service/group state, eliminating the possibility of mismatched payment amounts.
 
 ---
 

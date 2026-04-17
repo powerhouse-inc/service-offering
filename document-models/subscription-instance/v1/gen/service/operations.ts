@@ -9,6 +9,7 @@ import type {
   UpdateServiceInfoAction,
   AddServiceFacetSelectionAction,
   RemoveServiceFacetSelectionAction,
+  ReportOveragePaymentAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -56,6 +57,11 @@ export interface SubscriptionInstanceServiceOperations {
   removeServiceFacetSelectionOperation: (
     state: SubscriptionInstanceState,
     action: RemoveServiceFacetSelectionAction,
+    dispatch?: SignalDispatch,
+  ) => void;
+  reportOveragePaymentOperation: (
+    state: SubscriptionInstanceState,
+    action: ReportOveragePaymentAction,
     dispatch?: SignalDispatch,
   ) => void;
 }
