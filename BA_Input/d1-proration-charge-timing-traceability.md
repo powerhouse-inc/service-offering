@@ -10,21 +10,26 @@ flowchart LR
     VAL_ZOOM["Zoom: immediate"]
     VAL_STRIPE["Stripe: deferred default"]
     VAL_SLACK["Slack: deferred"]
+    VAL_GOOG["Google Workspace: upfront-variable, same formula"]
     DECISION["Platform rule: immediate, per Wouter"]
     RED1["addServiceGroupOperation"]
     RED2["removeServiceGroupOperation D-2"]
     UTIL["calculateProratedCost"]
     SCHEMA["AddServiceGroupInput recurringAmount"]
     EDITOR["Add Service Group button + Outstanding Balance"]
+    GAP["GAP: quantity change within group not yet supported"]
 
     RULE --> SRC1
     RULE --> SRC2
     SRC1 --> VAL_ZOOM
     SRC1 --> VAL_STRIPE
     SRC1 --> VAL_SLACK
+    SRC1 --> VAL_GOOG
     VAL_ZOOM --> DECISION
     VAL_STRIPE --> DECISION
     VAL_SLACK --> DECISION
+    VAL_GOOG --> DECISION
+    VAL_GOOG --> GAP
     DECISION --> RED1
     DECISION --> RED2
     RED1 --> UTIL
@@ -91,6 +96,18 @@ This gives us:
 **Key quote**: "We'll divide the cost per member by the number of days in the month, then multiply by the remaining number of days in the month." and "We'll calculate the prorated cost and bill you the following month for any new members added."
 
 **Verdict**: Same formula (`cost/days * remaining`), but deferred to next month. We chose immediate timing per Wouter.
+
+---
+
+### Google Workspace (verified — Mar 2026 invoice)
+
+**Source**: Apeiron's Google Workspace Business Standard invoice, March 2026.
+
+**What happened**: 3 seats prepaid at €48.60 for Mar 1-31. Mid-cycle on Mar 22, seats reduced from 3 → 1. Google recalculated: 3 seats × 22 days (€34.49) + 1 seat × 9 days (€4.70) = €39.19 actual. The €9.41 difference (€48.60 - €39.19) carried forward as credit.
+
+**Pattern**: Upfront-variable — the prepayment is an estimate, the final charge is reconciled at cycle end based on actual seat-days. Same proration formula applied to quantity delta within a group, not to a whole group add/remove.
+
+**Verdict**: Same math as D-1/D-2, but our implementation currently only supports whole-group add/remove. Google demonstrates proration applied to **quantity changes within a group** — a `quantity` field on `ServiceGroup` and an `UPDATE_SERVICE_GROUP_QUANTITY` operation would be needed to support this pattern. The formula (`remainingDays / totalDays * costDelta`) is already in `calculateProratedCost()`.
 
 ---
 

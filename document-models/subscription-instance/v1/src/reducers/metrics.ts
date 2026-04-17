@@ -107,7 +107,10 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
           `Metric with ID ${action.input.metricId} not found`,
         );
       }
-      metric.currentUsage = action.input.currentUsage;
+      metric.currentUsage =
+        metric.paidLimit != null
+          ? Math.min(action.input.currentUsage, metric.paidLimit)
+          : action.input.currentUsage;
     },
     removeServiceMetricOperation(state, action) {
       const svc = findServiceById(
@@ -153,7 +156,11 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
           `Metric with ID ${action.input.metricId} not found`,
         );
       }
-      metric.currentUsage += action.input.incrementBy;
+      const newUsage = metric.currentUsage + action.input.incrementBy;
+      metric.currentUsage =
+        metric.paidLimit != null
+          ? Math.min(newUsage, metric.paidLimit)
+          : newUsage;
     },
     decrementMetricUsageOperation(state, action) {
       // D-6: ACTIVE only
