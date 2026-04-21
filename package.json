@@ -1,7 +1,7 @@
 {
   "name": "@powerhousedao/service-offering",
   "description": "Service offering document models",
-  "version": "1.0.0-dev.34",
+  "version": "1.0.0-dev.35",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
@@ -177,5 +177,5 @@
   },
   "homepage": "https://github.com/powerhouse-inc/service-offering#readme",
   "readme": "ERROR: No README data found!",
-  "_id": "@powerhousedao/service-offering@1.0.0-dev.35"
+  "_id": "@powerhousedao/service-offering@1.0.0-dev.34"
 }
