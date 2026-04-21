@@ -75,12 +75,17 @@ const tailwindCss = join(ROOT, "dist", "style.css");
 const componentCss = join(ROOT, "dist", "browser", "style.css");
 const styleDest = join(ROOT, "style.css");
 
+const COMPONENT_MARKER =
+  "/* === Component styles (bundled from browser build) === */";
+
 let combinedCss = "";
 if (existsSync(tailwindCss)) {
-  combinedCss += readFileSync(tailwindCss, "utf-8");
+  combinedCss += readFileSync(tailwindCss, "utf-8")
+    .split(COMPONENT_MARKER)[0]
+    .trimEnd();
 }
 if (existsSync(componentCss)) {
-  combinedCss += "\n/* === Component styles (bundled from browser build) === */\n";
+  combinedCss += `\n\n${COMPONENT_MARKER}\n`;
   combinedCss += readFileSync(componentCss, "utf-8");
 }
 if (combinedCss) {

@@ -74,14 +74,14 @@
     "service-unstartup": "bash ./node_modules/@powerhousedao/ph-cli/dist/scripts/service-unstartup.sh"
   },
   "dependencies": {
-    "@powerhousedao/analytics-engine-core": "6.0.0-dev.176",
-    "@powerhousedao/connect": "6.0.0-dev.176",
-    "@powerhousedao/design-system": "6.0.0-dev.176",
+    "@powerhousedao/analytics-engine-core": "6.0.0-dev.183",
+    "@powerhousedao/connect": "6.0.0-dev.183",
+    "@powerhousedao/design-system": "6.0.0-dev.183",
     "@powerhousedao/document-engineering": "1.40.1",
-    "@powerhousedao/reactor-browser": "6.0.0-dev.176",
+    "@powerhousedao/reactor-browser": "6.0.0-dev.183",
     "@uiw/react-md-editor": "^4.0.11",
     "document-drive": "6.0.0-dev.109",
-    "document-model": "6.0.0-dev.176",
+    "document-model": "6.0.0-dev.183",
     "graphql": "^16.10.0",
     "graphql-tag": "^2.12.6",
     "lucide-react": "^0.577.0",
@@ -94,8 +94,8 @@
     "@electric-sql/pglite": "0.3.15",
     "@electric-sql/pglite-tools": "0.2.20",
     "@eslint/js": "^9.38.0",
-    "@powerhousedao/ph-cli": "6.0.0-dev.176",
-    "@powerhousedao/reactor": "6.0.0-dev.176",
+    "@powerhousedao/ph-cli": "6.0.0-dev.183",
+    "@powerhousedao/reactor": "6.0.0-dev.183",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@tailwindcss/cli": "^4.1.18",
@@ -176,5 +176,6 @@
     "url": "https://github.com/powerhouse-inc/service-offering/issues"
   },
   "homepage": "https://github.com/powerhouse-inc/service-offering#readme",
-  "readme": "ERROR: No README data found!"
+  "readme": "ERROR: No README data found!",
+  "_id": "@powerhousedao/service-offering@1.0.0-dev.35"
 }
