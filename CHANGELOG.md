@@ -1,3 +1,16 @@
+# [1.0.0-dev.34](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.33...v1.0.0-dev.34) (2026-04-16)
+
+
+### Bug Fixes
+
+* remove cusstom build script ([53aad3d](https://github.com/powerhouse-inc/service-offering/commit/53aad3dad8dad7a58be7a8b407b4957d08189c31))
+* set localhost port ([30fdd06](https://github.com/powerhouse-inc/service-offering/commit/30fdd0639801bf116c1b3469933f68d0424400f7))
+
+
+### Features
+
+* upgrade to dev174 ([dacdb9f](https://github.com/powerhouse-inc/service-offering/commit/dacdb9f0da76d2f8a00cc8814aa94eda4f2bbebf))
+
 # [1.0.0-dev.33](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.32...v1.0.0-dev.33) (2026-04-14)
 
 # [1.0.0-dev.32](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.31...v1.0.0-dev.32) (2026-04-14)
