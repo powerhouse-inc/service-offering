@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 import * as z from "zod";
 import type {
+  AccrualCycle,
   AddFacetOptionInput,
   AddOnPricingMode,
   AddOptionGroupInput,
@@ -22,6 +23,7 @@ import type {
   DiscountType,
   FacetTarget,
   GroupCostType,
+  MetricType,
   OptionGroup,
   OptionGroupTierPricing,
   RecurringPriceOption,
@@ -63,7 +65,6 @@ import type {
   UpdateTierInput,
   UpdateTierPricingInput,
   UpdateUsageLimitInput,
-  UsageResetCycle,
 } from "./types.js";
 
 type Properties<T> = Required<{
@@ -78,6 +79,16 @@ export const isDefinedNonNullAny = (v: any): v is definedNonNullAny =>
 export const definedNonNullAnySchema = z
   .any()
   .refine((v) => isDefinedNonNullAny(v));
+
+export const AccrualCycleSchema = z.enum([
+  "ANNUAL",
+  "DAILY",
+  "HOURLY",
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMI_ANNUAL",
+  "WEEKLY",
+]);
 
 export const AddOnPricingModeSchema = z.enum(["STANDALONE", "TIER_DEPENDENT"]);
 
@@ -94,6 +105,8 @@ export const DiscountModeSchema = z.enum(["INDEPENDENT", "INHERIT_TIER"]);
 export const DiscountTypeSchema = z.enum(["FLAT_AMOUNT", "PERCENTAGE"]);
 
 export const GroupCostTypeSchema = z.enum(["RECURRING", "SETUP"]);
+
+export const MetricTypeSchema = z.enum(["CUMULATIVE", "NON_CUMULATIVE"]);
 
 export const ServiceLevelSchema = z.enum([
   "CUSTOM",
@@ -112,17 +125,6 @@ export const ServiceStatusSchema = z.enum([
 ]);
 
 export const TierPricingModeSchema = z.enum(["CALCULATED", "MANUAL_OVERRIDE"]);
-
-export const UsageResetCycleSchema = z.enum([
-  "ANNUAL",
-  "DAILY",
-  "HOURLY",
-  "MONTHLY",
-  "NONE",
-  "QUARTERLY",
-  "SEMI_ANNUAL",
-  "WEEKLY",
-]);
 
 export function AddFacetOptionInputSchema(): z.ZodObject<
   Properties<AddFacetOptionInput>
@@ -212,13 +214,14 @@ export function AddUsageLimitInputSchema(): z.ZodObject<
   Properties<AddUsageLimitInput>
 > {
   return z.object({
+    accrualCycle: AccrualCycleSchema,
     freeLimit: z.number().nullish(),
     lastModified: z.iso.datetime(),
     limitId: z.string(),
     metric: z.string(),
+    metricType: MetricTypeSchema,
     notes: z.string().nullish(),
     paidLimit: z.number().nullish(),
-    resetCycle: UsageResetCycleSchema.nullish(),
     serviceId: z.string(),
     tierId: z.string(),
     unitName: z.string().nullish(),
@@ -520,12 +523,13 @@ export function ServiceUsageLimitSchema(): z.ZodObject<
 > {
   return z.object({
     __typename: z.literal("ServiceUsageLimit").optional(),
+    accrualCycle: AccrualCycleSchema,
     freeLimit: z.number().nullish(),
     id: z.string(),
     metric: z.string(),
+    metricType: MetricTypeSchema,
     notes: z.string().nullish(),
     paidLimit: z.number().nullish(),
-    resetCycle: UsageResetCycleSchema.nullish(),
     serviceId: z.string(),
     unitName: z.string().nullish(),
     unitPrice: z.number().nullish(),
@@ -767,13 +771,14 @@ export function UpdateUsageLimitInputSchema(): z.ZodObject<
   Properties<UpdateUsageLimitInput>
 > {
   return z.object({
+    accrualCycle: AccrualCycleSchema.nullish(),
     freeLimit: z.number().nullish(),
     lastModified: z.iso.datetime(),
     limitId: z.string(),
     metric: z.string().nullish(),
+    metricType: MetricTypeSchema.nullish(),
     notes: z.string().nullish(),
     paidLimit: z.number().nullish(),
-    resetCycle: UsageResetCycleSchema.nullish(),
     tierId: z.string(),
     unitName: z.string().nullish(),
     unitPrice: z.number().nullish(),

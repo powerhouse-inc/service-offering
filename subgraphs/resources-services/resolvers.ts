@@ -196,9 +196,8 @@ export const getResolvers = (
         );
 
         // Pre-fetch all resource template states for merging
-        const templateStateCache = await getResourceTemplateStateMap(
-          reactorClient,
-        );
+        const templateStateCache =
+          await getResourceTemplateStateMap(reactorClient);
 
         // Find all service offering documents
         const { results: docs } = await reactorClient.find({
@@ -246,11 +245,9 @@ export const getResolvers = (
           }
 
           const tplState = state.resourceTemplateId
-            ? templateStateCache.get(state.resourceTemplateId) ?? null
+            ? (templateStateCache.get(state.resourceTemplateId) ?? null)
             : null;
-          serviceOfferings.push(
-            mapServiceOfferingState(state, doc, tplState),
-          );
+          serviceOfferings.push(mapServiceOfferingState(state, doc, tplState));
         }
 
         return serviceOfferings;
@@ -842,18 +839,26 @@ function mapServiceOfferingState(
         customValue: level.customValue || null,
         optionGroupId: level.optionGroupId || null,
       })),
-      usageLimits: (tier.usageLimits || []).map((limit) => ({
-        id: limit.id,
-        serviceId: limit.serviceId,
-        metric: limit.metric,
-        unitName: limit.unitName || null,
-        freeLimit: limit.freeLimit ?? null,
-        paidLimit: limit.paidLimit ?? null,
-        resetCycle: limit.resetCycle || null,
-        notes: limit.notes || null,
-        unitPrice: limit.unitPrice ?? null,
-        unitPriceCurrency: limit.unitPriceCurrency || null,
-      })),
+      usageLimits: (tier.usageLimits || []).map((limit) => {
+        const legacyReset = (limit as { resetCycle?: string | null })
+          .resetCycle;
+        const accrualCycle =
+          limit.accrualCycle ||
+          (legacyReset && legacyReset !== "NONE" ? legacyReset : "MONTHLY");
+        return {
+          id: limit.id,
+          serviceId: limit.serviceId,
+          metric: limit.metric,
+          unitName: limit.unitName || null,
+          freeLimit: limit.freeLimit ?? null,
+          paidLimit: limit.paidLimit ?? null,
+          metricType: limit.metricType || "NON_CUMULATIVE",
+          accrualCycle,
+          notes: limit.notes || null,
+          unitPrice: limit.unitPrice ?? null,
+          unitPriceCurrency: limit.unitPriceCurrency || null,
+        };
+      }),
     })),
     optionGroups: (state.optionGroups || []).map((group) => ({
       id: group.id,
@@ -1023,10 +1028,7 @@ async function getResourceTemplateStateMap(
   const { results: docs } = await reactorClient.find({
     type: "powerhouse/resource-template",
   });
-  const map = new Map<
-    string,
-    ResourceTemplateDocument["state"]["global"]
-  >();
+  const map = new Map<string, ResourceTemplateDocument["state"]["global"]>();
   for (const doc of docs) {
     const rt = doc as ResourceTemplateDocument;
     map.set(doc.header.id, rt.state.global);

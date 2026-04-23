@@ -161,7 +161,8 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       unitName: action.input.unitName || null,
       freeLimit: action.input.freeLimit || null,
       paidLimit: action.input.paidLimit || null,
-      resetCycle: action.input.resetCycle || null,
+      metricType: action.input.metricType,
+      accrualCycle: action.input.accrualCycle,
       notes: action.input.notes || null,
       unitPrice: action.input.unitPrice || null,
       unitPriceCurrency: action.input.unitPriceCurrency || null,
@@ -188,8 +189,8 @@ export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
       ul.freeLimit = action.input.freeLimit || null;
     if (action.input.paidLimit !== undefined)
       ul.paidLimit = action.input.paidLimit || null;
-    if (action.input.resetCycle !== undefined)
-      ul.resetCycle = action.input.resetCycle || null;
+    if (action.input.metricType) ul.metricType = action.input.metricType;
+    if (action.input.accrualCycle) ul.accrualCycle = action.input.accrualCycle;
     if (action.input.notes !== undefined) ul.notes = action.input.notes || null;
     if (action.input.unitPrice !== undefined)
       ul.unitPrice = action.input.unitPrice || null;

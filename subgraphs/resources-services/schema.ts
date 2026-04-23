@@ -289,14 +289,14 @@ export const schema: DocumentNode = gql`
     unitName: String
     freeLimit: Int
     paidLimit: Int
-    resetCycle: RSUsageResetCycle
+    metricType: RSMetricType!
+    accrualCycle: RSAccrualCycle!
     notes: String
     unitPrice: Amount_Money
     unitPriceCurrency: Currency
   }
 
-  enum RSUsageResetCycle {
-    NONE
+  enum RSAccrualCycle {
     HOURLY
     DAILY
     WEEKLY
@@ -304,6 +304,11 @@ export const schema: DocumentNode = gql`
     QUARTERLY
     SEMI_ANNUAL
     ANNUAL
+  }
+
+  enum RSMetricType {
+    CUMULATIVE
+    NON_CUMULATIVE
   }
 
   # ---------- Option Groups ----------

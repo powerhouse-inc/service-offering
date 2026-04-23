@@ -76,15 +76,15 @@ Tab-based editor split into operator vs client views where applicable.
 
 ## 5. Subgraph exposure
 
-SubscriptionInstance metrics are **not** currently projected in the `resources-services` subgraph. The subgraph exposes Service Offering usage limits via `RSServiceUsageLimit` (with `resetCycle: RSUsageResetCycle`) — that is the OFFERING side, not the SubscriptionInstance side. No subgraph changes are required for this spec.
+SubscriptionInstance metrics are **not** currently projected in the `resources-services` subgraph. The subgraph exposes Service Offering usage limits via `RSServiceUsageLimit` with `metricType: RSMetricType!` + `accrualCycle: RSAccrualCycle!` — that is the OFFERING side, not the SubscriptionInstance side.
 
 ## 6. Known constraints
 
 - **Settlement force-accrues unconditionally**: `SETTLE_BILLING_CYCLE` runs accrual math for every metric regardless of `accrualCycle`. The `accrualCycle` enum currently drives only the *scheduled* accrual (operator-dispatched via the "Accrue now" button). No automation layer fires scheduled accruals yet (spec §9 Q3).
 - **Pro-rata rule**: charge what accrued at termination — no time-extrapolation. `max(0, currentUsage - freeLimit) * unitCost.amount`, capped at `(paidLimit - freeLimit)`.
 - **Structured debt**: `totalDebt`/`totalCredit` remain scalar counters. The labeled line-item breakdown (setup / prepayment / dynamic usage) is a read-side projection — not in state, follow-up work.
-- **Mapper stubs**: `mapOfferingToSubscription` defaults `metricType = NON_CUMULATIVE` and carries `accrualCycle` from the Service Offering's `resetCycle` (or `MONTHLY` when NONE/absent). **Temporary**: the Service Offering model must grow a native `metricType` + `accrualCycle` (spec §8, §10 Q2). Flagged for `apeiron-coordinator`.
-- **Legacy documents**: existing documents created before this refactor will have `metric.metricType === undefined` and `metric.accrualCycle === undefined`. Reducers tolerate undefined (treat as NON_CUMULATIVE, no reset). Editor rendering **must** guard — see Known issue below.
+- **Mapper**: `mapOfferingToSubscription` copies `metricType` + `accrualCycle` directly from the Service Offering's `ServiceUsageLimit`. Legacy SOs (still carrying `resetCycle`) are tolerated via a fallback.
+- **Legacy documents**: existing documents created before this refactor have `metric.metricType === undefined` and `metric.accrualCycle === undefined`. Reducers tolerate undefined (treat as NON_CUMULATIVE, no reset). The editor render path in `ServicesPanel.tsx` guards with a runtime truthy check so legacy docs render without the accrual/type badge instead of crashing.
 
 ## 7. Validation rules
 
@@ -110,4 +110,6 @@ Changes:
 
 ## Known issues
 
-1. **Legacy document rendering (BLOCKER from 2026-04-23 review).** `ServicesPanel.tsx` calls `metric.accrualCycle.charAt(0)` unconditionally. Documents created before this refactor have `accrualCycle === undefined` and will crash the panel. A guarded fallback (e.g. `metric.accrualCycle?.charAt(0) ?? "?"` with a "legacy metric" notice) is required before shipping.
+_None open._
+
+Previous blocker (legacy-document render crash in `ServicesPanel.tsx`) resolved 2026-04-23 by adding a runtime truthy guard around `metric.accrualCycle` and `metric.metricType`.

@@ -121,14 +121,21 @@ function UsageBar({
           {metric.unitName} over free limit
         </div>
       )}
-      <p className="si-metric__reset">
-        <span className="si-metric__reset-period">
-          {metric.accrualCycle.charAt(0) +
-            metric.accrualCycle.slice(1).toLowerCase()}{" "}
-          accrual ·{" "}
-          {metric.metricType === "CUMULATIVE" ? "cumulative" : "non-cumulative"}
-        </span>
-      </p>
+      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition --
+         Schema says these are non-nullable but legacy documents created before
+         the metric-type refactor may have them undefined at runtime. */}
+      {metric.accrualCycle && metric.metricType && (
+        <p className="si-metric__reset">
+          <span className="si-metric__reset-period">
+            {metric.accrualCycle.charAt(0) +
+              metric.accrualCycle.slice(1).toLowerCase()}{" "}
+            accrual ·{" "}
+            {metric.metricType === "CUMULATIVE"
+              ? "cumulative"
+              : "non-cumulative"}
+          </span>
+        </p>
+      )}
     </div>
   );
 }

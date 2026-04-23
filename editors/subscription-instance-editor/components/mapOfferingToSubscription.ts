@@ -313,14 +313,15 @@ function mapUsageLimits(
   const limits = usageLimits.filter((ul) => ul.serviceId === serviceId);
 
   return limits.map((ul) => {
-    // TEMP defaults pending Service Offering spec for metricType + accrualCycle
-    // (spec §8, §10 Q2). accrualCycle carries over from SO's resetCycle when
-    // present; metricType defaults to NON_CUMULATIVE until SO carries the field.
+    // Tolerate legacy docs that still carry `resetCycle` instead of
+    // `accrualCycle`/`metricType`. New SO docs carry them natively.
+    const legacyReset = (ul as { resetCycle?: string | null }).resetCycle;
     const accrualCycle: AccrualCycle =
-      ul.resetCycle && ul.resetCycle !== "NONE"
-        ? (ul.resetCycle as AccrualCycle)
-        : ("MONTHLY" as AccrualCycle);
-    const metricType: MetricType = "NON_CUMULATIVE" as MetricType;
+      ul.accrualCycle ??
+      (legacyReset && legacyReset !== "NONE"
+        ? (legacyReset as AccrualCycle)
+        : ("MONTHLY" as AccrualCycle));
+    const metricType: MetricType = ul.metricType ?? "NON_CUMULATIVE";
 
     return {
       id: generateId(),

@@ -59,6 +59,15 @@ export type Scalars = {
   Upload: { input: File; output: File };
 };
 
+export type AccrualCycle =
+  | "ANNUAL"
+  | "DAILY"
+  | "HOURLY"
+  | "MONTHLY"
+  | "QUARTERLY"
+  | "SEMI_ANNUAL"
+  | "WEEKLY";
+
 export type AddFacetOptionInput = {
   categoryKey: Scalars["String"]["input"];
   lastModified: Scalars["DateTime"]["input"];
@@ -122,13 +131,14 @@ export type AddTierInput = {
 };
 
 export type AddUsageLimitInput = {
+  accrualCycle: AccrualCycle;
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
   limitId: Scalars["OID"]["input"];
   metric: Scalars["String"]["input"];
+  metricType: MetricType;
   notes?: InputMaybe<Scalars["String"]["input"]>;
   paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
-  resetCycle?: InputMaybe<UsageResetCycle>;
   serviceId: Scalars["OID"]["input"];
   tierId: Scalars["OID"]["input"];
   unitName?: InputMaybe<Scalars["String"]["input"]>;
@@ -196,6 +206,8 @@ export type FacetTarget = {
 };
 
 export type GroupCostType = "RECURRING" | "SETUP";
+
+export type MetricType = "CUMULATIVE" | "NON_CUMULATIVE";
 
 export type OptionGroup = {
   availableBillingCycles: Array<BillingCycle>;
@@ -343,12 +355,13 @@ export type ServiceSubscriptionTier = {
 };
 
 export type ServiceUsageLimit = {
+  accrualCycle: AccrualCycle;
   freeLimit: Maybe<Scalars["Int"]["output"]>;
   id: Scalars["OID"]["output"];
   metric: Scalars["String"]["output"];
+  metricType: MetricType;
   notes: Maybe<Scalars["String"]["output"]>;
   paidLimit: Maybe<Scalars["Int"]["output"]>;
-  resetCycle: Maybe<UsageResetCycle>;
   serviceId: Scalars["OID"]["output"];
   unitName: Maybe<Scalars["String"]["output"]>;
   unitPrice: Maybe<Scalars["Amount_Money"]["output"]>;
@@ -502,25 +515,16 @@ export type UpdateTierPricingInput = {
 };
 
 export type UpdateUsageLimitInput = {
+  accrualCycle?: InputMaybe<AccrualCycle>;
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   lastModified: Scalars["DateTime"]["input"];
   limitId: Scalars["OID"]["input"];
   metric?: InputMaybe<Scalars["String"]["input"]>;
+  metricType?: InputMaybe<MetricType>;
   notes?: InputMaybe<Scalars["String"]["input"]>;
   paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
-  resetCycle?: InputMaybe<UsageResetCycle>;
   tierId: Scalars["OID"]["input"];
   unitName?: InputMaybe<Scalars["String"]["input"]>;
   unitPrice?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   unitPriceCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
 };
-
-export type UsageResetCycle =
-  | "ANNUAL"
-  | "DAILY"
-  | "HOURLY"
-  | "MONTHLY"
-  | "NONE"
-  | "QUARTERLY"
-  | "SEMI_ANNUAL"
-  | "WEEKLY";

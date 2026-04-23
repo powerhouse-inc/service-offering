@@ -14,7 +14,8 @@ import {
   type OptionGroup,
   type ServiceUsageLimit,
   type BillingCycle,
-  type UsageResetCycle,
+  type AccrualCycle,
+  type MetricType,
 } from "document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
@@ -313,7 +314,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   >({});
   // Reset cycle for the metric (shared across tiers)
   const [metricResetCycle, setMetricResetCycle] =
-    useState<UsageResetCycle>("MONTHLY");
+    useState<AccrualCycle>("MONTHLY");
 
   // Destructive action confirmation state
   const [pendingRemoveMetric, setPendingRemoveMetric] = useState<{
@@ -700,9 +701,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     // Reset per-tier overage pricing and unit name
     setMetricOveragePrices(initialOveragePrices);
     setMetricUnitName("");
-    // Default to NONE for setup/formation services, MONTHLY otherwise
-    const service = services.find((s) => s.id === serviceId);
-    setMetricResetCycle(service?.isSetupFormation ? "NONE" : "MONTHLY");
+    // Default to MONTHLY accrual cycle (AccrualCycle has no NONE)
+    setMetricResetCycle("MONTHLY");
   };
 
   const handleEditMetric = (serviceId: string, metric: string) => {
@@ -714,7 +714,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     const existingOveragePrices: Record<string, string> = {};
     const enabledTiers = new Set<string>();
     let existingUnitName = "";
-    let existingResetCycle: UsageResetCycle = "MONTHLY";
+    let existingResetCycle: AccrualCycle = "MONTHLY";
     tiers.forEach((tier) => {
       const usageLimit = tier.usageLimits.find(
         (ul) => ul.serviceId === serviceId && ul.metric === metric,
@@ -731,9 +731,14 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         if (!existingUnitName && usageLimit.unitName) {
           existingUnitName = usageLimit.unitName;
         }
-        // Get reset cycle from first tier that has it
-        if (usageLimit.resetCycle) {
-          existingResetCycle = usageLimit.resetCycle;
+        // Get accrual cycle from first tier that has it
+        // (tolerate legacy `resetCycle` field, skip legacy "NONE")
+        const legacyReset = (usageLimit as { resetCycle?: string | null })
+          .resetCycle;
+        if (usageLimit.accrualCycle) {
+          existingResetCycle = usageLimit.accrualCycle;
+        } else if (legacyReset && legacyReset !== "NONE") {
+          existingResetCycle = legacyReset as AccrualCycle;
         }
       }
     });
@@ -868,7 +873,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             freeLimit: isNumeric ? parsedLimit : null,
             paidLimit: isPaidNumeric ? parsedPaidLimit : null,
             notes: !isNumeric && limitValue ? limitValue.trim() : null,
-            resetCycle: metricResetCycle,
+            accrualCycle: metricResetCycle,
             unitPrice: hasOveragePricing ? parsedOveragePrice : null,
             unitPriceCurrency: hasOveragePricing ? "USD" : undefined,
             lastModified: now,
@@ -886,7 +891,8 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             freeLimit: isNumeric ? parsedLimit : null,
             paidLimit: isPaidNumeric ? parsedPaidLimit : null,
             notes: !isNumeric && limitValue ? limitValue.trim() : null,
-            resetCycle: metricResetCycle,
+            metricType: "NON_CUMULATIVE" satisfies MetricType,
+            accrualCycle: metricResetCycle,
             unitPrice: hasOveragePricing ? parsedOveragePrice : undefined,
             unitPriceCurrency: hasOveragePricing ? "USD" : undefined,
             lastModified: now,
@@ -2326,27 +2332,29 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
                   style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
-                  Reset Cycle
+                  Accrual Cycle
                 </label>
                 <select
                   value={metricResetCycle}
                   onChange={(e) =>
-                    setMetricResetCycle(e.target.value as UsageResetCycle)
+                    setMetricResetCycle(e.target.value as AccrualCycle)
                   }
                   className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400 cursor-pointer"
                   style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
-                  <option value="NONE">None (One-time)</option>
                   <option value="DAILY">Daily</option>
                   <option value="WEEKLY">Weekly</option>
                   <option value="MONTHLY">Monthly</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="SEMI_ANNUAL">Semi-annual</option>
+                  <option value="ANNUAL">Annual</option>
                 </select>
                 <p
                   className="text-[0.8125rem] text-slate-600 mb-5 leading-6"
                   style={{ marginTop: "0.375rem" }}
                 >
-                  How often usage limits reset. Use "None" for one-time setup
-                  costs.
+                  How often usage accrues (when overage is crystallized into
+                  debt and usage potentially resets).
                 </p>
               </div>
 
@@ -2539,7 +2547,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                               }}
                             >
                               per {metricUnitName || "unit"} above free limit
-                              {metricResetCycle && metricResetCycle !== "NONE"
+                              {metricResetCycle
                                 ? ` / ${metricResetCycle.toLowerCase()}`
                                 : ""}
                             </span>
@@ -3286,13 +3294,12 @@ function ServiceRowWithMetrics({
                                   ? ` ${usageLimit.unitName}`
                                   : ""}
                               </strong>
-                              {usageLimit.resetCycle &&
-                                usageLimit.resetCycle !== "NONE" && (
-                                  <span className="text-[0.625rem] font-normal text-slate-400">
-                                    {" "}
-                                    / {usageLimit.resetCycle.toLowerCase()}
-                                  </span>
-                                )}
+                              {usageLimit.accrualCycle && (
+                                <span className="text-[0.625rem] font-normal text-slate-400">
+                                  {" "}
+                                  / {usageLimit.accrualCycle.toLowerCase()}
+                                </span>
+                              )}
                             </>
                           ) : (
                             <strong>{usageLimit.notes || "Unlimited"}</strong>
@@ -3448,7 +3455,8 @@ function ServiceLevelDetailPanel({
         metric: newMetric.trim(),
         freeLimit: isNumeric ? parsedLimit : undefined,
         notes: !isNumeric && newLimit ? newLimit.trim() : undefined,
-        resetCycle: "MONTHLY",
+        metricType: "NON_CUMULATIVE" satisfies MetricType,
+        accrualCycle: "MONTHLY" satisfies AccrualCycle,
         lastModified: new Date().toISOString(),
       }),
     );
@@ -3656,8 +3664,8 @@ function MetricLimitItem({
   const [editPaidLimit, setEditPaidLimit] = useState(
     limit.paidLimit?.toString() || "",
   );
-  const [editResetCycle, setEditResetCycle] = useState<UsageResetCycle>(
-    limit.resetCycle || "MONTHLY",
+  const [editResetCycle, setEditResetCycle] = useState<AccrualCycle>(
+    limit.accrualCycle || "MONTHLY",
   );
   // Overage pricing state
   const [editUnitPrice, setEditUnitPrice] = useState(
@@ -3680,7 +3688,7 @@ function MetricLimitItem({
         freeLimit: isNumeric ? parsedLimit : undefined,
         paidLimit: isPaidNumeric ? parsedPaidLimit : undefined,
         notes: !isNumeric && editLimit ? editLimit.trim() : undefined,
-        resetCycle: editResetCycle,
+        accrualCycle: editResetCycle,
         unitPrice: parsedUnitPrice,
         unitPriceCurrency: parsedUnitPrice ? editUnitPriceCurrency : undefined,
         lastModified: new Date().toISOString(),
@@ -3694,7 +3702,7 @@ function MetricLimitItem({
     setEditUnitName(limit.unitName || "");
     setEditLimit(limit.freeLimit?.toString() || limit.notes || "");
     setEditPaidLimit(limit.paidLimit?.toString() || "");
-    setEditResetCycle(limit.resetCycle || "MONTHLY");
+    setEditResetCycle(limit.accrualCycle || "MONTHLY");
     setEditUnitPrice(limit.unitPrice?.toString() || "");
     setIsEditing(false);
   };
@@ -3790,20 +3798,20 @@ function MetricLimitItem({
             className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
             style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
           >
-            Reset Cycle
+            Accrual Cycle
           </label>
           <select
             value={editResetCycle}
-            onChange={(e) =>
-              setEditResetCycle(e.target.value as UsageResetCycle)
-            }
+            onChange={(e) => setEditResetCycle(e.target.value as AccrualCycle)}
             className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] cursor-pointer"
             style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
           >
-            <option value="NONE">None (One-time)</option>
             <option value="DAILY">Daily</option>
             <option value="WEEKLY">Weekly</option>
             <option value="MONTHLY">Monthly</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="SEMI_ANNUAL">Semi-annual</option>
+            <option value="ANNUAL">Annual</option>
           </select>
         </div>
         <div className="mt-2 pt-3 border-t border-dashed border-slate-300">
@@ -3880,9 +3888,9 @@ function MetricLimitItem({
               ? `Free: ${limit.freeLimit}${limit.paidLimit != null ? ` / Paid: ${limit.paidLimit}` : ""}`
               : (limit.notes ?? "—")}
           </div>
-          {limit.resetCycle && (
+          {limit.accrualCycle && (
             <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>
-              Resets {limit.resetCycle.toLowerCase()}
+              Accrues {limit.accrualCycle.toLowerCase()}
             </div>
           )}
           {overageDisplay && (

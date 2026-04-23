@@ -141,14 +141,14 @@ type ServiceUsageLimit {
     unitName: String
     freeLimit: Int
     paidLimit: Int
-    resetCycle: UsageResetCycle
+    metricType: MetricType!
+    accrualCycle: AccrualCycle!
     notes: String
     unitPrice: Amount_Money
     unitPriceCurrency: Currency
 }
 
-enum UsageResetCycle {
-    NONE
+enum AccrualCycle {
     HOURLY
     DAILY
     WEEKLY
@@ -156,6 +156,11 @@ enum UsageResetCycle {
     QUARTERLY
     SEMI_ANNUAL
     ANNUAL
+}
+
+enum MetricType {
+    CUMULATIVE
+    NON_CUMULATIVE
 }
 
 type OptionGroup {
@@ -370,7 +375,8 @@ input AddUsageLimitInput {
     unitName: String
     freeLimit: Int
     paidLimit: Int
-    resetCycle: UsageResetCycle
+    metricType: MetricType!
+    accrualCycle: AccrualCycle!
     notes: String
     unitPrice: Amount_Money
     unitPriceCurrency: Currency
@@ -384,7 +390,8 @@ input UpdateUsageLimitInput {
     unitName: String
     freeLimit: Int
     paidLimit: Int
-    resetCycle: UsageResetCycle
+    metricType: MetricType
+    accrualCycle: AccrualCycle
     notes: String
     unitPrice: Amount_Money
     unitPriceCurrency: Currency
