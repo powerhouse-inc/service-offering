@@ -17,6 +17,8 @@ import type {
   DiscountInfoInitInput,
   DiscountType,
   BillingCycle as SIBillingCycle,
+  AccrualCycle,
+  MetricType,
 } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
 
 export interface MapOfferingOptions {
@@ -311,11 +313,14 @@ function mapUsageLimits(
   const limits = usageLimits.filter((ul) => ul.serviceId === serviceId);
 
   return limits.map((ul) => {
-    // Map SO's UsageResetCycle to SI's ResetPeriod (skip "NONE")
-    const usageResetPeriod =
+    // TEMP defaults pending Service Offering spec for metricType + accrualCycle
+    // (spec §8, §10 Q2). accrualCycle carries over from SO's resetCycle when
+    // present; metricType defaults to NON_CUMULATIVE until SO carries the field.
+    const accrualCycle: AccrualCycle =
       ul.resetCycle && ul.resetCycle !== "NONE"
-        ? (ul.resetCycle as InitializeMetricInput["usageResetPeriod"])
-        : undefined;
+        ? (ul.resetCycle as AccrualCycle)
+        : ("MONTHLY" as AccrualCycle);
+    const metricType: MetricType = "NON_CUMULATIVE" as MetricType;
 
     return {
       id: generateId(),
@@ -324,10 +329,11 @@ function mapUsageLimits(
       freeLimit: ul.freeLimit ?? null,
       paidLimit: ul.paidLimit ?? null,
       currentUsage: 0,
-      usageResetPeriod,
+      metricType,
+      accrualCycle,
       unitCostAmount: ul.unitPrice ?? undefined,
       unitCostCurrency: ul.unitPriceCurrency ?? globalCurrency,
-      unitCostBillingCycle: usageResetPeriod ? ("MONTHLY" as const) : undefined,
+      unitCostBillingCycle: "MONTHLY" as const,
     };
   });
 }

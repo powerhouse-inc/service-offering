@@ -121,15 +121,14 @@ function UsageBar({
           {metric.unitName} over free limit
         </div>
       )}
-      {metric.usageResetPeriod && (
-        <p className="si-metric__reset">
-          <span className="si-metric__reset-period">
-            {metric.usageResetPeriod.charAt(0) +
-              metric.usageResetPeriod.slice(1).toLowerCase()}{" "}
-            reset
-          </span>
-        </p>
-      )}
+      <p className="si-metric__reset">
+        <span className="si-metric__reset-period">
+          {metric.accrualCycle.charAt(0) +
+            metric.accrualCycle.slice(1).toLowerCase()}{" "}
+          accrual ·{" "}
+          {metric.metricType === "CUMULATIVE" ? "cumulative" : "non-cumulative"}
+        </span>
+      </p>
     </div>
   );
 }

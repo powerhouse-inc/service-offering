@@ -3,10 +3,9 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type { SubscriptionInstanceAction } from "document-models/subscription-instance";
 import type { ServiceMetric } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
 import {
-  incrementMetricUsage,
-  decrementMetricUsage,
   updateMetric,
-  resetMetricCycle,
+  updateMetricUsage,
+  accrueMetricUsage,
 } from "../../../document-models/subscription-instance/v1/gen/metrics/creators.js";
 
 interface MetricActionsProps {
@@ -26,46 +25,44 @@ export function MetricActions({
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState("1");
 
-  const handleIncrement = useCallback(
-    (amount: number = 1) => {
+  const isAdjustment = metric.metricType === "NON_CUMULATIVE";
+
+  const dispatchAbsoluteUsage = useCallback(
+    (newUsage: number) => {
       dispatch(
-        incrementMetricUsage({
+        updateMetricUsage({
           serviceId,
           metricId: metric.id,
-          incrementBy: amount,
           currentTime: new Date().toISOString(),
+          currentUsage: Math.max(0, newUsage),
+          isAdjustment,
         }),
       );
     },
-    [dispatch, serviceId, metric.id],
+    [dispatch, serviceId, metric.id, isAdjustment],
+  );
+
+  const handleIncrement = useCallback(
+    (amount: number = 1) => {
+      dispatchAbsoluteUsage(metric.currentUsage + amount);
+    },
+    [dispatchAbsoluteUsage, metric.currentUsage],
   );
 
   const handleDecrement = useCallback(
     (amount: number = 1) => {
-      dispatch(
-        decrementMetricUsage({
-          serviceId,
-          metricId: metric.id,
-          decrementBy: amount,
-          currentTime: new Date().toISOString(),
-        }),
-      );
+      dispatchAbsoluteUsage(metric.currentUsage - amount);
     },
-    [dispatch, serviceId, metric.id],
+    [dispatchAbsoluteUsage, metric.currentUsage],
   );
 
   const handleAdjust = useCallback(() => {
     const amount = parseInt(adjustAmount, 10);
     if (isNaN(amount) || amount === 0) return;
-
-    if (amount > 0) {
-      handleIncrement(amount);
-    } else {
-      handleDecrement(Math.abs(amount));
-    }
+    dispatchAbsoluteUsage(metric.currentUsage + amount);
     setShowAdjustModal(false);
     setAdjustAmount("1");
-  }, [adjustAmount, handleIncrement, handleDecrement]);
+  }, [adjustAmount, dispatchAbsoluteUsage, metric.currentUsage]);
 
   // Client request functionality removed - no longer supported
   // const handleRequestLimitIncrease = useCallback(() => { ... }, [...]);
@@ -86,21 +83,21 @@ export function MetricActions({
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
             </svg>
           </button>
-          {metric.usageResetPeriod && metric.currentUsage > 0 && (
+          {metric.currentUsage > 0 && (
             <button
               type="button"
               className="si-metric-btn si-metric-btn--verify"
               onClick={() => {
                 dispatch(
-                  resetMetricCycle({
+                  accrueMetricUsage({
                     serviceId,
                     metricId: metric.id,
-                    resetDate: new Date().toISOString(),
+                    accrualDate: new Date().toISOString(),
                   }),
                 );
               }}
-              aria-label={`Reset ${metric.name} cycle`}
-              title={`Reset ${metric.usageResetPeriod.toLowerCase()} cycle — charges overage and resets to 0`}
+              aria-label={`Accrue ${metric.name} now`}
+              title={`Accrue now — charges overage${metric.metricType === "CUMULATIVE" ? " and resets to 0" : ""} (${metric.accrualCycle.toLowerCase()} accrual)`}
             >
               <svg viewBox="0 0 20 20" fill="currentColor">
                 <path

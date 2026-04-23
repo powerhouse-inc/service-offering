@@ -9,11 +9,7 @@ import {
   NoBillingCycleActiveError,
   SettlementDateBeforeCycleStartError,
 } from "../../gen/subscription/error.js";
-import {
-  calculateNextBillingDate,
-  calculateOverageCost,
-  shouldResetMetric,
-} from "../utils.js";
+import { calculateNextBillingDate, calculateOverageCost } from "../utils.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
@@ -92,7 +88,8 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                 }
               : null,
           currentUsage: m.currentUsage,
-          usageResetPeriod: m.usageResetPeriod || null,
+          metricType: m.metricType,
+          accrualCycle: m.accrualCycle,
         })),
       }));
       state.serviceGroups = (action.input.serviceGroups || []).map((sg) => ({
@@ -177,7 +174,8 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                   }
                 : null,
             currentUsage: m.currentUsage,
-            usageResetPeriod: m.usageResetPeriod || null,
+            metricType: m.metricType,
+            accrualCycle: m.accrualCycle,
           })),
         })),
       }));
@@ -352,35 +350,28 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         );
       }
 
-      // D-4: Overage window — endDate = min(settlementDate, nextBillingDate)
-      // Usage is already tracked via operations, so endDate serves as the
-      // logical boundary for the settlement (not used in calculation directly).
-      const _endDate =
-        state.nextBillingDate &&
-        action.input.settlementDate > state.nextBillingDate
-          ? state.nextBillingDate
-          : action.input.settlementDate;
-
-      // Calculate overage and reset metrics
+      // Force-accrue every metric on every settlement (spec §4.3).
+      // Billing cycle is the hard stop — no carryover, no time-extrapolation.
+      // Reset rule is driven by metricType, not by accrualCycle matching.
       const billingCycle = state.selectedBillingCycle || "MONTHLY";
-      function processMetrics(metrics: (typeof state.services)[0]["metrics"]) {
+      function forceAccrue(metrics: (typeof state.services)[0]["metrics"]) {
         for (const metric of metrics) {
           const cost = calculateOverageCost(metric);
           if (cost > 0) {
             state.totalDebt = (state.totalDebt ?? 0) + cost;
           }
-          if (shouldResetMetric(metric, billingCycle)) {
+          if (metric.metricType === "CUMULATIVE") {
             metric.currentUsage = 0;
           }
         }
       }
 
       for (const svc of state.services) {
-        processMetrics(svc.metrics);
+        forceAccrue(svc.metrics);
       }
       for (const group of state.serviceGroups) {
         for (const svc of group.services) {
-          processMetrics(svc.metrics);
+          forceAccrue(svc.metrics);
         }
       }
 

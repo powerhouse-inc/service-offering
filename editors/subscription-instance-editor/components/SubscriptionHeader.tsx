@@ -175,7 +175,13 @@ export function SubscriptionHeader({
       {/* Quick Stats */}
       <div className="si-header__stats">
         <div className="si-header__stat">
-          <span className="si-header__stat-value">{state.services.length + state.serviceGroups.reduce((acc, g) => acc + g.services.length, 0)}</span>
+          <span className="si-header__stat-value">
+            {state.services.length +
+              state.serviceGroups.reduce(
+                (acc, g) => acc + g.services.length,
+                0,
+              )}
+          </span>
           <span className="si-header__stat-label">Services</span>
         </div>
         {state.totalDebt != null &&

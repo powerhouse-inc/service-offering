@@ -14,16 +14,6 @@ export const BILLING_CYCLE_DAYS: Record<string, number> = {
   ONE_TIME: 0,
 };
 
-const RESET_HIERARCHY = [
-  "HOURLY",
-  "DAILY",
-  "WEEKLY",
-  "MONTHLY",
-  "QUARTERLY",
-  "SEMI_ANNUAL",
-  "ANNUAL",
-];
-
 // ─── Date helpers ───────────────────────────────────────────
 
 function daysBetween(a: string, b: string): number {
@@ -132,22 +122,6 @@ export function calculateUnsettledBill(
     calculateAmountOwed(state) +
     calculateTotalOverage(state.services, state.serviceGroups)
   );
-}
-
-/**
- * Whether a metric's usageResetPeriod should reset at settlement.
- * Returns true if the metric's reset period matches the billing cycle
- * or is a subdivision of it (e.g., MONTHLY resets on QUARTERLY settlement).
- */
-export function shouldResetMetric(
-  metric: { usageResetPeriod?: string | null },
-  billingCycle: string,
-): boolean {
-  if (!metric.usageResetPeriod) return false;
-  const metricIndex = RESET_HIERARCHY.indexOf(metric.usageResetPeriod);
-  const cycleIndex = RESET_HIERARCHY.indexOf(billingCycle);
-  if (metricIndex === -1 || cycleIndex === -1) return false;
-  return metricIndex <= cycleIndex;
 }
 
 /**
