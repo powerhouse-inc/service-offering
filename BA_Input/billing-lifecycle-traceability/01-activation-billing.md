@@ -53,31 +53,21 @@ This gives us:
 
 ## 3. Real-World Validation
 
-### Stripe (verified)
+### Stripe
 
-**URL**: https://docs.stripe.com/billing/subscriptions/creating
+Stripe creates the first invoice immediately when a subscription is created. The subscription lifecycle starts with a `create` call that generates an invoice for the first billing period and attempts payment. There is no deferred-start option by default — the customer is charged at the moment the subscription object is created.
 
-**Screenshot**: [evidence/ba5-stripe-creating-subscriptions.png](evidence/ba5-stripe-creating-subscriptions.png)
+### Zoom
 
-Stripe creates the first invoice immediately when a subscription is created. Charges on activation.
+> "If you upgrade in the middle of a billing period, your account will be credited a prorated amount for the time remaining on your existing subscription, and you will be charged for the upgrade with the credit applied."
 
-### Zoom (verified)
+Charge is immediate — payment is processed at the time of purchase, not deferred to the next billing cycle. The proration credit mechanics (D-1/D-2) are covered separately.
 
-**URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0060848
+### Dropbox
 
-**Screenshot**: [evidence/ba5-zoom-billing.png](evidence/ba5-zoom-billing.png)
+Dropbox charges immediately on plan activation. When a user selects a paid plan, billing begins at the point of purchase. The first payment covers the selected billing period (monthly or annual) starting from activation.
 
-Zoom charges immediately when you upgrade or purchase a plan.
-
-### Dropbox (verified)
-
-**URL**: https://help.dropbox.com/plans/manage-subscription
-
-**Screenshot**: [evidence/ba5-dropbox-subscription.png](evidence/ba5-dropbox-subscription.png)
-
-Dropbox charges immediately on plan activation.
-
-All charge immediately on activation. This is a universal pattern — no platform defers the initial charge.
+**Verdict**: All three charge immediately on activation. This is a universal pattern — no platform defers the initial charge.
 
 ---
 

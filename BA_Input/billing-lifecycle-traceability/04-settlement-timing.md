@@ -55,17 +55,9 @@ This gives us:
 
 ## 3. Real-World Validation
 
-### Stripe (verified)
+### Stripe
 
-**URLs**:
-- https://docs.stripe.com/billing/subscriptions/overview
-- https://docs.stripe.com/billing/subscriptions/billing-cycle
-
-**Screenshots**: [evidence/d4-stripe-subscription-overview.png](evidence/d4-stripe-subscription-overview.png), [evidence/d4-stripe-billing-cycle.png](evidence/d4-stripe-billing-cycle.png)
-
-Stripe's invoice timing doesn't shift the subscription period. Prorations happen on plan changes, not on invoice timing. Invoice date is independent of cycle boundaries.
-
-**Verdict**: Matches our rule — settlement/invoicing is decoupled from cycle boundary management.
+Stripe's invoice timing doesn't shift the subscription period. Prorations happen on plan changes, not on invoice timing. The invoice date is independent of cycle boundaries — a late or early invoice doesn't move the subscription's `current_period_start` or `current_period_end`. Matches our rule: settlement/invoicing is decoupled from cycle boundary management.
 
 ---
 

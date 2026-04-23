@@ -43,7 +43,7 @@ No direct Wouter quote — this is a Powerhouse alignment decision.
 
 ## 3. Real-World Validation
 
-### Powerhouse pattern (verified)
+### Powerhouse pattern
 
 The `.error` property on operations is binary — operations succeed or throw. There is no concept of "succeed with warning." No existing document model in the Powerhouse ecosystem uses a balance-check gate on settlement-type operations.
 

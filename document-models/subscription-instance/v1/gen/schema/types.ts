@@ -306,11 +306,13 @@ export type ReportOveragePaymentInput = {
 };
 
 export type ReportRecurringPaymentInput = {
+  amount: Scalars["Amount_Money"]["input"];
   paymentDate: Scalars["DateTime"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
 
 export type ReportSetupPaymentInput = {
+  amount: Scalars["Amount_Money"]["input"];
   paymentDate: Scalars["DateTime"]["input"];
   serviceId: Scalars["OID"]["input"];
 };

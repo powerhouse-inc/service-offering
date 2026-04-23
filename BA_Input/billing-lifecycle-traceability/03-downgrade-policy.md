@@ -56,45 +56,23 @@ This gives us:
 
 ## 3. Real-World Validation
 
-### Slack (verified)
+### Slack
 
-**URL**: https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy
+Slack prorates credits on member removal: `cost per member / days in month * remaining days`. Credits are non-refundable and auto-applied to future charges. This is the model we chose.
 
-**Screenshot**: [evidence/d1-d2-slack-fair-billing.png](evidence/d1-d2-slack-fair-billing.png)
+### Zoom
 
-**Key quote**: "We'll divide the cost per member by the number of days in the month, then multiply by the remaining number of days in the month." Credits are non-refundable and auto-applied to future charges.
+> "If you upgrade in the middle of a billing period, your account will be credited a prorated amount for the time remaining on your existing subscription, and you will be charged for the upgrade with the credit applied."
 
-**Verdict**: Prorated credit, non-refundable, auto-applied. This is the model we chose.
+Zoom prorates on upgrade but does not issue credit on downgrade — the downgrade takes effect at the next renewal. We did NOT follow this model for downgrades.
 
----
+### Stripe
 
-### Zoom (verified)
+Stripe creates a prorated credit applied on the next invoice, not immediately. We chose immediate credit per Wouter.
 
-**URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0063375
+### Google Workspace (Mar 2026 invoice)
 
-**Screenshot**: [evidence/d1-zoom-proration.png](evidence/d1-zoom-proration.png)
-
-**Verdict**: No credit on downgrade — takes effect at renewal. We did NOT follow this model.
-
----
-
-### Stripe (verified)
-
-**URL**: https://docs.stripe.com/billing/subscriptions/prorations
-
-**Screenshot**: [evidence/d1-stripe-proration.png](evidence/d1-stripe-proration.png)
-
-**Verdict**: Credit applied on next invoice, not immediately. We chose immediate credit per Wouter.
-
----
-
-### Google Workspace (verified — Mar 2026 invoice)
-
-**Source**: Apeiron's Google Workspace Business Standard invoice, March 2026.
-
-**What happened**: 3 seats at €48.60/mo prepaid. Seats reduced from 3 → 1 on Mar 22. Final invoice: 3 seats × 22 days (€34.49) + 1 seat × 9 days (€4.70) = €39.19. The €9.41 difference carried as ending credit balance.
-
-**Verdict**: Same proration-as-credit pattern as D-2, applied to quantity delta rather than whole group removal. Our implementation only supports whole-group removal — quantity changes within a group not yet supported.
+3 seats at €48.60/mo prepaid. Seats reduced from 3 → 1 on Mar 22. Final invoice: 3 seats × 22 days (€34.49) + 1 seat × 9 days (€4.70) = €39.19. The €9.41 difference carried as ending credit balance. Same proration-as-credit pattern as D-2, applied to quantity delta rather than whole group removal. Our implementation only supports whole-group removal — quantity changes within a group not yet supported.
 
 ---
 

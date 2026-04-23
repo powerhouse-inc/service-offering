@@ -51,22 +51,11 @@ Service offering defines `resetCycle` per metric, inherited by subscription via 
 
 ## 3. Real-World Validation
 
-### AWS (verified)
+### AWS
 
-**URLs**:
-- https://aws.amazon.com/lambda/pricing/
-- https://aws.amazon.com/s3/pricing/
-- https://aws.amazon.com/free/
+AWS Lambda pricing is "per 1M requests" and "per GB-second" — these reset monthly. AWS S3 storage pricing is cumulative (you pay for what's stored), but data transfer tiers reset monthly. The Free Tier explicitly states monthly limits (e.g., "1M free requests per month"). Different metrics on the same account have different reset behaviors — Lambda request counts reset each month while S3 storage volume is a running total.
 
-**Screenshots**: [evidence/metric-aws-lambda-pricing.png](evidence/metric-aws-lambda-pricing.png), [evidence/metric-aws-s3-pricing.png](evidence/metric-aws-s3-pricing.png), [evidence/metric-aws-free-tier.png](evidence/metric-aws-free-tier.png)
-
-**Key evidence**: AWS Lambda pricing is "per 1M requests" and "per GB-second" — these reset monthly. AWS S3 storage pricing is cumulative (you pay for what's stored), but data transfer tiers reset monthly. The Free Tier page explicitly states monthly limits (e.g., "1M free requests per month"). Different metrics on the same account have different reset behaviors.
-
-### Slack (verified)
-
-**URL**: https://slack.com/pricing
-
-**Screenshot**: [evidence/metric-slack-pricing.png](evidence/metric-slack-pricing.png)
+### Slack
 
 Seat count persists — it's not usage that resets, it's a per-seat price. This is the counter-example: a metric that does NOT reset, validating that reset behavior must be configurable per metric.
 

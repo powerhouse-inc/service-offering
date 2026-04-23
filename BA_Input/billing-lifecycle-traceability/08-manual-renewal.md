@@ -40,7 +40,7 @@ Cycle starts from `nextBillingDate` (not from renewal timestamp) per D-4 fixed b
 
 ## 3. Real-World Validation
 
-### Stripe (verified)
+### Stripe
 
 Renewal creates a new billing period with new invoice items. The new period starts from where the old one ended, not from when the renewal was triggered.
 

@@ -69,51 +69,25 @@ This gives us:
 
 ## 3. Real-World Validation
 
-### Zoom (verified)
+### Zoom
 
-**URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0063375
+> "If you upgrade in the middle of a billing period, your account will be credited a prorated amount for the time remaining on your existing subscription, and you will be charged for the upgrade with the credit applied."
 
-**Screenshot**: [evidence/d1-zoom-proration.png](evidence/d1-zoom-proration.png)
+Immediate prorated charge on mid-cycle upgrade. Matches our rule.
 
-**Key quote**: "If you upgrade in the middle of a billing period, your account will be credited a prorated amount for the time remaining on your existing subscription, and you will be charged for the upgrade with the credit applied."
+### Stripe
 
-**Verdict**: Immediate prorated charge. Matches our rule.
+Stripe's default `proration_behavior` is `create_prorations`, which creates proration invoice items invoiced at the next cycle — deferred, not immediate. Configurable to immediate via `always_invoice`. We chose immediate per Wouter's directive.
 
----
+### Slack
 
-### Stripe (verified)
+Slack uses the same proration formula: `cost per member / days in month * remaining days`. However, Slack defers the prorated charge to the following month's invoice. We chose immediate timing per Wouter.
 
-**URL**: https://docs.stripe.com/billing/subscriptions/prorations
+### Google Workspace (Mar 2026 invoice)
 
-**Screenshot**: [evidence/d1-stripe-proration.png](evidence/d1-stripe-proration.png)
+Apeiron's Google Workspace Business Standard invoice, March 2026: 3 seats prepaid at €48.60 for Mar 1-31. Mid-cycle on Mar 22, seats reduced from 3 → 1. Google recalculated: 3 seats × 22 days (€34.49) + 1 seat × 9 days (€4.70) = €39.19 actual. The €9.41 difference carried forward as credit.
 
-**Key quote**: "The default parameter for `proration_behavior` is `create_prorations`, which creates proration invoice items when applicable" — these are invoiced at next cycle, not immediately.
-
-**Verdict**: Default is deferred. Configurable to immediate via `always_invoice`. We chose immediate per Wouter's directive.
-
----
-
-### Slack (verified)
-
-**URL**: https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy
-
-**Screenshot**: [evidence/d1-d2-slack-fair-billing.png](evidence/d1-d2-slack-fair-billing.png)
-
-**Key quote**: "We'll divide the cost per member by the number of days in the month, then multiply by the remaining number of days in the month." and "We'll calculate the prorated cost and bill you the following month for any new members added."
-
-**Verdict**: Same formula (`cost/days * remaining`), but deferred to next month. We chose immediate timing per Wouter.
-
----
-
-### Google Workspace (verified — Mar 2026 invoice)
-
-**Source**: Apeiron's Google Workspace Business Standard invoice, March 2026.
-
-**What happened**: 3 seats prepaid at €48.60 for Mar 1-31. Mid-cycle on Mar 22, seats reduced from 3 → 1. Google recalculated: 3 seats × 22 days (€34.49) + 1 seat × 9 days (€4.70) = €39.19 actual. The €9.41 difference (€48.60 - €39.19) carried forward as credit.
-
-**Pattern**: Upfront-variable — the prepayment is an estimate, the final charge is reconciled at cycle end based on actual seat-days. Same proration formula applied to quantity delta within a group, not to a whole group add/remove.
-
-**Verdict**: Same math as D-1/D-2, but our implementation currently only supports whole-group add/remove. Google demonstrates proration applied to **quantity changes within a group** — a `quantity` field on `ServiceGroup` and an `UPDATE_SERVICE_GROUP_QUANTITY` operation would be needed to support this pattern. The formula (`remainingDays / totalDays * costDelta`) is already in `calculateProratedCost()`.
+This is an upfront-variable model — the prepayment is an estimate, reconciled at cycle end based on actual seat-days. Same proration formula applied to quantity delta within a group, not to a whole group add/remove. Our implementation currently only supports whole-group add/remove. A `quantity` field on `ServiceGroup` and an `UPDATE_SERVICE_GROUP_QUANTITY` operation would be needed to support this pattern.
 
 ---
 
@@ -256,8 +230,6 @@ The `recurringAmount` is the billable amount that gets prorated. No `effectiveDa
 ---
 
 ## 8. Test Procedure
-
-**Subscription**: `http://localhost:3001/d/preview-1e38b0a0/cb6e4e79-3198-4a01-8de1-595e492341e0`
 
 ### Step 1: Activate
 

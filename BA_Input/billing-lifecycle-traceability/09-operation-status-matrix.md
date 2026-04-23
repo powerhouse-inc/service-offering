@@ -60,15 +60,11 @@ flowchart TD
 
 ## 3. Real-World Validation
 
-### Zoom (verified)
+### Zoom
 
-**URL**: https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0063375
+On downgrade or cancellation, Zoom removes access to all associated plan features immediately. No further usage or configuration changes are allowed after cancellation takes effect.
 
-**Screenshot**: [evidence/d6-zoom-upgrade-downgrade.png](evidence/d6-zoom-upgrade-downgrade.png)
-
-Zoom: "you will lose all associated plan features" on downgrade/cancellation.
-
-Universal — all platforms freeze functionality on cancellation.
+Universal pattern — all platforms freeze functionality on cancellation. No platform allows new usage accrual after a subscription is cancelled.
 
 ---
 

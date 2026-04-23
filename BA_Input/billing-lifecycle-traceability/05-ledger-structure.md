@@ -59,11 +59,11 @@ This tells us:
 
 ## 3. Real-World Validation
 
-### Powerhouse pattern (verified)
+### Powerhouse pattern
 
 No existing Powerhouse document model uses unbounded growing arrays for transaction history. State is a snapshot, not a log. The Reactor's operation log already records every action immutably — this IS the audit trail.
 
-### account-transactions model (verified)
+### account-transactions model
 
 The `powerhouse/account-transactions` model exists specifically for financial transaction records. If detailed ledger entries are needed, they belong in a separate document, not embedded in the subscription state.
 

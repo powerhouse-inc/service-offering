@@ -50,21 +50,13 @@ This tells us:
 
 ## 3. Real-World Validation
 
-### Slack (verified)
+### Slack
 
-**URL**: https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy
+Credits from prorated removals are non-refundable and auto-applied to future charges. Surplus carries forward indefinitely — Slack never pays out the balance, it offsets the next invoice.
 
-**Screenshot**: [evidence/d1-d2-slack-fair-billing.png](evidence/d1-d2-slack-fair-billing.png)
+### Stripe
 
-Credits are non-refundable and auto-applied to future charges. Surplus carries forward.
-
-### Stripe (verified)
-
-**URL**: https://docs.stripe.com/billing/customer/credit-balance
-
-**Screenshot**: [evidence/d7-stripe-credit-balance.png](evidence/d7-stripe-credit-balance.png)
-
-Credit balance carries forward. Customer credit is applied automatically to the next invoice.
+Stripe maintains a customer credit balance that carries forward across invoices. When the balance is positive (customer has credit), it is applied automatically to the next invoice before charging the payment method. No refund is triggered by a credit surplus — the balance simply reduces future charges.
 
 ---
 

@@ -470,6 +470,7 @@ export function ReportRecurringPaymentInputSchema(): z.ZodObject<
   Properties<ReportRecurringPaymentInput>
 > {
   return z.object({
+    amount: z.number(),
     paymentDate: z.iso.datetime(),
     serviceId: z.string(),
   });
@@ -479,6 +480,7 @@ export function ReportSetupPaymentInputSchema(): z.ZodObject<
   Properties<ReportSetupPaymentInput>
 > {
   return z.object({
+    amount: z.number(),
     paymentDate: z.iso.datetime(),
     serviceId: z.string(),
   });

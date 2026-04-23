@@ -372,11 +372,13 @@ input UpdateServiceRecurringCostInput {
 input ReportSetupPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
+    amount: Amount_Money!
 }
 
 input ReportRecurringPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
+    amount: Amount_Money!
 }
 
 input UpdateServiceInfoInput {
