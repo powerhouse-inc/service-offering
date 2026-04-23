@@ -48,7 +48,7 @@ import {
   RemoveServiceMetricInputSchema,
   IncrementMetricUsageInputSchema,
   DecrementMetricUsageInputSchema,
-  ResetMetricCycleInputSchema,
+  AccrueMetricUsageInputSchema,
   SetCustomerTypeInputSchema,
   UpdateTeamMemberCountInputSchema,
 } from "./schema/zod.js";
@@ -506,10 +506,10 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
-    case "RESET_METRIC_CYCLE": {
-      ResetMetricCycleInputSchema().parse(action.input);
+    case "ACCRUE_METRIC_USAGE": {
+      AccrueMetricUsageInputSchema().parse(action.input);
 
-      subscriptionInstanceMetricsOperations.resetMetricCycleOperation(
+      subscriptionInstanceMetricsOperations.accrueMetricUsageOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

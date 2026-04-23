@@ -6,7 +6,7 @@ import type {
   RemoveServiceMetricInput,
   IncrementMetricUsageInput,
   DecrementMetricUsageInput,
-  ResetMetricCycleInput,
+  AccrueMetricUsageInput,
 } from "../types.js";
 
 export type AddServiceMetricAction = Action & {
@@ -33,9 +33,9 @@ export type DecrementMetricUsageAction = Action & {
   type: "DECREMENT_METRIC_USAGE";
   input: DecrementMetricUsageInput;
 };
-export type ResetMetricCycleAction = Action & {
-  type: "RESET_METRIC_CYCLE";
-  input: ResetMetricCycleInput;
+export type AccrueMetricUsageAction = Action & {
+  type: "ACCRUE_METRIC_USAGE";
+  input: AccrueMetricUsageInput;
 };
 
 export type SubscriptionInstanceMetricsAction =
@@ -45,4 +45,4 @@ export type SubscriptionInstanceMetricsAction =
   | RemoveServiceMetricAction
   | IncrementMetricUsageAction
   | DecrementMetricUsageAction
-  | ResetMetricCycleAction;
+  | AccrueMetricUsageAction;

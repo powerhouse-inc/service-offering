@@ -18,6 +18,8 @@ import {
   DecrementMetricUsageInputSchema,
   resetMetricCycle,
   ResetMetricCycleInputSchema,
+  accrueMetricUsage,
+  AccrueMetricUsageInputSchema,
 } from "document-models/subscription-instance/v1";
 
 describe("MetricsOperations", () => {
@@ -133,6 +135,23 @@ describe("MetricsOperations", () => {
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
       "RESET_METRIC_CYCLE",
+    );
+    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
+      input,
+    );
+    expect(updatedDocument.operations.global[0].index).toEqual(0);
+  });
+
+  it("should handle accrueMetricUsage operation", () => {
+    const document = utils.createDocument();
+    const input = generateMock(AccrueMetricUsageInputSchema());
+
+    const updatedDocument = reducer(document, accrueMetricUsage(input));
+
+    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
+    expect(updatedDocument.operations.global).toHaveLength(1);
+    expect(updatedDocument.operations.global[0].action.type).toBe(
+      "ACCRUE_METRIC_USAGE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

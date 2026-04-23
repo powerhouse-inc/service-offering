@@ -96,7 +96,7 @@ enum BillingCycle {
     ONE_TIME
 }
 
-enum ResetPeriod {
+enum AccrualCycle {
     HOURLY
     DAILY
     WEEKLY
@@ -104,6 +104,11 @@ enum ResetPeriod {
     QUARTERLY
     SEMI_ANNUAL
     ANNUAL
+}
+
+enum MetricType {
+    CUMULATIVE
+    NON_CUMULATIVE
 }
 
 type DiscountInfo {
@@ -152,7 +157,8 @@ type ServiceMetric {
     paidLimit: Int
     unitCost: RecurringCost
     currentUsage: Int!
-    usageResetPeriod: ResetPeriod
+    metricType: MetricType!
+    accrualCycle: AccrualCycle!
 }
 
 type Service {
@@ -198,7 +204,8 @@ input InitializeMetricInput {
     freeLimit: Int
     paidLimit: Int
     currentUsage: Int!
-    usageResetPeriod: ResetPeriod
+    metricType: MetricType!
+    accrualCycle: AccrualCycle!
     unitCostAmount: Amount_Money
     unitCostCurrency: Currency
     unitCostBillingCycle: BillingCycle
@@ -463,7 +470,8 @@ input AddServiceMetricInput {
     freeLimit: Int
     paidLimit: Int
     currentUsage: Int!
-    usageResetPeriod: ResetPeriod
+    metricType: MetricType!
+    accrualCycle: AccrualCycle!
     unitCostAmount: Amount_Money
     unitCostCurrency: Currency
     unitCostBillingCycle: BillingCycle
@@ -476,7 +484,8 @@ input UpdateMetricInput {
     unitName: String
     freeLimit: Int
     paidLimit: Int
-    usageResetPeriod: ResetPeriod
+    metricType: MetricType
+    accrualCycle: AccrualCycle
 }
 
 input UpdateMetricUsageInput {
@@ -484,6 +493,7 @@ input UpdateMetricUsageInput {
     metricId: OID!
     currentTime: DateTime!
     currentUsage: Int!
+    isAdjustment: Boolean
 }
 
 input RemoveServiceMetricInput {
@@ -505,10 +515,10 @@ input DecrementMetricUsageInput {
     decrementBy: Int!
 }
 
-input ResetMetricCycleInput {
+input AccrueMetricUsageInput {
     serviceId: OID!
     metricId: OID!
-    resetDate: DateTime!
+    accrualDate: DateTime!
 }
 
 # customer

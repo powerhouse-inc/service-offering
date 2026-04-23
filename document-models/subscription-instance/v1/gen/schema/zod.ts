@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 import * as z from "zod";
 import type {
+  AccrualCycle,
+  AccrueMetricUsageInput,
   ActivateSubscriptionInput,
   AddServiceFacetSelectionInput,
   AddServiceGroupInput,
@@ -24,6 +26,7 @@ import type {
   InitializeServiceGroupInput,
   InitializeServiceInput,
   InitializeSubscriptionInput,
+  MetricType,
   PauseSubscriptionInput,
   RecurringCost,
   RemoveBudgetCategoryInput,
@@ -36,8 +39,6 @@ import type {
   ReportOveragePaymentInput,
   ReportRecurringPaymentInput,
   ReportSetupPaymentInput,
-  ResetMetricCycleInput,
-  ResetPeriod,
   ResourceDocument,
   ResumeSubscriptionInput,
   Service,
@@ -80,6 +81,16 @@ export const definedNonNullAnySchema = z
   .any()
   .refine((v) => isDefinedNonNullAny(v));
 
+export const AccrualCycleSchema = z.enum([
+  "ANNUAL",
+  "DAILY",
+  "HOURLY",
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMI_ANNUAL",
+  "WEEKLY",
+]);
+
 export const BillingCycleSchema = z.enum([
   "ANNUAL",
   "MONTHLY",
@@ -100,15 +111,7 @@ export const DiscountTypeSchema = z.enum(["FLAT_AMOUNT", "PERCENTAGE"]);
 
 export const GroupCostTypeSchema = z.enum(["RECURRING", "SETUP"]);
 
-export const ResetPeriodSchema = z.enum([
-  "ANNUAL",
-  "DAILY",
-  "HOURLY",
-  "MONTHLY",
-  "QUARTERLY",
-  "SEMI_ANNUAL",
-  "WEEKLY",
-]);
+export const MetricTypeSchema = z.enum(["CUMULATIVE", "NON_CUMULATIVE"]);
 
 export const SubscriptionStatusSchema = z.enum([
   "ACTIVE",
@@ -119,6 +122,16 @@ export const SubscriptionStatusSchema = z.enum([
 ]);
 
 export const TierPricingModeSchema = z.enum(["CALCULATED", "MANUAL_OVERRIDE"]);
+
+export function AccrueMetricUsageInputSchema(): z.ZodObject<
+  Properties<AccrueMetricUsageInput>
+> {
+  return z.object({
+    accrualDate: z.iso.datetime(),
+    metricId: z.string(),
+    serviceId: z.string(),
+  });
+}
 
 export function ActivateSubscriptionInputSchema(): z.ZodObject<
   Properties<ActivateSubscriptionInput>
@@ -179,9 +192,11 @@ export function AddServiceMetricInputSchema(): z.ZodObject<
   Properties<AddServiceMetricInput>
 > {
   return z.object({
+    accrualCycle: AccrualCycleSchema,
     currentUsage: z.number(),
     freeLimit: z.number().nullish(),
     metricId: z.string(),
+    metricType: MetricTypeSchema,
     name: z.string(),
     paidLimit: z.number().nullish(),
     serviceId: z.string(),
@@ -189,7 +204,6 @@ export function AddServiceMetricInputSchema(): z.ZodObject<
     unitCostBillingCycle: BillingCycleSchema.nullish(),
     unitCostCurrency: z.string().nullish(),
     unitName: z.string(),
-    usageResetPeriod: ResetPeriodSchema.nullish(),
   });
 }
 
@@ -299,16 +313,17 @@ export function InitializeMetricInputSchema(): z.ZodObject<
   Properties<InitializeMetricInput>
 > {
   return z.object({
+    accrualCycle: AccrualCycleSchema,
     currentUsage: z.number(),
     freeLimit: z.number().nullish(),
     id: z.string(),
+    metricType: MetricTypeSchema,
     name: z.string(),
     paidLimit: z.number().nullish(),
     unitCostAmount: z.number().nullish(),
     unitCostBillingCycle: BillingCycleSchema.nullish(),
     unitCostCurrency: z.string().nullish(),
     unitName: z.string(),
-    usageResetPeriod: ResetPeriodSchema.nullish(),
   });
 }
 
@@ -486,16 +501,6 @@ export function ReportSetupPaymentInputSchema(): z.ZodObject<
   });
 }
 
-export function ResetMetricCycleInputSchema(): z.ZodObject<
-  Properties<ResetMetricCycleInput>
-> {
-  return z.object({
-    metricId: z.string(),
-    resetDate: z.iso.datetime(),
-    serviceId: z.string(),
-  });
-}
-
 export function ResourceDocumentSchema(): z.ZodObject<
   Properties<ResourceDocument>
 > {
@@ -556,14 +561,15 @@ export function ServiceGroupSchema(): z.ZodObject<Properties<ServiceGroup>> {
 export function ServiceMetricSchema(): z.ZodObject<Properties<ServiceMetric>> {
   return z.object({
     __typename: z.literal("ServiceMetric").optional(),
+    accrualCycle: AccrualCycleSchema,
     currentUsage: z.number(),
     freeLimit: z.number().nullish(),
     id: z.string(),
+    metricType: MetricTypeSchema,
     name: z.string(),
     paidLimit: z.number().nullish(),
     unitCost: z.lazy(() => RecurringCostSchema().nullish()),
     unitName: z.string(),
-    usageResetPeriod: ResetPeriodSchema.nullish(),
   });
 }
 
@@ -698,13 +704,14 @@ export function UpdateMetricInputSchema(): z.ZodObject<
   Properties<UpdateMetricInput>
 > {
   return z.object({
+    accrualCycle: AccrualCycleSchema.nullish(),
     freeLimit: z.number().nullish(),
     metricId: z.string(),
+    metricType: MetricTypeSchema.nullish(),
     name: z.string().nullish(),
     paidLimit: z.number().nullish(),
     serviceId: z.string(),
     unitName: z.string().nullish(),
-    usageResetPeriod: ResetPeriodSchema.nullish(),
   });
 }
 
@@ -714,6 +721,7 @@ export function UpdateMetricUsageInputSchema(): z.ZodObject<
   return z.object({
     currentTime: z.iso.datetime(),
     currentUsage: z.number(),
+    isAdjustment: z.boolean().nullish(),
     metricId: z.string(),
     serviceId: z.string(),
   });

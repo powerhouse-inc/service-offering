@@ -6,7 +6,7 @@ import {
   RemoveServiceMetricInputSchema,
   IncrementMetricUsageInputSchema,
   DecrementMetricUsageInputSchema,
-  ResetMetricCycleInputSchema,
+  AccrueMetricUsageInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceMetricInput,
@@ -15,7 +15,7 @@ import type {
   RemoveServiceMetricInput,
   IncrementMetricUsageInput,
   DecrementMetricUsageInput,
-  ResetMetricCycleInput,
+  AccrueMetricUsageInput,
 } from "../types.js";
 import type {
   AddServiceMetricAction,
@@ -24,7 +24,7 @@ import type {
   RemoveServiceMetricAction,
   IncrementMetricUsageAction,
   DecrementMetricUsageAction,
-  ResetMetricCycleAction,
+  AccrueMetricUsageAction,
 } from "./actions.js";
 
 export const addServiceMetric = (input: AddServiceMetricInput) =>
@@ -81,11 +81,11 @@ export const decrementMetricUsage = (input: DecrementMetricUsageInput) =>
     "global",
   );
 
-export const resetMetricCycle = (input: ResetMetricCycleInput) =>
-  createAction<ResetMetricCycleAction>(
-    "RESET_METRIC_CYCLE",
+export const accrueMetricUsage = (input: AccrueMetricUsageInput) =>
+  createAction<AccrueMetricUsageAction>(
+    "ACCRUE_METRIC_USAGE",
     { ...input },
     undefined,
-    ResetMetricCycleInputSchema,
+    AccrueMetricUsageInputSchema,
     "global",
   );

@@ -59,6 +59,21 @@ export type Scalars = {
   Upload: { input: File; output: File };
 };
 
+export type AccrualCycle =
+  | "ANNUAL"
+  | "DAILY"
+  | "HOURLY"
+  | "MONTHLY"
+  | "QUARTERLY"
+  | "SEMI_ANNUAL"
+  | "WEEKLY";
+
+export type AccrueMetricUsageInput = {
+  accrualDate: Scalars["DateTime"]["input"];
+  metricId: Scalars["OID"]["input"];
+  serviceId: Scalars["OID"]["input"];
+};
+
 export type ActivateSubscriptionInput = {
   activatedSince: Scalars["DateTime"]["input"];
 };
@@ -99,9 +114,11 @@ export type AddServiceInput = {
 };
 
 export type AddServiceMetricInput = {
+  accrualCycle: AccrualCycle;
   currentUsage: Scalars["Int"]["input"];
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   metricId: Scalars["OID"]["input"];
+  metricType: MetricType;
   name: Scalars["String"]["input"];
   paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
   serviceId: Scalars["OID"]["input"];
@@ -109,7 +126,6 @@ export type AddServiceMetricInput = {
   unitCostBillingCycle?: InputMaybe<BillingCycle>;
   unitCostCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   unitName: Scalars["String"]["input"];
-  usageResetPeriod?: InputMaybe<ResetPeriod>;
 };
 
 export type AddServiceToGroupInput = {
@@ -194,16 +210,17 @@ export type InitializeFacetSelectionInput = {
 };
 
 export type InitializeMetricInput = {
+  accrualCycle: AccrualCycle;
   currentUsage: Scalars["Int"]["input"];
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   id: Scalars["OID"]["input"];
+  metricType: MetricType;
   name: Scalars["String"]["input"];
   paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
   unitCostAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   unitCostBillingCycle?: InputMaybe<BillingCycle>;
   unitCostCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   unitName: Scalars["String"]["input"];
-  usageResetPeriod?: InputMaybe<ResetPeriod>;
 };
 
 export type InitializeServiceGroupInput = {
@@ -255,6 +272,8 @@ export type InitializeSubscriptionInput = {
   tierPricingMode?: InputMaybe<TierPricingMode>;
   tierPricingOptionId?: InputMaybe<Scalars["OID"]["input"]>;
 };
+
+export type MetricType = "CUMULATIVE" | "NON_CUMULATIVE";
 
 export type PauseSubscriptionInput = {
   pausedSince: Scalars["DateTime"]["input"];
@@ -317,21 +336,6 @@ export type ReportSetupPaymentInput = {
   serviceId: Scalars["OID"]["input"];
 };
 
-export type ResetMetricCycleInput = {
-  metricId: Scalars["OID"]["input"];
-  resetDate: Scalars["DateTime"]["input"];
-  serviceId: Scalars["OID"]["input"];
-};
-
-export type ResetPeriod =
-  | "ANNUAL"
-  | "DAILY"
-  | "HOURLY"
-  | "MONTHLY"
-  | "QUARTERLY"
-  | "SEMI_ANNUAL"
-  | "WEEKLY";
-
 export type ResourceDocument = {
   id: Scalars["PHID"]["output"];
   label: Maybe<Scalars["String"]["output"]>;
@@ -370,14 +374,15 @@ export type ServiceGroup = {
 };
 
 export type ServiceMetric = {
+  accrualCycle: AccrualCycle;
   currentUsage: Scalars["Int"]["output"];
   freeLimit: Maybe<Scalars["Int"]["output"]>;
   id: Scalars["OID"]["output"];
+  metricType: MetricType;
   name: Scalars["String"]["output"];
   paidLimit: Maybe<Scalars["Int"]["output"]>;
   unitCost: Maybe<RecurringCost>;
   unitName: Scalars["String"]["output"];
-  usageResetPeriod: Maybe<ResetPeriod>;
 };
 
 export type SetAutoRenewInput = {
@@ -473,18 +478,20 @@ export type UpdateCustomerInfoInput = {
 };
 
 export type UpdateMetricInput = {
+  accrualCycle?: InputMaybe<AccrualCycle>;
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   metricId: Scalars["OID"]["input"];
+  metricType?: InputMaybe<MetricType>;
   name?: InputMaybe<Scalars["String"]["input"]>;
   paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
   serviceId: Scalars["OID"]["input"];
   unitName?: InputMaybe<Scalars["String"]["input"]>;
-  usageResetPeriod?: InputMaybe<ResetPeriod>;
 };
 
 export type UpdateMetricUsageInput = {
   currentTime: Scalars["DateTime"]["input"];
   currentUsage: Scalars["Int"]["input"];
+  isAdjustment?: InputMaybe<Scalars["Boolean"]["input"]>;
   metricId: Scalars["OID"]["input"];
   serviceId: Scalars["OID"]["input"];
 };

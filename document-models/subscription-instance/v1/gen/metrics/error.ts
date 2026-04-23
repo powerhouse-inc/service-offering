@@ -13,9 +13,9 @@ export type ErrorCode =
   | "DecrementMetricUsageServiceNotFoundError"
   | "DecrementMetricUsageNotFoundError"
   | "SubscriptionNotActiveDecrementUsageError"
-  | "SubscriptionNotActiveResetMetricCycleError"
-  | "ResetMetricCycleServiceNotFoundError"
-  | "ResetMetricCycleMetricNotFoundError";
+  | "SubscriptionNotActiveAccrueMetricUsageError"
+  | "AccrueMetricUsageServiceNotFoundError"
+  | "AccrueMetricUsageMetricNotFoundError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -158,32 +158,32 @@ export class SubscriptionNotActiveDecrementUsageError
   }
 }
 
-export class SubscriptionNotActiveResetMetricCycleError
+export class SubscriptionNotActiveAccrueMetricUsageError
   extends Error
   implements ReducerError
 {
-  errorCode = "SubscriptionNotActiveResetMetricCycleError" as ErrorCode;
-  constructor(message = "SubscriptionNotActiveResetMetricCycleError") {
+  errorCode = "SubscriptionNotActiveAccrueMetricUsageError" as ErrorCode;
+  constructor(message = "SubscriptionNotActiveAccrueMetricUsageError") {
     super(message);
   }
 }
 
-export class ResetMetricCycleServiceNotFoundError
+export class AccrueMetricUsageServiceNotFoundError
   extends Error
   implements ReducerError
 {
-  errorCode = "ResetMetricCycleServiceNotFoundError" as ErrorCode;
-  constructor(message = "ResetMetricCycleServiceNotFoundError") {
+  errorCode = "AccrueMetricUsageServiceNotFoundError" as ErrorCode;
+  constructor(message = "AccrueMetricUsageServiceNotFoundError") {
     super(message);
   }
 }
 
-export class ResetMetricCycleMetricNotFoundError
+export class AccrueMetricUsageMetricNotFoundError
   extends Error
   implements ReducerError
 {
-  errorCode = "ResetMetricCycleMetricNotFoundError" as ErrorCode;
-  constructor(message = "ResetMetricCycleMetricNotFoundError") {
+  errorCode = "AccrueMetricUsageMetricNotFoundError" as ErrorCode;
+  constructor(message = "AccrueMetricUsageMetricNotFoundError") {
     super(message);
   }
 }
@@ -210,9 +210,9 @@ export const errors = {
     DecrementMetricUsageNotFoundError,
     SubscriptionNotActiveDecrementUsageError,
   },
-  ResetMetricCycle: {
-    SubscriptionNotActiveResetMetricCycleError,
-    ResetMetricCycleServiceNotFoundError,
-    ResetMetricCycleMetricNotFoundError,
+  AccrueMetricUsage: {
+    SubscriptionNotActiveAccrueMetricUsageError,
+    AccrueMetricUsageServiceNotFoundError,
+    AccrueMetricUsageMetricNotFoundError,
   },
 };

@@ -9,7 +9,9 @@
 
 ## 1. Summary
 
-The current schema conflates two concerns into a single nullable `usageResetPeriod` field: *when* usage is converted into debt, and *whether* usage drops to zero afterward. This refactor splits them into an explicit `metricType` (CUMULATIVE vs NON_CUMULATIVE) and a mandatory `accrualCycle`. Every metric now accrues on a cycle; the type only controls the post-accrual reset behavior. The billing cycle is decoupled from the accrual cycle and always terminates any in-flight accrual via a charge-what-accrued rule (no carryover, no time-extrapolation). Accrual writes labeled debt slices into a structured debt ledger — this is a hard dependency on the separate structured-debt workstream.
+The current schema conflates two concerns into a single nullable `usageResetPeriod` field: *when* usage is converted into debt, and *whether* usage drops to zero afterward. This refactor splits them into an explicit `metricType` (CUMULATIVE vs NON_CUMULATIVE) and a mandatory `accrualCycle`. Every metric now accrues on a cycle; the type only controls the post-accrual reset behavior. The billing cycle is decoupled from the accrual cycle and always terminates any in-flight accrual via a charge-what-accrued rule (no carryover, no time-extrapolation).
+
+**Debt model:** `totalDebt` / `totalCredit` remain scalar running counters on state. Debt "slices" are **not** stored as ledger entries in state — each accrual is an operation in the document's event log, and the labeled line-item view that stakeholders want is produced by a processor/subgraph reading the operation log. This spec therefore has **no dependency on a structured-debt state schema**; it depends on the existing counter pattern. See §6 for rationale (vault note [subscription billing state should carry counters not ledger arrays](/mnt/f/PowerhouseVault/knowledge/notes/subscription%20billing%20state%20should%20carry%20counters%20not%20ledger%20arrays.md)).
 
 ---
 
@@ -39,7 +41,7 @@ The current schema conflates two concerns into a single nullable `usageResetPeri
 
 ### 2.4 Debt model today
 
-`state.totalDebt` is a single `Amount_Money` scalar. No slicing, no labeling, no billed/unbilled flag. **This is what the structured-debt workstream replaces** — this spec assumes it exists.
+`state.totalDebt` and `state.totalCredit` are single `Amount_Money` scalars. No slicing, no labeling, no billed/unbilled flag. **This is retained** per the counters-not-arrays pattern (see §6). The labeled debt view (setup / prepayment / dynamic usage) is not a state concern — it's a read-side projection produced from the operation log.
 
 ---
 
@@ -148,9 +150,10 @@ Both new fields are mandatory. This is a breaking change; existing documents are
       metricId: OID!
 -     resetDate: DateTime!
 +     accrualDate: DateTime!
-+     debtSliceId: OID!
   }
 ```
+
+No `debtSliceId` on `AccrueMetricUsageInput`. The operation itself is the ledger record — label is implicit in the op type (`ACCRUE_METRIC_USAGE` → "dynamic usage"), metric reference is in the input, timestamp is operation metadata. No in-state ledger entry is written.
 
 `INCREMENT_METRIC_USAGE` and `DECREMENT_METRIC_USAGE`: **recommendation — remove both** (see §4.5). `UPDATE_METRIC_USAGE` with `isAdjustment` subsumes their intent.
 
@@ -166,10 +169,10 @@ Both new fields are mandatory. This is a breaking change; existing documents are
 
 ### 3.3 Reducer behavior changes
 
-- `accrueMetricUsageOperation` writes a debt slice instead of mutating `totalDebt`, branches on `metricType` for reset behavior.
+- `accrueMetricUsageOperation` increments `state.totalDebt` by the computed amount and branches on `metricType` for the reset decision. No ledger-entry write.
 - `updateMetricUsageOperation` accepts `isAdjustment`: when `true`, sets `currentUsage` absolutely with no debt effect; when `false`/absent, behaves as today (clamp to `paidLimit`).
-- `settleBillingCycleOperation` no longer touches metrics inline. It force-accrues every metric (emitting one debt slice per metric) before adding the prepayment slice and flagging unbilled slices.
-- `calculateOverageCost` in [utils.ts](../../../document-models/subscription-instance/v1/src/utils.ts) is retained (used by the accrual reducer). `shouldResetMetric` and `RESET_HIERARCHY` are **removed** — no longer needed; every metric accrues unconditionally.
+- `settleBillingCycleOperation` no longer computes overage inline. Instead, it force-accrues every metric by applying the same math as `accrueMetricUsageOperation` (one pass over all metrics, increment `totalDebt` per metric, branch on `metricType` for reset), then adds the prepayment amount to `totalDebt`, advances cycle boundaries.
+- `calculateOverageCost` in [utils.ts](../../../document-models/subscription-instance/v1/src/utils.ts) is retained (used by both reducers). `shouldResetMetric` and `RESET_HIERARCHY` are **removed** — no longer needed; every metric accrues unconditionally at settlement.
 
 ---
 
@@ -186,7 +189,6 @@ input AccrueMetricUsageInput {
     serviceId: OID!
     metricId: OID!
     accrualDate: DateTime!
-    debtSliceId: OID!  # pre-allocated by caller (editor / settlement reducer)
 }
 ```
 
@@ -194,13 +196,13 @@ input AccrueMetricUsageInput {
 1. Guard: `state.status !== "ACTIVE"` → throw `SubscriptionNotActiveAccrueMetricUsageError`.
 2. Resolve service via `findServiceById`. Not found → `AccrueMetricUsageServiceNotFoundError`.
 3. Resolve metric by id. Not found → `AccrueMetricUsageMetricNotFoundError`.
-4. Compute amount:
-   - **CUMULATIVE:** `amount = calculateOverageCost(metric)` — i.e., `max(0, currentUsage - freeLimit) * unitCost.amount`, capped at `(paidLimit - freeLimit)`.
-   - **NON_CUMULATIVE:** `amount = max(0, currentUsage - freeLimit) * unitCost.amount`, capped the same way. Formula is identical; the semantic difference is only in step 6.
-5. If `amount > 0` and `metric.unitCost` exists → append a debt slice (see §6 for shape).
+4. Compute amount via `calculateOverageCost(metric)` — i.e., `max(0, currentUsage - freeLimit) * unitCost.amount`, capped at `(paidLimit - freeLimit)`. Formula is identical for CUMULATIVE and NON_CUMULATIVE; the type difference manifests only in step 6.
+5. If `amount > 0` and `metric.unitCost` exists → `state.totalDebt = (state.totalDebt ?? 0) + amount`.
 6. Reset rule:
    - `metricType === "CUMULATIVE"` → `metric.currentUsage = 0`
    - `metricType === "NON_CUMULATIVE"` → leave `metric.currentUsage` untouched
+
+No in-state ledger write. The labeled-line-item breakdown is produced by a processor/subgraph reading operations of type `ACCRUE_METRIC_USAGE` (label: dynamic usage), `REPORT_PAYMENT` (label: payment), `SETTLE_BILLING_CYCLE` (label: prepayment), etc.
 
 **Errors:** `SubscriptionNotActiveAccrueMetricUsageError`, `AccrueMetricUsageServiceNotFoundError`, `AccrueMetricUsageMetricNotFoundError`.
 
@@ -211,8 +213,7 @@ input AccrueMetricUsageInput {
   "input": {
     "serviceId": "svc-invoices-01",
     "metricId": "metric-invoice-count",
-    "accrualDate": "2026-05-01T00:00:00Z",
-    "debtSliceId": "debt-20260501-invoices"
+    "accrualDate": "2026-05-01T00:00:00Z"
   }
 }
 ```
@@ -262,19 +263,20 @@ input UpdateMetricUsageInput {
 ### 4.3 `SETTLE_BILLING_CYCLE` (behavior change)
 
 **Module:** `subscription`
-**Purpose:** End a billing cycle. Force-accrue every metric (§5 rules), then add prepayment slice for next period, then flag all unbilled debt slices as billed. Billing cycle is the hard stop — no carryover of mid-flight accruals.
+**Purpose:** End a billing cycle. Force-accrue every metric, then add prepayment to `totalDebt` for the next period, then advance cycle boundaries. Billing cycle is the hard stop — no carryover of mid-flight accruals.
 
-**Input:** unchanged — whatever exists today (`settlementDate: DateTime!`, plus inputs needed to supply pre-allocated debt slice ids — see §9 open question).
+**Input:** unchanged — `settlementDate: DateTime!` (whatever the current schema has).
 
 **Reducer behavior:**
 1. Guard ACTIVE (existing `NoBillingCycleActiveError`).
 2. Guard `settlementDate >= currentBillingCycleStart` (existing `SettlementDateBeforeCycleStartError`).
-3. **For every metric on every service (flat + grouped):** execute the accrual logic from §4.1 inline (or by dispatching — implementation choice, but semantically equivalent). Uses pro-rata rule from §5 (charge what accrued, no time-extrapolation).
-4. If `autoRenew`: append a prepayment debt slice (label `PREPAYMENT`) summing all recurring costs for the next cycle. Advance `currentBillingCycleStart` and `nextBillingDate`.
+3. **For every metric on every service (flat + grouped):** inline the accrual math from §4.1 step 4–6. Increment `totalDebt` by each metric's accrued amount; reset `currentUsage` for CUMULATIVE metrics. Uses the pro-rata rule from §5 (charge what accrued, no time-extrapolation).
+4. If `autoRenew`: compute next-cycle prepayment total (sum of all recurring costs across services + service groups), add to `totalDebt`, advance `currentBillingCycleStart` and `nextBillingDate`.
 5. Else: transition status to `EXPIRING` (existing behavior).
-6. Flag every debt slice with `billed: false` → `billed: true` (pre-existing slices from in-cycle accruals are now billed; the just-added prepayment slice is also billed).
 
-**Note:** step 3 replaces the current `processMetrics` inline overage calc. `shouldResetMetric` is no longer called — every metric gets accrued on every settlement regardless of its `accrualCycle` enum value. The `accrualCycle` field drives the *scheduled* accrual (editor/cron-triggered); settlement is an *unconditional* force-accrual.
+**Note:** step 3 replaces the current `processMetrics` inline overage calc. `shouldResetMetric` is no longer called — every metric gets accrued on every settlement regardless of its `accrualCycle` enum value. The `accrualCycle` field drives the *scheduled* accrual (editor/cron-triggered between settlements); settlement itself is an *unconditional* force-accrual for all metrics.
+
+**Implementation choice — dispatch vs inline:** the reducer cannot dispatch other operations (it's a pure function). Therefore settlement inlines the accrual math directly rather than firing N `ACCRUE_METRIC_USAGE` operations. Trade-off: the operation log will show one `SETTLE_BILLING_CYCLE` instead of N `ACCRUE_METRIC_USAGE` + one `SETTLE_BILLING_CYCLE`, so the read-side projection (processor/subgraph) that produces the labeled-line-item view must attribute per-metric amounts by re-running the same math against the pre-settlement state snapshot. Flagged in §9.
 
 **Errors:** existing `NoBillingCycleActiveError`, `SettlementDateBeforeCycleStartError`.
 
@@ -332,57 +334,43 @@ Applies whenever an accrual cycle ends before its scheduled boundary. Three trig
 
 ---
 
-## 6. Debt-Slice Write Contract
+## 6. Debt Model — Counters in State, Detail in Operations
 
-**⚠ Dependency flag:** this contract assumes the structured-debt workstream ships the ledger primitives (typed debt slices, label enum, billed flag, FIFO payment reducer). This metric spec **cannot land** until those primitives exist. The Developer must confirm ledger readiness before starting.
+**Rationale (from vault note [subscription billing state should carry counters not ledger arrays](/mnt/f/PowerhouseVault/knowledge/notes/subscription%20billing%20state%20should%20carry%20counters%20not%20ledger%20arrays.md)):**
 
-### 6.1 Shape of the slice written by `ACCRUE_METRIC_USAGE`
+> Running totals (totalDebt, totalCredit) belong on subscription state; transaction-level detail lives in the Reactor operation history or the account-transactions model downstream. (...) Duplicating this in a state array means maintaining two sources of truth that must stay in sync. (...) No existing Powerhouse document model uses unbounded growing arrays for transaction history.
 
-The accrual reducer appends a record with roughly this shape to the structured-debt ledger (exact field names to be reconciled with the debt workstream's schema):
+This spec follows the pattern. Every debt-affecting operation increments/decrements a scalar counter; the labeled, per-source breakdown (setup cost / prepayment / dynamic usage) is produced **outside** the document model.
 
-```graphql
-# Illustrative — authoritative type lives in the structured-debt spec
-type DebtSlice {
-    id: OID!
-    label: DebtLabel!           # enum — see below
-    amount: Amount_Money!
-    accruedAt: DateTime!
-    billed: Boolean!            # false on create; flipped by SETTLE_BILLING_CYCLE
-    sourceMetricId: OID         # null for setup/prepayment slices
-    sourceServiceId: OID        # null for setup/prepayment slices
-    accrualCycleStart: DateTime # null for non-usage slices
-    accrualCycleEnd: DateTime   # null for non-usage slices
-}
+### 6.1 What stays in state
 
-enum DebtLabel {
-    SETUP_COST
-    PREPAYMENT
-    DYNAMIC_USAGE
-    # ESTIMATED_USAGE, RECONCILIATION — deferred (see §8)
-}
-```
+- `state.totalDebt: Amount_Money` — running sum of all charges.
+- `state.totalCredit: Amount_Money` — running sum of all payments/credits.
+- `amountOwed` is derived: `totalDebt - totalCredit` (pure util, not a stored field).
 
-### 6.2 What `ACCRUE_METRIC_USAGE` writes
+### 6.2 How each operation affects debt
 
-| Field | Value |
+| Operation | `totalDebt` effect |
 |---|---|
-| `id` | `action.input.debtSliceId` (caller-allocated; see §9 open question 1) |
-| `label` | `DYNAMIC_USAGE` |
-| `amount` | As computed in §4.1 step 4 |
-| `accruedAt` | `action.input.accrualDate` |
-| `billed` | `false` |
-| `sourceMetricId` | `action.input.metricId` |
-| `sourceServiceId` | `action.input.serviceId` |
-| `accrualCycleStart` | Previous `accrualDate` for this metric, or subscription activation date if none |
-| `accrualCycleEnd` | `action.input.accrualDate` |
+| `ACTIVATE_SUBSCRIPTION` | += setup + first-cycle recurring (existing) |
+| `ACCRUE_METRIC_USAGE` | += `calculateOverageCost(metric)` when > 0 |
+| `SETTLE_BILLING_CYCLE` | += sum of force-accruals, += next-cycle prepayment (if autoRenew) |
+| `REPORT_PAYMENT` | no direct effect on `totalDebt`; increments `totalCredit` |
 
-If `amount === 0` (no overage above free limit): **do not write a slice**. The accrual still occurs — metric type rule in §4.1 step 6 still applies — but no ledger entry is created.
+### 6.3 How the "labeled line items" view is produced (out of scope for this spec)
 
-### 6.3 What `SETTLE_BILLING_CYCLE` writes
+The user-visible debt breakdown — "setup cost: $100 / prepayment: $200 / dynamic usage: $47" — is a **read-side projection**. Two Powerhouse-native options, both outside this spec:
 
-- One debt slice per metric (via the accrual path), as above.
-- One debt slice with `label: PREPAYMENT`, `amount: <sum of next-cycle recurring costs>`, `accruedAt: settlementDate`, `billed: true` (immediate — prepayment is billed on creation).
-- All existing `billed: false` slices flipped to `billed: true`.
+1. **Processor** maintaining a PGlite-backed view keyed by operation type, queried by the editor via `useRelationalQuery`.
+2. **Subgraph** query that walks the operation log on demand and groups by op type.
+
+Either approach attributes per-source amounts from operation inputs + metadata. For `SETTLE_BILLING_CYCLE` — which inlines multiple accruals — the projection re-runs `calculateOverageCost` against the state snapshot at the op's timestamp to attribute per-metric amounts.
+
+**This spec does not design the projection.** Flagged as a follow-up workstream in §8.
+
+### 6.4 FIFO payment ordering (deferred)
+
+Wouter's transcript point @ 00:45:52 — "payments pay the oldest slice of debt first" — is a payment-side concern (how `REPORT_PAYMENT` decides what to retire), not a metric-side concern. It applies to the read-side projection and possibly to a future `REPORT_PAYMENT` semantic change, but does not affect this spec. Flagged as a follow-up.
 
 ---
 
@@ -393,8 +381,8 @@ These are UI-side and do not affect schema. Listed for implementation completene
 1. **Metric create/edit form:** add a `MetricType` picker (radio or select: Cumulative / Non-cumulative). Replace the "No reset cycle" checkbox/option with this explicit field.
 2. **Accrual cycle picker:** now always required; relabel "Reset period" → "Accrual cycle" in all copy.
 3. **Metric actions:** rename the "Reset cycle" button → "Accrue now". Icon can stay.
-4. **Debt display:** the flat `totalDebt` scalar display needs to be replaced with a slice-list view per the structured-debt spec — cross-reference that workstream's editor changes.
-5. **Adjustment flow:** when editing `currentUsage` on a non-cumulative metric, expose an "Adjustment (no charge)" toggle that dispatches `UPDATE_METRIC_USAGE` with `isAdjustment: true`.
+4. **Adjustment flow:** when editing `currentUsage` on a non-cumulative metric, expose an "Adjustment (no charge)" toggle that dispatches `UPDATE_METRIC_USAGE` with `isAdjustment: true`.
+5. **Debt display (unchanged for this spec):** `totalDebt` continues to render as a scalar. The labeled-line-item breakdown is a follow-up tied to the processor/subgraph projection (§6.3) — **not part of this spec's deliverables**.
 
 Copy change summary: "reset" → "accrual" everywhere; "no reset cycle" → "non-cumulative".
 
@@ -404,56 +392,61 @@ Copy change summary: "reset" → "accrual" everywhere; "no reset cycle" → "non
 
 Explicitly excluded from this spec, to be addressed separately:
 
-- **Service Offering schema changes.** The SO document model must carry `metricType` + `accrualCycle` so they flow through to subscription instances. Needs a separate spec against the `service-offering` model. Without it, the `mapOfferingToSubscription` helper has nothing to copy from.
-- **`ESTIMATED_USAGE` + `RECONCILIATION` debt labels.** The utilities-billing scenario (billing cycle shorter than accrual cycle). Deferred.
+- **Service Offering schema changes.** The SO document model must carry `metricType` + `accrualCycle` so they flow through to subscription instances. Needs a separate spec against the `service-offering` model. Without it, the `mapOfferingToSubscription` helper has nothing to copy from. **Blocking dependency** — see §9 Q2.
+- **Labeled debt breakdown projection.** The processor or subgraph that produces "setup cost / prepayment / dynamic usage" line items from the operation log. This is where Wouter's structured-debt vision lives (read-side), and it's a follow-up spec.
+- **FIFO payment ordering.** `REPORT_PAYMENT` semantics for retiring oldest debt first. Payment-side concern, not metric-side.
+- **`ESTIMATED_USAGE` + `RECONCILIATION` debt categories.** The utilities-billing scenario (billing cycle shorter than accrual cycle). Deferred.
 - **Billing-cycle-shorter-than-accrual-cycle scenarios.** Same deferral.
 - **High-watermark metric type.** Explicitly excluded; `MetricType` enum stays closed at two values.
 - **Migration of existing subscription instances.** Per decision #5: breaking change, no migration path designed.
-- **Structured-debt ledger design.** This spec consumes it, does not design it.
+- **Scheduled accrual automation.** Between settlements, `ACCRUE_METRIC_USAGE` is operator-dispatched only (editor button). Time-triggered automation (cron, processor-adjacent service) is a follow-up — no Powerhouse-native scheduler exists. See §9 Q3.
 
 ---
 
 ## 9. Open Questions / Risks
 
-1. **Debt slice id allocation.** Reducers must be pure — they cannot call `generateId()`. Options:
-   - **(a)** Caller pre-allocates `debtSliceId` on the action input for both `ACCRUE_METRIC_USAGE` (trivial — one id) and `SETTLE_BILLING_CYCLE` (harder — needs N ids, one per metric plus one for prepayment). The settlement case requires the caller to know the metric count before dispatching. Feasible but awkward from the editor.
-   - **(b)** Deterministic id derivation inside the reducer (e.g., hash of `(subscriptionId, metricId, accrualDate)`). Keeps reducers pure, clean API, but id shape is less conventional.
-   - **Recommend (a)** for `ACCRUE_METRIC_USAGE` (single id), **(b)** for `SETTLE_BILLING_CYCLE`'s internal slice generation. Needs confirmation before Developer starts.
+1. **`freeLimit` on non-cumulative metrics.** Per decision #4, non-cumulative charges per-unit-per-cycle (e.g., 5 seats × $10/seat/month = $50/month). The current formula `max(0, currentUsage - freeLimit) * unitCost.amount` would still produce $50 if `freeLimit = 0` (likely the case for seats). **Recommend: keep the uniform formula.** Operators who don't want a free tier set `freeLimit = 0` or leave it null. This preserves the "first N seats free" modeling option without complicating the reducer.
 
-2. **Does `calculateOverageCost` still cover non-cumulative correctness?** Per decision #4, a non-cumulative metric charges per-unit-per-cycle regardless of free-limit semantics for seats (you don't typically get "free seats"). Confirm the formula `max(0, currentUsage - freeLimit) * unitCost.amount` is correct for non-cumulative, or whether non-cumulative ignores `freeLimit` entirely. If non-cumulative should charge full `currentUsage * unitCost.amount`, the reducer needs branching in step 4 (§4.1).
+2. **Service Offering dependency.** Making `metricType: MetricType!` and `accrualCycle: AccrualCycle!` non-nullable in `InitializeMetricInput` / `AddServiceMetricInput` breaks `mapOfferingToSubscription` because the SO model doesn't carry these fields. **Recommend: land the SO-side spec first**, then land this one. Alternative: stub defaults in the mapper (`NON_CUMULATIVE` / `MONTHLY`) and make SO a follow-up — but that risks silently wrong data. Human decision needed before Developer starts.
 
-3. **Scheduled accrual trigger.** This spec defines `ACCRUE_METRIC_USAGE` as an operation but doesn't specify what *triggers* it on the accrual-cycle boundary between settlements. Options: operator-dispatched (editor button), external cron, processor. Needs alignment with whoever owns the scheduling layer — flag to `apeiron-coordinator`.
+3. **Scheduled accrual automation.** `ACCRUE_METRIC_USAGE` fires only when explicitly dispatched. Between settlements, if the accrual cycle is shorter than the billing cycle (e.g., monthly accrual on quarterly billing), something must fire the op on day 30 and day 60. No Powerhouse-native scheduler exists. **Recommend: ship with operator-dispatched only (editor "Accrue now" button)**; automation is a follow-up spec involving either a processor-adjacent service or external cron. Flag to `apeiron-coordinator`.
 
-4. **`AddServiceMetricInput` / `InitializeMetricInput` required fields.** Making `metricType: MetricType!` and `accrualCycle: AccrualCycle!` non-nullable in inputs means the SO → subscription mapper (`mapOfferingToSubscription`) breaks until the SO spec lands. Sequencing risk — developer must confirm the mapper is either stubbed with defaults (e.g., `NON_CUMULATIVE` / `MONTHLY`) or that the SO spec lands first.
+4. **Removing `INCREMENT_METRIC_USAGE` / `DECREMENT_METRIC_USAGE`.** If any external system (Switchboard integrations, scripts, processors) currently dispatches these, removal breaks those call sites. **Recommend: audit first** — grep the monorepo and ask about external consumers before deleting. If nothing external uses them, hard delete. If something does, deprecate (leave the reducers but stop exposing in editor). Flag to `apeiron-coordinator`.
 
-5. **Removing `INCREMENT_METRIC_USAGE` / `DECREMENT_METRIC_USAGE`.** If any external system (Switchboard integrations, scripts) currently dispatches these, removal is a breaking API change beyond the document model itself. Flag to `apeiron-coordinator` to check call sites before deletion.
+5. **Read-side projection for labeled line items.** The vault pattern says detail lives in the operation log, produced via processor or subgraph on read. This is the right answer architecturally, but it means the labeled-line-item view Wouter described is NOT delivered by this spec — it's a follow-up workstream. Confirm this is acceptable product-wise (i.e., the editor ships with scalar `totalDebt` and gets the structured view in a later release).
+
+6. **SETTLE_BILLING_CYCLE attribution in the projection.** Because `SETTLE_BILLING_CYCLE` inlines multiple accruals into one operation (it's a pure reducer — can't dispatch sub-ops), the read-side projection must re-run the overage math against the pre-settlement state snapshot to attribute per-metric amounts. This is tractable (the snapshot is at `operation[i-1]`), but should be captured in the projection spec. **Risk:** if the projection gets this wrong, the per-metric breakdown in the editor won't match what the reducer actually charged.
 
 ---
 
 ## 10. Handoff Notes for Developer
 
+**Prerequisites — resolve before starting:**
+
+1. **Q2: Service Offering sequencing.** Either SO-side spec lands first (preferred) or mapper gets explicit defaults.
+2. **Q4: Increment/decrement call-site audit.** Coordinator confirms no external consumers before hard delete.
+3. **Q5: Confirm scalar `totalDebt` is acceptable for this ship.** Structured labeled view is a follow-up.
+
 **Implementation order:**
 
-1. **Confirm structured-debt ledger primitives are available** (or stub them). This is the hard blocker.
-2. Resolve open questions 1, 2, and 4 with the user before touching schema.
-3. Schema updates via MCP: new enum `MetricType`, rename `ResetPeriod` → `AccrualCycle`, update `ServiceMetric`, update all five affected input types, rename `ResetMetricCycleInput` → `AccrueMetricUsageInput`.
-4. Operation ops via MCP: rename `RESET_METRIC_CYCLE` → `ACCRUE_METRIC_USAGE`, delete `INCREMENT_METRIC_USAGE` + `DECREMENT_METRIC_USAGE` (after coordinator check), add new error types.
-5. Reducers in `src/reducers/metrics.ts` and `src/reducers/subscription.ts`:
-   - Replace `resetMetricCycleOperation` with `accrueMetricUsageOperation` per §4.1.
-   - Extend `updateMetricUsageOperation` per §4.2.
-   - Rewrite `settleBillingCycleOperation`'s metric handling per §4.3. Delete the `processMetrics` inline block.
+1. Schema updates via MCP: new enum `MetricType`, rename `ResetPeriod` → `AccrualCycle`, update `ServiceMetric`, update affected input types, rename `ResetMetricCycleInput` → `AccrueMetricUsageInput` (no `debtSliceId` field).
+2. Operation ops via MCP: rename `RESET_METRIC_CYCLE` → `ACCRUE_METRIC_USAGE`, delete `INCREMENT_METRIC_USAGE` + `DECREMENT_METRIC_USAGE` (after coordinator audit), add new error types.
+3. Reducers in `src/reducers/metrics.ts` and `src/reducers/subscription.ts`:
+   - Replace `resetMetricCycleOperation` with `accrueMetricUsageOperation` per §4.1 — increments `state.totalDebt`, branches on `metricType`.
+   - Extend `updateMetricUsageOperation` per §4.2 — `isAdjustment` flag.
+   - Rewrite `settleBillingCycleOperation`'s metric handling per §4.3. Replace the current `processMetrics` inline block with one that applies the accrual math (§4.1 step 4–6) per metric, instead of the overage-plus-shouldReset pattern.
    - Delete `incrementMetricUsageOperation` + `decrementMetricUsageOperation` reducers.
-6. Utils in `src/utils.ts`:
+4. Utils in `src/utils.ts`:
    - Retain `calculateOverageCost`.
    - Delete `shouldResetMetric` and `RESET_HIERARCHY` — no longer called.
-7. Editor updates per §7.
-8. `npm run tsc` + `npm run lint:fix` — both must pass.
+5. Editor updates per §7.
+6. `npm run tsc` + `npm run lint:fix` — both must pass.
 
 **Gotchas:**
 
 - The v1 schema file at [`document-models/subscription-instance/v1/schema.graphql`](../../../document-models/subscription-instance/v1/schema.graphql) has `ResetPeriod` referenced in multiple input types (lines 194, 458, 472) — don't miss any.
 - Test reducer errors via `operation.error` on the operations array, not `.toThrow()` (per CLAUDE.md).
-- `AccrueMetricUsageInput.debtSliceId` must come from action input, not generated in the reducer (determinism rule).
-- The `settleBillingCycleOperation` currently mutates `state.totalDebt` directly in two places (metric overage + recurring). Both go away; all debt now flows through the ledger.
+- The `settleBillingCycleOperation` currently mutates `state.totalDebt` directly in two places (metric overage + recurring). **Keep this pattern** — both still mutate `totalDebt` directly. The only change is replacing `shouldResetMetric` branching with unconditional per-type reset.
+- No `generateId()` calls anywhere in this refactor. All operations take inputs only.
 
 **After Developer is done → `apeiron-reviewer` runs the delivery checklist.**
