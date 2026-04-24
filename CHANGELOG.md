@@ -1,3 +1,11 @@
+# [1.0.0-dev.36](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.35...v1.0.0-dev.36) (2026-04-24)
+
+
+### Bug Fixes
+
+* update url builder for vetra ([b0aa541](https://github.com/powerhouse-inc/service-offering/commit/b0aa541a6fbede272b2044c6cdb01415e523be74))
+* use custom build script ([5df6288](https://github.com/powerhouse-inc/service-offering/commit/5df6288e779447b8b4f49a6487edf68e7f0726c5))
+
 # [1.0.0-dev.35](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.34...v1.0.0-dev.35) (2026-04-21)
 
 
