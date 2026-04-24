@@ -16,15 +16,9 @@ function getGraphQLUrl(): string {
     return "http://localhost:4001/graphql";
   }
 
-  if (baseURI.includes("-dev.")) {
-    return "https://switchboard-dev.powerhouse.xyz/graphql";
-  }
-
-  if (baseURI.includes("-staging.")) {
-    return "https://switchboard-staging.powerhouse.xyz/graphql";
-  }
-
-  return "https://switchboard.powerhouse.xyz/graphql";
+  const url = new URL(baseURI);
+  url.host = url.host.replace(/^connect\./, "switchboard.");
+  return `${url.origin}/graphql`;
 }
 
 // ── Generic request helper ──
