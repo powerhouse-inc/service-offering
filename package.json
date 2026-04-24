@@ -1,7 +1,7 @@
 {
   "name": "@powerhousedao/service-offering",
   "description": "Service offering document models",
-  "version": "1.0.0-dev.35",
+  "version": "1.0.0-dev.36",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
@@ -65,7 +65,7 @@
     "check-circular-imports": "npx dpdm -T ./index.ts",
     "generate": "ph-cli generate",
     "connect": "ph-cli connect",
-    "build": "bun node_modules/@powerhousedao/ph-cli/dist/cli.mjs build && bun scripts/fix-browser-build.mjs",
+    "build": "bun run build.ts",
     "prepublishOnly": "npm run build",
     "reactor": "ph-cli reactor",
     "service": "ph-cli service",
@@ -74,13 +74,14 @@
     "service-unstartup": "bash ./node_modules/@powerhousedao/ph-cli/dist/scripts/service-unstartup.sh"
   },
   "dependencies": {
-    "@powerhousedao/analytics-engine-core": "6.0.0-dev.183",
-    "@powerhousedao/connect": "6.0.0-dev.183",
-    "@powerhousedao/design-system": "6.0.0-dev.183",
+    "@powerhousedao/analytics-engine-core": "6.0.0-dev.195",
+    "@powerhousedao/connect": "6.0.0-dev.195",
+    "@powerhousedao/design-system": "6.0.0-dev.195",
     "@powerhousedao/document-engineering": "1.40.1",
-    "@powerhousedao/reactor-browser": "6.0.0-dev.183",
+    "@powerhousedao/reactor-browser": "6.0.0-dev.195",
+    "@powerhousedao/shared": "6.0.0-dev.195",
     "@uiw/react-md-editor": "^4.0.11",
-    "document-model": "6.0.0-dev.183",
+    "document-model": "6.0.0-dev.195",
     "graphql": "^16.10.0",
     "graphql-tag": "^2.12.6",
     "lucide-react": "^0.577.0",
@@ -93,8 +94,8 @@
     "@electric-sql/pglite": "0.3.15",
     "@electric-sql/pglite-tools": "0.2.20",
     "@eslint/js": "^9.38.0",
-    "@powerhousedao/ph-cli": "6.0.0-dev.183",
-    "@powerhousedao/reactor": "6.0.0-dev.183",
+    "@powerhousedao/ph-cli": "6.0.0-dev.195",
+    "@powerhousedao/reactor": "6.0.0-dev.195",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@tailwindcss/cli": "^4.1.18",
@@ -177,5 +178,5 @@
   },
   "homepage": "https://github.com/powerhouse-inc/service-offering#readme",
   "readme": "ERROR: No README data found!",
-  "_id": "@powerhousedao/service-offering@1.0.0-dev.34"
+  "_id": "@powerhousedao/service-offering@1.0.0-dev.35"
 }
