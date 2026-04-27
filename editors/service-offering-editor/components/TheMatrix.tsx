@@ -315,6 +315,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
   // Reset cycle for the metric (shared across tiers)
   const [metricResetCycle, setMetricResetCycle] =
     useState<AccrualCycle>("MONTHLY");
+  // Metric type — drives whether usage resets on settle (CUMULATIVE) or carries (NON_CUMULATIVE)
+  const [metricTypeChoice, setMetricTypeChoice] =
+    useState<MetricType>("NON_CUMULATIVE");
 
   // Destructive action confirmation state
   const [pendingRemoveMetric, setPendingRemoveMetric] = useState<{
@@ -703,6 +706,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricUnitName("");
     // Default to MONTHLY accrual cycle (AccrualCycle has no NONE)
     setMetricResetCycle("MONTHLY");
+    setMetricTypeChoice("NON_CUMULATIVE");
   };
 
   const handleEditMetric = (serviceId: string, metric: string) => {
@@ -715,6 +719,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     const enabledTiers = new Set<string>();
     let existingUnitName = "";
     let existingResetCycle: AccrualCycle = "MONTHLY";
+    let existingMetricType: MetricType = "NON_CUMULATIVE";
     tiers.forEach((tier) => {
       const usageLimit = tier.usageLimits.find(
         (ul) => ul.serviceId === serviceId && ul.metric === metric,
@@ -740,6 +745,9 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
         } else if (legacyReset && legacyReset !== "NONE") {
           existingResetCycle = legacyReset as AccrualCycle;
         }
+        if (usageLimit.metricType) {
+          existingMetricType = usageLimit.metricType;
+        }
       }
     });
     setMetricLimits(existingLimits);
@@ -748,6 +756,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricOveragePrices(existingOveragePrices);
     setMetricUnitName(existingUnitName);
     setMetricResetCycle(existingResetCycle);
+    setMetricTypeChoice(existingMetricType);
   };
 
   const handleRemoveMetric = (serviceId: string, metric: string) => {
@@ -873,6 +882,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             freeLimit: isNumeric ? parsedLimit : null,
             paidLimit: isPaidNumeric ? parsedPaidLimit : null,
             notes: !isNumeric && limitValue ? limitValue.trim() : null,
+            metricType: metricTypeChoice,
             accrualCycle: metricResetCycle,
             unitPrice: hasOveragePricing ? parsedOveragePrice : null,
             unitPriceCurrency: hasOveragePricing ? "USD" : undefined,
@@ -891,7 +901,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
             freeLimit: isNumeric ? parsedLimit : null,
             paidLimit: isPaidNumeric ? parsedPaidLimit : null,
             notes: !isNumeric && limitValue ? limitValue.trim() : null,
-            metricType: "NON_CUMULATIVE" satisfies MetricType,
+            metricType: metricTypeChoice,
             accrualCycle: metricResetCycle,
             unitPrice: hasOveragePricing ? parsedOveragePrice : undefined,
             unitPriceCurrency: hasOveragePricing ? "USD" : undefined,
@@ -909,6 +919,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
     setMetricOveragePrices({});
     setMetricUnitName("");
     setMetricResetCycle("MONTHLY");
+    setMetricTypeChoice("NON_CUMULATIVE");
   };
 
   const getLevelDisplay = (
@@ -2363,6 +2374,38 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                   className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
                   style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
                 >
+                  Metric Type
+                </label>
+                <select
+                  value={metricTypeChoice}
+                  onChange={(e) =>
+                    setMetricTypeChoice(e.target.value as MetricType)
+                  }
+                  className="w-full text-sm text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-3 px-4 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] placeholder:text-slate-400 cursor-pointer"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
+                  <option value="NON_CUMULATIVE">
+                    Non-cumulative (running count, persists)
+                  </option>
+                  <option value="CUMULATIVE">
+                    Cumulative (resets to 0 on settle)
+                  </option>
+                </select>
+                <p
+                  className="text-[0.8125rem] text-slate-600 mb-5 leading-6"
+                  style={{ marginTop: "0.375rem" }}
+                >
+                  Cumulative metrics reset to zero each billing cycle (e.g.
+                  monthly invoices). Non-cumulative metrics keep their value
+                  (e.g. number of contributors).
+                </p>
+              </div>
+
+              <div className="mb-5">
+                <label
+                  className="block text-[0.8125rem] font-semibold text-slate-700 mb-2"
+                  style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
                   Pricing Tiers & Values
                 </label>
                 <p
@@ -2570,6 +2613,7 @@ export function TheMatrix({ document, dispatch }: TheMatrixProps) {
                     setMetricEnabledTiers(new Set());
                     setMetricOveragePrices({});
                     setMetricResetCycle("MONTHLY");
+                    setMetricTypeChoice("NON_CUMULATIVE");
                   }}
                   className="py-2.5 px-5 text-sm font-semibold rounded-[10px] cursor-pointer transition-all duration-150 bg-slate-200 text-slate-600 border-none hover:bg-slate-300 hover:text-slate-800"
                   style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
@@ -3667,6 +3711,9 @@ function MetricLimitItem({
   const [editResetCycle, setEditResetCycle] = useState<AccrualCycle>(
     limit.accrualCycle || "MONTHLY",
   );
+  const [editMetricType, setEditMetricType] = useState<MetricType>(
+    limit.metricType || "NON_CUMULATIVE",
+  );
   // Overage pricing state
   const [editUnitPrice, setEditUnitPrice] = useState(
     limit.unitPrice?.toString() || "",
@@ -3688,6 +3735,7 @@ function MetricLimitItem({
         freeLimit: isNumeric ? parsedLimit : undefined,
         paidLimit: isPaidNumeric ? parsedPaidLimit : undefined,
         notes: !isNumeric && editLimit ? editLimit.trim() : undefined,
+        metricType: editMetricType,
         accrualCycle: editResetCycle,
         unitPrice: parsedUnitPrice,
         unitPriceCurrency: parsedUnitPrice ? editUnitPriceCurrency : undefined,
@@ -3703,6 +3751,7 @@ function MetricLimitItem({
     setEditLimit(limit.freeLimit?.toString() || limit.notes || "");
     setEditPaidLimit(limit.paidLimit?.toString() || "");
     setEditResetCycle(limit.accrualCycle || "MONTHLY");
+    setEditMetricType(limit.metricType || "NON_CUMULATIVE");
     setEditUnitPrice(limit.unitPrice?.toString() || "");
     setIsEditing(false);
   };
@@ -3814,6 +3863,23 @@ function MetricLimitItem({
             <option value="ANNUAL">Annual</option>
           </select>
         </div>
+        <div>
+          <label
+            className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
+            style={{ fontFamily: "'DM Mono', 'SF Mono', monospace" }}
+          >
+            Metric Type
+          </label>
+          <select
+            value={editMetricType}
+            onChange={(e) => setEditMetricType(e.target.value as MetricType)}
+            className="w-full text-[0.8125rem] text-slate-900 bg-white border-[1.5px] border-slate-300 rounded-[10px] py-2.5 px-3.5 outline-none transition-all duration-150 focus:border-violet-500 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.15)] cursor-pointer"
+            style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+          >
+            <option value="NON_CUMULATIVE">Non-cumulative (persists)</option>
+            <option value="CUMULATIVE">Cumulative (resets on settle)</option>
+          </select>
+        </div>
         <div className="mt-2 pt-3 border-t border-dashed border-slate-300">
           <label
             className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1"
@@ -3891,6 +3957,9 @@ function MetricLimitItem({
           {limit.accrualCycle && (
             <div style={{ fontSize: "0.6875rem", color: "#64748b" }}>
               Accrues {limit.accrualCycle.toLowerCase()}
+              {limit.metricType
+                ? ` · ${limit.metricType === "CUMULATIVE" ? "cumulative" : "non-cumulative"}`
+                : ""}
             </div>
           )}
           {overageDisplay && (

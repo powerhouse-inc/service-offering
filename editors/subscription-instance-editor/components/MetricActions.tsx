@@ -1,7 +1,11 @@
 import { useState, useCallback } from "react";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type { SubscriptionInstanceAction } from "document-models/subscription-instance";
-import type { ServiceMetric } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
+import type {
+  ServiceMetric,
+  MetricType,
+  AccrualCycle,
+} from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
 import {
   updateMetric,
   updateMetricUsage,
@@ -230,6 +234,12 @@ export function UpdateMetricLimitModal({
   dispatch,
 }: UpdateMetricLimitModalProps) {
   const [limit, setLimit] = useState(metric.paidLimit?.toString() || "");
+  const [metricType, setMetricTypeValue] = useState<MetricType>(
+    metric.metricType || "NON_CUMULATIVE",
+  );
+  const [accrualCycle, setAccrualCycleValue] = useState<AccrualCycle>(
+    metric.accrualCycle || "MONTHLY",
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -242,12 +252,14 @@ export function UpdateMetricLimitModal({
           serviceId,
           metricId: metric.id,
           paidLimit: parsedLimit,
+          metricType,
+          accrualCycle,
         }),
       );
 
       onClose();
     },
-    [limit, serviceId, metric.id, dispatch, onClose],
+    [limit, serviceId, metric.id, metricType, accrualCycle, dispatch, onClose],
   );
 
   if (!isOpen) return null;
@@ -259,14 +271,14 @@ export function UpdateMetricLimitModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="si-modal__header">
-          <h3 className="si-modal__title">Update Metric Limit</h3>
+          <h3 className="si-modal__title">Update Metric</h3>
           <span className="si-modal__subtitle">{metric.name}</span>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="si-modal__body">
             <div className="si-form-group">
               <label className="si-form-label" htmlFor="metric-limit">
-                New Limit ({metric.unitName})
+                Paid Limit ({metric.unitName})
               </label>
               <input
                 id="metric-limit"
@@ -278,6 +290,47 @@ export function UpdateMetricLimitModal({
                 min="0"
               />
             </div>
+            <div className="si-form-group">
+              <label className="si-form-label" htmlFor="metric-type">
+                Metric Type
+              </label>
+              <select
+                id="metric-type"
+                className="si-input"
+                value={metricType}
+                onChange={(e) =>
+                  setMetricTypeValue(e.target.value as MetricType)
+                }
+              >
+                <option value="NON_CUMULATIVE">
+                  Non-cumulative (persists across cycles)
+                </option>
+                <option value="CUMULATIVE">
+                  Cumulative (resets to 0 on settle)
+                </option>
+              </select>
+            </div>
+            <div className="si-form-group">
+              <label className="si-form-label" htmlFor="metric-accrual-cycle">
+                Accrual Cycle
+              </label>
+              <select
+                id="metric-accrual-cycle"
+                className="si-input"
+                value={accrualCycle}
+                onChange={(e) =>
+                  setAccrualCycleValue(e.target.value as AccrualCycle)
+                }
+              >
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="SEMI_ANNUAL">Semi-annual</option>
+                <option value="ANNUAL">Annual</option>
+              </select>
+            </div>
           </div>
           <div className="si-modal__footer">
             <button
@@ -288,7 +341,7 @@ export function UpdateMetricLimitModal({
               Cancel
             </button>
             <button type="submit" className="si-btn si-btn--primary">
-              Update Limit
+              Update Metric
             </button>
           </div>
         </form>

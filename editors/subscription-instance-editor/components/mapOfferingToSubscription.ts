@@ -313,8 +313,11 @@ function mapUsageLimits(
   const limits = usageLimits.filter((ul) => ul.serviceId === serviceId);
 
   return limits.map((ul) => {
-    // Tolerate legacy docs that still carry `resetCycle` instead of
-    // `accrualCycle`/`metricType`. New SO docs carry them natively.
+    // Legacy fallback: tolerate older SO docs that still carry `resetCycle`
+    // and lack `metricType` / `accrualCycle`. The SO editor now requires both
+    // fields explicitly (TheMatrix.tsx metric modal), so this `??` fallback
+    // is only here for documents created before that change.
+    // TODO: remove once all live SO documents have been re-saved.
     const legacyReset = (ul as { resetCycle?: string | null }).resetCycle;
     const accrualCycle: AccrualCycle =
       ul.accrualCycle ??
