@@ -14,6 +14,41 @@ export const BILLING_CYCLE_DAYS: Record<string, number> = {
   ONE_TIME: 0,
 };
 
+// ─── Accrual period helper ─────────────────────────────────
+// Pure: takes an ISO timestamp + AccrualCycle, returns the ISO timestamp one
+// period later. Calendar-aware for MONTHLY+ (so "+1 month" handles short/long
+// months correctly); fixed-duration for HOURLY/DAILY/WEEKLY.
+export function addAccrualPeriod(fromISO: string, cycle: string): string {
+  const d = new Date(fromISO);
+  switch (cycle) {
+    case "HOURLY":
+      d.setUTCHours(d.getUTCHours() + 1);
+      return d.toISOString();
+    case "DAILY":
+      d.setUTCDate(d.getUTCDate() + 1);
+      return d.toISOString();
+    case "WEEKLY":
+      d.setUTCDate(d.getUTCDate() + 7);
+      return d.toISOString();
+    case "MONTHLY":
+      d.setUTCMonth(d.getUTCMonth() + 1);
+      return d.toISOString();
+    case "QUARTERLY":
+      d.setUTCMonth(d.getUTCMonth() + 3);
+      return d.toISOString();
+    case "SEMI_ANNUAL":
+      d.setUTCMonth(d.getUTCMonth() + 6);
+      return d.toISOString();
+    case "ANNUAL":
+      d.setUTCFullYear(d.getUTCFullYear() + 1);
+      return d.toISOString();
+    default:
+      // Unknown cycle: behave as MONTHLY to stay safe.
+      d.setUTCMonth(d.getUTCMonth() + 1);
+      return d.toISOString();
+  }
+}
+
 // ─── Date helpers ───────────────────────────────────────────
 
 function daysBetween(a: string, b: string): number {

@@ -9,8 +9,8 @@ import type {
 import {
   updateMetric,
   updateMetricUsage,
-  accrueMetricUsage,
 } from "../../../document-models/subscription-instance/v1/gen/metrics/creators.js";
+import { useNowISO } from "./SimulatedClock.js";
 
 interface MetricActionsProps {
   serviceId: string;
@@ -28,6 +28,7 @@ export function MetricActions({
 }: MetricActionsProps) {
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState("1");
+  const nowISO = useNowISO();
 
   const isAdjustment = metric.metricType === "NON_CUMULATIVE";
 
@@ -37,13 +38,13 @@ export function MetricActions({
         updateMetricUsage({
           serviceId,
           metricId: metric.id,
-          currentTime: new Date().toISOString(),
+          currentTime: nowISO(),
           currentUsage: Math.max(0, newUsage),
           isAdjustment,
         }),
       );
     },
-    [dispatch, serviceId, metric.id, isAdjustment],
+    [dispatch, serviceId, metric.id, isAdjustment, nowISO],
   );
 
   const handleIncrement = useCallback(
@@ -87,31 +88,6 @@ export function MetricActions({
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
             </svg>
           </button>
-          {metric.currentUsage > 0 && (
-            <button
-              type="button"
-              className="si-metric-btn si-metric-btn--verify"
-              onClick={() => {
-                dispatch(
-                  accrueMetricUsage({
-                    serviceId,
-                    metricId: metric.id,
-                    accrualDate: new Date().toISOString(),
-                  }),
-                );
-              }}
-              aria-label={`Accrue ${metric.name} now`}
-              title={`Accrue now — charges overage${metric.metricType === "CUMULATIVE" ? " and resets to 0" : ""} (${metric.accrualCycle.toLowerCase()} accrual)`}
-            >
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* Operator Adjust Modal */}

@@ -101,9 +101,7 @@ export function SimulatedClockPanel() {
         <span className="si-clock__label">
           {simulatedNow ? "Simulated now" : "Real time"}
         </span>
-        {simulatedNow && (
-          <span className="si-clock__warn-badge">SIM</span>
-        )}
+        {simulatedNow && <span className="si-clock__warn-badge">SIM</span>}
       </div>
       <div className="si-clock__row">
         <input
@@ -158,9 +156,9 @@ export function SimulatedClockPanel() {
         </div>
       </div>
       <p className="si-clock__hint">
-        Operator-only test tool. Overrides timestamps on actions dispatched
-        from this editor (activate, settle, accrue, payments, metric usage).
-        Does not affect real time anywhere else.
+        Operator-only test tool. Overrides timestamps on actions dispatched from
+        this editor (activate, settle, accrue, payments, metric usage). Does not
+        affect real time anywhere else.
       </p>
     </div>
   );

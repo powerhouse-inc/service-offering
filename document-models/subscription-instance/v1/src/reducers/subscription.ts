@@ -90,6 +90,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           currentUsage: m.currentUsage,
           metricType: m.metricType,
           accrualCycle: m.accrualCycle,
+          lastAccrualDate: m.lastAccrualDate || null,
         })),
       }));
       state.serviceGroups = (action.input.serviceGroups || []).map((sg) => ({
@@ -176,6 +177,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             currentUsage: m.currentUsage,
             metricType: m.metricType,
             accrualCycle: m.accrualCycle,
+            lastAccrualDate: m.lastAccrualDate || null,
           })),
         })),
       }));
@@ -195,6 +197,26 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       }
       state.status = "ACTIVE";
       state.activatedSince = action.input.activatedSince;
+
+      // Anchor every metric's accrual clock to the activation moment.
+      // Without this, the first ACCRUE_METRIC_USAGE call would have to seed
+      // `lastAccrualDate` itself, masking the real "first period boundary."
+      for (const svc of state.services) {
+        for (const metric of svc.metrics) {
+          if (!metric.lastAccrualDate) {
+            metric.lastAccrualDate = action.input.activatedSince;
+          }
+        }
+      }
+      for (const group of state.serviceGroups) {
+        for (const svc of group.services) {
+          for (const metric of svc.metrics) {
+            if (!metric.lastAccrualDate) {
+              metric.lastAccrualDate = action.input.activatedSince;
+            }
+          }
+        }
+      }
 
       // D-4, BA-5: Initialize billing state on activation
       state.currentBillingCycleStart = action.input.activatedSince;
@@ -250,11 +272,38 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.cancelledSince = action.input.cancelledSince;
       state.cancellationReason = action.input.cancellationReason || null;
     },
-    resumeSubscriptionOperation(state, _action) {
+    resumeSubscriptionOperation(state, action) {
       if (state.status !== "PAUSED") {
         throw new ResumeNotPausedError(
           `Cannot resume subscription with status ${state.status}`,
         );
+      }
+      // D-5: paused days don't accrue. Shift each metric's lastAccrualDate
+      // forward by the pause duration so post-resume accruals align with
+      // billed time, not wall time.
+      const pausedSince = state.pausedSince;
+      const resumeAt = action.input.timestamp;
+      if (pausedSince && resumeAt > pausedSince) {
+        const pauseMs =
+          new Date(resumeAt).getTime() - new Date(pausedSince).getTime();
+        function shiftMetrics(metrics: (typeof state.services)[0]["metrics"]) {
+          for (const metric of metrics) {
+            if (metric.lastAccrualDate) {
+              const shifted = new Date(
+                new Date(metric.lastAccrualDate).getTime() + pauseMs,
+              );
+              metric.lastAccrualDate = shifted.toISOString();
+            }
+          }
+        }
+        for (const svc of state.services) {
+          shiftMetrics(svc.metrics);
+        }
+        for (const group of state.serviceGroups) {
+          for (const svc of group.services) {
+            shiftMetrics(svc.metrics);
+          }
+        }
       }
       state.status = "ACTIVE";
       state.pausedSince = null;
@@ -353,7 +402,18 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       // Force-accrue every metric on every settlement (spec §4.3).
       // Billing cycle is the hard stop — no carryover, no time-extrapolation.
       // Reset rule is driven by metricType, not by accrualCycle matching.
+      //
+      // D-4 late-settlement cap: when settlement runs *after* the cycle
+      // boundary (operator was lagging), the overage window does NOT extend
+      // past `nextBillingDate`. Record `lastAccrualDate` at the cycle
+      // boundary so the next cycle starts from the right anchor and
+      // post-boundary usage is counted against the new cycle, not this one.
       const billingCycle = state.selectedBillingCycle || "MONTHLY";
+      const settlementDate = action.input.settlementDate;
+      const effectiveAccrualDate =
+        state.nextBillingDate && settlementDate > state.nextBillingDate
+          ? state.nextBillingDate
+          : settlementDate;
       function forceAccrue(metrics: (typeof state.services)[0]["metrics"]) {
         for (const metric of metrics) {
           const cost = calculateOverageCost(metric);
@@ -363,6 +423,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           if (metric.metricType === "CUMULATIVE") {
             metric.currentUsage = 0;
           }
+          metric.lastAccrualDate = effectiveAccrualDate;
         }
       }
 

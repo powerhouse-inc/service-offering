@@ -159,6 +159,7 @@ type ServiceMetric {
     currentUsage: Int!
     metricType: MetricType!
     accrualCycle: AccrualCycle!
+    lastAccrualDate: DateTime
 }
 
 type Service {
@@ -209,6 +210,7 @@ input InitializeMetricInput {
     unitCostAmount: Amount_Money
     unitCostCurrency: Currency
     unitCostBillingCycle: BillingCycle
+    lastAccrualDate: DateTime
 }
 
 input InitializeServiceInput {
@@ -379,13 +381,11 @@ input UpdateServiceRecurringCostInput {
 input ReportSetupPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
-    amount: Amount_Money!
 }
 
 input ReportRecurringPaymentInput {
     serviceId: OID!
     paymentDate: DateTime!
-    amount: Amount_Money!
 }
 
 input UpdateServiceInfoInput {
@@ -425,10 +425,12 @@ input AddServiceGroupInput {
     recurringCurrency: Currency
     recurringBillingCycle: BillingCycle
     recurringDiscount: DiscountServiceInfoInput
+    effectiveDate: DateTime!
 }
 
 input RemoveServiceGroupInput {
     groupId: OID!
+    effectiveDate: DateTime!
 }
 
 input AddServiceToGroupInput {
@@ -475,6 +477,7 @@ input AddServiceMetricInput {
     unitCostAmount: Amount_Money
     unitCostCurrency: Currency
     unitCostBillingCycle: BillingCycle
+    lastAccrualDate: DateTime
 }
 
 input UpdateMetricInput {
@@ -486,6 +489,7 @@ input UpdateMetricInput {
     paidLimit: Int
     metricType: MetricType
     accrualCycle: AccrualCycle
+    lastAccrualDate: DateTime
 }
 
 input UpdateMetricUsageInput {

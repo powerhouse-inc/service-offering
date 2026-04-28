@@ -14,6 +14,7 @@ import {
   settleBillingCycle,
   setAutoRenew,
 } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
+import { useNowISO } from "./SimulatedClock.js";
 
 interface SubscriptionActionsProps {
   document: SubscriptionInstanceDocument;
@@ -100,62 +101,63 @@ export function SubscriptionActions({
   >(null);
   const [reason, setReason] = useState("");
   const [settlementDate, setSettlementDate] = useState("");
+  const nowISO = useNowISO();
 
   // Operator direct actions
   const handleActivate = useCallback(() => {
     dispatch(
       activateSubscription({
-        activatedSince: new Date().toISOString(),
+        activatedSince: nowISO(),
       }),
     );
-  }, [dispatch]);
+  }, [dispatch, nowISO]);
 
   const handleOperatorPause = useCallback(() => {
     dispatch(
       pauseSubscription({
-        pausedSince: new Date().toISOString(),
+        pausedSince: nowISO(),
       }),
     );
     setConfirmAction(null);
-  }, [dispatch]);
+  }, [dispatch, nowISO]);
 
   const handleOperatorResume = useCallback(() => {
     dispatch(
       resumeSubscription({
-        timestamp: new Date().toISOString(),
+        timestamp: nowISO(),
       }),
     );
     setConfirmAction(null);
-  }, [dispatch]);
+  }, [dispatch, nowISO]);
 
   const handleOperatorCancel = useCallback(() => {
     dispatch(
       cancelSubscription({
-        cancelledSince: new Date().toISOString(),
+        cancelledSince: nowISO(),
         cancellationReason: reason || null,
       }),
     );
     setConfirmAction(null);
     setReason("");
-  }, [dispatch, reason]);
+  }, [dispatch, nowISO, reason]);
 
   const handleOperatorRenew = useCallback(() => {
     dispatch(
       renewExpiringSubscription({
-        timestamp: new Date().toISOString(),
+        timestamp: nowISO(),
       }),
     );
     setConfirmAction(null);
-  }, [dispatch]);
+  }, [dispatch, nowISO]);
 
   const handleOperatorSettle = useCallback(() => {
     const date = settlementDate
       ? new Date(settlementDate).toISOString()
-      : new Date().toISOString();
+      : nowISO();
     dispatch(settleBillingCycle({ settlementDate: date }));
     setConfirmAction(null);
     setSettlementDate("");
-  }, [dispatch, settlementDate]);
+  }, [dispatch, nowISO, settlementDate]);
 
   const handleConfirm = useCallback(() => {
     switch (confirmAction) {
