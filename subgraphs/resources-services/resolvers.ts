@@ -14,8 +14,8 @@ import {
   type PriceBreakdown,
 } from "../../document-models/service-offering/v1/src/utils.js";
 import { createAction, generateId } from "document-model/core";
-import { addFile, addFolder, driveCreateDocument } from "document-drive";
-import type { DocumentDriveDocument, FileNode, Node } from "document-drive";
+import { addFile, addFolder, driveCreateDocument } from "@powerhousedao/shared/document-drive";
+import type { DocumentDriveDocument, FileNode, Node } from "@powerhousedao/shared/document-drive";
 import { ResourceInstance } from "../../document-models/resource-instance/v1/module.js";
 import { SubscriptionInstance } from "../../document-models/subscription-instance/v1/module.js";
 import { mapOfferingToSubscription } from "../../editors/subscription-instance-editor/components/mapOfferingToSubscription.js";
@@ -645,7 +645,7 @@ function getDriveLink(driveSlug: string): string {
     return `https://connect.powerhouse.xyz/?driveUrl=https://switchboard.powerhouse.xyz/d/${driveSlug}`;
   }
 
-  return `http://localhost:3000/?driveUrl=http://localhost:4001/d/${driveSlug}`;
+  return `http://localhost:3001/?driveUrl=http://localhost:4001/d/${driveSlug}`;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { PHDocument } from "document-model";
-import type { FileNode } from "document-drive";
+import type { FileNode } from "@powerhousedao/shared/document-drive";
 import { useDrives, useGetDocuments } from "@powerhousedao/reactor-browser";
 import {
   fetchAllRemoteBuilderProfiles,

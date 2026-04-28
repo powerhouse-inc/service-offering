@@ -1,3 +1,38 @@
+# [1.0.0-dev.37](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.36...v1.0.0-dev.37) (2026-04-24)
+
+# [1.0.0-dev.36](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.35...v1.0.0-dev.36) (2026-04-24)
+
+
+### Bug Fixes
+
+* update url builder for vetra ([b0aa541](https://github.com/powerhouse-inc/service-offering/commit/b0aa541a6fbede272b2044c6cdb01415e523be74))
+* use custom build script ([5df6288](https://github.com/powerhouse-inc/service-offering/commit/5df6288e779447b8b4f49a6487edf68e7f0726c5))
+
+# [1.0.0-dev.35](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.34...v1.0.0-dev.35) (2026-04-21)
+
+
+### Bug Fixes
+
+* **build:** align dep versions and run build under bun ([53d7e56](https://github.com/powerhouse-inc/service-offering/commit/53d7e56d1d5288573919f7ac49ef9bdc79499957))
+* fix cursor misplacement in editor ([1fa46e1](https://github.com/powerhouse-inc/service-offering/commit/1fa46e19e96ef6a8c48c7b7a7328b383382ad2d3))
+
+# [1.0.0-dev.34](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.33...v1.0.0-dev.34) (2026-04-16)
+
+
+### Bug Fixes
+
+* remove cusstom build script ([53aad3d](https://github.com/powerhouse-inc/service-offering/commit/53aad3dad8dad7a58be7a8b407b4957d08189c31))
+* set localhost port ([30fdd06](https://github.com/powerhouse-inc/service-offering/commit/30fdd0639801bf116c1b3469933f68d0424400f7))
+
+
+### Features
+
+* upgrade to dev174 ([dacdb9f](https://github.com/powerhouse-inc/service-offering/commit/dacdb9f0da76d2f8a00cc8814aa94eda4f2bbebf))
+
+# [1.0.0-dev.33](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.32...v1.0.0-dev.33) (2026-04-14)
+
+# [1.0.0-dev.32](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.31...v1.0.0-dev.32) (2026-04-14)
+
 # [1.0.0-dev.31](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.30...v1.0.0-dev.31) (2026-04-09)
 
 
