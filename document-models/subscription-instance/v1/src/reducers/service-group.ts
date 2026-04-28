@@ -69,7 +69,7 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           action.input.recurringAmount,
           state.currentBillingCycleStart,
           state.nextBillingDate,
-          new Date().toISOString(),
+          action.input.effectiveDate,
         );
         if (proratedCost > 0) {
           state.totalDebt = (state.totalDebt ?? 0) + proratedCost;
@@ -108,7 +108,7 @@ export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceSer
           group.recurringCost.amount,
           state.currentBillingCycleStart,
           state.nextBillingDate,
-          new Date().toISOString(),
+          action.input.effectiveDate,
         );
         if (proratedCredit > 0) {
           state.totalCredit = (state.totalCredit ?? 0) + proratedCredit;

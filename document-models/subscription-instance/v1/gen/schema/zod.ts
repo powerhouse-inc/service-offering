@@ -157,6 +157,7 @@ export function AddServiceGroupInputSchema(): z.ZodObject<
 > {
   return z.object({
     costType: GroupCostTypeSchema.nullish(),
+    effectiveDate: z.iso.datetime(),
     groupId: z.string(),
     name: z.string(),
     optional: z.boolean(),
@@ -195,6 +196,7 @@ export function AddServiceMetricInputSchema(): z.ZodObject<
     accrualCycle: AccrualCycleSchema,
     currentUsage: z.number(),
     freeLimit: z.number().nullish(),
+    lastAccrualDate: z.iso.datetime().nullish(),
     metricId: z.string(),
     metricType: MetricTypeSchema,
     name: z.string(),
@@ -317,6 +319,7 @@ export function InitializeMetricInputSchema(): z.ZodObject<
     currentUsage: z.number(),
     freeLimit: z.number().nullish(),
     id: z.string(),
+    lastAccrualDate: z.iso.datetime().nullish(),
     metricType: MetricTypeSchema,
     name: z.string(),
     paidLimit: z.number().nullish(),
@@ -442,6 +445,7 @@ export function RemoveServiceGroupInputSchema(): z.ZodObject<
   Properties<RemoveServiceGroupInput>
 > {
   return z.object({
+    effectiveDate: z.iso.datetime(),
     groupId: z.string(),
   });
 }
@@ -485,7 +489,6 @@ export function ReportRecurringPaymentInputSchema(): z.ZodObject<
   Properties<ReportRecurringPaymentInput>
 > {
   return z.object({
-    amount: z.number(),
     paymentDate: z.iso.datetime(),
     serviceId: z.string(),
   });
@@ -495,7 +498,6 @@ export function ReportSetupPaymentInputSchema(): z.ZodObject<
   Properties<ReportSetupPaymentInput>
 > {
   return z.object({
-    amount: z.number(),
     paymentDate: z.iso.datetime(),
     serviceId: z.string(),
   });
@@ -565,6 +567,7 @@ export function ServiceMetricSchema(): z.ZodObject<Properties<ServiceMetric>> {
     currentUsage: z.number(),
     freeLimit: z.number().nullish(),
     id: z.string(),
+    lastAccrualDate: z.iso.datetime().nullish(),
     metricType: MetricTypeSchema,
     name: z.string(),
     paidLimit: z.number().nullish(),
@@ -706,6 +709,7 @@ export function UpdateMetricInputSchema(): z.ZodObject<
   return z.object({
     accrualCycle: AccrualCycleSchema.nullish(),
     freeLimit: z.number().nullish(),
+    lastAccrualDate: z.iso.datetime().nullish(),
     metricId: z.string(),
     metricType: MetricTypeSchema.nullish(),
     name: z.string().nullish(),

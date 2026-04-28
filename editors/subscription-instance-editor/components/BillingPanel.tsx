@@ -20,6 +20,7 @@ import {
   reportRecurringPayment,
   reportOveragePayment,
 } from "../../../document-models/subscription-instance/v1/gen/service/creators.js";
+import { useNowISO } from "./SimulatedClock.js";
 
 interface BillingPanelProps {
   document: SubscriptionInstanceDocument;
@@ -31,6 +32,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
   const state = document.state.global;
   const breakdown = computeBillingBreakdown(state);
   const [setupExpanded, setSetupExpanded] = useState(false);
+  const nowISO = useNowISO();
 
   const hasAnyData =
     state.nextBillingDate ||
@@ -392,7 +394,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                       dispatch(
                         reportSetupPayment({
                           serviceId: group.id,
-                          paymentDate: new Date().toISOString(),
+                          paymentDate: nowISO(),
                         }),
                       );
                     }}
@@ -446,7 +448,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                           dispatch(
                             reportRecurringPayment({
                               serviceId: group.id,
-                              paymentDate: new Date().toISOString(),
+                              paymentDate: nowISO(),
                             }),
                           );
                         }}
@@ -486,7 +488,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                       dispatch(
                         reportRecurringPayment({
                           serviceId: svc.id,
-                          paymentDate: new Date().toISOString(),
+                          paymentDate: nowISO(),
                         }),
                       );
                     }}
@@ -519,7 +521,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
                   onClick={() => {
                     dispatch(
                       reportOveragePayment({
-                        paymentDate: new Date().toISOString(),
+                        paymentDate: nowISO(),
                         amount: amountOwed,
                       }),
                     );

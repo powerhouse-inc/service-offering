@@ -17,7 +17,11 @@ import {
   AccrueMetricUsageServiceNotFoundError,
   AccrueMetricUsageMetricNotFoundError,
 } from "../../gen/metrics/error.js";
-import { calculateOverageCost, findServiceById } from "../utils.js";
+import {
+  addAccrualPeriod,
+  calculateOverageCost,
+  findServiceById,
+} from "../utils.js";
 import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
@@ -54,6 +58,7 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         currentUsage: action.input.currentUsage,
         metricType: action.input.metricType,
         accrualCycle: action.input.accrualCycle,
+        lastAccrualDate: action.input.lastAccrualDate || null,
       });
     },
     updateMetricOperation(state, action) {
@@ -82,6 +87,8 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
       if (action.input.metricType) metric.metricType = action.input.metricType;
       if (action.input.accrualCycle)
         metric.accrualCycle = action.input.accrualCycle;
+      if (action.input.lastAccrualDate)
+        metric.lastAccrualDate = action.input.lastAccrualDate;
     },
     updateMetricUsageOperation(state, action) {
       if (state.status !== "ACTIVE") {
@@ -212,12 +219,37 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
           `Metric with ID ${action.input.metricId} not found`,
         );
       }
-      const cost = calculateOverageCost(metric);
-      if (cost > 0) {
-        state.totalDebt = (state.totalDebt ?? 0) + cost;
+
+      // Time-based accrual: only fire if at least one full accrual period has
+      // elapsed since `lastAccrualDate`. If the clock has jumped multiple
+      // periods, walk forward one period at a time so each period boundary is
+      // accounted for.
+      //
+      // First-ever accrual on a metric without a `lastAccrualDate`: anchor it
+      // to `accrualDate` and skip the charge — there's nothing to crystallise
+      // yet and we can't invent retroactive usage.
+      if (!metric.lastAccrualDate) {
+        metric.lastAccrualDate = action.input.accrualDate;
+        return;
       }
-      if (metric.metricType === "CUMULATIVE") {
-        metric.currentUsage = 0;
+
+      let nextBoundary = addAccrualPeriod(
+        metric.lastAccrualDate,
+        metric.accrualCycle,
+      );
+      // Safety bound: prevent runaway loops on weird inputs.
+      let iterations = 0;
+      while (action.input.accrualDate >= nextBoundary && iterations < 10000) {
+        const cost = calculateOverageCost(metric);
+        if (cost > 0) {
+          state.totalDebt = (state.totalDebt ?? 0) + cost;
+        }
+        if (metric.metricType === "CUMULATIVE") {
+          metric.currentUsage = 0;
+        }
+        metric.lastAccrualDate = nextBoundary;
+        nextBoundary = addAccrualPeriod(nextBoundary, metric.accrualCycle);
+        iterations += 1;
       }
     },
   };

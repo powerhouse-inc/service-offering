@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DocumentToolbar } from "@powerhousedao/design-system/connect";
 import { useSelectedSubscriptionInstanceDocument } from "../../document-models/subscription-instance/v1/hooks.js";
 import type { ViewMode } from "./types.js";
@@ -10,10 +10,77 @@ import { ServicesPanel } from "./components/ServicesPanel.js";
 import { BillingPanel } from "./components/BillingPanel.js";
 import { CustomerInfo } from "./components/CustomerInfo.js";
 import { OperatorNotes } from "./components/OperatorNotes.js";
+import {
+  SimulatedClockPanel,
+  SimulatedClockProvider,
+  useSimulatedClock,
+} from "./components/SimulatedClock.js";
+import { accrueMetricUsage } from "../../document-models/subscription-instance/v1/gen/metrics/creators.js";
+import { settleBillingCycle } from "../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 
 export default function SubscriptionInstanceEditor() {
+  return (
+    <SimulatedClockProvider>
+      <SubscriptionInstanceEditorInner />
+    </SimulatedClockProvider>
+  );
+}
+
+function SubscriptionInstanceEditorInner() {
   const [document, dispatch] = useSelectedSubscriptionInstanceDocument();
   const [mode, setMode] = useState<ViewMode>("client");
+  const { simulatedNow } = useSimulatedClock();
+
+  // Auto-tick: when the operator advances the simulated clock, dispatch
+  // ACCRUE_METRIC_USAGE for every metric on the document with the new
+  // simulated time. The reducer is idempotent within a period (no-op if no
+  // accrual boundary was crossed), so over-dispatching is safe.
+  //
+  // Only fires when sim mode is active (`simulatedNow !== null`) and the
+  // subscription is ACTIVE — the reducer throws on other statuses.
+  // Skips the very first run after mount when sim mode is null.
+  const lastTickedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!simulatedNow) {
+      lastTickedRef.current = null;
+      return;
+    }
+    if (!document) return;
+    if (document.state.global.status !== "ACTIVE") return;
+    if (lastTickedRef.current === simulatedNow) return;
+    lastTickedRef.current = simulatedNow;
+
+    // Auto-settle: if the simulated clock has reached or crossed the cycle
+    // boundary, dispatch SETTLE_BILLING_CYCLE first so the cycle progresses
+    // before per-metric accrual runs against the new window.
+    const next = document.state.global.nextBillingDate;
+    if (next && simulatedNow >= next) {
+      dispatch(settleBillingCycle({ settlementDate: simulatedNow }));
+    }
+
+    const metrics: { serviceId: string; metricId: string }[] = [];
+    for (const svc of document.state.global.services) {
+      for (const m of svc.metrics) {
+        metrics.push({ serviceId: svc.id, metricId: m.id });
+      }
+    }
+    for (const group of document.state.global.serviceGroups) {
+      for (const svc of group.services) {
+        for (const m of svc.metrics) {
+          metrics.push({ serviceId: svc.id, metricId: m.id });
+        }
+      }
+    }
+    for (const { serviceId, metricId } of metrics) {
+      dispatch(
+        accrueMetricUsage({
+          serviceId,
+          metricId,
+          accrualDate: simulatedNow,
+        }),
+      );
+    }
+  }, [simulatedNow, document, dispatch]);
 
   if (!document) {
     return (
@@ -62,6 +129,9 @@ export default function SubscriptionInstanceEditor() {
           )}
           <ModeToggle mode={mode} onModeChange={setMode} />
         </div>
+
+        {/* Simulated clock — operator-only test tool */}
+        {mode === "operator" && <SimulatedClockPanel />}
 
         {/* Subscription Header */}
         <SubscriptionHeader
@@ -2666,5 +2736,75 @@ const editorStyles = `
   .si-metric-btn--edit svg {
     width: 14px;
     height: 14px;
+  }
+
+  /* ─── Simulated clock (operator test tool) ─── */
+  .si-clock {
+    background: var(--si-slate-50);
+    border: 1px solid var(--si-slate-200);
+    border-radius: var(--si-radius-md);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+
+  .si-clock--active {
+    background: var(--si-amber-50);
+    border-color: var(--si-amber-100);
+  }
+
+  .si-clock__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .si-clock__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--si-slate-600);
+  }
+
+  .si-clock--active .si-clock__label {
+    color: var(--si-amber-700);
+  }
+
+  .si-clock__warn-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: var(--si-amber-500);
+    color: white;
+    border-radius: 4px;
+  }
+
+  .si-clock__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .si-clock__date {
+    flex: 0 1 220px;
+    min-width: 200px;
+  }
+
+  .si-clock__quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .si-clock__hint {
+    font-size: 0.75rem;
+    color: var(--si-slate-500);
+    margin: 8px 0 0;
+    font-style: italic;
   }
 `;

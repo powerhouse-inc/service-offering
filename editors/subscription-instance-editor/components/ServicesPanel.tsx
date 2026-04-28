@@ -22,6 +22,7 @@ import {
   removeServiceGroup,
 } from "../../../document-models/subscription-instance/v1/gen/service-group/creators.js";
 import { useServiceOfferingAddons } from "../hooks/useServiceOfferingAddons.js";
+import { useNowISO } from "./SimulatedClock.js";
 
 interface ServicesPanelProps {
   document: SubscriptionInstanceDocument;
@@ -231,6 +232,7 @@ function AddServiceGroupButton({
 }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedAddonId, setSelectedAddonId] = useState<string>("");
+  const nowISO = useNowISO();
   const { availableAddons, loading, hasOffering } = useServiceOfferingAddons(
     serviceOfferingId,
     existingGroupNames,
@@ -267,6 +269,7 @@ function AddServiceGroupButton({
           : undefined,
         setupAmount: selectedAddon.setupAmount ?? undefined,
         setupCurrency: selectedAddon.setupCurrency ?? currency,
+        effectiveDate: nowISO(),
       }),
     );
     setShowModal(false);
@@ -385,6 +388,7 @@ export function ServicesPanel({
   mode,
 }: ServicesPanelProps) {
   const state = document.state.global;
+  const nowISO = useNowISO();
 
   // Split groups into recurring (non-optional) and add-ons (optional)
   const recurringGroups = state.serviceGroups.filter((g) => !g.optional);
@@ -559,7 +563,12 @@ export function ServicesPanel({
                       className="si-btn si-btn--xs si-btn--danger-ghost"
                       style={{ marginLeft: "auto" }}
                       onClick={() =>
-                        dispatch(removeServiceGroup({ groupId: group.id }))
+                        dispatch(
+                          removeServiceGroup({
+                            groupId: group.id,
+                            effectiveDate: nowISO(),
+                          }),
+                        )
                       }
                       title="Remove this service group (D-2: prorated credit if active)"
                     >

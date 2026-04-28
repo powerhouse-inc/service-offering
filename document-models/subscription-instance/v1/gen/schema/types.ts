@@ -87,6 +87,7 @@ export type AddServiceFacetSelectionInput = {
 
 export type AddServiceGroupInput = {
   costType?: InputMaybe<GroupCostType>;
+  effectiveDate: Scalars["DateTime"]["input"];
   groupId: Scalars["OID"]["input"];
   name: Scalars["String"]["input"];
   optional: Scalars["Boolean"]["input"];
@@ -117,6 +118,7 @@ export type AddServiceMetricInput = {
   accrualCycle: AccrualCycle;
   currentUsage: Scalars["Int"]["input"];
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
+  lastAccrualDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   metricId: Scalars["OID"]["input"];
   metricType: MetricType;
   name: Scalars["String"]["input"];
@@ -214,6 +216,7 @@ export type InitializeMetricInput = {
   currentUsage: Scalars["Int"]["input"];
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
   id: Scalars["OID"]["input"];
+  lastAccrualDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   metricType: MetricType;
   name: Scalars["String"]["input"];
   paidLimit?: InputMaybe<Scalars["Int"]["input"]>;
@@ -302,6 +305,7 @@ export type RemoveServiceFromGroupInput = {
 };
 
 export type RemoveServiceGroupInput = {
+  effectiveDate: Scalars["DateTime"]["input"];
   groupId: Scalars["OID"]["input"];
 };
 
@@ -325,13 +329,11 @@ export type ReportOveragePaymentInput = {
 };
 
 export type ReportRecurringPaymentInput = {
-  amount: Scalars["Amount_Money"]["input"];
   paymentDate: Scalars["DateTime"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
 
 export type ReportSetupPaymentInput = {
-  amount: Scalars["Amount_Money"]["input"];
   paymentDate: Scalars["DateTime"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
@@ -378,6 +380,7 @@ export type ServiceMetric = {
   currentUsage: Scalars["Int"]["output"];
   freeLimit: Maybe<Scalars["Int"]["output"]>;
   id: Scalars["OID"]["output"];
+  lastAccrualDate: Maybe<Scalars["DateTime"]["output"]>;
   metricType: MetricType;
   name: Scalars["String"]["output"];
   paidLimit: Maybe<Scalars["Int"]["output"]>;
@@ -480,6 +483,7 @@ export type UpdateCustomerInfoInput = {
 export type UpdateMetricInput = {
   accrualCycle?: InputMaybe<AccrualCycle>;
   freeLimit?: InputMaybe<Scalars["Int"]["input"]>;
+  lastAccrualDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   metricId: Scalars["OID"]["input"];
   metricType?: InputMaybe<MetricType>;
   name?: InputMaybe<Scalars["String"]["input"]>;
