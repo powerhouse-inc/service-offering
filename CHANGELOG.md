@@ -1,3 +1,11 @@
+# [1.0.0-dev.38](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.37...v1.0.0-dev.38) (2026-04-28)
+
+
+### Features
+
+* **billing:** tally cycle overage in state for running-tally UI ([800e7a0](https://github.com/powerhouse-inc/service-offering/commit/800e7a0ef881ee1d6892ab16e594b95d34ecc089))
+* **billing:** time-based metric accrual + simulated-clock test harness ([4441d91](https://github.com/powerhouse-inc/service-offering/commit/4441d9136028c770efd6579c8cd6005266f8f07b))
+
 # [1.0.0-dev.37](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.36...v1.0.0-dev.37) (2026-04-24)
 
 # [1.0.0-dev.36](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.35...v1.0.0-dev.36) (2026-04-24)
