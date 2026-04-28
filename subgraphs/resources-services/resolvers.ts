@@ -14,8 +14,16 @@ import {
   type PriceBreakdown,
 } from "../../document-models/service-offering/v1/src/utils.js";
 import { createAction, generateId } from "document-model/core";
-import { addFile, addFolder, driveCreateDocument } from "@powerhousedao/shared/document-drive";
-import type { DocumentDriveDocument, FileNode, Node } from "@powerhousedao/shared/document-drive";
+import {
+  addFile,
+  addFolder,
+  driveCreateDocument,
+} from "@powerhousedao/shared/document-drive";
+import type {
+  DocumentDriveDocument,
+  FileNode,
+  Node,
+} from "@powerhousedao/shared/document-drive";
 import { ResourceInstance } from "../../document-models/resource-instance/v1/module.js";
 import { SubscriptionInstance } from "../../document-models/subscription-instance/v1/module.js";
 import { mapOfferingToSubscription } from "../../editors/subscription-instance-editor/components/mapOfferingToSubscription.js";
@@ -869,35 +877,35 @@ function mapServiceOfferingState(
       pricingMode: group.pricingMode || null,
       standalonePricing: group.standalonePricing
         ? {
-            setupCost: group.standalonePricing.setupCost
-              ? {
-                  amount: group.standalonePricing.setupCost.amount,
-                  currency: group.standalonePricing.setupCost.currency,
-                  discount: mapDiscountRule(
-                    group.standalonePricing.setupCost.discount,
-                  ),
-                }
-              : null,
-            recurringPricing: (
-              group.standalonePricing.recurringPricing || []
-            ).map((rp) => ({
-              id: rp.id,
-              billingCycle: rp.billingCycle,
-              amount: rp.amount,
-              currency: rp.currency,
-              discount: mapDiscountRule(rp.discount),
-            })),
-          }
+          setupCost: group.standalonePricing.setupCost
+            ? {
+              amount: group.standalonePricing.setupCost.amount,
+              currency: group.standalonePricing.setupCost.currency,
+              discount: mapDiscountRule(
+                group.standalonePricing.setupCost.discount,
+              ),
+            }
+            : null,
+          recurringPricing: (
+            group.standalonePricing.recurringPricing || []
+          ).map((rp) => ({
+            id: rp.id,
+            billingCycle: rp.billingCycle,
+            amount: rp.amount,
+            currency: rp.currency,
+            discount: mapDiscountRule(rp.discount),
+          })),
+        }
         : null,
       tierDependentPricing: (group.tierDependentPricing || []).map((tp) => ({
         id: tp.id,
         tierId: tp.tierId,
         setupCost: tp.setupCost
           ? {
-              amount: tp.setupCost.amount,
-              currency: tp.setupCost.currency,
-              discount: mapDiscountRule(tp.setupCost.discount),
-            }
+            amount: tp.setupCost.amount,
+            currency: tp.setupCost.currency,
+            discount: mapDiscountRule(tp.setupCost.discount),
+          }
           : null,
         setupCostDiscounts: (tp.setupCostDiscounts || []).map((d) => ({
           billingCycle: d.billingCycle,
