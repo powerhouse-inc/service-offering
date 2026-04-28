@@ -67,10 +67,15 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
     );
   }
 
-  const projectedTotal = breakdown.projectedTotal;
   const currency = breakdown.currency;
-  const hasDynamicCosts = breakdown.dynamicTotal > 0;
+  // Running tally for the current billing cycle: overage already crystallized
+  // into debt by past accruals, plus the projected overage from current usage
+  // (what would be charged at the next accrual boundary).
+  const accruedThisCycle = state.currentCycleOverage ?? 0;
+  const dynamicTotal = accruedThisCycle + breakdown.dynamicTotal;
+  const hasDynamicCosts = dynamicTotal > 0;
   const hasFixedCosts = breakdown.fixedTotal > 0;
+  const projectedTotal = breakdown.fixedTotal + dynamicTotal;
   // Amount owed = totalDebt - totalCredit (D-7: raw difference, no floor)
   // Overage is only in totalDebt after settlement — don't double-count
   const amountOwed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
@@ -192,7 +197,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
           <div className="si-billing-summary__item">
             <span className="si-billing-summary__label">Dynamic *</span>
             <span className="si-billing-summary__value si-billing-summary__value--warning">
-              {formatCurrency(breakdown.dynamicTotal, currency)}
+              {formatCurrency(dynamicTotal, currency)}
             </span>
           </div>
         )}
@@ -282,7 +287,8 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
 
       {/* ─── Dynamic Costs Section — SI-R3/R5/R7 ─── */}
       {(breakdown.groupBreakdowns.some((g) => g.metricOverages.length > 0) ||
-        breakdown.standaloneOverages.length > 0) && (
+        breakdown.standaloneOverages.length > 0 ||
+        accruedThisCycle > 0) && (
         <div className="si-billing-section">
           <div className="si-billing-section-label">
             <span className="si-billing-section-label__text">
@@ -291,6 +297,16 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
           </div>
 
           <div className="si-billing-section__lines">
+            {accruedThisCycle > 0 && (
+              <div className="si-billing-line si-billing-line--overage">
+                <span className="si-billing-line__name si-billing-line__name--overage">
+                  Accrued this cycle
+                </span>
+                <span className="si-billing-line__amount si-billing-line__amount--overage">
+                  {formatCurrency(accruedThisCycle, currency)}
+                </span>
+              </div>
+            )}
             {breakdown.groupBreakdowns
               .filter((g) => g.metricOverages.length > 0)
               .map((group) => (
@@ -316,7 +332,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
               Dynamic Subtotal *
             </span>
             <span className="si-billing-section-subtotal__amount">
-              {formatCurrency(breakdown.dynamicTotal, currency)}
+              {formatCurrency(dynamicTotal, currency)}
             </span>
           </div>
         </div>
@@ -328,7 +344,7 @@ export function BillingPanel({ document, dispatch, mode }: BillingPanelProps) {
           <div className="si-billing-total__breakdown">
             <span className="si-billing-total__detail">
               Fixed {formatCurrency(breakdown.fixedTotal, currency)} + Dynamic{" "}
-              {formatCurrency(breakdown.dynamicTotal, currency)}
+              {formatCurrency(dynamicTotal, currency)}
             </span>
           </div>
         )}

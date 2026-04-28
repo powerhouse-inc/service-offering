@@ -243,6 +243,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       }
       state.totalDebt = initialDebt;
       state.totalCredit = 0;
+      state.currentCycleOverage = 0;
     },
     pauseSubscriptionOperation(state, action) {
       if (state.status !== "ACTIVE") {
@@ -339,6 +340,9 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         }
       }
 
+      // Reset the running tally — preserved through EXPIRING is now closed.
+      state.currentCycleOverage = 0;
+
       state.renewalDate = action.input.newRenewalDate || null;
     },
     setBudgetCategoryOperation(state, action) {
@@ -419,6 +423,7 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           const cost = calculateOverageCost(metric);
           if (cost > 0) {
             state.totalDebt = (state.totalDebt ?? 0) + cost;
+            state.currentCycleOverage = (state.currentCycleOverage ?? 0) + cost;
           }
           if (metric.metricType === "CUMULATIVE") {
             metric.currentUsage = 0;
@@ -457,9 +462,14 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             billingCycle,
           );
         }
+        // Reset the running tally — last cycle's dynamic charges are now
+        // part of the settled invoice. New cycle starts at zero.
+        state.currentCycleOverage = 0;
       } else {
         state.status = "EXPIRING";
         state.expiringSince = action.input.settlementDate;
+        // Preserve currentCycleOverage so the operator can see what's still
+        // owed for this final cycle.
       }
     },
   };

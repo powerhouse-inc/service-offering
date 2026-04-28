@@ -43,6 +43,7 @@ export function defaultGlobalState(): SubscriptionInstanceGlobalState {
     currentBillingCycleStart: null,
     totalDebt: null,
     totalCredit: null,
+    currentCycleOverage: null,
     services: [],
     serviceGroups: [],
   };

@@ -463,6 +463,7 @@ export type SubscriptionInstanceState = {
   tierPricingOptionId: Maybe<Scalars["OID"]["output"]>;
   totalCredit: Maybe<Scalars["Amount_Money"]["output"]>;
   totalDebt: Maybe<Scalars["Amount_Money"]["output"]>;
+  currentCycleOverage: Maybe<Scalars["Amount_Money"]["output"]>;
 };
 
 export type SubscriptionStatus =

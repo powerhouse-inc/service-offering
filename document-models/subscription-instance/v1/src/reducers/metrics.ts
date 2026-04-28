@@ -243,6 +243,9 @@ export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsO
         const cost = calculateOverageCost(metric);
         if (cost > 0) {
           state.totalDebt = (state.totalDebt ?? 0) + cost;
+          // Running tally for the current billing cycle. Settled (and
+          // zeroed) by SETTLE_BILLING_CYCLE on cycle advance.
+          state.currentCycleOverage = (state.currentCycleOverage ?? 0) + cost;
         }
         if (metric.metricType === "CUMULATIVE") {
           metric.currentUsage = 0;

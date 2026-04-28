@@ -50,6 +50,7 @@ type SubscriptionInstanceState {
     currentBillingCycleStart: DateTime
     totalDebt: Amount_Money
     totalCredit: Amount_Money
+    currentCycleOverage: Amount_Money
     services: [Service!]!
     serviceGroups: [ServiceGroup!]!
 }

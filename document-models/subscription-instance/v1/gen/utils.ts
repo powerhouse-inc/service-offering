@@ -51,6 +51,7 @@ export const initialGlobalState: SubscriptionInstanceGlobalState = {
   currentBillingCycleStart: null,
   totalDebt: null,
   totalCredit: null,
+  currentCycleOverage: null,
   services: [],
   serviceGroups: [],
 };

@@ -690,6 +690,7 @@ export function SubscriptionInstanceStateSchema(): z.ZodObject<
     tierPricingOptionId: z.string().nullish(),
     totalCredit: z.number().nullish(),
     totalDebt: z.number().nullish(),
+    currentCycleOverage: z.number().nullish(),
   });
 }
 
