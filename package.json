@@ -75,9 +75,7 @@
   },
   "dependencies": {
     "@powerhousedao/analytics-engine-core": "6.0.0-dev.164",
-    "@powerhousedao/builder-profile": "1.1.0-dev.19",
     "@powerhousedao/connect": "6.0.0-dev.164",
-    "@powerhousedao/contributor-billing": "1.0.0-dev.33",
     "@powerhousedao/design-system": "6.0.0-dev.164",
     "@powerhousedao/document-engineering": "1.40.1",
     "@powerhousedao/reactor-browser": "6.0.0-dev.164",
