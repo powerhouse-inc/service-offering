@@ -1,0 +1,31 @@
+Create a 16:9 editorial hero image in the Powerhouse house style (see below).
+
+
+
+SUBJECT: A single translucent obsidian cube floating in the center of the frame, its six faces composed of thin glass planes layered like a ship's bulkheads. Inside the cube, four nested smaller cubes hover at staggered depths — each glowing softly from within, like compartments of a sealed vessel ready for a crew to inhabit. A single seam of light runs along one edge where the cube has been "opened" for the team to step inside.
+
+
+
+METAPHOR: A turnkey operational shell — already wired, already structured, waiting for builders to occupy it.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#04dbea"   # bright cyan — dominant glow inside the cube
+
+  secondary: "#1cddc9" # tealmint — edge highlights
+
+  hairline: "#0daae6"  # the horizontal glow line
+
+
+
+CANVAS: dark base #0b0b0a → #14151a vertical gradient, deep navy #131626 undertone in lower third, 1px grid hairlines at 15% opacity, subtle film grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal office, no contracts.
+
+
+
+POWERHOUSE HOUSE STYLE: editorial dark canvas, single architectural hero motif, internal-luminescence lighting, sovereign-infrastructure aesthetic — not corporate SaaS, not friendly cartoon.
