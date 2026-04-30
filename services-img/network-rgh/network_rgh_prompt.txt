@@ -1,0 +1,33 @@
+Create a 169 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT A central translucent purple node from which six precision conduits radiate outward to the edges of the frame, each conduit carrying a thin signal-green pulse traveling away from the node. The node itself is a beveled prism — calm, dense, structural — while the conduits are alive with directional flow. The radial geometry is exact and architectural, not organic. The frame edges fade to black before the conduits terminate, suggesting the network extends beyond view.
+
+
+
+METAPHOR A commercial throughput hub at the center of a network — collecting, then distributing.
+
+
+
+ACCENT_PALETTE
+
+  primary #793bff   # electric purple — central node
+
+  secondary #0285ff # vivid blue — conduit cores
+
+  flow #07c262      # signal green — the pulses traveling outward
+
+  hairline #0285ff  # blue — horizontal glow line
+
+
+
+CANVAS #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT 169. No text. No people. No literal money, no charts.
+
+
+
+POWERHOUSE HOUSE STYLE dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
