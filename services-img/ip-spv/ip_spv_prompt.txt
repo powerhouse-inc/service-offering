@@ -1,0 +1,31 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single faceted crystalline shard suspended inside a transparent isolation chamber — a thin geometric vault of beveled glass panes. The crystal is sharp-edged, refractive, holds its own internal light. A narrow electric-purple beam enters the chamber from above and is captured by the crystal; nothing escapes. The vault floats in dead-center isolation with no support structure visible.
+
+
+
+METAPHOR: A clean, isolated home for a project's intellectual property — sealed, refractive, sovereign.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#793bff"   # electric purple — the captured beam and crystal core
+
+  secondary: "#a538d1" # magenta — refraction edges
+
+  hairline: "#0285ff"  # vivid blue — the horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal patents, no documents.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural motif, internal luminescence, sovereign-infrastructure register.
