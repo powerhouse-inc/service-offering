@@ -1,0 +1,33 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single forward-facing blue prism shaped like a portal or storefront aperture — wide and flat, oriented toward the viewer. Behind it, separated by a clear vertical seam of negative space, sits a darker secondary mass barely visible against the canvas — the back-office, the rest of the org, deliberately recessed. A thin magenta isolation-line runs vertically along the seam, marking the legal boundary between front and back. The prism glows outward toward the camera; nothing flows backward across the seam.
+
+
+
+METAPHOR: The customer-facing surface, isolated from everything behind it.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#0285ff"   # vivid blue — front prism glow
+
+  secondary: "#0daae6" # sky-cyan — outer prism edges
+
+  isolation: "#a538d1" # magenta — the vertical boundary line
+
+  hairline: "#0285ff"  # blue — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal storefront, no checkout.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
