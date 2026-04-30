@@ -1,0 +1,33 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single inverted glass funnel-form floating in the center, its wide mouth open upward catching luminous blue droplets descending from above the frame. The funnel narrows to a precise lower aperture from which a single coherent beam exits downward, splitting into multiple slim parallel beams that fan toward the lower edge of the frame. The form is minimal, geometric, like a piece of laboratory glass at architectural scale.
+
+
+
+METAPHOR: Capital gathered through one purpose-built aperture, then distributed cleanly.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#0285ff"   # vivid blue — droplets and exit beam
+
+  secondary: "#0daae6" # sky-cyan — funnel inner glow
+
+  accent: "#793bff"    # electric purple — outermost fan-out beams
+
+  hairline: "#0285ff"  # blue — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal coins, no currency symbols.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
