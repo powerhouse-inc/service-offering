@@ -1,0 +1,33 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single small luminous sphere — an autonomous agent — floating inside a thin spherical containment lattice. The lattice is a cage of fine cyan filaments forming a geodesic shell around the agent at exact mathematical distance. Concentric pulse-rings ripple outward from the agent and dissipate against the lattice — actions emitted, monitored, contained. One filament at the equator glows brighter than the others — the liability boundary.
+
+
+
+METAPHOR: An AI operator wrapped in legal containment — formed, monitored, insured.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#0daae6"   # bright sky-cyan — the agent core
+
+  secondary: "#04dbea" # cyan — lattice filaments
+
+  warning: "#a538d1"   # magenta — the bright equator-filament marking the liability ring
+
+  hairline: "#1cddc9"  # tealmint — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal robot, no humanoid AI.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
