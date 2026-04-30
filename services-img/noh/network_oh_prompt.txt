@@ -1,0 +1,33 @@
+vCreate a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single rectilinear lattice grid in three-quarter perspective, floating at the center of the frame — a procurement matrix of blue cells arranged in a precise 6×4 layout. A handful of cells are lit brighter than the others (active contributors, active orders), connected to one another by thin purple routing lines that travel along the grid's edges, never diagonally — like a circuit board for coordination. The grid is calm, structural, and clearly operational rather than organic.
+
+
+
+METAPHOR: A coordination matrix — addresses, routes, throughput — for an active network's contributors and procurement.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#0285ff"   # vivid blue — grid cells
+
+  active: "#0daae6"    # sky-cyan — the brighter active cells
+
+  routing: "#793bff"   # electric purple — routing lines
+
+  hairline: "#0285ff"  # blue — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal warehouse, no logistics photography.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
