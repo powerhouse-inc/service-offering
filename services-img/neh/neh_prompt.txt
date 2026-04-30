@@ -1,0 +1,33 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single small luminous purple seed-form at the geometric center of the frame, surrounded by faint, just-forming filament-connections reaching outward — most fade to nothing before they complete, a few connect to barely-rendered ghost-nodes near the edges. The composition is mostly empty canvas; the hub itself is unmistakably small relative to the frame. The seed is dense, intentional, ready to grow — but the network around it is still arriving.
+
+
+
+METAPHOR: A coordination point that exists before the network it will host.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#793bff"   # electric purple — the seed core
+
+  secondary: "#0285ff" # vivid blue — emerging filaments
+
+  ghost: "#b5b5b5"     # neutral grey — the unrendered ghost-nodes
+
+  hairline: "#793bff"  # purple — horizontal glow line, very low intensity
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain. Generous emptiness.
+
+
+
+ASPECT: 16:9. No text. No people. No literal sprouts, no plant imagery.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register — composition deliberately quieter than other tiles.
