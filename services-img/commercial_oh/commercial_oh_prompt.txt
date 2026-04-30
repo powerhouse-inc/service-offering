@@ -1,0 +1,31 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single monolithic tower-form built from stacked translucent cyan slabs, each slab slightly offset like a ledger in cross-section. The lowest slab radiates a thin signal-green pulse outward across the canvas — money becoming motion. The upper slabs are calm and structural; the lower slab is where commerce happens. A single vertical light-channel runs through the center axis of the tower, suggesting current flowing top-to-bottom.
+
+
+
+METAPHOR: One coherent commercial entity — engineering, product, and revenue stacked into a single legal column.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#04d9eb"   # cyan — structural slab glow
+
+  secondary: "#07c262" # signal green — the revenue pulse at the base
+
+  hairline: "#1cddc9"  # tealmint — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone in lower third, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal storefront, no money.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
