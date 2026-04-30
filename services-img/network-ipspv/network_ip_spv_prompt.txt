@@ -1,0 +1,33 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A central faceted purple crystal — identical in language to the IP SPV crystal — but here surrounded by a thin orbiting ring of six smaller satellite crystals at uniform angular spacing, each connected to the center by a single hairline beam. The central crystal is the licensable core; the satellites are the network members holding refracted access. The whole assembly floats in isolation with no ground plane.
+
+
+
+METAPHOR: A licensing core for a network — one IP source, many sanctioned outlets.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#793bff"   # electric purple — central crystal
+
+  secondary: "#a538d1" # magenta — satellite crystal cores
+
+  link: "#0285ff"      # vivid blue — hairline beams
+
+  hairline: "#0285ff"  # blue — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal trademarks, no documents.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
