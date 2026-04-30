@@ -1,0 +1,33 @@
+Create a 16:9 editorial hero image in the Powerhouse house style.
+
+
+
+SUBJECT: A single ring-form composed of programmable cells — a hollow torus made of small cubic segments, each segment subtly different in luminance, like addressable pixels arranged in a circle. A magenta arc travels around the ring at variable speed, hitting some cells and leaving others dark — a parametric flow rather than uniform light. At the ring's center, a single signal-green node holds steady, the protected core that the ring surrounds. The ring is precise, mechanical, programmable — not organic.
+
+
+
+METAPHOR: Risk routed and rebalanced cell-by-cell around a protected core.
+
+
+
+ACCENT_PALETTE:
+
+  primary: "#793bff"   # electric purple — ring base luminance
+
+  secondary: "#a538d1" # magenta — the traveling arc
+
+  protected: "#07c262" # signal green — central node
+
+  hairline: "#793bff"  # purple — horizontal glow line
+
+
+
+CANVAS: #0b0b0a → #14151a, navy #131626 undertone, 1px hairline grid at 15%, fine grain.
+
+
+
+ASPECT: 16:9. No text. No people. No literal shields, no insurance icons.
+
+
+
+POWERHOUSE HOUSE STYLE: dark editorial, single architectural hero, internal luminescence, sovereign-infrastructure register.
