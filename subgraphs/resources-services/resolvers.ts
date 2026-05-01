@@ -542,10 +542,16 @@ export const getResolvers = (
 
           // add reactor-level relationships so Connect syncs the child documents
           // (createEmpty guarantees CREATE_DOCUMENT is persisted before this runs)
-          await reactorClient.addChildren(operatorDrive.header.id, [
+          await reactorClient.addRelationship(
+            operatorDrive.header.id,
             resourceInstanceDoc.header.id,
+            "child",
+          );
+          await reactorClient.addRelationship(
+            operatorDrive.header.id,
             subscriptionInstanceDoc.header.id,
-          ]);
+            "child",
+          );
 
           // add team folder and file references to operator drive
           await reactorClient.execute(operatorDrive.header.id, "main", [
@@ -877,35 +883,35 @@ function mapServiceOfferingState(
       pricingMode: group.pricingMode || null,
       standalonePricing: group.standalonePricing
         ? {
-          setupCost: group.standalonePricing.setupCost
-            ? {
-              amount: group.standalonePricing.setupCost.amount,
-              currency: group.standalonePricing.setupCost.currency,
-              discount: mapDiscountRule(
-                group.standalonePricing.setupCost.discount,
-              ),
-            }
-            : null,
-          recurringPricing: (
-            group.standalonePricing.recurringPricing || []
-          ).map((rp) => ({
-            id: rp.id,
-            billingCycle: rp.billingCycle,
-            amount: rp.amount,
-            currency: rp.currency,
-            discount: mapDiscountRule(rp.discount),
-          })),
-        }
+            setupCost: group.standalonePricing.setupCost
+              ? {
+                  amount: group.standalonePricing.setupCost.amount,
+                  currency: group.standalonePricing.setupCost.currency,
+                  discount: mapDiscountRule(
+                    group.standalonePricing.setupCost.discount,
+                  ),
+                }
+              : null,
+            recurringPricing: (
+              group.standalonePricing.recurringPricing || []
+            ).map((rp) => ({
+              id: rp.id,
+              billingCycle: rp.billingCycle,
+              amount: rp.amount,
+              currency: rp.currency,
+              discount: mapDiscountRule(rp.discount),
+            })),
+          }
         : null,
       tierDependentPricing: (group.tierDependentPricing || []).map((tp) => ({
         id: tp.id,
         tierId: tp.tierId,
         setupCost: tp.setupCost
           ? {
-            amount: tp.setupCost.amount,
-            currency: tp.setupCost.currency,
-            discount: mapDiscountRule(tp.setupCost.discount),
-          }
+              amount: tp.setupCost.amount,
+              currency: tp.setupCost.currency,
+              discount: mapDiscountRule(tp.setupCost.discount),
+            }
           : null,
         setupCostDiscounts: (tp.setupCostDiscounts || []).map((d) => ({
           billingCycle: d.billingCycle,
@@ -1059,8 +1065,9 @@ async function getOperatorDrive(
 
     const driveDoc = drive as DocumentDriveDocument;
     // Check if this drive contains the resource template as a child
-    const { results: children } = await reactorClient.getChildren(
+    const { results: children } = await reactorClient.getOutgoingRelationships(
       driveDoc.header.id,
+      "child",
     );
     const hasTemplate = children.some(
       (child: PHDocument) => child.header.id === resourceTemplateId,
