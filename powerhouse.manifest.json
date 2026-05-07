@@ -26,6 +26,10 @@
         {
             "id": "powerhouse/subscription-instance",
             "name": "SubscriptionInstance"
+        },
+        {
+            "id": "powerhouse/invoice",
+            "name": "Invoice"
         }
     ],
     "editors": [
@@ -55,6 +59,13 @@
             "name": "Subscription Instance Editor",
             "documentTypes": [
                 "powerhouse/subscription-instance"
+            ]
+        },
+        {
+            "id": "invoice-editor",
+            "name": "invoice-editor",
+            "documentTypes": [
+                "powerhouse/invoice"
             ]
         }
     ],

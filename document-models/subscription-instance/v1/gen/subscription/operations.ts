@@ -8,14 +8,12 @@ import type {
   CancelSubscriptionAction,
   ResumeSubscriptionAction,
   RenewExpiringSubscriptionAction,
-  SetBudgetCategoryAction,
-  RemoveBudgetCategoryAction,
   UpdateCustomerInfoAction,
   UpdateTierInfoAction,
   SetOperatorNotesAction,
   SetAutoRenewAction,
-  SetRenewalDateAction,
-  SettleBillingCycleAction,
+  GenerateInvoiceAction,
+  ChangePlanAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -60,16 +58,6 @@ export interface SubscriptionInstanceSubscriptionOperations {
     action: RenewExpiringSubscriptionAction,
     dispatch?: SignalDispatch,
   ) => void;
-  setBudgetCategoryOperation: (
-    state: SubscriptionInstanceState,
-    action: SetBudgetCategoryAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  removeBudgetCategoryOperation: (
-    state: SubscriptionInstanceState,
-    action: RemoveBudgetCategoryAction,
-    dispatch?: SignalDispatch,
-  ) => void;
   updateCustomerInfoOperation: (
     state: SubscriptionInstanceState,
     action: UpdateCustomerInfoAction,
@@ -90,14 +78,14 @@ export interface SubscriptionInstanceSubscriptionOperations {
     action: SetAutoRenewAction,
     dispatch?: SignalDispatch,
   ) => void;
-  setRenewalDateOperation: (
+  generateInvoiceOperation: (
     state: SubscriptionInstanceState,
-    action: SetRenewalDateAction,
+    action: GenerateInvoiceAction,
     dispatch?: SignalDispatch,
   ) => void;
-  settleBillingCycleOperation: (
+  changePlanOperation: (
     state: SubscriptionInstanceState,
-    action: SettleBillingCycleAction,
+    action: ChangePlanAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

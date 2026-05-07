@@ -4,36 +4,27 @@ import {
   RemoveServiceInputSchema,
   UpdateServiceSetupCostInputSchema,
   UpdateServiceRecurringCostInputSchema,
-  ReportSetupPaymentInputSchema,
-  ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
-  ReportOveragePaymentInputSchema,
 } from "../schema/zod.js";
 import type {
   AddServiceInput,
   RemoveServiceInput,
   UpdateServiceSetupCostInput,
   UpdateServiceRecurringCostInput,
-  ReportSetupPaymentInput,
-  ReportRecurringPaymentInput,
   UpdateServiceInfoInput,
   AddServiceFacetSelectionInput,
   RemoveServiceFacetSelectionInput,
-  ReportOveragePaymentInput,
 } from "../types.js";
 import type {
   AddServiceAction,
   RemoveServiceAction,
   UpdateServiceSetupCostAction,
   UpdateServiceRecurringCostAction,
-  ReportSetupPaymentAction,
-  ReportRecurringPaymentAction,
   UpdateServiceInfoAction,
   AddServiceFacetSelectionAction,
   RemoveServiceFacetSelectionAction,
-  ReportOveragePaymentAction,
 } from "./actions.js";
 
 export const addService = (input: AddServiceInput) =>
@@ -74,24 +65,6 @@ export const updateServiceRecurringCost = (
     "global",
   );
 
-export const reportSetupPayment = (input: ReportSetupPaymentInput) =>
-  createAction<ReportSetupPaymentAction>(
-    "REPORT_SETUP_PAYMENT",
-    { ...input },
-    undefined,
-    ReportSetupPaymentInputSchema,
-    "global",
-  );
-
-export const reportRecurringPayment = (input: ReportRecurringPaymentInput) =>
-  createAction<ReportRecurringPaymentAction>(
-    "REPORT_RECURRING_PAYMENT",
-    { ...input },
-    undefined,
-    ReportRecurringPaymentInputSchema,
-    "global",
-  );
-
 export const updateServiceInfo = (input: UpdateServiceInfoInput) =>
   createAction<UpdateServiceInfoAction>(
     "UPDATE_SERVICE_INFO",
@@ -120,14 +93,5 @@ export const removeServiceFacetSelection = (
     { ...input },
     undefined,
     RemoveServiceFacetSelectionInputSchema,
-    "global",
-  );
-
-export const reportOveragePayment = (input: ReportOveragePaymentInput) =>
-  createAction<ReportOveragePaymentAction>(
-    "REPORT_OVERAGE_PAYMENT",
-    { ...input },
-    undefined,
-    ReportOveragePaymentInputSchema,
     "global",
   );

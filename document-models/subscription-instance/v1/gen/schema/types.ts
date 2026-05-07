@@ -71,11 +71,20 @@ export type AccrualCycle =
 export type AccrueMetricUsageInput = {
   accrualDate: Scalars["DateTime"]["input"];
   metricId: Scalars["OID"]["input"];
+  newSliceIds: Array<Scalars["OID"]["input"]>;
   serviceId: Scalars["OID"]["input"];
+};
+
+export type ActivateSliceIdMappingInput = {
+  sliceId: Scalars["OID"]["input"];
+  sourceId: Scalars["OID"]["input"];
+  sourceName?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 export type ActivateSubscriptionInput = {
   activatedSince: Scalars["DateTime"]["input"];
+  recurringSliceIds: Array<ActivateSliceIdMappingInput>;
+  setupSliceIds: Array<ActivateSliceIdMappingInput>;
 };
 
 export type AddServiceFacetSelectionInput = {
@@ -95,8 +104,10 @@ export type AddServiceGroupInput = {
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   recurringDiscount?: InputMaybe<DiscountServiceInfoInput>;
+  recurringSliceId: Scalars["OID"]["input"];
   setupAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   setupCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
+  setupSliceId: Scalars["OID"]["input"];
 };
 
 export type AddServiceInput = {
@@ -107,11 +118,9 @@ export type AddServiceInput = {
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
   recurringDiscount?: InputMaybe<DiscountServiceInfoInput>;
-  recurringLastPaymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   serviceId: Scalars["OID"]["input"];
   setupAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   setupCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  setupPaymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
 };
 
 export type AddServiceMetricInput = {
@@ -138,11 +147,17 @@ export type AddServiceToGroupInput = {
   recurringAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   recurringBillingCycle?: InputMaybe<BillingCycle>;
   recurringCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  recurringLastPaymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   serviceId: Scalars["OID"]["input"];
   setupAmount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   setupCurrency?: InputMaybe<Scalars["Currency"]["input"]>;
-  setupPaymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
+};
+
+export type ApplyCreditInput = {
+  amount: Scalars["Amount_Money"]["input"];
+  creditDate: Scalars["DateTime"]["input"];
+  /** When provided, allocates credit against a single specific debt line item; otherwise FIFO+priority across all collectible outstanding slices. */
+  lineItemId?: InputMaybe<Scalars["OID"]["input"]>;
+  reason: Scalars["String"]["input"];
 };
 
 export type BillingCycle =
@@ -152,22 +167,73 @@ export type BillingCycle =
   | "QUARTERLY"
   | "SEMI_ANNUAL";
 
-export type BudgetCategory = {
-  id: Scalars["OID"]["output"];
-  label: Scalars["String"]["output"];
-};
-
 export type CancelSubscriptionInput = {
   cancellationReason?: InputMaybe<Scalars["String"]["input"]>;
   cancelledSince: Scalars["DateTime"]["input"];
+  refundSliceIds: Array<RenewSliceIdMappingInput>;
+};
+
+export type ChangePlanInput = {
+  creditLineItemId: Scalars["OID"]["input"];
+  debitLineItemId: Scalars["OID"]["input"];
+  effectiveDate: Scalars["DateTime"]["input"];
+  newBillingCycle?: InputMaybe<BillingCycle>;
+  newTierCurrency: Scalars["Currency"]["input"];
+  newTierName?: InputMaybe<Scalars["String"]["input"]>;
+  newTierPrice: Scalars["Amount_Money"]["input"];
+  newTierPricingOptionId: Scalars["OID"]["input"];
+};
+
+export type ConfirmLineItemPaymentInput = {
+  amount: Scalars["Amount_Money"]["input"];
+  lineItemId: Scalars["OID"]["input"];
+  paymentDate: Scalars["DateTime"]["input"];
+  paymentRef?: InputMaybe<Scalars["PHID"]["input"]>;
 };
 
 export type CustomerType = "INDIVIDUAL" | "TEAM";
+
+export type DebtLineItem = {
+  accrualPeriodStart: Maybe<Scalars["DateTime"]["output"]>;
+  chargedAt: Scalars["DateTime"]["output"];
+  /** Portion of `settledAmount` that came from APPLY_CREDIT (vs cash payment). Cumulative. */
+  creditApplied: Scalars["Amount_Money"]["output"];
+  currency: Scalars["Currency"]["output"];
+  debitAmount: Scalars["Amount_Money"]["output"];
+  description: Maybe<Scalars["String"]["output"]>;
+  frozen: Scalars["Boolean"]["output"];
+  fullyPaidAt: Maybe<Scalars["DateTime"]["output"]>;
+  id: Scalars["OID"]["output"];
+  invoiceRef: Maybe<Scalars["PHID"]["output"]>;
+  invoiced: Scalars["Boolean"]["output"];
+  invoicedAt: Maybe<Scalars["DateTime"]["output"]>;
+  lastPaymentRef: Maybe<Scalars["PHID"]["output"]>;
+  origin: DebtOriginType;
+  settledAmount: Scalars["Amount_Money"]["output"];
+  sourceGroupId: Maybe<Scalars["OID"]["output"]>;
+  sourceMetricId: Maybe<Scalars["OID"]["output"]>;
+  sourceServiceId: Maybe<Scalars["OID"]["output"]>;
+  status: DebtLineItemStatus;
+};
+
+export type DebtLineItemStatus =
+  | "CHARGED"
+  | "FULLY_PAID"
+  | "INVOICED"
+  | "PARTIALLY_PAID";
+
+export type DebtOriginType =
+  | "DYNAMIC"
+  | "ESTIMATED_USAGE"
+  | "RECONCILIATION"
+  | "SETUP"
+  | "SUBSCRIPTION_FEE";
 
 export type DecrementMetricUsageInput = {
   currentTime: Scalars["DateTime"]["input"];
   decrementBy: Scalars["Int"]["input"];
   metricId: Scalars["OID"]["input"];
+  newSliceId: Scalars["OID"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
 
@@ -202,6 +268,7 @@ export type IncrementMetricUsageInput = {
   currentTime: Scalars["DateTime"]["input"];
   incrementBy: Scalars["Int"]["input"];
   metricId: Scalars["OID"]["input"];
+  newSliceId: Scalars["OID"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
 
@@ -276,6 +343,12 @@ export type InitializeSubscriptionInput = {
   tierPricingOptionId?: InputMaybe<Scalars["OID"]["input"]>;
 };
 
+export type MarkLineItemInvoicedInput = {
+  invoiceRef?: InputMaybe<Scalars["PHID"]["input"]>;
+  invoicedAt: Scalars["DateTime"]["input"];
+  lineItemId: Scalars["OID"]["input"];
+};
+
 export type MetricType = "CUMULATIVE" | "NON_CUMULATIVE";
 
 export type PauseSubscriptionInput = {
@@ -287,11 +360,6 @@ export type RecurringCost = {
   billingCycle: BillingCycle;
   currency: Scalars["Currency"]["output"];
   discount: Maybe<DiscountInfo>;
-  lastPaymentDate: Maybe<Scalars["DateTime"]["output"]>;
-};
-
-export type RemoveBudgetCategoryInput = {
-  budgetId: Scalars["OID"]["input"];
 };
 
 export type RemoveServiceFacetSelectionInput = {
@@ -305,6 +373,7 @@ export type RemoveServiceFromGroupInput = {
 };
 
 export type RemoveServiceGroupInput = {
+  creditSliceId: Scalars["OID"]["input"];
   effectiveDate: Scalars["DateTime"]["input"];
   groupId: Scalars["OID"]["input"];
 };
@@ -319,23 +388,20 @@ export type RemoveServiceMetricInput = {
 };
 
 export type RenewExpiringSubscriptionInput = {
-  newRenewalDate?: InputMaybe<Scalars["DateTime"]["input"]>;
+  recurringSliceIds: Array<RenewSliceIdMappingInput>;
   timestamp: Scalars["DateTime"]["input"];
 };
 
-export type ReportOveragePaymentInput = {
+export type RenewSliceIdMappingInput = {
+  sliceId: Scalars["OID"]["input"];
+  sourceId: Scalars["OID"]["input"];
+  sourceName?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+export type ReportPaymentInput = {
   amount: Scalars["Amount_Money"]["input"];
   paymentDate: Scalars["DateTime"]["input"];
-};
-
-export type ReportRecurringPaymentInput = {
-  paymentDate: Scalars["DateTime"]["input"];
-  serviceId: Scalars["OID"]["input"];
-};
-
-export type ReportSetupPaymentInput = {
-  paymentDate: Scalars["DateTime"]["input"];
-  serviceId: Scalars["OID"]["input"];
+  paymentRef?: InputMaybe<Scalars["PHID"]["input"]>;
 };
 
 export type ResourceDocument = {
@@ -392,11 +458,6 @@ export type SetAutoRenewInput = {
   autoRenew: Scalars["Boolean"]["input"];
 };
 
-export type SetBudgetCategoryInput = {
-  budgetId: Scalars["OID"]["input"];
-  budgetLabel: Scalars["String"]["input"];
-};
-
 export type SetCustomerTypeInput = {
   customerType: CustomerType;
   teamMemberCount?: InputMaybe<Scalars["Int"]["input"]>;
@@ -410,45 +471,54 @@ export type SetOperatorNotesInput = {
   operatorNotes?: InputMaybe<Scalars["String"]["input"]>;
 };
 
-export type SetRenewalDateInput = {
-  renewalDate: Scalars["DateTime"]["input"];
-};
-
 export type SetResourceDocumentInput = {
   resourceId: Scalars["PHID"]["input"];
   resourceLabel?: InputMaybe<Scalars["String"]["input"]>;
   resourceThumbnailUrl?: InputMaybe<Scalars["URL"]["input"]>;
 };
 
-export type SettleBillingCycleInput = {
-  settlementDate: Scalars["DateTime"]["input"];
+export type GenerateInvoiceInput = {
+  /** When true and currentTime >= nextBillingDate, advances the cycle and emits next-cycle slices. */
+  advanceCycleIfDue?: InputMaybe<Scalars["Boolean"]["input"]>;
+  generatedAt: Scalars["DateTime"]["input"];
+  /** Pre-generated invoice document ID to stamp on every swept slice. */
+  invoiceId: Scalars["PHID"]["input"];
+  /** Pre-generated frozen-slice IDs for any live DYNAMIC slices that need crystallising at the accrual boundary. */
+  metricFreezeSliceIds: Array<SettleSliceIdMappingInput>;
+  /** Pre-generated SUBSCRIPTION_FEE slice IDs for the next cycle (only used when cycle actually advances). */
+  nextCycleRecurringSliceIds: Array<SettleSliceIdMappingInput>;
+};
+
+export type SettleSliceIdMappingInput = {
+  sliceId: Scalars["OID"]["input"];
+  sourceId: Scalars["OID"]["input"];
+  sourceName?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 export type SetupCost = {
   amount: Scalars["Amount_Money"]["output"];
   currency: Scalars["Currency"]["output"];
-  paymentDate: Maybe<Scalars["DateTime"]["output"]>;
 };
 
 export type SubscriptionInstanceState = {
   activatedSince: Maybe<Scalars["DateTime"]["output"]>;
   autoRenew: Scalars["Boolean"]["output"];
-  budget: Maybe<BudgetCategory>;
   cancellationReason: Maybe<Scalars["String"]["output"]>;
   cancelledSince: Maybe<Scalars["DateTime"]["output"]>;
   createdAt: Maybe<Scalars["DateTime"]["output"]>;
   currentBillingCycleStart: Maybe<Scalars["DateTime"]["output"]>;
+  currentCycleOverage: Maybe<Scalars["Amount_Money"]["output"]>;
   customerEmail: Maybe<Scalars["EmailAddress"]["output"]>;
   customerId: Maybe<Scalars["PHID"]["output"]>;
   customerName: Maybe<Scalars["String"]["output"]>;
   customerType: Maybe<CustomerType>;
+  debtLineItems: Array<DebtLineItem>;
   expiringSince: Maybe<Scalars["DateTime"]["output"]>;
   globalCurrency: Maybe<Scalars["Currency"]["output"]>;
   nextBillingDate: Maybe<Scalars["DateTime"]["output"]>;
   operatorId: Maybe<Scalars["PHID"]["output"]>;
   operatorNotes: Maybe<Scalars["String"]["output"]>;
   pausedSince: Maybe<Scalars["DateTime"]["output"]>;
-  renewalDate: Maybe<Scalars["DateTime"]["output"]>;
   resource: Maybe<ResourceDocument>;
   selectedBillingCycle: Maybe<BillingCycle>;
   serviceGroups: Array<ServiceGroup>;
@@ -463,7 +533,6 @@ export type SubscriptionInstanceState = {
   tierPricingOptionId: Maybe<Scalars["OID"]["output"]>;
   totalCredit: Maybe<Scalars["Amount_Money"]["output"]>;
   totalDebt: Maybe<Scalars["Amount_Money"]["output"]>;
-  currentCycleOverage: Maybe<Scalars["Amount_Money"]["output"]>;
 };
 
 export type SubscriptionStatus =
@@ -498,6 +567,7 @@ export type UpdateMetricUsageInput = {
   currentUsage: Scalars["Int"]["input"];
   isAdjustment?: InputMaybe<Scalars["Boolean"]["input"]>;
   metricId: Scalars["OID"]["input"];
+  newSliceId: Scalars["OID"]["input"];
   serviceId: Scalars["OID"]["input"];
 };
 
@@ -521,7 +591,6 @@ export type UpdateServiceRecurringCostInput = {
   amount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   billingCycle?: InputMaybe<BillingCycle>;
   currency?: InputMaybe<Scalars["Currency"]["input"]>;
-  lastPaymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   nextBillingDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   serviceId: Scalars["OID"]["input"];
 };
@@ -529,7 +598,6 @@ export type UpdateServiceRecurringCostInput = {
 export type UpdateServiceSetupCostInput = {
   amount?: InputMaybe<Scalars["Amount_Money"]["input"]>;
   currency?: InputMaybe<Scalars["Currency"]["input"]>;
-  paymentDate?: InputMaybe<Scalars["DateTime"]["input"]>;
   serviceId: Scalars["OID"]["input"];
 };
 

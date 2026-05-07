@@ -12,13 +12,10 @@ import {
   cancelSubscription,
   resumeSubscription,
   renewExpiringSubscription,
-  setBudgetCategory,
-  removeBudgetCategory,
   updateCustomerInfo,
   updateTierInfo,
   setOperatorNotes,
   setAutoRenew,
-  setRenewalDate,
   InitializeSubscriptionInputSchema,
   SetResourceDocumentInputSchema,
   ActivateSubscriptionInputSchema,
@@ -27,15 +24,14 @@ import {
   CancelSubscriptionInputSchema,
   ResumeSubscriptionInputSchema,
   RenewExpiringSubscriptionInputSchema,
-  SetBudgetCategoryInputSchema,
-  RemoveBudgetCategoryInputSchema,
   UpdateCustomerInfoInputSchema,
   UpdateTierInfoInputSchema,
   SetOperatorNotesInputSchema,
   SetAutoRenewInputSchema,
-  SetRenewalDateInputSchema,
-  settleBillingCycle,
-  SettleBillingCycleInputSchema,
+  generateInvoice,
+  GenerateInvoiceInputSchema,
+  changePlan,
+  ChangePlanInputSchema,
 } from "document-models/subscription-instance/v1";
 
 describe("SubscriptionOperations", () => {
@@ -175,40 +171,6 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global[0].index).toEqual(0);
   });
 
-  it("should handle setBudgetCategory operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(SetBudgetCategoryInputSchema());
-
-    const updatedDocument = reducer(document, setBudgetCategory(input));
-
-    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SET_BUDGET_CATEGORY",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
-  it("should handle removeBudgetCategory operation", () => {
-    const document = utils.createDocument();
-    const input = generateMock(RemoveBudgetCategoryInputSchema());
-
-    const updatedDocument = reducer(document, removeBudgetCategory(input));
-
-    expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
-    expect(updatedDocument.operations.global).toHaveLength(1);
-    expect(updatedDocument.operations.global[0].action.type).toBe(
-      "REMOVE_BUDGET_CATEGORY",
-    );
-    expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
-      input,
-    );
-    expect(updatedDocument.operations.global[0].index).toEqual(0);
-  });
-
   it("should handle updateCustomerInfo operation", () => {
     const document = utils.createDocument();
     const input = generateMock(UpdateCustomerInfoInputSchema());
@@ -277,16 +239,16 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global[0].index).toEqual(0);
   });
 
-  it("should handle setRenewalDate operation", () => {
+  it("should handle generateInvoice operation", () => {
     const document = utils.createDocument();
-    const input = generateMock(SetRenewalDateInputSchema());
+    const input = generateMock(GenerateInvoiceInputSchema());
 
-    const updatedDocument = reducer(document, setRenewalDate(input));
+    const updatedDocument = reducer(document, generateInvoice(input));
 
     expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SET_RENEWAL_DATE",
+      "GENERATE_INVOICE",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,
@@ -294,16 +256,16 @@ describe("SubscriptionOperations", () => {
     expect(updatedDocument.operations.global[0].index).toEqual(0);
   });
 
-  it("should handle settleBillingCycle operation", () => {
+  it("should handle changePlan operation", () => {
     const document = utils.createDocument();
-    const input = generateMock(SettleBillingCycleInputSchema());
+    const input = generateMock(ChangePlanInputSchema());
 
-    const updatedDocument = reducer(document, settleBillingCycle(input));
+    const updatedDocument = reducer(document, changePlan(input));
 
     expect(isSubscriptionInstanceDocument(updatedDocument)).toBe(true);
     expect(updatedDocument.operations.global).toHaveLength(1);
     expect(updatedDocument.operations.global[0].action.type).toBe(
-      "SETTLE_BILLING_CYCLE",
+      "CHANGE_PLAN",
     );
     expect(updatedDocument.operations.global[0].action.input).toStrictEqual(
       input,

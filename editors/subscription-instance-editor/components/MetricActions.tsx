@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { generateId } from "document-model";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type { SubscriptionInstanceAction } from "document-models/subscription-instance";
 import type {
@@ -41,6 +42,7 @@ export function MetricActions({
           currentTime: nowISO(),
           currentUsage: Math.max(0, newUsage),
           isAdjustment,
+          newSliceId: generateId(),
         }),
       );
     },

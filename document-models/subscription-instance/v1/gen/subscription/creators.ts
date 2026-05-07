@@ -8,14 +8,12 @@ import {
   CancelSubscriptionInputSchema,
   ResumeSubscriptionInputSchema,
   RenewExpiringSubscriptionInputSchema,
-  SetBudgetCategoryInputSchema,
-  RemoveBudgetCategoryInputSchema,
   UpdateCustomerInfoInputSchema,
   UpdateTierInfoInputSchema,
   SetOperatorNotesInputSchema,
   SetAutoRenewInputSchema,
-  SetRenewalDateInputSchema,
-  SettleBillingCycleInputSchema,
+  GenerateInvoiceInputSchema,
+  ChangePlanInputSchema,
 } from "../schema/zod.js";
 import type {
   InitializeSubscriptionInput,
@@ -26,14 +24,12 @@ import type {
   CancelSubscriptionInput,
   ResumeSubscriptionInput,
   RenewExpiringSubscriptionInput,
-  SetBudgetCategoryInput,
-  RemoveBudgetCategoryInput,
   UpdateCustomerInfoInput,
   UpdateTierInfoInput,
   SetOperatorNotesInput,
   SetAutoRenewInput,
-  SetRenewalDateInput,
-  SettleBillingCycleInput,
+  GenerateInvoiceInput,
+  ChangePlanInput,
 } from "../types.js";
 import type {
   InitializeSubscriptionAction,
@@ -44,14 +40,12 @@ import type {
   CancelSubscriptionAction,
   ResumeSubscriptionAction,
   RenewExpiringSubscriptionAction,
-  SetBudgetCategoryAction,
-  RemoveBudgetCategoryAction,
   UpdateCustomerInfoAction,
   UpdateTierInfoAction,
   SetOperatorNotesAction,
   SetAutoRenewAction,
-  SetRenewalDateAction,
-  SettleBillingCycleAction,
+  GenerateInvoiceAction,
+  ChangePlanAction,
 } from "./actions.js";
 
 export const initializeSubscription = (input: InitializeSubscriptionInput) =>
@@ -128,24 +122,6 @@ export const renewExpiringSubscription = (
     "global",
   );
 
-export const setBudgetCategory = (input: SetBudgetCategoryInput) =>
-  createAction<SetBudgetCategoryAction>(
-    "SET_BUDGET_CATEGORY",
-    { ...input },
-    undefined,
-    SetBudgetCategoryInputSchema,
-    "global",
-  );
-
-export const removeBudgetCategory = (input: RemoveBudgetCategoryInput) =>
-  createAction<RemoveBudgetCategoryAction>(
-    "REMOVE_BUDGET_CATEGORY",
-    { ...input },
-    undefined,
-    RemoveBudgetCategoryInputSchema,
-    "global",
-  );
-
 export const updateCustomerInfo = (input: UpdateCustomerInfoInput) =>
   createAction<UpdateCustomerInfoAction>(
     "UPDATE_CUSTOMER_INFO",
@@ -182,20 +158,20 @@ export const setAutoRenew = (input: SetAutoRenewInput) =>
     "global",
   );
 
-export const setRenewalDate = (input: SetRenewalDateInput) =>
-  createAction<SetRenewalDateAction>(
-    "SET_RENEWAL_DATE",
+export const generateInvoice = (input: GenerateInvoiceInput) =>
+  createAction<GenerateInvoiceAction>(
+    "GENERATE_INVOICE",
     { ...input },
     undefined,
-    SetRenewalDateInputSchema,
+    GenerateInvoiceInputSchema,
     "global",
   );
 
-export const settleBillingCycle = (input: SettleBillingCycleInput) =>
-  createAction<SettleBillingCycleAction>(
-    "SETTLE_BILLING_CYCLE",
+export const changePlan = (input: ChangePlanInput) =>
+  createAction<ChangePlanAction>(
+    "CHANGE_PLAN",
     { ...input },
     undefined,
-    SettleBillingCycleInputSchema,
+    ChangePlanInputSchema,
     "global",
   );

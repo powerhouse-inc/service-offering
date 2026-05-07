@@ -3,16 +3,22 @@ import * as z from "zod";
 import type {
   AccrualCycle,
   AccrueMetricUsageInput,
+  ActivateSliceIdMappingInput,
   ActivateSubscriptionInput,
   AddServiceFacetSelectionInput,
   AddServiceGroupInput,
   AddServiceInput,
   AddServiceMetricInput,
   AddServiceToGroupInput,
+  ApplyCreditInput,
   BillingCycle,
-  BudgetCategory,
   CancelSubscriptionInput,
+  ChangePlanInput,
+  ConfirmLineItemPaymentInput,
   CustomerType,
+  DebtLineItem,
+  DebtLineItemStatus,
+  DebtOriginType,
   DecrementMetricUsageInput,
   DiscountInfo,
   DiscountInfoInitInput,
@@ -26,19 +32,18 @@ import type {
   InitializeServiceGroupInput,
   InitializeServiceInput,
   InitializeSubscriptionInput,
+  MarkLineItemInvoicedInput,
   MetricType,
   PauseSubscriptionInput,
   RecurringCost,
-  RemoveBudgetCategoryInput,
   RemoveServiceFacetSelectionInput,
   RemoveServiceFromGroupInput,
   RemoveServiceGroupInput,
   RemoveServiceInput,
   RemoveServiceMetricInput,
   RenewExpiringSubscriptionInput,
-  ReportOveragePaymentInput,
-  ReportRecurringPaymentInput,
-  ReportSetupPaymentInput,
+  RenewSliceIdMappingInput,
+  ReportPaymentInput,
   ResourceDocument,
   ResumeSubscriptionInput,
   Service,
@@ -46,13 +51,12 @@ import type {
   ServiceGroup,
   ServiceMetric,
   SetAutoRenewInput,
-  SetBudgetCategoryInput,
   SetCustomerTypeInput,
   SetExpiringInput,
   SetOperatorNotesInput,
-  SetRenewalDateInput,
   SetResourceDocumentInput,
-  SettleBillingCycleInput,
+  GenerateInvoiceInput,
+  SettleSliceIdMappingInput,
   SetupCost,
   SubscriptionInstanceState,
   SubscriptionStatus,
@@ -101,6 +105,21 @@ export const BillingCycleSchema = z.enum([
 
 export const CustomerTypeSchema = z.enum(["INDIVIDUAL", "TEAM"]);
 
+export const DebtLineItemStatusSchema = z.enum([
+  "CHARGED",
+  "FULLY_PAID",
+  "INVOICED",
+  "PARTIALLY_PAID",
+]);
+
+export const DebtOriginTypeSchema = z.enum([
+  "DYNAMIC",
+  "ESTIMATED_USAGE",
+  "RECONCILIATION",
+  "SETUP",
+  "SUBSCRIPTION_FEE",
+]);
+
 export const DiscountSourceSchema = z.enum([
   "BUNDLE",
   "GROUP_INDEPENDENT",
@@ -129,7 +148,18 @@ export function AccrueMetricUsageInputSchema(): z.ZodObject<
   return z.object({
     accrualDate: z.iso.datetime(),
     metricId: z.string(),
+    newSliceIds: z.array(z.string()),
     serviceId: z.string(),
+  });
+}
+
+export function ActivateSliceIdMappingInputSchema(): z.ZodObject<
+  Properties<ActivateSliceIdMappingInput>
+> {
+  return z.object({
+    sliceId: z.string(),
+    sourceId: z.string(),
+    sourceName: z.string().nullish(),
   });
 }
 
@@ -138,6 +168,10 @@ export function ActivateSubscriptionInputSchema(): z.ZodObject<
 > {
   return z.object({
     activatedSince: z.iso.datetime(),
+    recurringSliceIds: z.array(
+      z.lazy(() => ActivateSliceIdMappingInputSchema()),
+    ),
+    setupSliceIds: z.array(z.lazy(() => ActivateSliceIdMappingInputSchema())),
   });
 }
 
@@ -165,8 +199,10 @@ export function AddServiceGroupInputSchema(): z.ZodObject<
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
     recurringDiscount: z.lazy(() => DiscountServiceInfoInputSchema().nullish()),
+    recurringSliceId: z.string(),
     setupAmount: z.number().nullish(),
     setupCurrency: z.string().nullish(),
+    setupSliceId: z.string(),
   });
 }
 
@@ -181,11 +217,9 @@ export function AddServiceInputSchema(): z.ZodObject<
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
     recurringDiscount: z.lazy(() => DiscountServiceInfoInputSchema().nullish()),
-    recurringLastPaymentDate: z.iso.datetime().nullish(),
     serviceId: z.string(),
     setupAmount: z.number().nullish(),
     setupCurrency: z.string().nullish(),
-    setupPaymentDate: z.iso.datetime().nullish(),
   });
 }
 
@@ -220,21 +254,20 @@ export function AddServiceToGroupInputSchema(): z.ZodObject<
     recurringAmount: z.number().nullish(),
     recurringBillingCycle: BillingCycleSchema.nullish(),
     recurringCurrency: z.string().nullish(),
-    recurringLastPaymentDate: z.iso.datetime().nullish(),
     serviceId: z.string(),
     setupAmount: z.number().nullish(),
     setupCurrency: z.string().nullish(),
-    setupPaymentDate: z.iso.datetime().nullish(),
   });
 }
 
-export function BudgetCategorySchema(): z.ZodObject<
-  Properties<BudgetCategory>
+export function ApplyCreditInputSchema(): z.ZodObject<
+  Properties<ApplyCreditInput>
 > {
   return z.object({
-    __typename: z.literal("BudgetCategory").optional(),
-    id: z.string(),
-    label: z.string(),
+    amount: z.number(),
+    creditDate: z.iso.datetime(),
+    lineItemId: z.string().nullish(),
+    reason: z.string(),
   });
 }
 
@@ -244,6 +277,58 @@ export function CancelSubscriptionInputSchema(): z.ZodObject<
   return z.object({
     cancellationReason: z.string().nullish(),
     cancelledSince: z.iso.datetime(),
+    refundSliceIds: z.array(z.lazy(() => RenewSliceIdMappingInputSchema())),
+  });
+}
+
+export function ChangePlanInputSchema(): z.ZodObject<
+  Properties<ChangePlanInput>
+> {
+  return z.object({
+    creditLineItemId: z.string(),
+    debitLineItemId: z.string(),
+    effectiveDate: z.iso.datetime(),
+    newBillingCycle: BillingCycleSchema.nullish(),
+    newTierCurrency: z.string(),
+    newTierName: z.string().nullish(),
+    newTierPrice: z.number(),
+    newTierPricingOptionId: z.string(),
+  });
+}
+
+export function ConfirmLineItemPaymentInputSchema(): z.ZodObject<
+  Properties<ConfirmLineItemPaymentInput>
+> {
+  return z.object({
+    amount: z.number(),
+    lineItemId: z.string(),
+    paymentDate: z.iso.datetime(),
+    paymentRef: z.string().nullish(),
+  });
+}
+
+export function DebtLineItemSchema(): z.ZodObject<Properties<DebtLineItem>> {
+  return z.object({
+    __typename: z.literal("DebtLineItem").optional(),
+    accrualPeriodStart: z.iso.datetime().nullish(),
+    chargedAt: z.iso.datetime(),
+    creditApplied: z.number(),
+    currency: z.string(),
+    debitAmount: z.number(),
+    description: z.string().nullish(),
+    frozen: z.boolean(),
+    fullyPaidAt: z.iso.datetime().nullish(),
+    id: z.string(),
+    invoiceRef: z.string().nullish(),
+    invoiced: z.boolean(),
+    invoicedAt: z.iso.datetime().nullish(),
+    lastPaymentRef: z.string().nullish(),
+    origin: DebtOriginTypeSchema,
+    settledAmount: z.number(),
+    sourceGroupId: z.string().nullish(),
+    sourceMetricId: z.string().nullish(),
+    sourceServiceId: z.string().nullish(),
+    status: DebtLineItemStatusSchema,
   });
 }
 
@@ -254,6 +339,7 @@ export function DecrementMetricUsageInputSchema(): z.ZodObject<
     currentTime: z.iso.datetime(),
     decrementBy: z.number(),
     metricId: z.string(),
+    newSliceId: z.string(),
     serviceId: z.string(),
   });
 }
@@ -297,6 +383,7 @@ export function IncrementMetricUsageInputSchema(): z.ZodObject<
     currentTime: z.iso.datetime(),
     incrementBy: z.number(),
     metricId: z.string(),
+    newSliceId: z.string(),
     serviceId: z.string(),
   });
 }
@@ -396,6 +483,16 @@ export function InitializeSubscriptionInputSchema(): z.ZodObject<
   });
 }
 
+export function MarkLineItemInvoicedInputSchema(): z.ZodObject<
+  Properties<MarkLineItemInvoicedInput>
+> {
+  return z.object({
+    invoiceRef: z.string().nullish(),
+    invoicedAt: z.iso.datetime(),
+    lineItemId: z.string(),
+  });
+}
+
 export function PauseSubscriptionInputSchema(): z.ZodObject<
   Properties<PauseSubscriptionInput>
 > {
@@ -411,15 +508,6 @@ export function RecurringCostSchema(): z.ZodObject<Properties<RecurringCost>> {
     billingCycle: BillingCycleSchema,
     currency: z.string(),
     discount: z.lazy(() => DiscountInfoSchema().nullish()),
-    lastPaymentDate: z.iso.datetime().nullish(),
-  });
-}
-
-export function RemoveBudgetCategoryInputSchema(): z.ZodObject<
-  Properties<RemoveBudgetCategoryInput>
-> {
-  return z.object({
-    budgetId: z.string(),
   });
 }
 
@@ -445,6 +533,7 @@ export function RemoveServiceGroupInputSchema(): z.ZodObject<
   Properties<RemoveServiceGroupInput>
 > {
   return z.object({
+    creditSliceId: z.string(),
     effectiveDate: z.iso.datetime(),
     groupId: z.string(),
   });
@@ -471,35 +560,28 @@ export function RenewExpiringSubscriptionInputSchema(): z.ZodObject<
   Properties<RenewExpiringSubscriptionInput>
 > {
   return z.object({
-    newRenewalDate: z.iso.datetime().nullish(),
+    recurringSliceIds: z.array(z.lazy(() => RenewSliceIdMappingInputSchema())),
     timestamp: z.iso.datetime(),
   });
 }
 
-export function ReportOveragePaymentInputSchema(): z.ZodObject<
-  Properties<ReportOveragePaymentInput>
+export function RenewSliceIdMappingInputSchema(): z.ZodObject<
+  Properties<RenewSliceIdMappingInput>
+> {
+  return z.object({
+    sliceId: z.string(),
+    sourceId: z.string(),
+    sourceName: z.string().nullish(),
+  });
+}
+
+export function ReportPaymentInputSchema(): z.ZodObject<
+  Properties<ReportPaymentInput>
 > {
   return z.object({
     amount: z.number(),
     paymentDate: z.iso.datetime(),
-  });
-}
-
-export function ReportRecurringPaymentInputSchema(): z.ZodObject<
-  Properties<ReportRecurringPaymentInput>
-> {
-  return z.object({
-    paymentDate: z.iso.datetime(),
-    serviceId: z.string(),
-  });
-}
-
-export function ReportSetupPaymentInputSchema(): z.ZodObject<
-  Properties<ReportSetupPaymentInput>
-> {
-  return z.object({
-    paymentDate: z.iso.datetime(),
-    serviceId: z.string(),
+    paymentRef: z.string().nullish(),
   });
 }
 
@@ -584,15 +666,6 @@ export function SetAutoRenewInputSchema(): z.ZodObject<
   });
 }
 
-export function SetBudgetCategoryInputSchema(): z.ZodObject<
-  Properties<SetBudgetCategoryInput>
-> {
-  return z.object({
-    budgetId: z.string(),
-    budgetLabel: z.string(),
-  });
-}
-
 export function SetCustomerTypeInputSchema(): z.ZodObject<
   Properties<SetCustomerTypeInput>
 > {
@@ -618,14 +691,6 @@ export function SetOperatorNotesInputSchema(): z.ZodObject<
   });
 }
 
-export function SetRenewalDateInputSchema(): z.ZodObject<
-  Properties<SetRenewalDateInput>
-> {
-  return z.object({
-    renewalDate: z.iso.datetime(),
-  });
-}
-
 export function SetResourceDocumentInputSchema(): z.ZodObject<
   Properties<SetResourceDocumentInput>
 > {
@@ -636,11 +701,29 @@ export function SetResourceDocumentInputSchema(): z.ZodObject<
   });
 }
 
-export function SettleBillingCycleInputSchema(): z.ZodObject<
-  Properties<SettleBillingCycleInput>
+export function GenerateInvoiceInputSchema(): z.ZodObject<
+  Properties<GenerateInvoiceInput>
 > {
   return z.object({
-    settlementDate: z.iso.datetime(),
+    advanceCycleIfDue: z.boolean().nullish(),
+    generatedAt: z.iso.datetime(),
+    invoiceId: z.string(),
+    metricFreezeSliceIds: z.array(
+      z.lazy(() => SettleSliceIdMappingInputSchema()),
+    ),
+    nextCycleRecurringSliceIds: z.array(
+      z.lazy(() => SettleSliceIdMappingInputSchema()),
+    ),
+  });
+}
+
+export function SettleSliceIdMappingInputSchema(): z.ZodObject<
+  Properties<SettleSliceIdMappingInput>
+> {
+  return z.object({
+    sliceId: z.string(),
+    sourceId: z.string(),
+    sourceName: z.string().nullish(),
   });
 }
 
@@ -649,7 +732,6 @@ export function SetupCostSchema(): z.ZodObject<Properties<SetupCost>> {
     __typename: z.literal("SetupCost").optional(),
     amount: z.number(),
     currency: z.string(),
-    paymentDate: z.iso.datetime().nullish(),
   });
 }
 
@@ -660,22 +742,22 @@ export function SubscriptionInstanceStateSchema(): z.ZodObject<
     __typename: z.literal("SubscriptionInstanceState").optional(),
     activatedSince: z.iso.datetime().nullish(),
     autoRenew: z.boolean(),
-    budget: z.lazy(() => BudgetCategorySchema().nullish()),
     cancellationReason: z.string().nullish(),
     cancelledSince: z.iso.datetime().nullish(),
     createdAt: z.iso.datetime().nullish(),
     currentBillingCycleStart: z.iso.datetime().nullish(),
+    currentCycleOverage: z.number().nullish(),
     customerEmail: z.email().nullish(),
     customerId: z.string().nullish(),
     customerName: z.string().nullish(),
     customerType: CustomerTypeSchema.nullish(),
+    debtLineItems: z.array(z.lazy(() => DebtLineItemSchema())),
     expiringSince: z.iso.datetime().nullish(),
     globalCurrency: z.string().nullish(),
     nextBillingDate: z.iso.datetime().nullish(),
     operatorId: z.string().nullish(),
     operatorNotes: z.string().nullish(),
     pausedSince: z.iso.datetime().nullish(),
-    renewalDate: z.iso.datetime().nullish(),
     resource: z.lazy(() => ResourceDocumentSchema().nullish()),
     selectedBillingCycle: BillingCycleSchema.nullish(),
     serviceGroups: z.array(z.lazy(() => ServiceGroupSchema())),
@@ -690,7 +772,6 @@ export function SubscriptionInstanceStateSchema(): z.ZodObject<
     tierPricingOptionId: z.string().nullish(),
     totalCredit: z.number().nullish(),
     totalDebt: z.number().nullish(),
-    currentCycleOverage: z.number().nullish(),
   });
 }
 
@@ -728,6 +809,7 @@ export function UpdateMetricUsageInputSchema(): z.ZodObject<
     currentUsage: z.number(),
     isAdjustment: z.boolean().nullish(),
     metricId: z.string(),
+    newSliceId: z.string(),
     serviceId: z.string(),
   });
 }
@@ -763,7 +845,6 @@ export function UpdateServiceRecurringCostInputSchema(): z.ZodObject<
     amount: z.number().nullish(),
     billingCycle: BillingCycleSchema.nullish(),
     currency: z.string().nullish(),
-    lastPaymentDate: z.iso.datetime().nullish(),
     nextBillingDate: z.iso.datetime().nullish(),
     serviceId: z.string(),
   });
@@ -775,7 +856,6 @@ export function UpdateServiceSetupCostInputSchema(): z.ZodObject<
   return z.object({
     amount: z.number().nullish(),
     currency: z.string().nullish(),
-    paymentDate: z.iso.datetime().nullish(),
     serviceId: z.string(),
   });
 }

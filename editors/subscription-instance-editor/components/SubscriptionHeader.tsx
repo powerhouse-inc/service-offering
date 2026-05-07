@@ -6,9 +6,24 @@ import type {
 import type { ViewMode } from "../types.js";
 import { StatusBadge } from "./StatusBadge.js";
 import { SubscriptionActions } from "./SubscriptionActions.js";
+import { useNowISO } from "./SimulatedClock.js";
 
-function DueCountdown({ date, label }: { date: string; label: string }) {
-  const now = new Date();
+function DueCountdown({
+  date,
+  label,
+  paidUp,
+}: {
+  date: string;
+  label: string;
+  paidUp?: boolean;
+}) {
+  // Use the editor-wide simulated clock so the countdown reflects the
+  // operator's vantage point in the cycle, not wall time. Without this,
+  // an operator who advanced the simulated clock to mid-cycle sees the
+  // header showing days-from-real-now instead of days-from-simulated-now,
+  // which contradicts every other panel.
+  const nowISO = useNowISO();
+  const now = new Date(nowISO());
   const target = new Date(date);
   const diffMs = target.getTime() - now.getTime();
   const daysAway = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -20,15 +35,20 @@ function DueCountdown({ date, label }: { date: string; label: string }) {
       year: "numeric",
     });
 
+  // When the cycle has been paid up but settlement hasn't been triggered,
+  // the situation isn't "alarming" — it's an operator action ready to fire.
+  // Switch the color to neutral/positive and the label to action-oriented.
   const getCountdownColor = () => {
-    if (daysAway <= 0) return "var(--si-rose-600)";
+    if (daysAway <= 0) {
+      return paidUp ? "var(--si-emerald-600)" : "var(--si-rose-600)";
+    }
     if (daysAway <= 7) return "var(--si-rose-600)";
     if (daysAway <= 14) return "var(--si-amber-600)";
     return undefined;
   };
 
   const getCountdownLabel = () => {
-    if (daysAway <= 0) return "Overdue";
+    if (daysAway <= 0) return paidUp ? "Ready to settle" : "Due for settlement";
     if (daysAway === 1) return "Tomorrow";
     return `${daysAway} days`;
   };
@@ -176,46 +196,38 @@ export function SubscriptionHeader({
       <div className="si-header__stats">
         <div className="si-header__stat">
           <span className="si-header__stat-value">
-            {state.services.length +
-              state.serviceGroups.reduce(
-                (acc, g) => acc + g.services.length,
-                0,
-              )}
+            {/* Count groups + standalone services as "billable items" —
+                groups are billable units in their own right (carry pricing,
+                proration, slices). Counting only nested services would
+                under-report when a subscription consists entirely of
+                group-level pricing (the common case). */}
+            {state.services.length + state.serviceGroups.length}
           </span>
-          <span className="si-header__stat-label">Services</span>
+          <span className="si-header__stat-label">
+            {state.services.length + state.serviceGroups.length === 1
+              ? "Service"
+              : "Services"}
+          </span>
         </div>
-        {state.totalDebt != null &&
-          (() => {
-            const owed = (state.totalDebt ?? 0) - (state.totalCredit ?? 0);
-            const fmt = new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: state.globalCurrency || "USD",
-            });
-            return (
-              <div className="si-header__stat">
-                <span
-                  className="si-header__stat-value"
-                  style={
-                    owed > 0
-                      ? { color: "var(--si-rose-600)" }
-                      : owed < 0
-                        ? { color: "var(--si-emerald-600)" }
-                        : undefined
-                  }
-                >
-                  {owed === 0 ? "Paid up" : fmt.format(Math.abs(owed))}
-                </span>
-                <span className="si-header__stat-label">
-                  {owed > 0 ? "Outstanding" : owed < 0 ? "Credit" : "Balance"}
-                </span>
-              </div>
-            );
-          })()}
+        {/* Outstanding balance moved to Debt Ledger — header focuses on
+            subscription identity, not financial state. */}
         {state.nextBillingDate && (
-          <DueCountdown date={state.nextBillingDate} label="Due Date" />
-        )}
-        {state.renewalDate && (
-          <DueCountdown date={state.renewalDate} label="Renewal" />
+          <DueCountdown
+            date={state.nextBillingDate}
+            label="Next Invoice"
+            paidUp={(() => {
+              // When all current-cycle slices are FULLY_PAID, treat the
+              // settle prompt as a neutral operator action ("Ready to
+              // settle") rather than an alarm ("Due for settlement").
+              const cycleStart = state.currentBillingCycleStart;
+              if (!cycleStart) return false;
+              const cycleSlices = state.debtLineItems.filter(
+                (s) => s.chargedAt >= cycleStart,
+              );
+              if (cycleSlices.length === 0) return false;
+              return cycleSlices.every((s) => s.status === "FULLY_PAID");
+            })()}
+          />
         )}
       </div>
 

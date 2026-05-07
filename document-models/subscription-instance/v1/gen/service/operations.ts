@@ -4,12 +4,9 @@ import type {
   RemoveServiceAction,
   UpdateServiceSetupCostAction,
   UpdateServiceRecurringCostAction,
-  ReportSetupPaymentAction,
-  ReportRecurringPaymentAction,
   UpdateServiceInfoAction,
   AddServiceFacetSelectionAction,
   RemoveServiceFacetSelectionAction,
-  ReportOveragePaymentAction,
 } from "./actions.js";
 import type { SubscriptionInstanceState } from "../types.js";
 
@@ -34,16 +31,6 @@ export interface SubscriptionInstanceServiceOperations {
     action: UpdateServiceRecurringCostAction,
     dispatch?: SignalDispatch,
   ) => void;
-  reportSetupPaymentOperation: (
-    state: SubscriptionInstanceState,
-    action: ReportSetupPaymentAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  reportRecurringPaymentOperation: (
-    state: SubscriptionInstanceState,
-    action: ReportRecurringPaymentAction,
-    dispatch?: SignalDispatch,
-  ) => void;
   updateServiceInfoOperation: (
     state: SubscriptionInstanceState,
     action: UpdateServiceInfoAction,
@@ -57,11 +44,6 @@ export interface SubscriptionInstanceServiceOperations {
   removeServiceFacetSelectionOperation: (
     state: SubscriptionInstanceState,
     action: RemoveServiceFacetSelectionAction,
-    dispatch?: SignalDispatch,
-  ) => void;
-  reportOveragePaymentOperation: (
-    state: SubscriptionInstanceState,
-    action: ReportOveragePaymentAction,
     dispatch?: SignalDispatch,
   ) => void;
 }

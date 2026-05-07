@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { generateId } from "document-model";
 import { DocumentToolbar } from "@powerhousedao/design-system/connect";
+import { addAccrualPeriod } from "../../document-models/subscription-instance/v1/src/utils.js";
 import { useSelectedSubscriptionInstanceDocument } from "../../document-models/subscription-instance/v1/hooks.js";
 import type { ViewMode } from "./types.js";
 import { ModeToggle } from "./components/ModeToggle.js";
@@ -8,6 +10,8 @@ import { ImportServiceConfigButton } from "./components/ImportServiceConfigButto
 import { SubscriptionHeader } from "./components/SubscriptionHeader.js";
 import { ServicesPanel } from "./components/ServicesPanel.js";
 import { BillingPanel } from "./components/BillingPanel.js";
+import { DebtLedgerPanel } from "./components/DebtLedgerPanel.js";
+import { InvoicesPanel } from "./components/InvoicesPanel.js";
 import { CustomerInfo } from "./components/CustomerInfo.js";
 import { OperatorNotes } from "./components/OperatorNotes.js";
 import {
@@ -16,7 +20,7 @@ import {
   useSimulatedClock,
 } from "./components/SimulatedClock.js";
 import { accrueMetricUsage } from "../../document-models/subscription-instance/v1/gen/metrics/creators.js";
-import { settleBillingCycle } from "../../document-models/subscription-instance/v1/gen/subscription/creators.js";
+import { generateInvoice } from "../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 
 export default function SubscriptionInstanceEditor() {
   return (
@@ -50,33 +54,123 @@ function SubscriptionInstanceEditorInner() {
     if (lastTickedRef.current === simulatedNow) return;
     lastTickedRef.current = simulatedNow;
 
-    // Auto-settle: if the simulated clock has reached or crossed the cycle
-    // boundary, dispatch SETTLE_BILLING_CYCLE first so the cycle progresses
-    // before per-metric accrual runs against the new window.
+    // Auto-invoice at boundary: if the simulated clock has reached or
+    // crossed the cycle boundary, dispatch GENERATE_INVOICE with
+    // advanceCycleIfDue=true so the cycle progresses (and an invoice is
+    // generated for the just-closed cycle) before per-metric accrual runs
+    // against the new window. sourceName is informational — operation log
+    // shows readable names per slice.
     const next = document.state.global.nextBillingDate;
     if (next && simulatedNow >= next) {
-      dispatch(settleBillingCycle({ settlementDate: simulatedNow }));
+      const metricFreezeSliceIds: {
+        sourceId: string;
+        sliceId: string;
+        sourceName?: string;
+      }[] = [];
+      const nextCycleRecurringSliceIds: {
+        sourceId: string;
+        sliceId: string;
+        sourceName?: string;
+      }[] = [];
+      for (const svc of document.state.global.services) {
+        for (const m of svc.metrics) {
+          metricFreezeSliceIds.push({
+            sourceId: m.id,
+            sliceId: generateId(),
+            sourceName: m.name,
+          });
+        }
+        if (svc.recurringCost) {
+          nextCycleRecurringSliceIds.push({
+            sourceId: svc.id,
+            sliceId: generateId(),
+            sourceName: svc.name ?? "Service",
+          });
+        }
+      }
+      for (const group of document.state.global.serviceGroups) {
+        if (group.recurringCost) {
+          nextCycleRecurringSliceIds.push({
+            sourceId: group.id,
+            sliceId: generateId(),
+            sourceName: group.name,
+          });
+        }
+        for (const svc of group.services) {
+          for (const m of svc.metrics) {
+            metricFreezeSliceIds.push({
+              sourceId: m.id,
+              sliceId: generateId(),
+              sourceName: m.name,
+            });
+          }
+        }
+      }
+      dispatch(
+        generateInvoice({
+          invoiceId: generateId(),
+          generatedAt: simulatedNow,
+          advanceCycleIfDue: true,
+          metricFreezeSliceIds,
+          nextCycleRecurringSliceIds,
+        }),
+      );
     }
 
-    const metrics: { serviceId: string; metricId: string }[] = [];
+    type MetricRef = {
+      serviceId: string;
+      metricId: string;
+      lastAccrualDate: string | null;
+      accrualCycle: string;
+    };
+    const metrics: MetricRef[] = [];
     for (const svc of document.state.global.services) {
       for (const m of svc.metrics) {
-        metrics.push({ serviceId: svc.id, metricId: m.id });
+        metrics.push({
+          serviceId: svc.id,
+          metricId: m.id,
+          lastAccrualDate: m.lastAccrualDate ?? null,
+          accrualCycle: m.accrualCycle,
+        });
       }
     }
     for (const group of document.state.global.serviceGroups) {
       for (const svc of group.services) {
         for (const m of svc.metrics) {
-          metrics.push({ serviceId: svc.id, metricId: m.id });
+          metrics.push({
+            serviceId: svc.id,
+            metricId: m.id,
+            lastAccrualDate: m.lastAccrualDate ?? null,
+            accrualCycle: m.accrualCycle,
+          });
         }
       }
     }
-    for (const { serviceId, metricId } of metrics) {
+    for (const {
+      serviceId,
+      metricId,
+      lastAccrualDate,
+      accrualCycle,
+    } of metrics) {
+      // Pre-generate one slice ID per period boundary the accrual loop will
+      // cross. Each ID is consumed only when the period closes with overage
+      // but no active slice exists. Unused IDs are harmless.
+      const newSliceIds: string[] = [];
+      if (lastAccrualDate) {
+        let boundary = addAccrualPeriod(lastAccrualDate, accrualCycle);
+        let safety = 0;
+        while (simulatedNow >= boundary && safety < 10000) {
+          newSliceIds.push(generateId());
+          boundary = addAccrualPeriod(boundary, accrualCycle);
+          safety += 1;
+        }
+      }
       dispatch(
         accrueMetricUsage({
           serviceId,
           metricId,
           accrualDate: simulatedNow,
+          newSliceIds,
         }),
       );
     }
@@ -140,9 +234,16 @@ function SubscriptionInstanceEditorInner() {
           mode={mode}
         />
 
-        {/* Billing Projection - Top Section */}
-        <div style={{ marginTop: 24 }}>
+        {/* Financial section: This Period (projection) + Debt Ledger (canonical
+            ledger). Tight inter-panel spacing groups them as one concern;
+            Gestalt proximity separates them from the identity header above
+            and the services grid below. */}
+        <div className="si-financial-stack">
           <BillingPanel document={document} dispatch={dispatch} mode={mode} />
+          {mode === "operator" && (
+            <DebtLedgerPanel document={document} dispatch={dispatch} />
+          )}
+          {mode === "operator" && <InvoicesPanel document={document} />}
         </div>
 
         {/* Main Content Grid */}
@@ -737,6 +838,128 @@ const editorStyles = `
     background: var(--si-rose-500);
   }
 
+  /* Paid: usage exceeds free limit but operator has already collected.
+     Visually settled — calmer green than --normal so the eye reads
+     "this is fine" not "approaching limit". */
+  .si-usage-bar__fill--paid {
+    background: var(--si-emerald-600);
+  }
+
+  /* Financial stack — groups This Period + Debt Ledger as one visual
+     concern. Tight 12px gap between them, 24px above to separate from
+     the identity header. */
+  .si-financial-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  /* This Period — projection-only billing card.
+     Three-row stack: Recurring · Usage · Projected total.
+     Total row has a top border to separate from contributions. */
+  .si-this-period {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background: var(--si-slate-50);
+    border-radius: var(--si-radius-md);
+    margin-bottom: 16px;
+  }
+  .si-this-period__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .si-this-period__row--total {
+    padding-top: 12px;
+    border-top: 1px solid var(--si-slate-200);
+  }
+  .si-this-period__label {
+    font-size: 0.85rem;
+    color: var(--si-slate-600);
+  }
+  .si-this-period__source {
+    color: var(--si-slate-500);
+    font-weight: 400;
+    font-size: 0.8rem;
+  }
+  .si-this-period__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .si-this-period__value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--si-slate-800);
+    font-variant-numeric: tabular-nums;
+  }
+  .si-this-period__value--accent {
+    color: var(--si-amber-600);
+  }
+  .si-this-period__value--estimate {
+    color: var(--si-slate-600);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .si-this-period__value--muted {
+    color: var(--si-slate-400);
+    font-weight: 500;
+  }
+  .si-this-period__value--credit {
+    color: var(--si-emerald-600);
+    font-weight: 600;
+  }
+  .si-this-period__value--total {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--si-emerald-600);
+    letter-spacing: -0.01em;
+  }
+  .si-this-period__cycle {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--si-slate-500);
+    margin-left: 4px;
+  }
+  .si-this-period__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    font-size: 0.85rem;
+    color: var(--si-slate-600);
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .si-this-period__toggle:hover {
+    color: var(--si-slate-800);
+  }
+  .si-this-period__chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.15s;
+  }
+  .si-this-period__chevron[data-expanded="true"] {
+    transform: rotate(90deg);
+  }
+  .si-this-period__details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--si-slate-100);
+  }
+  .si-panel__subtitle {
+    font-size: 0.8rem;
+    color: var(--si-slate-500);
+    font-weight: 400;
+    margin-left: 12px;
+  }
+
   /* Billing Summary */
   .si-billing-summary {
     display: grid;
@@ -1189,7 +1412,88 @@ const editorStyles = `
   }
 
   .si-modal--md {
-    max-width: 500px;
+    max-width: 560px;
+  }
+
+  /* Settlement preview block — used in the Settle Cycle modal so the
+     operator sees what the reducer will do before clicking Confirm. */
+  .si-settle-preview__section {
+    padding: 12px 0;
+    border-top: 1px solid var(--si-slate-100);
+  }
+  .si-settle-preview__section:first-of-type {
+    border-top: none;
+  }
+  .si-settle-preview__step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .si-settle-preview__step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--si-slate-100);
+    color: var(--si-slate-700);
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .si-settle-preview__step-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--si-slate-800);
+  }
+  .si-settle-preview__list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 6px 32px;
+  }
+  .si-settle-preview__list-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.8rem;
+    color: var(--si-slate-700);
+  }
+  .si-settle-preview__list-item--subtotal {
+    border-top: 1px solid var(--si-slate-200);
+    padding-top: 8px;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .si-settle-preview__list-item--credit {
+    color: var(--si-emerald-700);
+  }
+  .si-settle-preview__list-item--total {
+    border-top: 1px solid var(--si-slate-300);
+    padding-top: 8px;
+    margin-top: 4px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--si-slate-900);
+  }
+  .si-settle-preview__amount {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .si-settle-preview__detail {
+    margin: 0 0 0 32px;
+    font-size: 0.78rem;
+    color: var(--si-slate-600);
+    line-height: 1.5;
+  }
+  .si-settle-preview__detail--empty {
+    color: var(--si-slate-500);
+    font-style: italic;
+  }
+  .si-settle-preview__warning {
+    color: var(--si-amber-600);
+    font-weight: 500;
   }
 
   .si-modal--sm {
@@ -2263,6 +2567,12 @@ const editorStyles = `
 
   .si-metric__overage strong {
     color: var(--si-amber-800);
+  }
+
+  .si-metric__overage--paid {
+    color: var(--si-emerald-700);
+    background: var(--si-emerald-50);
+    border-color: var(--si-emerald-100);
   }
 
   /* Metric Paid Limit */
