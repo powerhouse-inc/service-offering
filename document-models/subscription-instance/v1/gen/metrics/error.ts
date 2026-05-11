@@ -15,7 +15,8 @@ export type ErrorCode =
   | "SubscriptionNotActiveDecrementUsageError"
   | "SubscriptionNotActiveAccrueMetricUsageError"
   | "AccrueMetricUsageServiceNotFoundError"
-  | "AccrueMetricUsageMetricNotFoundError";
+  | "AccrueMetricUsageMetricNotFoundError"
+  | "AccrueMissingSliceIdError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -188,6 +189,13 @@ export class AccrueMetricUsageMetricNotFoundError
   }
 }
 
+export class AccrueMissingSliceIdError extends Error implements ReducerError {
+  errorCode = "AccrueMissingSliceIdError" as ErrorCode;
+  constructor(message = "AccrueMissingSliceIdError") {
+    super(message);
+  }
+}
+
 export const errors = {
   AddServiceMetric: { AddServiceMetricServiceNotFoundError },
   UpdateMetric: { UpdateMetricServiceNotFoundError, UpdateMetricNotFoundError },
@@ -214,5 +222,6 @@ export const errors = {
     SubscriptionNotActiveAccrueMetricUsageError,
     AccrueMetricUsageServiceNotFoundError,
     AccrueMetricUsageMetricNotFoundError,
+    AccrueMissingSliceIdError,
   },
 };

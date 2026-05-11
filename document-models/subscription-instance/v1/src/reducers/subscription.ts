@@ -1,15 +1,32 @@
 import {
   ActivateNotPendingError,
+  ActivateMissingSliceIdError,
   PauseNotActiveError,
   SetExpiringNotActiveError,
   CancelAlreadyCancelledError,
+  CancelMissingSliceIdError,
   ResumeNotPausedError,
   RenewNotExpiringError,
-  RemoveBudgetNotFoundError,
+  RenewMissingSliceIdError,
   NoBillingCycleActiveError,
   SettlementDateBeforeCycleStartError,
+  SettleMissingSliceIdError,
+  NoInvoiceableLineItemsError,
+  ChangePlanNotActiveError,
+  ChangePlanInvalidEffectiveDateError,
+  BillingCycleSwapNotYetSupportedError,
+  ChangePlanMissingTierPricingError,
 } from "../../gen/subscription/error.js";
-import { calculateNextBillingDate, calculateOverageCost } from "../utils.js";
+import {
+  appendDebtSlice,
+  calculateNextBillingDate,
+  calculateOverageCost,
+  freezeDynamicSlice,
+} from "../utils.js";
+import {
+  consumeCarryOverCredit,
+  getCustomerCreditBalance,
+} from "./debt-line-items.js";
 import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance/v1";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
@@ -51,7 +68,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             ? {
                 amount: s.setupAmount,
                 currency: s.setupCurrency,
-                paymentDate: null,
               }
             : null,
         recurringCost:
@@ -60,7 +76,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                 amount: s.recurringAmount,
                 currency: s.recurringCurrency,
                 billingCycle: s.recurringBillingCycle,
-                lastPaymentDate: null,
                 discount: s.recurringDiscount
                   ? {
                       originalAmount: s.recurringDiscount.originalAmount,
@@ -83,7 +98,6 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
                   amount: m.unitCostAmount,
                   currency: m.unitCostCurrency,
                   billingCycle: m.unitCostBillingCycle,
-                  lastPaymentDate: null,
                   discount: null,
                 }
               : null,
@@ -227,23 +241,187 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         );
       }
 
-      // Calculate initial debt: setup costs + first cycle recurring costs
-      let initialDebt = 0;
+      // Aggregates start at zero; appendDebtSlice maintains them per slice.
+      state.totalDebt = 0;
+      state.totalCredit = 0;
+      state.currentCycleOverage = 0;
+
+      // Pre-generated slice IDs are looked up by sourceId. The dispatcher is
+      // expected to provide one ID per chargeable source; a missing entry is
+      // a dispatcher bug and we fail loudly rather than silently dropping
+      // the charge.
+      const setupIdMap = new Map<string, string>();
+      for (const m of action.input.setupSliceIds) {
+        setupIdMap.set(m.sourceId, m.sliceId);
+      }
+      const recurringIdMap = new Map<string, string>();
+      for (const m of action.input.recurringSliceIds) {
+        recurringIdMap.set(m.sourceId, m.sliceId);
+      }
+
+      function takeSetupId(sourceId: string): string {
+        const id = setupIdMap.get(sourceId);
+        if (!id) {
+          throw new ActivateMissingSliceIdError(
+            `No setup slice ID provided for source ${sourceId}`,
+          );
+        }
+        return id;
+      }
+      function takeRecurringId(sourceId: string): string {
+        const id = recurringIdMap.get(sourceId);
+        if (!id) {
+          throw new ActivateMissingSliceIdError(
+            `No recurring slice ID provided for source ${sourceId}`,
+          );
+        }
+        return id;
+      }
+
+      const chargedAt = action.input.activatedSince;
+
+      // Groups (setup + recurring), then their nested services, then
+      // top-level services. SETUP and SUBSCRIPTION_FEE slices are frozen at
+      // creation — they represent a one-time or full-cycle charge with no
+      // active accrual semantic.
       for (const group of state.serviceGroups) {
-        if (group.setupCost) initialDebt += group.setupCost.amount;
-        if (group.recurringCost) initialDebt += group.recurringCost.amount;
+        if (group.setupCost) {
+          appendDebtSlice(state, {
+            id: takeSetupId(group.id),
+            origin: "SETUP",
+            status: "CHARGED",
+            invoiced: false,
+            debitAmount: group.setupCost.amount,
+            settledAmount: 0,
+            currency: group.setupCost.currency,
+            chargedAt,
+            invoicedAt: null,
+            fullyPaidAt: null,
+            sourceServiceId: null,
+            sourceMetricId: null,
+            sourceGroupId: group.id,
+            frozen: true,
+            accrualPeriodStart: null,
+            invoiceRef: null,
+            lastPaymentRef: null,
+            description: `Setup fee — group ${group.name}`,
+          });
+        }
+        if (group.recurringCost) {
+          appendDebtSlice(state, {
+            id: takeRecurringId(group.id),
+            origin: "SUBSCRIPTION_FEE",
+            status: "CHARGED",
+            invoiced: false,
+            debitAmount: group.recurringCost.amount,
+            settledAmount: 0,
+            currency: group.recurringCost.currency,
+            chargedAt,
+            invoicedAt: null,
+            fullyPaidAt: null,
+            sourceServiceId: null,
+            sourceMetricId: null,
+            sourceGroupId: group.id,
+            frozen: true,
+            accrualPeriodStart: null,
+            invoiceRef: null,
+            lastPaymentRef: null,
+            description: `First-cycle recurring fee — group ${group.name}`,
+          });
+        }
         for (const svc of group.services) {
-          if (svc.setupCost) initialDebt += svc.setupCost.amount;
-          if (svc.recurringCost) initialDebt += svc.recurringCost.amount;
+          if (svc.setupCost) {
+            appendDebtSlice(state, {
+              id: takeSetupId(svc.id),
+              origin: "SETUP",
+              status: "CHARGED",
+              invoiced: false,
+              debitAmount: svc.setupCost.amount,
+              settledAmount: 0,
+              currency: svc.setupCost.currency,
+              chargedAt,
+              invoicedAt: null,
+              fullyPaidAt: null,
+              sourceServiceId: svc.id,
+              sourceMetricId: null,
+              sourceGroupId: group.id,
+              frozen: true,
+              accrualPeriodStart: null,
+              invoiceRef: null,
+              lastPaymentRef: null,
+              description: `Setup fee — service ${svc.name ?? svc.id}`,
+            });
+          }
+          if (svc.recurringCost) {
+            appendDebtSlice(state, {
+              id: takeRecurringId(svc.id),
+              origin: "SUBSCRIPTION_FEE",
+              status: "CHARGED",
+              invoiced: false,
+              debitAmount: svc.recurringCost.amount,
+              settledAmount: 0,
+              currency: svc.recurringCost.currency,
+              chargedAt,
+              invoicedAt: null,
+              fullyPaidAt: null,
+              sourceServiceId: svc.id,
+              sourceMetricId: null,
+              sourceGroupId: group.id,
+              frozen: true,
+              accrualPeriodStart: null,
+              invoiceRef: null,
+              lastPaymentRef: null,
+              description: `First-cycle recurring fee — service ${svc.name ?? svc.id}`,
+            });
+          }
         }
       }
       for (const svc of state.services) {
-        if (svc.setupCost) initialDebt += svc.setupCost.amount;
-        if (svc.recurringCost) initialDebt += svc.recurringCost.amount;
+        if (svc.setupCost) {
+          appendDebtSlice(state, {
+            id: takeSetupId(svc.id),
+            origin: "SETUP",
+            status: "CHARGED",
+            invoiced: false,
+            debitAmount: svc.setupCost.amount,
+            settledAmount: 0,
+            currency: svc.setupCost.currency,
+            chargedAt,
+            invoicedAt: null,
+            fullyPaidAt: null,
+            sourceServiceId: svc.id,
+            sourceMetricId: null,
+            sourceGroupId: null,
+            frozen: true,
+            accrualPeriodStart: null,
+            invoiceRef: null,
+            lastPaymentRef: null,
+            description: `Setup fee — service ${svc.name ?? svc.id}`,
+          });
+        }
+        if (svc.recurringCost) {
+          appendDebtSlice(state, {
+            id: takeRecurringId(svc.id),
+            origin: "SUBSCRIPTION_FEE",
+            status: "CHARGED",
+            invoiced: false,
+            debitAmount: svc.recurringCost.amount,
+            settledAmount: 0,
+            currency: svc.recurringCost.currency,
+            chargedAt,
+            invoicedAt: null,
+            fullyPaidAt: null,
+            sourceServiceId: svc.id,
+            sourceMetricId: null,
+            sourceGroupId: null,
+            frozen: true,
+            accrualPeriodStart: null,
+            invoiceRef: null,
+            lastPaymentRef: null,
+            description: `First-cycle recurring fee — service ${svc.name ?? svc.id}`,
+          });
+        }
       }
-      state.totalDebt = initialDebt;
-      state.totalCredit = 0;
-      state.currentCycleOverage = 0;
     },
     pauseSubscriptionOperation(state, action) {
       if (state.status !== "ACTIVE") {
@@ -269,6 +447,99 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
           "Subscription is already cancelled",
         );
       }
+
+      // Cancellation refund slice (Q16, resolved 2026-05-05): when an ACTIVE
+      // subscription is cancelled mid-cycle, emit one prorated credit slice
+      // per chargeable group/standalone-service. Mirror of CHANGE_PLAN's
+      // old-tier credit slice. Born FULLY_PAID at emission (credit slices
+      // are settled-by-construction). Setup costs are NOT refunded — one-
+      // time binary work per spec M-03. DYNAMIC slices not touched —
+      // overage debt isn't waived by cancellation; operator handles it
+      // through the normal payment flow.
+      const wasActive = state.status === "ACTIVE";
+      const cycleStart = state.currentBillingCycleStart;
+      const cycleEnd = state.nextBillingDate;
+      if (
+        wasActive &&
+        cycleStart &&
+        cycleEnd &&
+        action.input.cancelledSince > cycleStart &&
+        action.input.cancelledSince < cycleEnd
+      ) {
+        const cycleMs =
+          new Date(cycleEnd).getTime() - new Date(cycleStart).getTime();
+        const remainingMs =
+          new Date(cycleEnd).getTime() -
+          new Date(action.input.cancelledSince).getTime();
+        const prorataFactor = remainingMs / cycleMs;
+
+        const refundIdMap = new Map<string, string>();
+        for (const m of action.input.refundSliceIds) {
+          refundIdMap.set(m.sourceId, m.sliceId);
+        }
+        function takeRefundId(sourceId: string): string {
+          const id = refundIdMap.get(sourceId);
+          if (!id) {
+            throw new CancelMissingSliceIdError(
+              `No refund slice ID provided for source ${sourceId}`,
+            );
+          }
+          return id;
+        }
+
+        for (const group of state.serviceGroups) {
+          if (group.recurringCost) {
+            const refundAmount =
+              -1 * prorataFactor * group.recurringCost.amount;
+            appendDebtSlice(state, {
+              id: takeRefundId(group.id),
+              origin: "SUBSCRIPTION_FEE",
+              status: "FULLY_PAID",
+              invoiced: true,
+              debitAmount: refundAmount,
+              settledAmount: refundAmount,
+              currency: group.recurringCost.currency,
+              chargedAt: action.input.cancelledSince,
+              invoicedAt: action.input.cancelledSince,
+              fullyPaidAt: action.input.cancelledSince,
+              sourceServiceId: null,
+              sourceMetricId: null,
+              sourceGroupId: group.id,
+              frozen: true,
+              accrualPeriodStart: null,
+              invoiceRef: null,
+              lastPaymentRef: null,
+              description: `Refund — group ${group.name} (cancellation, ${Math.round(prorataFactor * 100)}% unused)`,
+            });
+          }
+        }
+        for (const svc of state.services) {
+          if (svc.recurringCost) {
+            const refundAmount = -1 * prorataFactor * svc.recurringCost.amount;
+            appendDebtSlice(state, {
+              id: takeRefundId(svc.id),
+              origin: "SUBSCRIPTION_FEE",
+              status: "FULLY_PAID",
+              invoiced: true,
+              debitAmount: refundAmount,
+              settledAmount: refundAmount,
+              currency: svc.recurringCost.currency,
+              chargedAt: action.input.cancelledSince,
+              invoicedAt: action.input.cancelledSince,
+              fullyPaidAt: action.input.cancelledSince,
+              sourceServiceId: svc.id,
+              sourceMetricId: null,
+              sourceGroupId: null,
+              frozen: true,
+              accrualPeriodStart: null,
+              invoiceRef: null,
+              lastPaymentRef: null,
+              description: `Refund — service ${svc.name ?? svc.id} (cancellation, ${Math.round(prorataFactor * 100)}% unused)`,
+            });
+          }
+        }
+      }
+
       state.status = "CANCELLED";
       state.cancelledSince = action.input.cancelledSince;
       state.cancellationReason = action.input.cancellationReason || null;
@@ -318,8 +589,9 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
       state.status = "ACTIVE";
       state.expiringSince = null;
 
-      // D-9: Initialize billing state for new cycle
-      // Cycle starts from nextBillingDate (fixed boundaries per D-4)
+      // D-9: Initialize billing state for new cycle.
+      // Cycle starts from nextBillingDate (fixed boundaries per D-4).
+      const newCycleStart = state.nextBillingDate;
       state.currentBillingCycleStart = state.nextBillingDate;
       if (state.nextBillingDate && state.selectedBillingCycle) {
         state.nextBillingDate = calculateNextBillingDate(
@@ -328,36 +600,87 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         );
       }
 
-      // Add recurring costs for the new cycle to totalDebt
+      // Per-source SUBSCRIPTION_FEE slices for the new cycle, frozen=true.
+      const recurringIdMap = new Map<string, string>();
+      for (const m of action.input.recurringSliceIds) {
+        recurringIdMap.set(m.sourceId, m.sliceId);
+      }
+      function takeRecurringId(sourceId: string): string {
+        const id = recurringIdMap.get(sourceId);
+        if (!id) {
+          throw new RenewMissingSliceIdError(
+            `No recurring slice ID provided for source ${sourceId}`,
+          );
+        }
+        return id;
+      }
+
+      const chargedAt = newCycleStart ?? action.input.timestamp;
+
+      // T-05 (parity with SETTLE_BILLING_CYCLE): manual renewal is also a
+      // billing-cycle close. Sweep prior CHARGED slices to INVOICED before
+      // emitting the new cycle's recurring fees, so the just-emitted slices
+      // aren't accidentally caught by the sweep.
+      const renewalCutoff = chargedAt;
+      for (const slice of state.debtLineItems) {
+        if (slice.status !== "CHARGED") continue;
+        if (slice.chargedAt >= renewalCutoff) continue;
+        slice.status = "INVOICED";
+        slice.invoiced = true;
+        slice.invoicedAt = action.input.timestamp;
+      }
+
       for (const group of state.serviceGroups) {
         if (group.recurringCost) {
-          state.totalDebt = (state.totalDebt ?? 0) + group.recurringCost.amount;
+          appendDebtSlice(state, {
+            id: takeRecurringId(group.id),
+            origin: "SUBSCRIPTION_FEE",
+            status: "CHARGED",
+            invoiced: false,
+            debitAmount: group.recurringCost.amount,
+            settledAmount: 0,
+            currency: group.recurringCost.currency,
+            chargedAt,
+            invoicedAt: null,
+            fullyPaidAt: null,
+            sourceServiceId: null,
+            sourceMetricId: null,
+            sourceGroupId: group.id,
+            frozen: true,
+            accrualPeriodStart: null,
+            invoiceRef: null,
+            lastPaymentRef: null,
+            description: `Recurring fee — group ${group.name} (manual renewal)`,
+          });
         }
       }
       for (const svc of state.services) {
         if (svc.recurringCost) {
-          state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;
+          appendDebtSlice(state, {
+            id: takeRecurringId(svc.id),
+            origin: "SUBSCRIPTION_FEE",
+            status: "CHARGED",
+            invoiced: false,
+            debitAmount: svc.recurringCost.amount,
+            settledAmount: 0,
+            currency: svc.recurringCost.currency,
+            chargedAt,
+            invoicedAt: null,
+            fullyPaidAt: null,
+            sourceServiceId: svc.id,
+            sourceMetricId: null,
+            sourceGroupId: null,
+            frozen: true,
+            accrualPeriodStart: null,
+            invoiceRef: null,
+            lastPaymentRef: null,
+            description: `Recurring fee — service ${svc.name ?? svc.id} (manual renewal)`,
+          });
         }
       }
 
       // Reset the running tally — preserved through EXPIRING is now closed.
       state.currentCycleOverage = 0;
-
-      state.renewalDate = action.input.newRenewalDate || null;
-    },
-    setBudgetCategoryOperation(state, action) {
-      state.budget = {
-        id: action.input.budgetId,
-        label: action.input.budgetLabel,
-      };
-    },
-    removeBudgetCategoryOperation(state, action) {
-      if (!state.budget || state.budget.id !== action.input.budgetId) {
-        throw new RemoveBudgetNotFoundError(
-          `Budget category with ID ${action.input.budgetId} not found`,
-        );
-      }
-      state.budget = null;
     },
     updateCustomerInfoOperation(state, action) {
       if (action.input.customerId !== undefined)
@@ -385,48 +708,125 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
     setAutoRenewOperation(state, action) {
       state.autoRenew = action.input.autoRenew;
     },
-    setRenewalDateOperation(state, action) {
-      state.renewalDate = action.input.renewalDate;
-    },
-    settleBillingCycleOperation(state, action) {
+    generateInvoiceOperation(state, action) {
+      // GENERATE_INVOICE replaces SETTLE_BILLING_CYCLE per 2026-05-07
+      // stakeholder call. Single operator action that:
+      //   1. Force-accrues every metric (closes any open accrual cycle).
+      //   2. Sweeps every CHARGED slice to INVOICED, stamping `invoiceRef`
+      //      with the operator-provided invoiceId. This is the slice-set
+      //      that constitutes "this invoice" — Yasiel's invoice document
+      //      model can pull these by filtering `invoiceRef === invoiceId`.
+      //   3. If `advanceCycleIfDue` is true AND simulated/actual time has
+      //      passed `nextBillingDate` AND `autoRenew` is on: advances the
+      //      billing cycle (next-cycle slice emission, carry-over credit
+      //      consumption, boundary advance). Otherwise mid-cycle invoice.
+      //   4. Throws NoInvoiceableLineItemsError if no slice ended up
+      //      stamped with the new invoiceRef (nothing to invoice).
       if (state.status !== "ACTIVE") {
         throw new NoBillingCycleActiveError(
-          `Cannot settle billing cycle when status is ${state.status}`,
+          `Cannot generate invoice when status is ${state.status}`,
         );
       }
       if (
         state.currentBillingCycleStart &&
-        action.input.settlementDate < state.currentBillingCycleStart
+        action.input.generatedAt < state.currentBillingCycleStart
       ) {
         throw new SettlementDateBeforeCycleStartError(
-          "Settlement date is before the current billing cycle start",
+          "Invoice generation date is before the current billing cycle start",
         );
       }
 
-      // Force-accrue every metric on every settlement (spec §4.3).
-      // Billing cycle is the hard stop — no carryover, no time-extrapolation.
-      // Reset rule is driven by metricType, not by accrualCycle matching.
-      //
-      // D-4 late-settlement cap: when settlement runs *after* the cycle
-      // boundary (operator was lagging), the overage window does NOT extend
-      // past `nextBillingDate`. Record `lastAccrualDate` at the cycle
-      // boundary so the next cycle starts from the right anchor and
-      // post-boundary usage is counted against the new cycle, not this one.
+      // Force-accrue every metric on every invoice run.
+      // D-4 late-settlement cap: if generation runs *after* the cycle
+      // boundary, overage window does NOT extend past `nextBillingDate`.
       const billingCycle = state.selectedBillingCycle || "MONTHLY";
-      const settlementDate = action.input.settlementDate;
+      const generatedAt = action.input.generatedAt;
+      const invoiceId = action.input.invoiceId;
+      const pastBillingBoundary =
+        state.nextBillingDate != null && generatedAt >= state.nextBillingDate;
+      const shouldAdvanceCycle =
+        action.input.advanceCycleIfDue === true &&
+        pastBillingBoundary &&
+        state.autoRenew;
       const effectiveAccrualDate =
-        state.nextBillingDate && settlementDate > state.nextBillingDate
+        state.nextBillingDate && generatedAt > state.nextBillingDate
           ? state.nextBillingDate
-          : settlementDate;
+          : generatedAt;
+
+      // Pre-generated metric-freeze slice IDs (used only when no active
+      // slice exists for a metric and overage > 0 at force-accrue time).
+      const metricFreezeIdMap = new Map<string, string>();
+      for (const m of action.input.metricFreezeSliceIds) {
+        metricFreezeIdMap.set(m.sourceId, m.sliceId);
+      }
+      function takeMetricFreezeId(metricId: string): string {
+        const id = metricFreezeIdMap.get(metricId);
+        if (!id) {
+          throw new SettleMissingSliceIdError(
+            `No metric-freeze slice ID provided for metric ${metricId}`,
+          );
+        }
+        return id;
+      }
+
       function forceAccrue(metrics: (typeof state.services)[0]["metrics"]) {
         for (const metric of metrics) {
-          const cost = calculateOverageCost(metric);
-          if (cost > 0) {
-            state.totalDebt = (state.totalDebt ?? 0) + cost;
-            state.currentCycleOverage = (state.currentCycleOverage ?? 0) + cost;
-          }
-          if (metric.metricType === "CUMULATIVE") {
-            metric.currentUsage = 0;
+          // Idempotency guard: if ACCRUE_METRIC_USAGE already crystallised
+          // this metric at or past the cycle boundary, skip the charge.
+          const alreadyAccrued =
+            metric.lastAccrualDate != null &&
+            metric.lastAccrualDate >= effectiveAccrualDate;
+          if (!alreadyAccrued) {
+            // Discriminate by accrualPeriodStart, not by "is slice live".
+            // A FULLY_PAID slice for this period means the operator already
+            // collected for this overage — emitting a fresh frozen slice
+            // would double-charge. The right question at force-accrue is:
+            // "does ANY slice already represent this period's overage?"
+            const periodStart = metric.lastAccrualDate;
+            const sliceForPeriod = state.debtLineItems.find(
+              (s) =>
+                s.origin === "DYNAMIC" &&
+                s.sourceMetricId === metric.id &&
+                s.accrualPeriodStart === (periodStart ?? null),
+            );
+            if (sliceForPeriod) {
+              // Period already accounted for. If the slice is still live,
+              // freeze it so the period is closed cleanly. Otherwise no-op
+              // (frozen, paid, partially paid — all already crystallised).
+              if (!sliceForPeriod.frozen) {
+                freezeDynamicSlice(state, sliceForPeriod);
+              }
+            } else {
+              // No slice for this period yet — emit a fresh frozen slice
+              // if the metric has overage to crystallise.
+              const cost = calculateOverageCost(metric);
+              if (cost > 0) {
+                appendDebtSlice(state, {
+                  id: takeMetricFreezeId(metric.id),
+                  origin: "DYNAMIC",
+                  status: "CHARGED",
+                  invoiced: false,
+                  debitAmount: cost,
+                  settledAmount: 0,
+                  currency:
+                    metric.unitCost?.currency ?? state.globalCurrency ?? "USD",
+                  chargedAt: effectiveAccrualDate,
+                  invoicedAt: null,
+                  fullyPaidAt: null,
+                  sourceServiceId: null,
+                  sourceMetricId: metric.id,
+                  sourceGroupId: null,
+                  frozen: true,
+                  accrualPeriodStart: metric.lastAccrualDate ?? null,
+                  invoiceRef: null,
+                  lastPaymentRef: null,
+                  description: `Overage — metric ${metric.name} (settlement)`,
+                });
+              }
+            }
+            if (metric.metricType === "CUMULATIVE") {
+              metric.currentUsage = 0;
+            }
           }
           metric.lastAccrualDate = effectiveAccrualDate;
         }
@@ -441,19 +841,121 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
         }
       }
 
-      if (state.autoRenew) {
-        // Add next cycle recurring costs to totalDebt
+      // T-05: bulk-flip every CHARGED slice from the just-closed cycle to
+      // INVOICED, stamping `invoiceRef = invoiceId`. This is what Wouter
+      // described at 00:49:05 — "all the depth slices that don't have the
+      // flag built yet get flagged as now built."
+      //
+      // Also stamp invoiceRef on already-INVOICED-but-unstamped slices
+      // (e.g. mid-cycle Apply credit auto-flipped CHARGED→INVOICED but
+      // didn't have an invoiceId at the time). PARTIALLY_PAID slices that
+      // were never associated with a prior invoice ALSO get stamped here
+      // so Yasiel's invoice generator sees them as belonging to this run.
+      // FULLY_PAID slices are skipped — they're closed business.
+      let invoicedCount = 0;
+      for (const slice of state.debtLineItems) {
+        if (slice.status === "FULLY_PAID") continue;
+        if (slice.chargedAt > effectiveAccrualDate) continue;
+        if (slice.invoiceRef) continue; // already on a prior invoice
+        if (slice.status === "CHARGED") {
+          slice.status = "INVOICED";
+          slice.invoiced = true;
+          slice.invoicedAt = generatedAt;
+        }
+        slice.invoiceRef = invoiceId;
+        invoicedCount += 1;
+      }
+
+      if (invoicedCount === 0) {
+        throw new NoInvoiceableLineItemsError(
+          "No outstanding line items to invoice — every slice is either FULLY_PAID or already on a prior invoice",
+        );
+      }
+
+      if (shouldAdvanceCycle) {
+        // Next-cycle SUBSCRIPTION_FEE slices, frozen=true. Pre-generated IDs
+        // keyed by source (group or service) ID.
+        const recurringIdMap = new Map<string, string>();
+        for (const m of action.input.nextCycleRecurringSliceIds) {
+          recurringIdMap.set(m.sourceId, m.sliceId);
+        }
+        function takeRecurringId(sourceId: string): string {
+          const id = recurringIdMap.get(sourceId);
+          if (!id) {
+            throw new SettleMissingSliceIdError(
+              `No next-cycle recurring slice ID for source ${sourceId}`,
+            );
+          }
+          return id;
+        }
+
+        // Snapshot the customer's standing credit balance BEFORE we emit
+        // next-cycle debt. After emission, totalDebt grows by $2,400+ and
+        // any credit surplus would be erased from the live aggregate read.
+        // We carry the snapshot forward to consumeCarryOverCredit so the
+        // surplus is correctly applied against the new debt.
+        const carryOverCreditBalance = getCustomerCreditBalance(state);
+
+        // Cycle boundaries advance per D-4 *before* slice emission, so the
+        // chargedAt timestamp is the new cycle start.
+        const newCycleStart = state.nextBillingDate ?? generatedAt;
         for (const group of state.serviceGroups) {
           if (group.recurringCost) {
-            state.totalDebt =
-              (state.totalDebt ?? 0) + group.recurringCost.amount;
+            appendDebtSlice(state, {
+              id: takeRecurringId(group.id),
+              origin: "SUBSCRIPTION_FEE",
+              status: "CHARGED",
+              invoiced: false,
+              debitAmount: group.recurringCost.amount,
+              settledAmount: 0,
+              currency: group.recurringCost.currency,
+              chargedAt: newCycleStart,
+              invoicedAt: null,
+              fullyPaidAt: null,
+              sourceServiceId: null,
+              sourceMetricId: null,
+              sourceGroupId: group.id,
+              frozen: true,
+              accrualPeriodStart: null,
+              invoiceRef: null,
+              lastPaymentRef: null,
+              description: `Recurring fee — group ${group.name} (cycle renewal)`,
+            });
           }
         }
         for (const svc of state.services) {
           if (svc.recurringCost) {
-            state.totalDebt = (state.totalDebt ?? 0) + svc.recurringCost.amount;
+            appendDebtSlice(state, {
+              id: takeRecurringId(svc.id),
+              origin: "SUBSCRIPTION_FEE",
+              status: "CHARGED",
+              invoiced: false,
+              debitAmount: svc.recurringCost.amount,
+              settledAmount: 0,
+              currency: svc.recurringCost.currency,
+              chargedAt: newCycleStart,
+              invoicedAt: null,
+              fullyPaidAt: null,
+              sourceServiceId: svc.id,
+              sourceMetricId: null,
+              sourceGroupId: null,
+              frozen: true,
+              accrualPeriodStart: null,
+              invoiceRef: null,
+              lastPaymentRef: null,
+              description: `Recurring fee — service ${svc.name ?? svc.id} (cycle renewal)`,
+            });
           }
         }
+        // Carry-over credit consumption: any standing credit balance
+        // (max(0, totalCredit - totalDebt)) gets drawn down against the
+        // freshly-emitted next-cycle recurring slices via the FIFO+priority
+        // allocator. This is what closes the "credit floats forever" loop —
+        // a $290 credit from a mid-cycle group removal is consumed against
+        // next year's recurring fee, leaving customerCreditBalance = 0
+        // when the new cycle opens.
+        consumeCarryOverCredit(state, newCycleStart, carryOverCreditBalance);
+
         // Advance cycle boundaries (D-4: fixed boundaries)
         state.currentBillingCycleStart = state.nextBillingDate;
         if (state.nextBillingDate) {
@@ -462,14 +964,147 @@ export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSub
             billingCycle,
           );
         }
-        // Reset the running tally — last cycle's dynamic charges are now
-        // part of the settled invoice. New cycle starts at zero.
+        // Reset running tally — last cycle's dynamic charges are now part
+        // of the settled invoice. New cycle starts at zero.
         state.currentCycleOverage = 0;
-      } else {
+      } else if (
+        action.input.advanceCycleIfDue === true &&
+        pastBillingBoundary &&
+        !state.autoRenew
+      ) {
+        // Past the boundary but autoRenew=false: subscription expires on
+        // this final invoice. Preserve currentCycleOverage so the operator
+        // can still see what's owed for the final cycle.
         state.status = "EXPIRING";
-        state.expiringSince = action.input.settlementDate;
-        // Preserve currentCycleOverage so the operator can see what's still
-        // owed for this final cycle.
+        state.expiringSince = generatedAt;
       }
+      // else: mid-cycle invoice generation — no cycle changes, just the
+      // sweep + stamp above. Operator can call GENERATE_INVOICE again at
+      // a later point with a different invoiceId.
+    },
+    changePlanOperation(state, action) {
+      if (state.status !== "ACTIVE") {
+        throw new ChangePlanNotActiveError(
+          `Cannot change plan on subscription with status ${state.status}`,
+        );
+      }
+      if (
+        action.input.newBillingCycle &&
+        action.input.newBillingCycle !== state.selectedBillingCycle
+      ) {
+        throw new BillingCycleSwapNotYetSupportedError(
+          `Billing-cycle swap from ${state.selectedBillingCycle} to ${action.input.newBillingCycle} not supported in MVP`,
+        );
+      }
+      if (!state.currentBillingCycleStart || !state.nextBillingDate) {
+        throw new ChangePlanInvalidEffectiveDateError(
+          "Subscription has no current billing cycle window",
+        );
+      }
+      if (
+        action.input.effectiveDate < state.currentBillingCycleStart ||
+        action.input.effectiveDate > state.nextBillingDate
+      ) {
+        throw new ChangePlanInvalidEffectiveDateError(
+          `effectiveDate ${action.input.effectiveDate} must be within current cycle [${state.currentBillingCycleStart}, ${state.nextBillingDate}]`,
+        );
+      }
+      if (state.tierPrice == null || state.tierPrice <= 0) {
+        throw new ChangePlanMissingTierPricingError(
+          "Cannot compute proration: state.tierPrice is missing or zero",
+        );
+      }
+
+      // Proration math.
+      const totalDays =
+        (new Date(state.nextBillingDate).getTime() -
+          new Date(state.currentBillingCycleStart).getTime()) /
+        (1000 * 60 * 60 * 24);
+      const remainingDays =
+        (new Date(state.nextBillingDate).getTime() -
+          new Date(action.input.effectiveDate).getTime()) /
+        (1000 * 60 * 60 * 24);
+      const prorataFactor = totalDays > 0 ? remainingDays / totalDays : 0;
+      const oldTierAmount = state.tierPrice;
+      const newTierAmount = action.input.newTierPrice;
+      const creditAmount = -1 * prorataFactor * oldTierAmount;
+      const debitAmount = prorataFactor * newTierAmount;
+      const oldTierLabel = state.tierName || "previous tier";
+      const newTierLabel = action.input.newTierName || "new tier";
+      const defaultCurrency =
+        state.tierCurrency || state.globalCurrency || "USD";
+
+      // Emit credit slice (old tier). Credit slices are born FULLY_PAID:
+      // the negative debitAmount IS the settlement, no operator workflow
+      // applies. See removeServiceGroup for the same pattern.
+      state.debtLineItems.push({
+        id: action.input.creditLineItemId,
+        origin: "SUBSCRIPTION_FEE",
+        status: "FULLY_PAID",
+        invoiced: true,
+        debitAmount: creditAmount,
+        settledAmount: 0,
+        creditApplied: 0,
+        currency: defaultCurrency,
+        chargedAt: action.input.effectiveDate,
+        invoicedAt: action.input.effectiveDate,
+        fullyPaidAt: action.input.effectiveDate,
+        sourceServiceId: null,
+        sourceMetricId: null,
+        sourceGroupId: null,
+        frozen: true,
+        accrualPeriodStart: null,
+        invoiceRef: null,
+        lastPaymentRef: null,
+        description: `Plan change credit — unused portion of ${oldTierLabel}`,
+      });
+      state.totalDebt = (state.totalDebt ?? 0) + creditAmount;
+
+      // Emit debit slice (new tier).
+      state.debtLineItems.push({
+        id: action.input.debitLineItemId,
+        origin: "SUBSCRIPTION_FEE",
+        status: "CHARGED",
+        invoiced: false,
+        debitAmount: debitAmount,
+        settledAmount: 0,
+        creditApplied: 0,
+        currency: action.input.newTierCurrency,
+        chargedAt: action.input.effectiveDate,
+        invoicedAt: null,
+        fullyPaidAt: null,
+        sourceServiceId: null,
+        sourceMetricId: null,
+        sourceGroupId: null,
+        frozen: true,
+        accrualPeriodStart: null,
+        invoiceRef: null,
+        lastPaymentRef: null,
+        description: `Plan change debit — prorated ${newTierLabel}`,
+      });
+      state.totalDebt = state.totalDebt + debitAmount;
+
+      // Freeze any active (unfrozen) DYNAMIC slices — PC-03.
+      for (const slice of state.debtLineItems) {
+        if (slice.origin === "DYNAMIC" && !slice.frozen) {
+          slice.frozen = true;
+          if (
+            state.currentBillingCycleStart &&
+            slice.chargedAt >= state.currentBillingCycleStart
+          ) {
+            state.currentCycleOverage =
+              (state.currentCycleOverage ?? 0) - slice.debitAmount;
+          }
+        }
+      }
+
+      // Update tier-level state.
+      state.tierPricingOptionId = action.input.newTierPricingOptionId;
+      state.tierPrice = action.input.newTierPrice;
+      state.tierCurrency = action.input.newTierCurrency;
+      if (action.input.newTierName) {
+        state.tierName = action.input.newTierName;
+      }
+      // Cycle anchors UNCHANGED per PC-04.
     },
   };

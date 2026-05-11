@@ -260,18 +260,6 @@ export function CustomerInfo({ document, dispatch, mode }: CustomerInfoProps) {
             )}
           </div>
         </div>
-
-        {/* Budget Category - Operator view */}
-        {mode === "operator" && state.budget && (
-          <div className="si-customer-info__section">
-            <div className="si-customer-info__row">
-              <span className="si-customer-info__label">Budget Category</span>
-              <span className="si-customer-info__value">
-                {state.budget.label}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

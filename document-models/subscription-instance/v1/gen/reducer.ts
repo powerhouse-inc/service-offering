@@ -9,6 +9,7 @@ import { subscriptionInstanceServiceOperations } from "../src/reducers/service.j
 import { subscriptionInstanceServiceGroupOperations } from "../src/reducers/service-group.js";
 import { subscriptionInstanceMetricsOperations } from "../src/reducers/metrics.js";
 import { subscriptionInstanceCustomerOperations } from "../src/reducers/customer.js";
+import { subscriptionInstanceDebtLineItemsOperations } from "../src/reducers/debt-line-items.js";
 
 import {
   InitializeSubscriptionInputSchema,
@@ -19,24 +20,19 @@ import {
   CancelSubscriptionInputSchema,
   ResumeSubscriptionInputSchema,
   RenewExpiringSubscriptionInputSchema,
-  SetBudgetCategoryInputSchema,
-  RemoveBudgetCategoryInputSchema,
   UpdateCustomerInfoInputSchema,
   UpdateTierInfoInputSchema,
   SetOperatorNotesInputSchema,
   SetAutoRenewInputSchema,
-  SetRenewalDateInputSchema,
-  SettleBillingCycleInputSchema,
+  GenerateInvoiceInputSchema,
+  ChangePlanInputSchema,
   AddServiceInputSchema,
   RemoveServiceInputSchema,
   UpdateServiceSetupCostInputSchema,
   UpdateServiceRecurringCostInputSchema,
-  ReportSetupPaymentInputSchema,
-  ReportRecurringPaymentInputSchema,
   UpdateServiceInfoInputSchema,
   AddServiceFacetSelectionInputSchema,
   RemoveServiceFacetSelectionInputSchema,
-  ReportOveragePaymentInputSchema,
   AddServiceGroupInputSchema,
   RemoveServiceGroupInputSchema,
   AddServiceToGroupInputSchema,
@@ -51,6 +47,10 @@ import {
   AccrueMetricUsageInputSchema,
   SetCustomerTypeInputSchema,
   UpdateTeamMemberCountInputSchema,
+  MarkLineItemInvoicedInputSchema,
+  ConfirmLineItemPaymentInputSchema,
+  ReportPaymentInputSchema,
+  ApplyCreditInputSchema,
 } from "./schema/zod.js";
 
 const stateReducer: StateReducer<SubscriptionInstancePHState> = (
@@ -158,30 +158,6 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
-    case "SET_BUDGET_CATEGORY": {
-      SetBudgetCategoryInputSchema().parse(action.input);
-
-      subscriptionInstanceSubscriptionOperations.setBudgetCategoryOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REMOVE_BUDGET_CATEGORY": {
-      RemoveBudgetCategoryInputSchema().parse(action.input);
-
-      subscriptionInstanceSubscriptionOperations.removeBudgetCategoryOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
     case "UPDATE_CUSTOMER_INFO": {
       UpdateCustomerInfoInputSchema().parse(action.input);
 
@@ -230,10 +206,10 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
-    case "SET_RENEWAL_DATE": {
-      SetRenewalDateInputSchema().parse(action.input);
+    case "GENERATE_INVOICE": {
+      GenerateInvoiceInputSchema().parse(action.input);
 
-      subscriptionInstanceSubscriptionOperations.setRenewalDateOperation(
+      subscriptionInstanceSubscriptionOperations.generateInvoiceOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -242,10 +218,10 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
-    case "SETTLE_BILLING_CYCLE": {
-      SettleBillingCycleInputSchema().parse(action.input);
+    case "CHANGE_PLAN": {
+      ChangePlanInputSchema().parse(action.input);
 
-      subscriptionInstanceSubscriptionOperations.settleBillingCycleOperation(
+      subscriptionInstanceSubscriptionOperations.changePlanOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -302,30 +278,6 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       break;
     }
 
-    case "REPORT_SETUP_PAYMENT": {
-      ReportSetupPaymentInputSchema().parse(action.input);
-
-      subscriptionInstanceServiceOperations.reportSetupPaymentOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REPORT_RECURRING_PAYMENT": {
-      ReportRecurringPaymentInputSchema().parse(action.input);
-
-      subscriptionInstanceServiceOperations.reportRecurringPaymentOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
     case "UPDATE_SERVICE_INFO": {
       UpdateServiceInfoInputSchema().parse(action.input);
 
@@ -354,18 +306,6 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       RemoveServiceFacetSelectionInputSchema().parse(action.input);
 
       subscriptionInstanceServiceOperations.removeServiceFacetSelectionOperation(
-        (state as any)[action.scope],
-        action as any,
-        dispatch,
-      );
-
-      break;
-    }
-
-    case "REPORT_OVERAGE_PAYMENT": {
-      ReportOveragePaymentInputSchema().parse(action.input);
-
-      subscriptionInstanceServiceOperations.reportOveragePaymentOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,
@@ -534,6 +474,54 @@ const stateReducer: StateReducer<SubscriptionInstancePHState> = (
       UpdateTeamMemberCountInputSchema().parse(action.input);
 
       subscriptionInstanceCustomerOperations.updateTeamMemberCountOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "MARK_LINE_ITEM_INVOICED": {
+      MarkLineItemInvoicedInputSchema().parse(action.input);
+
+      subscriptionInstanceDebtLineItemsOperations.markLineItemInvoicedOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "CONFIRM_LINE_ITEM_PAYMENT": {
+      ConfirmLineItemPaymentInputSchema().parse(action.input);
+
+      subscriptionInstanceDebtLineItemsOperations.confirmLineItemPaymentOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "REPORT_PAYMENT": {
+      ReportPaymentInputSchema().parse(action.input);
+
+      subscriptionInstanceDebtLineItemsOperations.reportPaymentOperation(
+        (state as any)[action.scope],
+        action as any,
+        dispatch,
+      );
+
+      break;
+    }
+
+    case "APPLY_CREDIT": {
+      ApplyCreditInputSchema().parse(action.input);
+
+      subscriptionInstanceDebtLineItemsOperations.applyCreditOperation(
         (state as any)[action.scope],
         action as any,
         dispatch,

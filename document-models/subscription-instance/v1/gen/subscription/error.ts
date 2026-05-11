@@ -1,13 +1,21 @@
 export type ErrorCode =
   | "ActivateNotPendingError"
+  | "ActivateMissingSliceIdError"
   | "PauseNotActiveError"
   | "SetExpiringNotActiveError"
   | "CancelAlreadyCancelledError"
+  | "CancelMissingSliceIdError"
   | "ResumeNotPausedError"
   | "RenewNotExpiringError"
-  | "RemoveBudgetNotFoundError"
+  | "RenewMissingSliceIdError"
   | "NoBillingCycleActiveError"
-  | "SettlementDateBeforeCycleStartError";
+  | "SettlementDateBeforeCycleStartError"
+  | "SettleMissingSliceIdError"
+  | "NoInvoiceableLineItemsError"
+  | "ChangePlanNotActiveError"
+  | "ChangePlanInvalidEffectiveDateError"
+  | "BillingCycleSwapNotYetSupportedError"
+  | "ChangePlanMissingTierPricingError";
 
 export interface ReducerError {
   errorCode: ErrorCode;
@@ -16,6 +24,13 @@ export interface ReducerError {
 export class ActivateNotPendingError extends Error implements ReducerError {
   errorCode = "ActivateNotPendingError" as ErrorCode;
   constructor(message = "ActivateNotPendingError") {
+    super(message);
+  }
+}
+
+export class ActivateMissingSliceIdError extends Error implements ReducerError {
+  errorCode = "ActivateMissingSliceIdError" as ErrorCode;
+  constructor(message = "ActivateMissingSliceIdError") {
     super(message);
   }
 }
@@ -41,6 +56,13 @@ export class CancelAlreadyCancelledError extends Error implements ReducerError {
   }
 }
 
+export class CancelMissingSliceIdError extends Error implements ReducerError {
+  errorCode = "CancelMissingSliceIdError" as ErrorCode;
+  constructor(message = "CancelMissingSliceIdError") {
+    super(message);
+  }
+}
+
 export class ResumeNotPausedError extends Error implements ReducerError {
   errorCode = "ResumeNotPausedError" as ErrorCode;
   constructor(message = "ResumeNotPausedError") {
@@ -55,9 +77,9 @@ export class RenewNotExpiringError extends Error implements ReducerError {
   }
 }
 
-export class RemoveBudgetNotFoundError extends Error implements ReducerError {
-  errorCode = "RemoveBudgetNotFoundError" as ErrorCode;
-  constructor(message = "RemoveBudgetNotFoundError") {
+export class RenewMissingSliceIdError extends Error implements ReducerError {
+  errorCode = "RenewMissingSliceIdError" as ErrorCode;
+  constructor(message = "RenewMissingSliceIdError") {
     super(message);
   }
 }
@@ -79,16 +101,83 @@ export class SettlementDateBeforeCycleStartError
   }
 }
 
+export class SettleMissingSliceIdError extends Error implements ReducerError {
+  errorCode = "SettleMissingSliceIdError" as ErrorCode;
+  constructor(message = "SettleMissingSliceIdError") {
+    super(message);
+  }
+}
+
+export class NoInvoiceableLineItemsError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "NoInvoiceableLineItemsError" as ErrorCode;
+  constructor(message = "NoInvoiceableLineItemsError") {
+    super(message);
+  }
+}
+
+export class ChangePlanNotActiveError extends Error implements ReducerError {
+  errorCode = "ChangePlanNotActiveError" as ErrorCode;
+  constructor(message = "ChangePlanNotActiveError") {
+    super(message);
+  }
+}
+
+export class ChangePlanInvalidEffectiveDateError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ChangePlanInvalidEffectiveDateError" as ErrorCode;
+  constructor(message = "ChangePlanInvalidEffectiveDateError") {
+    super(message);
+  }
+}
+
+export class BillingCycleSwapNotYetSupportedError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "BillingCycleSwapNotYetSupportedError" as ErrorCode;
+  constructor(message = "BillingCycleSwapNotYetSupportedError") {
+    super(message);
+  }
+}
+
+export class ChangePlanMissingTierPricingError
+  extends Error
+  implements ReducerError
+{
+  errorCode = "ChangePlanMissingTierPricingError" as ErrorCode;
+  constructor(message = "ChangePlanMissingTierPricingError") {
+    super(message);
+  }
+}
+
 export const errors = {
-  ActivateSubscription: { ActivateNotPendingError },
+  ActivateSubscription: {
+    ActivateNotPendingError,
+    ActivateMissingSliceIdError,
+  },
   PauseSubscription: { PauseNotActiveError },
   SetExpiring: { SetExpiringNotActiveError },
   CancelSubscription: { CancelAlreadyCancelledError },
   ResumeSubscription: { ResumeNotPausedError },
-  RenewExpiringSubscription: { RenewNotExpiringError },
-  RemoveBudgetCategory: { RemoveBudgetNotFoundError },
-  SettleBillingCycle: {
+  RenewExpiringSubscription: {
+    RenewNotExpiringError,
+    RenewMissingSliceIdError,
+  },
+  GenerateInvoice: {
     NoBillingCycleActiveError,
     SettlementDateBeforeCycleStartError,
+    SettleMissingSliceIdError,
+    NoInvoiceableLineItemsError,
+  },
+  ChangePlan: {
+    ChangePlanNotActiveError,
+    ChangePlanInvalidEffectiveDateError,
+    BillingCycleSwapNotYetSupportedError,
+    ChangePlanMissingTierPricingError,
   },
 };

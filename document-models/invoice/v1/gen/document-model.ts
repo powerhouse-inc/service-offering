@@ -1,0 +1,169 @@
+import type { DocumentModelGlobalState } from "document-model";
+
+export const documentModel: DocumentModelGlobalState = {
+  id: "powerhouse/invoice",
+  name: "Invoice",
+  author: {
+    name: "Powerhouse",
+    website: "https://www.powerhouse.inc/",
+  },
+  extension: "inv",
+  description:
+    "A printable invoice generated from a SubscriptionInstance. Snapshots customer info, billing-cycle context, and per-line-item charges at generation time. Stripe integration hooks via stripeInvoiceId.",
+  specifications: [
+    {
+      state: {
+        local: {
+          schema: "",
+          examples: [],
+          initialValue: "",
+        },
+        global: {
+          schema:
+            "type InvoiceState {\n    invoiceNumber: String\n    issuedAt: DateTime\n    dueDate: DateTime\n    status: InvoiceStatus!\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    sourceSubscriptionId: PHID\n    sourceSubscriptionName: String\n    cycleStart: DateTime\n    cycleEnd: DateTime\n    billingCycle: InvoiceBillingCycle\n    lineItems: [InvoiceLineItem!]!\n    currency: Currency\n    subtotal: Amount_Money!\n    creditApplied: Amount_Money!\n    totalDue: Amount_Money!\n    totalPaid: Amount_Money!\n    stripeInvoiceId: String\n    notes: String\n}\n\nenum InvoiceStatus {\n    DRAFT\n    ISSUED\n    PAID\n    VOID\n}\n\nenum InvoiceBillingCycle {\n    MONTHLY\n    QUARTERLY\n    SEMI_ANNUAL\n    ANNUAL\n    ONE_TIME\n}\n\nenum InvoiceLineItemOrigin {\n    SETUP\n    SUBSCRIPTION_FEE\n    DYNAMIC\n    ESTIMATED_USAGE\n    RECONCILIATION\n}\n\ntype InvoiceLineItem {\n    id: OID!\n    sliceId: OID!\n    origin: InvoiceLineItemOrigin!\n    description: String!\n    sourceName: String\n    chargedAt: DateTime!\n    debitAmount: Amount_Money!\n    settledAmount: Amount_Money!\n    creditApplied: Amount_Money!\n    amountDue: Amount_Money!\n    currency: Currency!\n}",
+          examples: [],
+          initialValue:
+            '{\n  "invoiceNumber": null,\n  "issuedAt": null,\n  "dueDate": null,\n  "status": "DRAFT",\n  "customerId": null,\n  "customerName": null,\n  "customerEmail": null,\n  "sourceSubscriptionId": null,\n  "sourceSubscriptionName": null,\n  "cycleStart": null,\n  "cycleEnd": null,\n  "billingCycle": null,\n  "lineItems": [],\n  "currency": null,\n  "subtotal": 0,\n  "creditApplied": 0,\n  "totalDue": 0,\n  "totalPaid": 0,\n  "stripeInvoiceId": null,\n  "notes": null\n}',
+        },
+      },
+      modules: [
+        {
+          id: "mod-invoice",
+          name: "invoice",
+          description:
+            "Invoice lifecycle: initialization, status transitions, Stripe link, notes.",
+          operations: [
+            {
+              id: "op-initialize-invoice",
+              name: "INITIALIZE_INVOICE",
+              description:
+                "Populate the invoice with a snapshot from a SubscriptionInstance. Single-shot \u2014 overwrites any prior values. Use right after document creation.",
+              schema:
+                "input InvoiceLineItemInput {\n    id: OID!\n    sliceId: OID!\n    origin: InvoiceLineItemOrigin!\n    description: String!\n    sourceName: String\n    chargedAt: DateTime!\n    debitAmount: Amount_Money!\n    settledAmount: Amount_Money!\n    creditApplied: Amount_Money!\n    amountDue: Amount_Money!\n    currency: Currency!\n}\n\ninput InitializeInvoiceInput {\n    invoiceNumber: String\n    dueDate: DateTime\n    customerId: PHID\n    customerName: String\n    customerEmail: EmailAddress\n    sourceSubscriptionId: PHID\n    sourceSubscriptionName: String\n    cycleStart: DateTime\n    cycleEnd: DateTime\n    billingCycle: InvoiceBillingCycle\n    lineItems: [InvoiceLineItemInput!]!\n    currency: Currency\n    subtotal: Amount_Money!\n    creditApplied: Amount_Money!\n    totalDue: Amount_Money!\n    totalPaid: Amount_Money!\n    notes: String\n}",
+              template:
+                "Populate the invoice with a snapshot from a SubscriptionInstance. Single-shot \u2014 overwrites any prior values. Use right after document creation.",
+              reducer:
+                'if (state.lineItems.length > 0 || state.invoiceNumber) {\n  throw new InvoiceAlreadyInitializedError(\n    "Invoice has already been initialized",\n  );\n}\nstate.invoiceNumber = action.input.invoiceNumber || null;\nstate.dueDate = action.input.dueDate || null;\nstate.customerId = action.input.customerId || null;\nstate.customerName = action.input.customerName || null;\nstate.customerEmail = action.input.customerEmail || null;\nstate.sourceSubscriptionId = action.input.sourceSubscriptionId || null;\nstate.sourceSubscriptionName = action.input.sourceSubscriptionName || null;\nstate.cycleStart = action.input.cycleStart || null;\nstate.cycleEnd = action.input.cycleEnd || null;\nstate.billingCycle = action.input.billingCycle || null;\nstate.currency = action.input.currency || null;\nstate.subtotal = action.input.subtotal;\nstate.creditApplied = action.input.creditApplied;\nstate.totalDue = action.input.totalDue;\nstate.totalPaid = action.input.totalPaid;\nstate.notes = action.input.notes || null;\nstate.lineItems = action.input.lineItems.map((li) => ({\n  id: li.id,\n  sliceId: li.sliceId,\n  origin: li.origin,\n  description: li.description,\n  sourceName: li.sourceName || null,\n  chargedAt: li.chargedAt,\n  debitAmount: li.debitAmount,\n  settledAmount: li.settledAmount,\n  creditApplied: li.creditApplied,\n  amountDue: li.amountDue,\n  currency: li.currency,\n}));',
+              errors: [
+                {
+                  id: "err-already-initialized",
+                  name: "InvoiceAlreadyInitializedError",
+                  code: "ALREADY_INITIALIZED",
+                  description: "Invoice has already been initialized",
+                  template: "",
+                },
+              ],
+              examples: [],
+              scope: "global",
+            },
+            {
+              id: "op-mark-issued",
+              name: "MARK_INVOICE_ISSUED",
+              description:
+                "Transition invoice from DRAFT to ISSUED. Stamps issuedAt.",
+              schema:
+                "input MarkInvoiceIssuedInput {\n    issuedAt: DateTime!\n}",
+              template:
+                "Transition invoice from DRAFT to ISSUED. Stamps issuedAt.",
+              reducer:
+                'if (state.status !== "DRAFT") {\n  throw new InvoiceNotDraftError(\n    `Cannot issue invoice in status ${state.status}; expected DRAFT`,\n  );\n}\nstate.status = "ISSUED";\nstate.issuedAt = action.input.issuedAt;',
+              errors: [
+                {
+                  id: "err-issue-not-draft",
+                  name: "InvoiceNotDraftError",
+                  code: "INVOICE_NOT_DRAFT",
+                  description: "Invoice can only be issued from DRAFT status",
+                  template: "",
+                },
+              ],
+              examples: [],
+              scope: "global",
+            },
+            {
+              id: "op-mark-paid",
+              name: "MARK_INVOICE_PAID",
+              description:
+                "Transition invoice from ISSUED or PARTIALLY_PAID to PAID. Sets totalPaid to totalDue.",
+              schema:
+                "input MarkInvoicePaidInput {\n    paidAt: DateTime!\n    paidAmount: Amount_Money!\n}",
+              template:
+                "Transition invoice from ISSUED or PARTIALLY_PAID to PAID. Sets totalPaid to totalDue.",
+              reducer:
+                'if (state.status !== "ISSUED") {\n  throw new InvoiceNotIssuedError(\n    `Cannot mark paid in status ${state.status}; expected ISSUED`,\n  );\n}\nif (action.input.paidAmount <= 0) {\n  throw new InvoicePaidInvalidAmountError(\n    "Paid amount must be greater than zero",\n  );\n}\nstate.status = "PAID";\nstate.totalPaid = action.input.paidAmount;',
+              errors: [
+                {
+                  id: "err-paid-invalid-status",
+                  name: "InvoiceNotIssuedError",
+                  code: "INVOICE_NOT_ISSUED",
+                  description:
+                    "Invoice can only be marked paid from ISSUED status",
+                  template: "",
+                },
+                {
+                  id: "err-paid-invalid-amount",
+                  name: "InvoicePaidInvalidAmountError",
+                  code: "INVOICE_PAID_INVALID_AMOUNT",
+                  description: "Paid amount must be greater than zero",
+                  template: "",
+                },
+              ],
+              examples: [],
+              scope: "global",
+            },
+            {
+              id: "op-void-invoice",
+              name: "VOID_INVOICE",
+              description:
+                "Mark the invoice as VOID. Reason recorded in notes.",
+              schema:
+                "input VoidInvoiceInput {\n    voidedAt: DateTime!\n    reason: String\n}",
+              template: "Mark the invoice as VOID. Reason recorded in notes.",
+              reducer:
+                'if (state.status === "VOID") {\n  throw new InvoiceAlreadyVoidError("Invoice is already VOID");\n}\nstate.status = "VOID";\nif (action.input.reason) {\n  state.notes = (state.notes ? state.notes + "\\n\\n" : "") + `[VOID at ${action.input.voidedAt}] ${action.input.reason}`;\n}',
+              errors: [
+                {
+                  id: "err-void-already-void",
+                  name: "InvoiceAlreadyVoidError",
+                  code: "INVOICE_ALREADY_VOID",
+                  description: "Invoice is already VOID",
+                  template: "",
+                },
+              ],
+              examples: [],
+              scope: "global",
+            },
+            {
+              id: "op-set-stripe-id",
+              name: "SET_STRIPE_INVOICE_ID",
+              description:
+                "Link the Powerhouse invoice document to a Stripe invoice ID. Set by the Stripe integration when an invoice is pushed/charged.",
+              schema:
+                "input SetStripeInvoiceIdInput {\n    stripeInvoiceId: String!\n}",
+              template:
+                "Link the Powerhouse invoice document to a Stripe invoice ID. Set by the Stripe integration when an invoice is pushed/charged.",
+              reducer: "state.stripeInvoiceId = action.input.stripeInvoiceId;",
+              errors: [],
+              examples: [],
+              scope: "global",
+            },
+            {
+              id: "op-set-notes",
+              name: "SET_INVOICE_NOTES",
+              description:
+                "Operator note attached to the invoice (terms, payment instructions, void reason).",
+              schema: "input SetInvoiceNotesInput {\n    notes: String\n}",
+              template:
+                "Operator note attached to the invoice (terms, payment instructions, void reason).",
+              reducer: "state.notes = action.input.notes || null;",
+              errors: [],
+              examples: [],
+              scope: "global",
+            },
+          ],
+        },
+      ],
+      version: 1,
+      changeLog: [],
+    },
+  ],
+};

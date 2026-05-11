@@ -6,6 +6,7 @@ import type {
   SubscriptionInstanceDocument,
 } from "document-models/subscription-instance";
 import type {
+  DebtLineItem,
   Service,
   ServiceMetric,
 } from "../../../document-models/subscription-instance/v1/gen/schema/types.js";
@@ -36,12 +37,14 @@ function UsageBar({
   dispatch,
   isOperator,
   customerName,
+  debtLineItems,
 }: {
   serviceId: string;
   metric: ServiceMetric;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
   isOperator: boolean;
   customerName?: string | null;
+  debtLineItems: readonly DebtLineItem[];
 }) {
   const freeLimit = metric.freeLimit ?? 0;
   const paidLimit = metric.paidLimit ?? null;
@@ -55,13 +58,42 @@ function UsageBar({
   const freePortion =
     displayLimit > 0 ? Math.min(100, (freeLimit / displayLimit) * 100) : 0;
 
+  // Find the most recent DYNAMIC slice for this metric. NON_CUMULATIVE
+  // meters keep showing real-state usage after payment (the meter doesn't
+  // reset), so the visual treatment for "is this metric currently paid"
+  // can't depend on whether the slice is frozen — it must look at
+  // payment status of whichever slice covered the latest billed period.
+  const latestDynamicSlice = debtLineItems
+    .filter((s) => s.origin === "DYNAMIC" && s.sourceMetricId === metric.id)
+    .reduce<(typeof debtLineItems)[number] | null>((latest, s) => {
+      if (!latest || s.chargedAt > latest.chargedAt) return s;
+      return latest;
+    }, null);
+  const latestSlicePaid = latestDynamicSlice?.status === "FULLY_PAID";
+  const latestSliceOpen =
+    latestDynamicSlice != null && latestDynamicSlice.status !== "FULLY_PAID";
+
   const getBarColor = () => {
+    // Latest overage paid → emerald. Operator has resolved the financial
+    // side; the meter is honest about real usage but no money is owed for
+    // what's shown.
+    if (latestSlicePaid) return "si-usage-bar__fill--paid";
     if (percentage >= 90) return "si-usage-bar__fill--danger";
     if (percentage >= 75) return "si-usage-bar__fill--warning";
     return "si-usage-bar__fill--normal";
   };
 
   const isOverFree = metric.currentUsage > freeLimit && freeLimit > 0;
+
+  // Per-metric badge logic uses the LATEST DYNAMIC slice (computed above
+  // for bar color), regardless of frozen state:
+  //
+  // - latest paid (frozen or not) → "Paid" success badge — operator has
+  //   collected for the most recent overage period; the meter still shows
+  //   real usage because NON_CUMULATIVE doesn't reset on payment
+  // - latest open (CHARGED/INVOICED/PARTIALLY_PAID) → "X over free limit"
+  //   warning badge — operator action needed
+  // - no slice → no badge (within free or no overage yet)
 
   return (
     <div className="si-metric">
@@ -115,11 +147,21 @@ function UsageBar({
           )}
         </p>
       )}
-      {/* Overage indicator */}
-      {isOverFree && metric.unitCost && (
+      {/* Overage indicator — shown when the LATEST overage slice is still
+          open (CHARGED/INVOICED/PARTIALLY_PAID). Once that slice settles
+          or freezes-then-pays, this hides and the paid indicator shows. */}
+      {isOverFree && metric.unitCost && latestSliceOpen && (
         <div className="si-metric__overage">
           <strong>{(metric.currentUsage - freeLimit).toLocaleString()}</strong>{" "}
           {metric.unitName} over free limit
+        </div>
+      )}
+      {/* Paid indicator — latest overage slice is FULLY_PAID. The meter
+          still shows real-state usage (NON_CUMULATIVE doesn't reset on
+          payment) but the financial side is settled. */}
+      {isOverFree && metric.unitCost && latestSlicePaid && (
+        <div className="si-metric__overage si-metric__overage--paid">
+          Paid through current usage
         </div>
       )}
       {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition --
@@ -148,6 +190,7 @@ interface ServiceCardProps {
   customerName?: string | null;
   groupId?: string;
   subscriptionStatus?: string;
+  debtLineItems: readonly DebtLineItem[];
 }
 
 function ServiceCard({
@@ -157,6 +200,7 @@ function ServiceCard({
   customerName,
   groupId,
   subscriptionStatus,
+  debtLineItems,
 }: ServiceCardProps) {
   return (
     <div className="si-service-card">
@@ -184,6 +228,7 @@ function ServiceCard({
               dispatch={dispatch}
               isOperator={mode === "operator"}
               customerName={customerName}
+              debtLineItems={debtLineItems}
             />
           ))}
         </div>
@@ -270,6 +315,8 @@ function AddServiceGroupButton({
         setupAmount: selectedAddon.setupAmount ?? undefined,
         setupCurrency: selectedAddon.setupCurrency ?? currency,
         effectiveDate: nowISO(),
+        setupSliceId: generateId(),
+        recurringSliceId: generateId(),
       }),
     );
     setShowModal(false);
@@ -454,6 +501,7 @@ export function ServicesPanel({
                   mode={mode}
                   dispatch={dispatch}
                   customerName={state.customerName}
+                  debtLineItems={state.debtLineItems}
                 />
               ))}
             </div>
@@ -497,6 +545,7 @@ export function ServicesPanel({
                     customerName={state.customerName}
                     groupId={group.id}
                     subscriptionStatus={state.status}
+                    debtLineItems={state.debtLineItems}
                   />
                 ))}
               </div>
@@ -567,6 +616,7 @@ export function ServicesPanel({
                           removeServiceGroup({
                             groupId: group.id,
                             effectiveDate: nowISO(),
+                            creditSliceId: generateId(),
                           }),
                         )
                       }
@@ -586,6 +636,7 @@ export function ServicesPanel({
                     customerName={state.customerName}
                     groupId={group.id}
                     subscriptionStatus={state.status}
+                    debtLineItems={state.debtLineItems}
                   />
                 ))}
               </div>

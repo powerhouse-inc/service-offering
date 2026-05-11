@@ -5,6 +5,7 @@ import {
   subscriptionInstanceServiceGroupActions,
   subscriptionInstanceMetricsActions,
   subscriptionInstanceCustomerActions,
+  subscriptionInstanceDebtLineItemsActions,
 } from "./gen/creators.js";
 
 /** Actions for the SubscriptionInstance document model */
@@ -16,4 +17,5 @@ export const actions = {
   ...subscriptionInstanceServiceGroupActions,
   ...subscriptionInstanceMetricsActions,
   ...subscriptionInstanceCustomerActions,
+  ...subscriptionInstanceDebtLineItemsActions,
 };

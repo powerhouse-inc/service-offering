@@ -85,9 +85,26 @@ export function SimulatedClockPanel() {
     setSimulatedNow(fromLocalInputValue(v));
   };
 
-  const advance = (days: number) => {
+  const advanceDays = (days: number) => {
     const start = simulatedNow ? new Date(simulatedNow) : new Date();
     const next = new Date(start.getTime() + days * ONE_DAY_MS);
+    setSimulatedNow(next.toISOString());
+  };
+
+  // Calendar-aware month/year advance — matches the addAccrualPeriod helper
+  // used by the reducer, so a click here is guaranteed to cross the next
+  // monthly accrual boundary.
+  const advanceMonths = (months: number) => {
+    const start = simulatedNow ? new Date(simulatedNow) : new Date();
+    const next = new Date(start);
+    next.setMonth(next.getMonth() + months);
+    setSimulatedNow(next.toISOString());
+  };
+
+  const advanceYears = (years: number) => {
+    const start = simulatedNow ? new Date(simulatedNow) : new Date();
+    const next = new Date(start);
+    next.setFullYear(next.getFullYear() + years);
     setSimulatedNow(next.toISOString());
   };
 
@@ -115,7 +132,7 @@ export function SimulatedClockPanel() {
           <button
             type="button"
             className="si-btn si-btn--xs si-btn--secondary"
-            onClick={() => advance(1)}
+            onClick={() => advanceDays(1)}
             title="Advance simulated clock by 1 day"
           >
             +1d
@@ -123,7 +140,7 @@ export function SimulatedClockPanel() {
           <button
             type="button"
             className="si-btn si-btn--xs si-btn--secondary"
-            onClick={() => advance(7)}
+            onClick={() => advanceDays(7)}
             title="Advance simulated clock by 7 days"
           >
             +7d
@@ -131,16 +148,16 @@ export function SimulatedClockPanel() {
           <button
             type="button"
             className="si-btn si-btn--xs si-btn--secondary"
-            onClick={() => advance(30)}
-            title="Advance simulated clock by 30 days"
+            onClick={() => advanceMonths(1)}
+            title="Advance simulated clock by 1 calendar month — guaranteed to cross monthly accrual boundary"
           >
-            +30d
+            +1mo
           </button>
           <button
             type="button"
             className="si-btn si-btn--xs si-btn--secondary"
-            onClick={() => advance(365)}
-            title="Advance simulated clock by 1 year"
+            onClick={() => advanceYears(1)}
+            title="Advance simulated clock by 1 calendar year"
           >
             +1y
           </button>

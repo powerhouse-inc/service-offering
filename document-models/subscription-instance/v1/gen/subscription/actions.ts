@@ -8,14 +8,12 @@ import type {
   CancelSubscriptionInput,
   ResumeSubscriptionInput,
   RenewExpiringSubscriptionInput,
-  SetBudgetCategoryInput,
-  RemoveBudgetCategoryInput,
   UpdateCustomerInfoInput,
   UpdateTierInfoInput,
   SetOperatorNotesInput,
   SetAutoRenewInput,
-  SetRenewalDateInput,
-  SettleBillingCycleInput,
+  GenerateInvoiceInput,
+  ChangePlanInput,
 } from "../types.js";
 
 export type InitializeSubscriptionAction = Action & {
@@ -50,14 +48,6 @@ export type RenewExpiringSubscriptionAction = Action & {
   type: "RENEW_EXPIRING_SUBSCRIPTION";
   input: RenewExpiringSubscriptionInput;
 };
-export type SetBudgetCategoryAction = Action & {
-  type: "SET_BUDGET_CATEGORY";
-  input: SetBudgetCategoryInput;
-};
-export type RemoveBudgetCategoryAction = Action & {
-  type: "REMOVE_BUDGET_CATEGORY";
-  input: RemoveBudgetCategoryInput;
-};
 export type UpdateCustomerInfoAction = Action & {
   type: "UPDATE_CUSTOMER_INFO";
   input: UpdateCustomerInfoInput;
@@ -74,13 +64,13 @@ export type SetAutoRenewAction = Action & {
   type: "SET_AUTO_RENEW";
   input: SetAutoRenewInput;
 };
-export type SetRenewalDateAction = Action & {
-  type: "SET_RENEWAL_DATE";
-  input: SetRenewalDateInput;
+export type GenerateInvoiceAction = Action & {
+  type: "GENERATE_INVOICE";
+  input: GenerateInvoiceInput;
 };
-export type SettleBillingCycleAction = Action & {
-  type: "SETTLE_BILLING_CYCLE";
-  input: SettleBillingCycleInput;
+export type ChangePlanAction = Action & {
+  type: "CHANGE_PLAN";
+  input: ChangePlanInput;
 };
 
 export type SubscriptionInstanceSubscriptionAction =
@@ -92,11 +82,9 @@ export type SubscriptionInstanceSubscriptionAction =
   | CancelSubscriptionAction
   | ResumeSubscriptionAction
   | RenewExpiringSubscriptionAction
-  | SetBudgetCategoryAction
-  | RemoveBudgetCategoryAction
   | UpdateCustomerInfoAction
   | UpdateTierInfoAction
   | SetOperatorNotesAction
   | SetAutoRenewAction
-  | SetRenewalDateAction
-  | SettleBillingCycleAction;
+  | GenerateInvoiceAction
+  | ChangePlanAction;

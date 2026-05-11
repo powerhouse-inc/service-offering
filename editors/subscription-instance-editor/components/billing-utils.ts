@@ -161,6 +161,19 @@ export function computeBillingBreakdown(
   const currency = state.globalCurrency || state.tierCurrency || "USD";
   const billingCycle = state.selectedBillingCycle || null;
 
+  // Slice-driven payment status: a setup is "paid" only if the corresponding
+  // SETUP slice exists in the ledger AND has status FULLY_PAID. Lookup is
+  // keyed by (sourceServiceId, sourceGroupId).
+  const setupPaidByServiceId = new Set<string>();
+  const setupPaidByGroupId = new Set<string>();
+  for (const slice of state.debtLineItems) {
+    if (slice.origin !== "SETUP" || slice.status !== "FULLY_PAID") continue;
+    if (slice.sourceServiceId) setupPaidByServiceId.add(slice.sourceServiceId);
+    if (slice.sourceGroupId && !slice.sourceServiceId) {
+      setupPaidByGroupId.add(slice.sourceGroupId);
+    }
+  }
+
   // Group breakdowns
   const groupBreakdowns: GroupBillingBreakdown[] = [];
   const setupLines: SetupCostLine[] = [];
@@ -197,7 +210,7 @@ export function computeBillingBreakdown(
         name: group.name,
         amount: group.setupCost.amount,
         currency: group.setupCost.currency,
-        paid: !!group.setupCost.paymentDate,
+        paid: setupPaidByGroupId.has(group.id),
         source: "group",
       });
     }
@@ -209,7 +222,7 @@ export function computeBillingBreakdown(
           name: `${svc.name || "Service"} (${group.name})`,
           amount: svc.setupCost.amount,
           currency: svc.setupCost.currency,
-          paid: !!svc.setupCost.paymentDate,
+          paid: setupPaidByServiceId.has(svc.id),
           source: "service",
         });
       }
@@ -233,7 +246,7 @@ export function computeBillingBreakdown(
         name: svc.name || "Service",
         amount: svc.setupCost.amount,
         currency: svc.setupCost.currency,
-        paid: !!svc.setupCost.paymentDate,
+        paid: setupPaidByServiceId.has(svc.id),
         source: "service",
       });
     }

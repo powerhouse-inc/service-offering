@@ -8,7 +8,6 @@ import type {
 import {
   initializeSubscription,
   activateSubscription,
-  setRenewalDate,
 } from "../../../document-models/subscription-instance/v1/gen/subscription/creators.js";
 import { setCustomerType } from "../../../document-models/subscription-instance/v1/gen/customer/creators.js";
 
@@ -16,6 +15,12 @@ interface MockDataButtonProps {
   document: SubscriptionInstanceDocument;
   dispatch: DocumentDispatch<SubscriptionInstanceAction>;
 }
+
+// Mock data models the Operational Hub "Standard" tier from
+// https://www.operationalhub.io/pricing — Swiss-association-as-a-service
+// for DAOs and crypto-native foundations. Two metered metrics drive the
+// usage demos: Invoices (CUMULATIVE counter) and Active Contributors
+// (NON_CUMULATIVE headcount).
 
 export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
   const hasData =
@@ -26,273 +31,213 @@ export function MockDataButton({ document, dispatch }: MockDataButtonProps) {
     const oneMonthAgo = new Date(
       Date.now() - 30 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    const twoMonthsFromNow = new Date(
-      Date.now() + 60 * 24 * 60 * 60 * 1000,
-    ).toISOString();
 
-    // 1. Initialize subscription with full service group structure
-    //    Pricing lives at the SERVICE GROUP level, not per-service
+    // 1. Initialize subscription with full service group structure.
+    //    Pricing lives at the SERVICE GROUP level, not per-service.
+    //    Extract groups into a local so step 2 (activation) walks the same
+    //    source-of-truth without depending on React state propagation
+    //    between dispatches.
+    const mockServiceGroups: NonNullable<
+      Parameters<typeof initializeSubscription>[0]["serviceGroups"]
+    > = [
+      // === Core Operations (mandatory base — $1,250/mo + $2,500 setup) ===
+      {
+        id: generateId(),
+        name: "Core Operations",
+        optional: false,
+        costType: "RECURRING",
+        recurringAmount: 1250,
+        recurringCurrency: "USD",
+        recurringBillingCycle: "MONTHLY",
+        setupAmount: 2500,
+        setupCurrency: "USD",
+        services: [
+          {
+            id: generateId(),
+            name: "Monthly Accounting & Close",
+            description:
+              "Bookkeeping, monthly closes, multi-entity consolidation, regulatory filings.",
+            metrics: [
+              {
+                id: generateId(),
+                name: "Invoices",
+                unitName: "invoices",
+                // At activation, nothing has accrued yet. CUMULATIVE counter
+                // starts at zero — operator dispatches INCREMENT_METRIC_USAGE
+                // as invoices flow in during the first accrual cycle.
+                currentUsage: 0,
+                metricType: "CUMULATIVE",
+                accrualCycle: "MONTHLY",
+                freeLimit: 50,
+                paidLimit: 1000,
+                unitCostAmount: 5,
+                unitCostCurrency: "USD",
+                unitCostBillingCycle: "MONTHLY",
+              },
+            ],
+          },
+          {
+            id: generateId(),
+            name: "Contributor Operations",
+            description:
+              "Onboarding, payouts, KYC, multi-currency disbursement, contributor support.",
+            metrics: [
+              {
+                id: generateId(),
+                name: "Active Contributors",
+                unitName: "contributors",
+                // At activation, no contributors have been onboarded yet.
+                // NON_CUMULATIVE state (headcount) starts at zero — operator
+                // dispatches UPDATE_METRIC_USAGE as people join.
+                currentUsage: 0,
+                metricType: "NON_CUMULATIVE",
+                accrualCycle: "MONTHLY",
+                // freeLimit deliberately 1 (not 0) so the editor renders
+                // "1 free / 100 max" rather than "100 paid" only — the
+                // reducer treats `0 || null` as null which suppresses the
+                // free-limit display.
+                freeLimit: 1,
+                paidLimit: 100,
+                unitCostAmount: 250,
+                unitCostCurrency: "USD",
+                unitCostBillingCycle: "MONTHLY",
+              },
+            ],
+          },
+          {
+            id: generateId(),
+            name: "Multi-Currency Payouts",
+            description:
+              "USD, EUR, CHF, GBP, USDC, DAI — automated FX handling and routing.",
+          },
+          {
+            id: generateId(),
+            name: "Dedicated Ops Support",
+            description:
+              "Named ops contact during business hours. Slack + email.",
+          },
+        ],
+      },
+      // === AML Monitoring & Compliance (optional add-on — $500/mo) ===
+      {
+        id: generateId(),
+        name: "AML Monitoring & Compliance",
+        optional: true,
+        costType: "RECURRING",
+        recurringAmount: 500,
+        recurringCurrency: "USD",
+        recurringBillingCycle: "MONTHLY",
+        services: [],
+      },
+      // === Card & Spend Operations (optional add-on — $350/mo) ===
+      {
+        id: generateId(),
+        name: "Card & Spend Operations",
+        optional: true,
+        costType: "RECURRING",
+        recurringAmount: 350,
+        recurringCurrency: "USD",
+        recurringBillingCycle: "MONTHLY",
+        services: [],
+      },
+      // === Audit Support (optional add-on — $800/mo) ===
+      {
+        id: generateId(),
+        name: "Audit Support",
+        optional: true,
+        costType: "RECURRING",
+        recurringAmount: 800,
+        recurringCurrency: "USD",
+        recurringBillingCycle: "MONTHLY",
+        services: [],
+      },
+    ];
+
     if (!document.state.global.customerId) {
       dispatch(
         initializeSubscription({
           createdAt: oneMonthAgo,
           customerId: `phid:customer:${generateId()}`,
-          customerName: "Acme Corporation",
-          customerEmail: "billing@acme.example.com",
+          customerName: "Genesis DAO",
+          customerEmail: "ops@genesis-dao.example.org",
           resourceId: `phid:resource:${generateId()}`,
-          resourceLabel: "Enterprise Cloud Platform",
-          tierName: "Professional",
+          resourceLabel: "Operational Hub — Standard",
+          tierName: "Standard",
           tierPricingOptionId: generateId(),
-          tierPrice: 726,
+          tierPrice: 1250,
           tierCurrency: "USD",
           tierPricingMode: "CALCULATED",
           selectedBillingCycle: "MONTHLY",
           globalCurrency: "USD",
           autoRenew: true,
-          serviceGroups: [
-            // === Core Infrastructure (recurring, group-level price: $726/mo) ===
-            {
-              id: generateId(),
-              name: "Core Infrastructure",
-              optional: false,
-              costType: "RECURRING",
-              recurringAmount: 726,
-              recurringCurrency: "USD",
-              recurringBillingCycle: "MONTHLY",
-              setupAmount: 500,
-              setupCurrency: "USD",
-              services: [
-                {
-                  id: generateId(),
-                  name: "Cloud Compute",
-                  description:
-                    "Scalable virtual machines with automatic load balancing",
-                  metrics: [
-                    {
-                      id: generateId(),
-                      name: "vCPU Hours",
-                      unitName: "hours",
-                      currentUsage: 1250,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 1000,
-                      paidLimit: 2000,
-                      unitCostAmount: 0.05,
-                      unitCostCurrency: "USD",
-                      unitCostBillingCycle: "MONTHLY",
-                    },
-                    {
-                      id: generateId(),
-                      name: "RAM GB-Hours",
-                      unitName: "GB-hours",
-                      currentUsage: 3200,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 3000,
-                      paidLimit: 5000,
-                    },
-                    {
-                      id: generateId(),
-                      name: "Active Instances",
-                      unitName: "instances",
-                      currentUsage: 8,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 10,
-                      paidLimit: 20,
-                    },
-                  ],
-                },
-                {
-                  id: generateId(),
-                  name: "Object Storage",
-                  description: "Unlimited cloud storage with CDN integration",
-                  metrics: [
-                    {
-                      id: generateId(),
-                      name: "Storage Used",
-                      unitName: "GB",
-                      currentUsage: 450,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 500,
-                      paidLimit: 2000,
-                      unitCostAmount: 0.02,
-                      unitCostCurrency: "USD",
-                      unitCostBillingCycle: "MONTHLY",
-                    },
-                    {
-                      id: generateId(),
-                      name: "Bandwidth Out",
-                      unitName: "GB",
-                      currentUsage: 280,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 500,
-                    },
-                    {
-                      id: generateId(),
-                      name: "API Requests",
-                      unitName: "requests",
-                      currentUsage: 125000,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 100000,
-                      paidLimit: 500000,
-                      unitCostAmount: 0.001,
-                      unitCostCurrency: "USD",
-                      unitCostBillingCycle: "MONTHLY",
-                    },
-                  ],
-                },
-                {
-                  id: generateId(),
-                  name: "Managed Database",
-                  description: "PostgreSQL with automatic backups and failover",
-                  metrics: [
-                    {
-                      id: generateId(),
-                      name: "Database Size",
-                      unitName: "GB",
-                      currentUsage: 85,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 50,
-                      paidLimit: 100,
-                      unitCostAmount: 0.5,
-                      unitCostCurrency: "USD",
-                      unitCostBillingCycle: "MONTHLY",
-                    },
-                    {
-                      id: generateId(),
-                      name: "Connections",
-                      unitName: "connections",
-                      currentUsage: 45,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 50,
-                      paidLimit: 100,
-                    },
-                  ],
-                },
-                {
-                  id: generateId(),
-                  name: "Global CDN",
-                  description: "Content delivery network with edge caching",
-                  metrics: [
-                    {
-                      id: generateId(),
-                      name: "Cache Hit Rate",
-                      unitName: "%",
-                      currentUsage: 94,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      paidLimit: 100,
-                    },
-                    {
-                      id: generateId(),
-                      name: "Edge Requests",
-                      unitName: "M requests",
-                      currentUsage: 12,
-                      metricType: "NON_CUMULATIVE",
-                      accrualCycle: "MONTHLY",
-                      freeLimit: 10,
-                      paidLimit: 50,
-                      unitCostAmount: 5,
-                      unitCostCurrency: "USD",
-                      unitCostBillingCycle: "MONTHLY",
-                    },
-                  ],
-                },
-              ],
-            },
-            // === Security Suite (optional add-on, group-level price: $178/mo) ===
-            {
-              id: generateId(),
-              name: "Security Suite",
-              optional: true,
-              costType: "RECURRING",
-              recurringAmount: 178,
-              recurringCurrency: "USD",
-              recurringBillingCycle: "MONTHLY",
-              setupAmount: 750,
-              setupCurrency: "USD",
-              services: [
-                {
-                  id: generateId(),
-                  name: "DDoS Protection",
-                  description:
-                    "Advanced DDoS mitigation with real-time monitoring",
-                },
-                {
-                  id: generateId(),
-                  name: "WAF",
-                  description: "Web Application Firewall with custom rules",
-                },
-                {
-                  id: generateId(),
-                  name: "Security Audit & Onboarding",
-                  description: "Initial security assessment and configuration",
-                },
-              ],
-            },
-            // === Premium Support (optional add-on, group-level price: $498/mo) ===
-            {
-              id: generateId(),
-              name: "Premium Support",
-              optional: true,
-              costType: "RECURRING",
-              recurringAmount: 498,
-              recurringCurrency: "USD",
-              recurringBillingCycle: "MONTHLY",
-              setupAmount: 1200,
-              setupCurrency: "USD",
-              services: [
-                {
-                  id: generateId(),
-                  name: "24/7 Priority Support",
-                  description:
-                    "Direct access to senior engineers with 15-min response time",
-                },
-                {
-                  id: generateId(),
-                  name: "Dedicated Account Manager",
-                  description:
-                    "Personal account manager for strategic guidance",
-                },
-                {
-                  id: generateId(),
-                  name: "Team Onboarding Workshop",
-                  description:
-                    "Customized training sessions for your engineering team",
-                },
-              ],
-            },
-          ],
+          serviceGroups: mockServiceGroups,
         }),
       );
     }
 
-    // 2. Activate subscription
+    // 2. Activate subscription. Walk the same mockServiceGroups source we
+    // just dispatched so the slice IDs match what the reducer will see —
+    // independent of React state propagation between dispatches.
+    // sourceName is informational — purely for the operation log so the
+    // operator can read "{sliceId} → Core Operations" instead of opaque
+    // OIDs. Reducer ignores the field.
+    const setupSliceIds: {
+      sourceId: string;
+      sliceId: string;
+      sourceName?: string;
+    }[] = [];
+    const recurringSliceIds: {
+      sourceId: string;
+      sliceId: string;
+      sourceName?: string;
+    }[] = [];
+    for (const group of mockServiceGroups) {
+      if (group.setupAmount) {
+        setupSliceIds.push({
+          sourceId: group.id,
+          sliceId: generateId(),
+          sourceName: group.name,
+        });
+      }
+      if (group.recurringAmount) {
+        recurringSliceIds.push({
+          sourceId: group.id,
+          sliceId: generateId(),
+          sourceName: group.name,
+        });
+      }
+      for (const svc of group.services ?? []) {
+        if (svc.setupAmount) {
+          setupSliceIds.push({
+            sourceId: svc.id,
+            sliceId: generateId(),
+            sourceName: svc.name ?? undefined,
+          });
+        }
+        if (svc.recurringAmount) {
+          recurringSliceIds.push({
+            sourceId: svc.id,
+            sliceId: generateId(),
+            sourceName: svc.name ?? undefined,
+          });
+        }
+      }
+    }
     dispatch(
       activateSubscription({
         activatedSince: oneMonthAgo,
+        setupSliceIds,
+        recurringSliceIds,
       }),
     );
 
-    // 3. Set renewal date
-    dispatch(setRenewalDate({ renewalDate: twoMonthsFromNow }));
-
-    // 4. Set customer type
+    // 3. Customer type — DAOs are TEAM by default in the model.
     dispatch(
       setCustomerType({
         customerType: "TEAM",
         teamMemberCount: 12,
       }),
     );
-
-    // Billing projection is now derived from totalDebt/totalCredit + overage (D-3)
-    // No explicit billing projection dispatch needed
   }, [document.state.global.customerId, dispatch]);
 
   return (
