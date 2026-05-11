@@ -1,3 +1,10 @@
+# [1.0.0-dev.42](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.41...v1.0.0-dev.42) (2026-05-11)
+
+
+### Features
+
+* GENERATE_INVOICE flow with new Invoice document model + slice-based billing ([438fe6e](https://github.com/powerhouse-inc/service-offering/commit/438fe6ef0245ba2abd0253f4d4f65a86bef6fa07))
+
 # [1.0.0-dev.41](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.40...v1.0.0-dev.41) (2026-05-01)
 
 # [1.0.0-dev.40](https://github.com/powerhouse-inc/service-offering/compare/v1.0.0-dev.39...v1.0.0-dev.40) (2026-04-29)
