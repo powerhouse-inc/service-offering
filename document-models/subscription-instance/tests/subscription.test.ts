@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -38,7 +38,7 @@ import {
   SetAutoRenewInputSchema,
   SetRenewalDateInputSchema,
   UpdateBillingProjectionInputSchema,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
+} from "document-models/subscription-instance";
 
 describe("SubscriptionOperations", () => {
   it("should handle initializeSubscription operation", () => {

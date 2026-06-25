@@ -1,7 +1,7 @@
 import type {
   BillingCycle,
   BillingCycleDiscount,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import { formatPrice, BILLING_CYCLE_MONTHS } from "./pricing-utils.js";
 
 interface BillingCycleConfigPanelProps {

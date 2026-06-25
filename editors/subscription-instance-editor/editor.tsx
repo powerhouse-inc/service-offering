@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DocumentToolbar } from "@powerhousedao/design-system/connect";
-import { useSelectedSubscriptionInstanceDocument } from "../../document-models/subscription-instance/hooks.js";
+import { useSelectedSubscriptionInstanceDocument } from "document-models/subscription-instance";
 import type { ViewMode } from "./types.js";
 import { ModeToggle } from "./components/ModeToggle.js";
 import { MockDataButton } from "./components/MockDataButton.js";

@@ -1,4 +1,4 @@
-import type { ResourceTemplateAudienceManagementOperations } from "@powerhousedao/service-offering/document-models/resource-template";
+import type { ResourceTemplateAudienceManagementOperations } from "document-models/resource-template";
 
 export const resourceTemplateAudienceManagementOperations: ResourceTemplateAudienceManagementOperations =
   {

@@ -8,7 +8,7 @@ import {
 import type {
   ServiceOfferingAction,
   ServiceOfferingDocument,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   assertIsServiceOfferingDocument,
   isServiceOfferingDocument,

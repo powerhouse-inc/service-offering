@@ -4,11 +4,11 @@ import type {
   ServiceSubscriptionTier,
   Service as SOService,
   ServiceUsageLimit,
-} from "../../../document-models/service-offering/gen/schema/types.js";
+} from "document-models/service-offering";
 import type {
   PriceBreakdown,
   OptionGroupBreakdown,
-} from "../../../document-models/service-offering/src/utils.js";
+} from "document-models/service-offering";
 import type {
   InitializeSubscriptionInput,
   InitializeServiceGroupInput,
@@ -17,7 +17,7 @@ import type {
   DiscountInfoInitInput,
   DiscountType,
   BillingCycle as SIBillingCycle,
-} from "../../../document-models/subscription-instance/gen/schema/types.js";
+} from "document-models/subscription-instance";
 
 export interface MapOfferingOptions {
   /** The service offering state to import from */

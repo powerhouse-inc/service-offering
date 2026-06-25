@@ -1,4 +1,4 @@
-import type { ResourceTemplateServiceCategoryManagementOperations } from "@powerhousedao/service-offering/document-models/resource-template";
+import type { ResourceTemplateServiceCategoryManagementOperations } from "document-models/resource-template";
 
 export const resourceTemplateServiceCategoryManagementOperations: ResourceTemplateServiceCategoryManagementOperations =
   {

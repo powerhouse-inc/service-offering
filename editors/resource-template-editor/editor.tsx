@@ -1,5 +1,5 @@
 import { DocumentToolbar } from "@powerhousedao/design-system/connect";
-import { useSelectedResourceTemplateDocument } from "../../document-models/resource-template/hooks.js";
+import { useSelectedResourceTemplateDocument } from "document-models/resource-template";
 import { TemplateInfo } from "./components/TemplateInfo.js";
 import { FacetTargeting } from "./components/FacetTargeting.js";
 

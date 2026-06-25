@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
-import type { SubscriptionInstanceAction } from "@powerhousedao/service-offering/document-models/subscription-instance";
-import type { ServiceMetric } from "../../../document-models/subscription-instance/gen/schema/types.js";
+import type { SubscriptionInstanceAction } from "document-models/subscription-instance";
+import type { ServiceMetric } from "document-models/subscription-instance";
 import {
   incrementMetricUsage,
   decrementMetricUsage,
   updateMetric,
-} from "../../../document-models/subscription-instance/gen/metrics/creators.js";
+} from "document-models/subscription-instance";
 
 interface MetricActionsProps {
   serviceId: string;

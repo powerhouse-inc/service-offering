@@ -3,8 +3,8 @@ import { useSelectedDocument } from "@powerhousedao/reactor-browser";
 import type {
   ServiceOfferingAction,
   ServiceOfferingDocument,
-} from "@powerhousedao/service-offering/document-models/service-offering";
-import { assertIsServiceOfferingDocument } from "../../../document-models/service-offering/gen/document-schema.js";
+} from "document-models/service-offering";
+import { assertIsServiceOfferingDocument } from "document-models/service-offering";
 
 /**
  * Normalizes legacy documents that may have tiers without billingCycleDiscounts

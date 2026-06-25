@@ -8,7 +8,7 @@ import {
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
+} from "document-models/subscription-instance";
 import {
   assertIsSubscriptionInstanceDocument,
   isSubscriptionInstanceDocument,

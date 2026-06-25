@@ -11,7 +11,7 @@ import {
   DecrementMetricUsageServiceNotFoundError,
   DecrementMetricUsageNotFoundError,
 } from "../../gen/metrics/error.js";
-import type { SubscriptionInstanceMetricsOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
+import type { SubscriptionInstanceMetricsOperations } from "document-models/subscription-instance";
 
 export const subscriptionInstanceMetricsOperations: SubscriptionInstanceMetricsOperations =
   {

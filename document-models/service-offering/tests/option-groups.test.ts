@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -20,7 +20,7 @@ import {
   RemoveOptionGroupTierPricingInputSchema,
   setOptionGroupDiscountMode,
   SetOptionGroupDiscountModeInputSchema,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 
 describe("OptionGroupsOperations", () => {
   it("should handle addOptionGroup operation", () => {

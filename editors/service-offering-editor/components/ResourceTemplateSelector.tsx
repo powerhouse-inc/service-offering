@@ -6,7 +6,7 @@ import {
 import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   selectResourceTemplate,
   changeResourceTemplate,
@@ -15,13 +15,13 @@ import {
   addFacetOption,
   removeFacetOption,
   setFacetTarget,
-} from "../../../document-models/service-offering/gen/offering/creators.js";
+} from "document-models/service-offering";
 import { generateId } from "document-model/core";
-import { useResourceTemplateDocumentsInSelectedDrive } from "../../../document-models/resource-template/hooks.js";
+import { useResourceTemplateDocumentsInSelectedDrive } from "document-models/resource-template";
 import type {
   ResourceTemplateDocument,
   ResourceTemplateGlobalState,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 import { MarkdownPreview } from "./MarkdownPreview.js";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";

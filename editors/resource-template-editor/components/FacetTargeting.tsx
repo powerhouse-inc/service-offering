@@ -4,13 +4,13 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   ResourceTemplateDocument,
   ResourceTemplateAction,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 import {
   setFacetTarget,
   removeFacetTarget,
   addFacetOption,
   removeFacetOption,
-} from "../../../document-models/resource-template/gen/creators.js";
+} from "document-models/resource-template";
 
 interface FacetTargetingProps {
   document: ResourceTemplateDocument;

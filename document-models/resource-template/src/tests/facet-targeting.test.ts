@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import {
   reducer,
   utils,
@@ -17,7 +17,7 @@ import {
   AddFacetOptionInputSchema,
   removeFacetOption,
   RemoveFacetOptionInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 
 describe("FacetTargeting Operations", () => {
   it("should handle setFacetTarget operation", () => {

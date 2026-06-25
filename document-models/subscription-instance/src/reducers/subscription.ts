@@ -7,7 +7,7 @@ import {
   RenewNotExpiringError,
   RemoveBudgetNotFoundError,
 } from "../../gen/subscription/error.js";
-import type { SubscriptionInstanceSubscriptionOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
+import type { SubscriptionInstanceSubscriptionOperations } from "document-models/subscription-instance";
 
 export const subscriptionInstanceSubscriptionOperations: SubscriptionInstanceSubscriptionOperations =
   {

@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -14,7 +14,7 @@ import {
   DeleteServiceInputSchema,
   AddFacetBindingInputSchema,
   RemoveFacetBindingInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 
 describe("ServiceManagementOperations", () => {
   it("should handle addService operation", () => {

@@ -4,14 +4,14 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
+} from "document-models/subscription-instance";
 import {
   initializeSubscription,
   activateSubscription,
   setRenewalDate,
   updateBillingProjection,
-} from "../../../document-models/subscription-instance/gen/subscription/creators.js";
-import { setCustomerType } from "../../../document-models/subscription-instance/gen/customer/creators.js";
+} from "document-models/subscription-instance";
+import { setCustomerType } from "document-models/subscription-instance";
 
 interface MockDataButtonProps {
   document: SubscriptionInstanceDocument;

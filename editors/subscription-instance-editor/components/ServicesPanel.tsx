@@ -2,11 +2,11 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
+} from "document-models/subscription-instance";
 import type {
   Service,
   ServiceMetric,
-} from "../../../document-models/subscription-instance/gen/schema/types.js";
+} from "document-models/subscription-instance";
 import type { ViewMode } from "../types.js";
 import { MetricActions } from "./MetricActions.js";
 import {

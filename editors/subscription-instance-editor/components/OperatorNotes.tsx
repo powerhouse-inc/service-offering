@@ -3,8 +3,8 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
-import { setOperatorNotes } from "../../../document-models/subscription-instance/gen/creators.js";
+} from "document-models/subscription-instance";
+import { setOperatorNotes } from "document-models/subscription-instance";
 
 interface OperatorNotesProps {
   document: SubscriptionInstanceDocument;

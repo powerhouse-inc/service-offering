@@ -5,6 +5,16 @@
     // File Layout
     "outDir": "./dist",
     "rootDir": ".",
+    // paths for easy access to project modules
+    "paths": {
+      "document-models": ["./document-models/index.ts"],
+      "document-models/*": ["./document-models/*/index.ts"],
+      "editors": ["./editors/index.ts"],
+      "editors/*": ["./editors/*/index.ts"],
+      "processors/*": ["./processors/*/index.ts"],
+      "subgraphs": ["./subgraphs/index.ts"],
+      "subgraphs/*": ["./subgraphs/*/index.ts"]
+    },
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
