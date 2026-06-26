@@ -9,7 +9,7 @@ import type {
   BillingCycle,
   GroupCostType,
   DiscountType,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
   BILLING_CYCLE_MONTHS,
@@ -28,7 +28,7 @@ import {
   setOptionGroupStandalonePricing,
   addOptionGroupTierPricing,
   updateOptionGroupTierPricing,
-} from "../../../document-models/service-offering/gen/creators.js";
+} from "document-models/service-offering";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 
@@ -116,7 +116,7 @@ const SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
     },
   ],
 };
-import type { ServiceSubscriptionTier } from "../../../document-models/service-offering/gen/schema/types.js";
+import type { ServiceSubscriptionTier } from "document-models/service-offering";
 
 const fontSans = { fontFamily: "'DM Sans', system-ui, sans-serif" };
 const fontMono = { fontFamily: "'DM Mono', 'SF Mono', monospace" };

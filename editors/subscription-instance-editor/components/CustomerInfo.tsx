@@ -4,10 +4,10 @@ import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
   CustomerType,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
+} from "document-models/subscription-instance";
 import type { ViewMode } from "../types.js";
-import { setCustomerType } from "../../../document-models/subscription-instance/gen/customer/creators.js";
-import { updateCustomerInfo } from "../../../document-models/subscription-instance/gen/subscription/creators.js";
+import { setCustomerType } from "document-models/subscription-instance";
+import { updateCustomerInfo } from "document-models/subscription-instance";
 
 interface CustomerInfoProps {
   document: SubscriptionInstanceDocument;

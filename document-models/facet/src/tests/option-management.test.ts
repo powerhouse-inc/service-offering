@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import {
   reducer,
   utils,
@@ -17,7 +17,7 @@ import {
   RemoveOptionInputSchema,
   reorderOptions,
   ReorderOptionsInputSchema,
-} from "@powerhousedao/service-offering/document-models/facet";
+} from "document-models/facet";
 
 describe("OptionManagement Operations", () => {
   it("should handle addOption operation", () => {

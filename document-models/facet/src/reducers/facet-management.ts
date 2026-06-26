@@ -1,4 +1,4 @@
-import type { FacetFacetManagementOperations } from "@powerhousedao/service-offering/document-models/facet";
+import type { FacetFacetManagementOperations } from "document-models/facet";
 
 export const facetFacetManagementOperations: FacetFacetManagementOperations = {
   setFacetNameOperation(state, action) {

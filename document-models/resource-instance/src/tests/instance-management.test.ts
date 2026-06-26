@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import {
   reducer,
   utils,
@@ -19,7 +19,7 @@ import {
   SuspendInstanceInputSchema,
   terminateInstance,
   TerminateInstanceInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-instance";
+} from "document-models/resource-instance";
 
 describe("InstanceManagement Operations", () => {
   it("should handle initializeInstance operation", () => {

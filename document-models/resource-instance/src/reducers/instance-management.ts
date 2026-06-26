@@ -1,4 +1,4 @@
-import type { ResourceInstanceInstanceManagementOperations } from "@powerhousedao/service-offering/document-models/resource-instance";
+import type { ResourceInstanceInstanceManagementOperations } from "document-models/resource-instance";
 
 export const resourceInstanceInstanceManagementOperations: ResourceInstanceInstanceManagementOperations =
   {

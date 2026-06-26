@@ -17,7 +17,7 @@ import {
   assertIsFacetDocument,
   isFacetState,
   assertIsFacetState,
-} from "@powerhousedao/service-offering/document-models/facet";
+} from "document-models/facet";
 import { ZodError } from "zod";
 
 describe("Facet Document Model", () => {

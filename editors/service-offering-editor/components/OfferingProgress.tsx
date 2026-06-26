@@ -4,8 +4,8 @@ import type {
   ServiceOfferingDocument,
   ServiceOfferingAction,
   ServiceStatus,
-} from "@powerhousedao/service-offering/document-models/service-offering";
-import { updateOfferingStatus } from "../../../document-models/service-offering/gen/offering/creators.js";
+} from "document-models/service-offering";
+import { updateOfferingStatus } from "document-models/service-offering";
 import type { TabId } from "../editor.js";
 
 interface OfferingProgressProps {

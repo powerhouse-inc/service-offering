@@ -3,12 +3,12 @@ import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
 import type {
   SubscriptionInstanceAction,
   SubscriptionInstanceDocument,
-} from "@powerhousedao/service-offering/document-models/subscription-instance";
-import { initializeSubscription } from "../../../document-models/subscription-instance/gen/subscription/creators.js";
-import type { ServiceOfferingState } from "../../../document-models/service-offering/gen/schema/types.js";
-import type { ServiceOfferingPHState } from "../../../document-models/service-offering/gen/types.js";
-import { getUserSelectionPriceBreakdown } from "../../../document-models/service-offering/src/utils.js";
-import type { BillingCycle } from "../../../document-models/subscription-instance/gen/schema/types.js";
+} from "document-models/subscription-instance";
+import { initializeSubscription } from "document-models/subscription-instance";
+import type { ServiceOfferingState } from "document-models/service-offering";
+import type { ServiceOfferingPHState } from "document-models/service-offering";
+import { getUserSelectionPriceBreakdown } from "document-models/service-offering";
+import type { BillingCycle } from "document-models/subscription-instance";
 import { mapOfferingToSubscription } from "./mapOfferingToSubscription.js";
 
 interface ImportServiceConfigButtonProps {

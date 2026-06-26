@@ -17,7 +17,7 @@ import {
   assertIsResourceTemplateDocument,
   isResourceTemplateState,
   assertIsResourceTemplateState,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 import { ZodError } from "zod";
 
 describe("ResourceTemplate Document Model", () => {

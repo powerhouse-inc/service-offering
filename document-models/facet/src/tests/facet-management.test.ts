@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import {
   reducer,
   utils,
@@ -13,7 +13,7 @@ import {
   SetFacetNameInputSchema,
   setFacetDescription,
   SetFacetDescriptionInputSchema,
-} from "@powerhousedao/service-offering/document-models/facet";
+} from "document-models/facet";
 
 describe("FacetManagement Operations", () => {
   it("should handle setFacetName operation", () => {

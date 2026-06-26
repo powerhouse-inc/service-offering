@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -12,7 +12,7 @@ import {
   UpdateTemplateStatusInputSchema,
   SetOperatorInputSchema,
   SetTemplateIdInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 
 describe("TemplateManagementOperations", () => {
   it("should handle updateTemplateInfo operation", () => {

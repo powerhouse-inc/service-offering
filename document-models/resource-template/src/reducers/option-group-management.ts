@@ -1,4 +1,4 @@
-import type { ResourceTemplateOptionGroupManagementOperations } from "@powerhousedao/service-offering/document-models/resource-template";
+import type { ResourceTemplateOptionGroupManagementOperations } from "document-models/resource-template";
 
 export const resourceTemplateOptionGroupManagementOperations: ResourceTemplateOptionGroupManagementOperations =
   {

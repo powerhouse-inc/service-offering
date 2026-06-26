@@ -8,7 +8,7 @@ import {
   AddServiceFacetSelectionServiceNotFoundError,
   RemoveServiceFacetSelectionServiceNotFoundError,
 } from "../../gen/service/error.js";
-import type { SubscriptionInstanceServiceOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
+import type { SubscriptionInstanceServiceOperations } from "document-models/subscription-instance";
 
 export const subscriptionInstanceServiceOperations: SubscriptionInstanceServiceOperations =
   {

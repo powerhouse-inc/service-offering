@@ -17,7 +17,7 @@ import {
   assertIsResourceInstanceDocument,
   isResourceInstanceState,
   assertIsResourceInstanceState,
-} from "@powerhousedao/service-offering/document-models/resource-instance";
+} from "document-models/resource-instance";
 import { ZodError } from "zod";
 
 describe("ResourceInstance Document Model", () => {

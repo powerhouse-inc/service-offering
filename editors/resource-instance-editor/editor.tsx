@@ -2,13 +2,13 @@ import { useState, useCallback } from "react";
 import { generateId } from "document-model/core";
 import { DocumentToolbar } from "@powerhousedao/design-system/connect";
 import type { DocumentDispatch } from "@powerhousedao/reactor-browser";
-import { useSelectedResourceInstanceDocument } from "../../document-models/resource-instance/hooks.js";
+import { useSelectedResourceInstanceDocument } from "document-models/resource-instance";
 import type {
   ResourceInstanceAction,
   ResourceInstanceDocument,
   InstanceStatus,
   SuspensionType,
-} from "@powerhousedao/service-offering/document-models/resource-instance";
+} from "document-models/resource-instance";
 import {
   initializeInstance,
   updateInstanceInfo,
@@ -24,12 +24,12 @@ import {
   resumeAfterPayment,
   resumeAfterMaintenance,
   terminateInstance,
-} from "../../document-models/resource-instance/gen/instance-management/creators.js";
+} from "document-models/resource-instance";
 import {
   setInstanceFacet,
   removeInstanceFacet,
   updateInstanceFacet,
-} from "../../document-models/resource-instance/gen/configuration-management/creators.js";
+} from "document-models/resource-instance";
 import type { ViewMode } from "./types.js";
 import { OperatorProfilePanel } from "./components/OperatorProfilePanel.js";
 

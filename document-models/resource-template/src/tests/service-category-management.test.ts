@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import {
   reducer,
   utils,
@@ -13,7 +13,7 @@ import {
   SetSetupServicesInputSchema,
   setRecurringServices,
   SetRecurringServicesInputSchema,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 
 describe("ServiceCategoryManagement Operations", () => {
   it("should handle setSetupServices operation", () => {

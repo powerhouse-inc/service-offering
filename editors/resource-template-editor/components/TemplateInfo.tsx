@@ -7,7 +7,7 @@ import type {
   TargetAudience,
   FaqField,
   ContentSection,
-} from "@powerhousedao/service-offering/document-models/resource-template";
+} from "document-models/resource-template";
 import {
   updateTemplateInfo,
   updateTemplateStatus,
@@ -24,7 +24,7 @@ import {
   updateContentSection,
   deleteContentSection,
   reorderContentSections,
-} from "../../../document-models/resource-template/gen/creators.js";
+} from "document-models/resource-template";
 import { MarkdownEditor } from "./markdown-editor.js";
 
 interface TemplateInfoProps {

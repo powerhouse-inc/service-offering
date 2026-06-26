@@ -1,4 +1,4 @@
-import { generateMock } from "@powerhousedao/codegen";
+import { generateMock } from "document-model";
 import { describe, expect, it } from "vitest";
 import {
   reducer,
@@ -12,7 +12,7 @@ import {
   UpdateOptionInputSchema,
   RemoveOptionInputSchema,
   ReorderOptionsInputSchema,
-} from "@powerhousedao/service-offering/document-models/facet";
+} from "document-models/facet";
 
 describe("OptionManagementOperations", () => {
   it("should handle addOption operation", () => {

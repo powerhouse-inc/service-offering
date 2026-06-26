@@ -2,7 +2,7 @@ import {
   BILLING_CYCLE_MONTHS,
   type BillingCycle,
   type OptionGroup,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 
 export { BILLING_CYCLE_MONTHS };
 

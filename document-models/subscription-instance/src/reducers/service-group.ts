@@ -5,7 +5,7 @@ import {
   RemoveServiceFromGroupServiceNotFoundError,
   UpdateServiceGroupCostNotFoundError,
 } from "../../gen/service-group/error.js";
-import type { SubscriptionInstanceServiceGroupOperations } from "@powerhousedao/service-offering/document-models/subscription-instance";
+import type { SubscriptionInstanceServiceGroupOperations } from "document-models/subscription-instance";
 
 export const subscriptionInstanceServiceGroupOperations: SubscriptionInstanceServiceGroupOperations =
   {

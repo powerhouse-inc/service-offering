@@ -2,7 +2,7 @@ import type {
   SubscriptionInstanceState,
   ServiceMetric,
   DiscountInfo,
-} from "../../../document-models/subscription-instance/gen/schema/types.js";
+} from "document-models/subscription-instance";
 
 // ─── Formatting ─────────────────────────────────────────────
 

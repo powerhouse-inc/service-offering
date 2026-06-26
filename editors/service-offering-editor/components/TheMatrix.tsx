@@ -15,7 +15,7 @@ import {
   type ServiceUsageLimit,
   type BillingCycle,
   type UsageResetCycle,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   BILLING_CYCLE_SHORT_LABELS,
   BILLING_CYCLE_LABELS,
@@ -32,13 +32,13 @@ import {
   removeUsageLimit,
   addService,
   updateService,
-} from "../../../document-models/service-offering/gen/creators.js";
+} from "document-models/service-offering";
 import {
   getUserSelectionPriceBreakdown,
   type PriceBreakdown,
   type OptionGroupBreakdown,
   type AddOnBreakdown,
-} from "../../../document-models/service-offering/index.js";
+} from "document-models/service-offering";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 

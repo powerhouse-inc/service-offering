@@ -14,7 +14,7 @@ import {
   SetTierDefaultBillingCycleTierNotFoundError,
   SetTierBillingCycleDiscountsTierNotFoundError,
 } from "../../gen/tiers/error.js";
-import type { ServiceOfferingTiersOperations } from "@powerhousedao/service-offering/document-models/service-offering";
+import type { ServiceOfferingTiersOperations } from "document-models/service-offering";
 
 export const serviceOfferingTiersOperations: ServiceOfferingTiersOperations = {
   addTierOperation(state, action) {

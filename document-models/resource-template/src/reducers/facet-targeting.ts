@@ -1,4 +1,4 @@
-import type { ResourceTemplateFacetTargetingOperations } from "@powerhousedao/service-offering/document-models/resource-template";
+import type { ResourceTemplateFacetTargetingOperations } from "document-models/resource-template";
 
 export const resourceTemplateFacetTargetingOperations: ResourceTemplateFacetTargetingOperations =
   {

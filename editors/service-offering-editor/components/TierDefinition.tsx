@@ -7,13 +7,13 @@ import type {
   ServiceSubscriptionTier,
   OptionGroup,
   BillingCycle,
-} from "@powerhousedao/service-offering/document-models/service-offering";
+} from "document-models/service-offering";
 import {
   addTier,
   updateTier,
   deleteTier,
   setAvailableBillingCycles,
-} from "../../../document-models/service-offering/gen/creators.js";
+} from "document-models/service-offering";
 import { calculateTierRecurringPrice, formatPrice } from "./pricing-utils.js";
 import { InfoIcon } from "./InfoIcon.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
